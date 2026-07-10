@@ -13,7 +13,7 @@ let cachedLimiter: RateLimiter | null = null;
  * (e.g. RATE_LIMIT_PROVIDER=redis) exactly like getEmailProvider() /
  * getStorageProvider() — no call site outside this file changes.
  */
-export function getRateLimiter(): RateLimiter {
+function getRateLimiter(): RateLimiter {
   if (!cachedLimiter) {
     cachedLimiter = new MemoryRateLimiter();
   }

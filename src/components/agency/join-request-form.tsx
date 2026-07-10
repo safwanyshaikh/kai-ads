@@ -16,6 +16,8 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { API_ROUTES } from "@/lib/constants";
+import { postJson } from "@/lib/api-client";
 
 export function JoinRequestForm() {
   const [error, setError] = useState<string | null>(null);
@@ -28,22 +30,14 @@ export function JoinRequestForm() {
 
   async function onSubmit(values: CreateJoinRequestInput) {
     setError(null);
-    try {
-      const response = await fetch("/api/join-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const body = await response.json();
+    const result = await postJson<{ agencyName: string }>(API_ROUTES.joinRequests, values);
 
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Could not submit join request");
-      }
-
-      setSuccess({ agencyName: body.data.agencyName });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit join request");
+    if (!result.ok) {
+      setError(result.message ?? "Could not submit join request");
+      return;
     }
+
+    setSuccess({ agencyName: result.data!.agencyName });
   }
 
   if (success) {

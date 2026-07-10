@@ -1,5 +1,9 @@
 # KAI Ads — Sprint 001: Agency Authentication
 
+**Status: LOCKED — v0.1.0 production baseline.** See
+`project/SPRINTERS/SPRINT_001_FINAL.md` for the full completion record and
+`SPRINT_001_FIX.md` for the stabilization pass that preceded the lock.
+
 Authentication and agency onboarding module for KAI Ads. This sprint ships
 **no** Advertisement Engine, AI, Templates, Payments, or Export — those are
 future sprints. See `project/SPRINTERS/SPRINT_001.md`.
@@ -14,13 +18,16 @@ shadcn/ui · Prisma · PostgreSQL · Better Auth · React Hook Form · Zod
 - Landing Page
 - Agency Registration (with business-domain + personal-email validation)
 - Pending Approval page
-- Login: Google Workspace, Microsoft 365, Magic Link — no passwords
+- Login: Google Workspace (Workspace-restricted via verified `hd` claim),
+  Microsoft 365, Magic Link — no passwords
 - KAI Super Admin agency Approve / Reject / Suspend / Activate
 - Agency Admin UI (profile, team, join-request review)
 - Employee Join Request (auto-detects agency from email domain)
 - Dashboard placeholder (advertisement creation disabled)
 - Role-Based Access Control (KAI_SUPER_ADMIN / AGENCY_ADMIN / AGENCY_USER)
 - Full audit logging on every mutation
+- Rate limiting on every public mutation endpoint (in-memory, Redis-ready)
+- Pagination (default 25, configurable) on Agency/Team/Join-Request lists
 
 ## Getting started
 
@@ -46,13 +53,19 @@ Then sign in with that exact email via Google, Microsoft, or Magic Link.
 ## Environment variables
 
 See `.env.example` for the full contract. Required to boot:
-`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`.
+`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
+`EMAIL_PROVIDER`, `STORAGE_PROVIDER`.
 
-Everything else (Google/Microsoft OAuth, email delivery, file storage) is
-**optional at boot** — the corresponding feature reports itself as "not
-configured" and fails loudly and explicitly if actually used, rather than
-silently mocking success. This lets the app run in a degraded, fully
-truthful state until credentials are added — see `src/lib/env.ts`.
+`EMAIL_PROVIDER` and `STORAGE_PROVIDER` are mandatory with no default —
+the app refuses to start without an explicit choice, though `"none"` is a
+valid, explicit choice for local development. Choosing `"none"` reports
+the corresponding feature as disabled and fails loudly and explicitly if
+actually used, rather than silently mocking success — see `src/lib/env.ts`
+and the `NullEmailProvider`/`NullStorageProvider` adapters.
+
+Google/Microsoft OAuth credentials are optional; omitting a provider's
+credentials simply means that sign-in button isn't registered rather than
+shipping a button that goes nowhere.
 
 ## Scripts
 
@@ -77,6 +90,7 @@ src/
                             pages fetch via services and render.
   components/
     ui/                    shadcn/ui primitives
+    shared/                 Cross-feature components (e.g. pagination controls)
     <feature>/              Feature components (client interactivity only)
   lib/
     env.ts                 Single source of truth for all env vars (Zod)
@@ -85,19 +99,26 @@ src/
     rbac.ts                 Centralized permission model
     errors.ts               AppError hierarchy + handleApiError()
     logger.ts               Pino structured logger
-    constants.ts             Routes, audit action names, etc.
+    constants.ts             Routes, audit action names, rate limits, etc.
+    pagination.ts            Shared pagination schema/helpers
+    api-client.ts            Shared client-side fetch/error-parsing helper
     validations/             Zod schemas (shared by forms and API routes)
   server/
     repositories/            All Prisma access lives here — nowhere else
     services/                Business logic (registration, approval, RBAC
                               enforcement, audit logging)
     providers/
-      email/                  Email adapters: Resend, SMTP (real, not mocked)
-      storage/                Storage adapters: S3-compatible, Vercel Blob
+      email/                  Email adapters: Resend, SMTP, Null (real, not mocked)
+      storage/                Storage adapters: S3-compatible, Vercel Blob, Null
+    rate-limit/               RateLimiter interface + in-memory implementation
+    http/                     Shared API-route factories (e.g. agency lifecycle)
 prisma/
   schema.prisma
   migrations/                 Hand-authored initial migration (see note below)
   seed.ts
+tests/
+  *.test.ts                   Unit tests
+  integration/                Real-database integration test
 ```
 
 **Layering rule:** UI components never touch Prisma. Pages/API routes call
@@ -127,8 +148,19 @@ was hand-authored to mirror it exactly. On any machine/CI with normal
 internet access, `npm install` (which runs `prisma generate` via
 `postinstall`) resolves this immediately with no code changes required.
 
+Despite this, the schema and full auth/onboarding flow **have** been
+verified against a real PostgreSQL 16 instance — see
+`SPRINT_001_FIX.md` FIX-001/FIX-002 for exactly how, and the caveats that
+come with that substitution.
+
 ## Testing
 
-`npm test` runs Vitest unit tests covering personal-email/domain
-validation, RBAC permission matrix, and the agency registration Zod
-schema. These do not require a database connection.
+`npm test` (auto-loads `.env`) runs 39 tests across 6 files:
+
+- `tests/integration/e2e-flow.test.ts` — the full Registration → Pending
+  Approval → Admin Approval → Login → Employee Join Request → Approval →
+  Dashboard flow against a **real PostgreSQL instance**. Skips
+  automatically if `DATABASE_URL` isn't reachable.
+- Unit tests covering RBAC, personal-email/domain validation, the agency
+  registration Zod schema, pagination math, and the in-memory rate
+  limiter — none of these require a database connection.

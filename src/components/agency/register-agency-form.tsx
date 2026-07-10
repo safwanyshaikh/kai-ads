@@ -17,13 +17,14 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { APP_ROUTES } from "@/lib/constants";
+import { API_ROUTES, APP_ROUTES } from "@/lib/constants";
+import { postJson } from "@/lib/api-client";
 
 async function uploadLogo(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch("/api/uploads/logo", {
+  const response = await fetch(API_ROUTES.uploadLogo, {
     method: "POST",
     body: formData,
   });
@@ -75,22 +76,14 @@ export function RegisterAgencyForm() {
 
   async function onSubmit(values: RegisterAgencyInput) {
     setSubmitError(null);
-    try {
-      const response = await fetch("/api/agencies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const body = await response.json();
+    const result = await postJson(API_ROUTES.agencies, values);
 
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Registration failed");
-      }
-
-      router.push(APP_ROUTES.pendingApproval);
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Registration failed");
+    if (!result.ok) {
+      setSubmitError(result.message ?? "Registration failed");
+      return;
     }
+
+    router.push(APP_ROUTES.pendingApproval);
   }
 
   return (

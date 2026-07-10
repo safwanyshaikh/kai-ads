@@ -21,7 +21,6 @@ const envSchema = z.object({
     .default("development"),
 
   // App
-  APP_NAME: z.string().default("KAI Ads"),
   APP_URL: z.string().url().default("http://localhost:3000"),
 
   // Database
@@ -84,7 +83,7 @@ const envSchema = z.object({
     .default("info"),
 });
 
-export type Env = z.infer<typeof envSchema>;
+type Env = z.infer<typeof envSchema>;
 
 let cachedEnv: Env | null = null;
 

@@ -1,25 +1,33 @@
 import { domainRepository } from "@/server/repositories/domain.repository";
 import { agencyRepository } from "@/server/repositories/agency.repository";
+import { AppError } from "@/lib/errors";
 import { extractDomain } from "./email-validation.service";
 
 /**
  * Business Domain Validation — Sprint 001:
  * "Reject Duplicate Domain" during registration,
  * "System Detects Domain" during Employee Join Request.
+ *
+ * Both extend AppError (not plain Error) so handleApiError() maps them to
+ * the correct HTTP status instead of falling through to a generic 500.
  */
-export class DuplicateDomainError extends Error {
+export class DuplicateDomainError extends AppError {
   constructor(domain: string) {
-    super(`The domain "${domain}" is already registered to another agency.`);
-    this.name = "DuplicateDomainError";
+    super(
+      `The domain "${domain}" is already registered to another agency.`,
+      409,
+      "DUPLICATE_DOMAIN",
+    );
   }
 }
 
-export class DomainNotFoundError extends Error {
+export class DomainNotFoundError extends AppError {
   constructor(domain: string) {
     super(
       `No agency is registered with the domain "${domain}". Ask your agency admin to register first, or contact support.`,
+      404,
+      "DOMAIN_NOT_FOUND",
     );
-    this.name = "DomainNotFoundError";
   }
 }
 

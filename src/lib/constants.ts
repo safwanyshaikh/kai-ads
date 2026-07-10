@@ -11,12 +11,10 @@ export const APP_ROUTES = {
   join: "/join",
   dashboard: "/dashboard",
   dashboardAgency: "/dashboard/agency",
-  dashboardEmployees: "/dashboard/employees",
   adminAgencies: "/admin/agencies",
 } as const;
 
 export const API_ROUTES = {
-  auth: "/api/auth",
   agencies: "/api/agencies",
   agencyApprove: (id: string) => `/api/agencies/${id}/approve`,
   agencyReject: (id: string) => `/api/agencies/${id}/reject`,
@@ -26,6 +24,7 @@ export const API_ROUTES = {
   joinRequestApprove: (id: string) => `/api/join-requests/${id}/approve`,
   joinRequestReject: (id: string) => `/api/join-requests/${id}/reject`,
   employees: "/api/employees",
+  uploadLogo: "/api/uploads/logo",
 } as const;
 
 export const AUDIT_ACTIONS = {
@@ -37,12 +36,7 @@ export const AUDIT_ACTIONS = {
   joinRequestCreated: "join_request.created",
   joinRequestApproved: "join_request.approved",
   joinRequestRejected: "join_request.rejected",
-  userSignedIn: "user.signed_in",
 } as const;
-
-export const MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024;
-
-export const SESSION_COOKIE_NAME = "kai_ads.session";
 
 export const RATE_LIMITS = {
   agencyRegistration: { limit: 5, windowSeconds: 60 * 60 },

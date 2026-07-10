@@ -5,21 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { API_ROUTES } from "@/lib/constants";
+import { postJson } from "@/lib/api-client";
 import type { AgencyStatus } from "@prisma/client";
-
-async function callAction(
-  url: string,
-  reason?: string,
-): Promise<{ ok: boolean; message?: string }> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(reason ? { reason } : {}),
-  });
-  if (response.ok) return { ok: true };
-  const body = await response.json().catch(() => null);
-  return { ok: false, message: body?.error?.message ?? "Action failed" };
-}
 
 export function AgencyActions({
   agencyId,
@@ -44,7 +31,7 @@ export function AgencyActions({
         activate: API_ROUTES.agencyActivate(agencyId),
       }[action];
 
-      const result = await callAction(url, withReason);
+      const result = await postJson(url, withReason ? { reason: withReason } : undefined);
       if (!result.ok) {
         setError(result.message ?? "Action failed");
         return;

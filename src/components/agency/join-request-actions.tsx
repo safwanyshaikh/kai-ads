@@ -4,13 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { API_ROUTES } from "@/lib/constants";
-
-async function callAction(url: string): Promise<{ ok: boolean; message?: string }> {
-  const response = await fetch(url, { method: "POST" });
-  if (response.ok) return { ok: true };
-  const body = await response.json().catch(() => null);
-  return { ok: false, message: body?.error?.message ?? "Action failed" };
-}
+import { postJson } from "@/lib/api-client";
 
 export function JoinRequestActions({ joinRequestId }: { joinRequestId: string }) {
   const router = useRouter();
@@ -24,7 +18,7 @@ export function JoinRequestActions({ joinRequestId }: { joinRequestId: string })
         action === "approve"
           ? API_ROUTES.joinRequestApprove(joinRequestId)
           : API_ROUTES.joinRequestReject(joinRequestId);
-      const result = await callAction(url);
+      const result = await postJson(url);
       if (!result.ok) {
         setError(result.message ?? "Action failed");
         return;

@@ -49,7 +49,7 @@ export interface AuthorizableUser {
 }
 
 /** Active users only. PENDING/SUSPENDED users cannot use protected features. */
-export function isActiveUser(user: AuthorizableUser): boolean {
+function isActiveUser(user: AuthorizableUser): boolean {
   return user.status === "ACTIVE";
 }
 
