@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kai_ads
+      POSTGRES_PASSWORD: kai_ads
+      POSTGRES_DB: kai_ads
+    ports:
+      - "5432:5432"
+    volumes:
+      - kai_ads_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kai_ads"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://kai_ads:kai_ads@postgres:5432/kai_ads?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  kai_ads_postgres_data:

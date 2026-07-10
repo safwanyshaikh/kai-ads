@@ -1,0 +1,229 @@
+// KAI Ads — Sprint 001: Authentication & Onboarding
+// Prisma schema. PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum AgencyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum UserRole {
+  KAI_SUPER_ADMIN
+  AGENCY_ADMIN
+  AGENCY_USER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum ApprovalTargetType {
+  AGENCY
+  JOIN_REQUEST
+}
+
+enum ApprovalDecision {
+  APPROVE
+  REJECT
+  SUSPEND
+  ACTIVATE
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ---------------------------------------------------------------------------
+// Core domain models
+// ---------------------------------------------------------------------------
+
+model Agency {
+  id                 String       @id @default(cuid())
+  name               String
+  registrationNumber String       @unique
+  website            String
+  officialEmail      String       @unique
+  logoUrl            String
+  secondaryLogoUrl   String?
+  status             AgencyStatus @default(PENDING)
+
+  domains      Domain[]
+  users        User[]
+  joinRequests JoinRequest[]
+  approvals    Approval[]
+  auditLogs    AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("agencies")
+}
+
+model Domain {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  agencyId  String
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([agencyId])
+  @@map("domains")
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String
+  email         String     @unique
+  emailVerified Boolean    @default(false)
+  image         String?
+  role          UserRole   @default(AGENCY_USER)
+  status        UserStatus @default(PENDING)
+
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+
+  sessions      Session[]
+  accounts      Account[]
+  joinRequests  JoinRequest[] @relation("JoinRequestUser")
+  reviewedJoins JoinRequest[] @relation("JoinRequestReviewer")
+  approvalsMade Approval[]    @relation("ApprovalActor")
+  auditLogs     AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId])
+  @@index([role])
+  @@map("users")
+}
+
+model JoinRequest {
+  id       String            @id @default(cuid())
+  userId   String
+  user     User              @relation("JoinRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  agencyId String
+  agency   Agency            @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  status   JoinRequestStatus @default(PENDING)
+
+  reviewedById String?
+  reviewedBy   User?     @relation("JoinRequestReviewer", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId, status])
+  @@map("join_requests")
+}
+
+model Approval {
+  id         String             @id @default(cuid())
+  targetType ApprovalTargetType
+  targetId   String
+  decision   ApprovalDecision
+  reason     String?
+
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  actorId String
+  actor   User   @relation("ApprovalActor", fields: [actorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@map("approvals")
+}
+
+model AuditLog {
+  id       String  @id @default(cuid())
+  action   String
+  entity   String
+  entityId String
+  metadata Json?
+
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([agencyId])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Better Auth required models
+// https://www.better-auth.com/docs/concepts/database
+// ---------------------------------------------------------------------------
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verifications")
+}
