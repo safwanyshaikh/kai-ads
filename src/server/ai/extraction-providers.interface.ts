@@ -1,4 +1,5 @@
 import type { AiExtractionInput, AiExtractionResult } from "./types";
+import type { ExtractionResult } from "./extraction-result.schema";
 
 /**
  * Requirement Extraction Interface
@@ -92,4 +93,28 @@ export interface InterviewDetectionProvider {
   detectInterview(
     input: AiExtractionInput,
   ): Promise<AiExtractionResult<ExtractedInterview>>;
+}
+
+/**
+ * Composite Extraction — an OPTIONAL 8th capability, not one of the
+ * seven required interfaces above. A provider that can do the whole
+ * extraction in one call (as the OpenAI-backed implementation does)
+ * exposes this so callers get the full, richer result — confidence per
+ * field, warnings, trade summaries, project type — in one round trip
+ * instead of reassembling it from seven separate calls. A provider that
+ * only implements the seven required interfaces simply doesn't offer
+ * this; callers fall back to composing the seven individually.
+ */
+interface CompositeExtractionUsage {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  latencyMs: number;
+  model: string;
+}
+
+export interface CompositeExtractionProvider {
+  readonly name: string;
+  extractAll(
+    input: AiExtractionInput,
+  ): Promise<{ result: AiExtractionResult<ExtractionResult>; usage: CompositeExtractionUsage }>;
 }

@@ -77,6 +77,14 @@ const envSchema = z.object({
       "gmail.com,yahoo.com,outlook.com,hotmail.com,live.com,icloud.com,aol.com,proton.me,protonmail.com,zoho.com,mail.com,gmx.com,yandex.com,rediffmail.com",
     ),
 
+  // KAI Intelligence Engine (Sprint 003) — optional at boot, same pattern
+  // as Google/Microsoft OAuth: the feature is unavailable without these,
+  // but the app still starts. Model names are never hardcoded anywhere
+  // else in the codebase — every AI call resolves them from here.
+  OPENAI_API_KEY: z.string().optional(),
+  KAI_TEXT_MODEL: z.string().default("gpt-4.1-mini"),
+  KAI_VISION_MODEL: z.string().default("gpt-4.1-mini"),
+
   // Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
@@ -120,6 +128,7 @@ export function getIntegrationStatus(env: Env = getEnv()) {
     ),
     email: env.EMAIL_PROVIDER !== "none",
     storage: env.STORAGE_PROVIDER !== "none",
+    openai: Boolean(env.OPENAI_API_KEY),
   };
 }
 

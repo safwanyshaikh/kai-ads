@@ -2,7 +2,10 @@ import type { Prisma } from "@prisma/client";
 import { advertisementDraftRepository } from "@/server/repositories/advertisement-draft.repository";
 import { advertisementService } from "@/server/services/advertisement.service";
 import { auditLogService } from "@/server/services/audit-log.service";
-import { getAiExtractionToolkit, AiProviderNotImplementedError } from "@/server/ai";
+import { costTrackingService } from "@/server/services/cost-tracking.service";
+import { runKaiIntelligenceEngine } from "@/server/ai/kai-intelligence-engine";
+import { AiProviderNotImplementedError } from "@/server/ai";
+import type { AiExtractionToolkit } from "@/server/ai";
 import { AUDIT_ACTIONS } from "@/lib/constants";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { paginate, toSkipTake, type PaginationParams } from "@/lib/pagination";
@@ -52,41 +55,54 @@ export const advertisementDraftService = {
   },
 
   /**
-   * AI Extraction Review — runs every configured extraction provider
-   * against the draft's raw text. Sprint 002 ships architecture only, so
-   * every provider is a NotImplemented stand-in: this method is expected
-   * to fail today, and does so onto a clearly-labeled EXTRACTION_FAILED
-   * state rather than crashing the request — the review screen falls
-   * back to manual entry, which is the whole point of storing
-   * `reviewedData` as a separate field from `extractedData`.
+   * AI Extraction Review — runs the KAI Intelligence Engine (Sprint 003:
+   * a real OpenAI-backed implementation when OPENAI_API_KEY is set,
+   * otherwise the Sprint 002 NotImplemented stand-ins) against the
+   * draft's pasted text or uploaded file. Every operation is recorded to
+   * AiUsageLog regardless of outcome (Cost Tracking / Error Handling:
+   * "Record ... Success or failure").
+   *
+   * On failure — including the everyday "AI not configured" case — the
+   * draft moves to EXTRACTION_FAILED with a clear extractionError rather
+   * than throwing, so the caller (the API route) always gets a 200 with
+   * a draft the review screen can fall back to manual entry on. The
+   * recruiter's original input (rawText/sourceFileUrl) is never touched.
+   *
+   * `toolkit` is a dependency-injection seam: tests pass a deterministic
+   * fake toolkit here instead of touching OpenAI at all.
    */
-  async runExtraction(id: string, agencyId: string) {
+  async runExtraction(id: string, agencyId: string, actorId?: string, toolkit?: AiExtractionToolkit) {
     const draft = await advertisementDraftService.getById(id, agencyId);
 
-    if (!draft.rawText) {
-      throw new ConflictError(
-        "This draft has no extractable text yet. Uploaded files are stored but not yet OCR'd/parsed in this sprint — enter the advertisement details manually.",
-      );
+    if (!draft.rawText && !draft.sourceFileUrl) {
+      throw new ConflictError("This draft has no requirement text or file to extract from.");
     }
 
-    const toolkit = getAiExtractionToolkit();
-    const input = { text: draft.rawText, sourceType: draft.sourceType };
-
+    const startedAt = Date.now();
     try {
-      const [requirements, industry, country, employer, salary, interview] = await Promise.all([
-        toolkit.requirementExtraction.extractRequirements(input),
-        toolkit.industryDetection.detectIndustry(input),
-        toolkit.countryDetection.detectCountry(input),
-        toolkit.employerDetection.detectEmployer(input),
-        toolkit.salaryDetection.detectSalary(input),
-        toolkit.interviewDetection.detectInterview(input),
-      ]);
+      const outcome = await runKaiIntelligenceEngine({
+        sourceType: draft.sourceType,
+        rawText: draft.rawText,
+        sourceFileUrl: draft.sourceFileUrl,
+        toolkit,
+      });
 
-      const extractedData = { requirements, industry, country, employer, salary, interview };
+      await costTrackingService.record({
+        operationType: "COMPOSITE_EXTRACTION",
+        provider: outcome.provider,
+        model: outcome.model ?? "unknown",
+        inputTokens: outcome.inputTokens,
+        outputTokens: outcome.outputTokens,
+        latencyMs: outcome.latencyMs,
+        success: true,
+        agencyId,
+        userId: actorId,
+        advertisementDraftId: id,
+      });
 
       return advertisementDraftRepository.update(id, {
         status: "EXTRACTED",
-        extractedData: extractedData as unknown as Prisma.InputJsonValue,
+        extractedData: outcome.result as unknown as Prisma.InputJsonValue,
         extractionError: null,
       });
     } catch (error) {
@@ -96,6 +112,20 @@ export const advertisementDraftService = {
           : error instanceof Error
             ? error.message
             : "AI extraction failed";
+
+      await costTrackingService.record({
+        operationType: "COMPOSITE_EXTRACTION",
+        provider: "openai",
+        model: "unknown",
+        inputTokens: null,
+        outputTokens: null,
+        latencyMs: Date.now() - startedAt,
+        success: false,
+        errorMessage: message,
+        agencyId,
+        userId: actorId,
+        advertisementDraftId: id,
+      });
 
       log.warn({ draftId: id, err: error }, "AI extraction unavailable");
 

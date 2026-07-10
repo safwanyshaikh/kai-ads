@@ -83,6 +83,17 @@ enum AdvertisementDraftStatus {
   DISCARDED
 }
 
+enum AiOperationType {
+  REQUIREMENT_EXTRACTION
+  TRADE_SUMMARY
+  INDUSTRY_DETECTION
+  COUNTRY_DETECTION
+  EMPLOYER_DETECTION
+  SALARY_DETECTION
+  INTERVIEW_DETECTION
+  COMPOSITE_EXTRACTION
+}
+
 // ---------------------------------------------------------------------------
 // Core domain models
 // ---------------------------------------------------------------------------
@@ -105,6 +116,8 @@ model Agency {
 
   advertisements       Advertisement[]
   advertisementDrafts  AdvertisementDraft[]
+  contacts             AgencyContact[]
+  aiUsageLogs          AiUsageLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -147,6 +160,8 @@ model User {
   advertisementVersions AdvertisementVersion[] @relation("AdvertisementVersionCreatedBy")
   advertisementHistory  AdvertisementHistory[] @relation("AdvertisementHistoryActor")
   advertisementDrafts   AdvertisementDraft[]   @relation("AdvertisementDraftCreatedBy")
+  createdContacts       AgencyContact[]        @relation("AgencyContactCreatedBy")
+  aiUsageLogs           AiUsageLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -323,9 +338,11 @@ model AdvertisementDraft {
   rawText       String? // Paste Requirement input
   sourceFileUrl String? // Upload PDF / DOCX / Image / WhatsApp Screenshot
 
-  // AI Extraction Review — populated by a RequirementExtractionProvider
-  // implementation in a future sprint. Nullable: Sprint 002 ships the
-  // provider interfaces only, so this stays empty until one is wired in.
+  // AI Extraction Review — populated by the KAI Intelligence Engine
+  // (Sprint 003: a real OpenAI-backed implementation of the Sprint 002
+  // provider interfaces). Nullable: extraction can fail (missing API key,
+  // provider timeout, unsupported file) without losing the recruiter's
+  // original rawText/sourceFileUrl — see extractionError.
   extractedData Json?
   extractionError String?
 
@@ -348,6 +365,78 @@ model AdvertisementDraft {
   @@index([agencyId, status])
   @@index([createdById])
   @@map("advertisement_drafts")
+}
+
+// ---------------------------------------------------------------------------
+// KAI Recruitment Intelligence Engine (Sprint 003)
+// ---------------------------------------------------------------------------
+
+/**
+ * Contact Directory — "Do not ask the recruiter to type contact
+ * information repeatedly." A reusable set of agency contacts selectable
+ * on the AI Extraction Review screen; selecting one prefills the
+ * Advertisement's `contact` Json block. No FK from Advertisement back to
+ * here — the contact data is copied into the ad at save time (an ad's
+ * contact block must stay correct even if the source contact is later
+ * edited or removed), matching "Everything editable" per block.
+ */
+model AgencyContact {
+  id       String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  name        String
+  mobile      String?
+  whatsapp    String?
+  email       String?
+  designation String?
+
+  createdById String
+  createdBy   User   @relation("AgencyContactCreatedBy", fields: [createdById], references: [id])
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId, deletedAt])
+  @@map("agency_contacts")
+}
+
+/**
+ * Cost Tracking — one row per AI operation. Never surfaced to normal
+ * agency users (see src/server/ai README notes); exists so a future
+ * credit/billing system has real usage data to calculate from on day one
+ * instead of needing a backfill.
+ */
+model AiUsageLog {
+  id String @id @default(cuid())
+
+  operationType AiOperationType
+  provider      String // e.g. "openai" — never shown to agency users
+  model         String // e.g. the resolved KAI_TEXT_MODEL/KAI_VISION_MODEL value
+
+  inputTokens  Int?
+  outputTokens Int?
+  estimatedCostUsd Decimal? @db.Decimal(10, 6)
+  latencyMs    Int?
+
+  success      Boolean
+  errorMessage String?
+
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  advertisementDraftId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([agencyId, createdAt])
+  @@index([operationType])
+  @@map("ai_usage_logs")
 }
 
 

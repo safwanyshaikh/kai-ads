@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createAdvertisementSchema, type CreateAdvertisementInput } from "@/lib/validations/advertisement";
@@ -15,6 +16,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { API_ROUTES } from "@/lib/constants";
+
+interface SavedContact {
+  id: string;
+  name: string;
+  mobile: string | null;
+  whatsapp: string | null;
+  email: string | null;
+  designation: string | null;
+}
 
 export const EMPTY_ADVERTISEMENT_CONTENT: CreateAdvertisementInput = {
   header: "",
@@ -53,6 +64,26 @@ export function AdvertisementContentForm({
 
   const positions = useFieldArray({ control: form.control, name: "positions" });
   const benefits = useFieldArray({ control: form.control, name: "benefits" });
+
+  const [savedContacts, setSavedContacts] = useState<SavedContact[]>([]);
+
+  useEffect(() => {
+    fetch(API_ROUTES.contacts)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (body?.data) setSavedContacts(body.data);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  function applySavedContact(contactId: string) {
+    const contact = savedContacts.find((c) => c.id === contactId);
+    if (!contact) return;
+    form.setValue("contact.name", contact.name, { shouldDirty: true });
+    form.setValue("contact.phone", contact.mobile ?? "", { shouldDirty: true });
+    form.setValue("contact.email", contact.email ?? "", { shouldDirty: true });
+    form.setValue("contact.whatsapp", contact.whatsapp ?? "", { shouldDirty: true });
+  }
 
   return (
     <Form {...form}>
@@ -261,6 +292,24 @@ export function AdvertisementContentForm({
             <CardTitle className="text-base">Contact</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
+            {savedContacts.length > 0 && (
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium">Use a saved contact</label>
+                <select
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                  defaultValue=""
+                  onChange={(e) => e.target.value && applySavedContact(e.target.value)}
+                >
+                  <option value="">Choose from directory…</option>
+                  {savedContacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.designation ? ` (${c.designation})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <FormField
               control={form.control}
               name="contact.name"

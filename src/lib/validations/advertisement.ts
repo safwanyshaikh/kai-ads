@@ -80,4 +80,4 @@ export const advertisementSearchQuerySchema = z.object({
   includeDeleted: z.coerce.boolean().default(false),
   includeArchived: z.coerce.boolean().default(true),
 });
-export type AdvertisementSearchQuery = z.infer<typeof advertisementSearchQuerySchema>;
+

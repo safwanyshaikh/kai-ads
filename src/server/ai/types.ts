@@ -16,7 +16,10 @@
 
 export interface AiExtractionInput {
   /** Plain text to extract from — already OCR'd/parsed if the source was a file. */
-  text: string;
+  text?: string;
+  /** Set instead of `text` for image/WhatsApp-screenshot input — the vision model reads it directly. */
+  imageBase64?: string;
+  imageMimeType?: string;
   /** Optional hint about where the text came from, for provider tuning. */
   sourceType?: "PASTE_TEXT" | "PDF" | "DOCX" | "IMAGE" | "WHATSAPP_SCREENSHOT";
 }

@@ -4,18 +4,20 @@ import { getCurrentUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { agencyService } from "@/server/services/agency.service";
 import { joinRequestService } from "@/server/services/join-request.service";
+import { agencyContactService } from "@/server/services/agency-contact.service";
 import { paginationQuerySchema } from "@/lib/pagination";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AgencyStatusBadge } from "@/components/agency/agency-status-badge";
 import { JoinRequestActions } from "@/components/agency/join-request-actions";
+import { ContactDirectoryManager } from "@/components/advertisement/contact-directory-manager";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { APP_ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Agency" };
 
-/** Agency Admin UI — manage own agency profile, team, and join requests. Both lists paginate independently. */
+/** Agency Admin UI — manage own agency profile, team, join requests, and contact directory. */
 export default async function AgencyAdminPage({
   searchParams,
 }: {
@@ -30,12 +32,13 @@ export default async function AgencyAdminPage({
   const teamPagination = paginationQuerySchema.parse({ page: params.teamPage, pageSize: params.pageSize });
   const requestsPagination = paginationQuerySchema.parse({ page: params.requestsPage, pageSize: params.pageSize });
 
-  const [agency, teamPage, requestsPage] = await Promise.all([
+  const [agency, teamPage, requestsPage, contacts] = await Promise.all([
     agencyService.getById(user.agencyId),
     agencyService.listEmployeesPaginated(user.agencyId, teamPagination),
     can(user, "join_request:review")
       ? joinRequestService.listForAgencyPaginated(user.agencyId, requestsPagination)
       : Promise.resolve({ data: [], page: 1, pageSize: 25, total: 0, totalPages: 1 }),
+    can(user, "advertisement:view") ? agencyContactService.list(user.agencyId) : Promise.resolve([]),
   ]);
 
   type Employee = (typeof teamPage.data)[number];
@@ -128,6 +131,21 @@ export default async function AgencyAdminPage({
                 total={requestsPage.total}
                 pageParam="requestsPage"
               />
+            </CardContent>
+          </Card>
+        )}
+
+        {can(user, "advertisement:view") && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Contact Directory</CardTitle>
+              <CardDescription>
+                Saved contacts recruiters can attach to an advertisement
+                instead of retyping details every time.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ContactDirectoryManager initialContacts={contacts} />
             </CardContent>
           </Card>
         )}

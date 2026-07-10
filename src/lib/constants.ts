@@ -46,6 +46,8 @@ export const API_ROUTES = {
   advertisementDraftSave: (id: string) => `/api/advertisement-drafts/${id}/save`,
   advertisementDraftDiscard: (id: string) => `/api/advertisement-drafts/${id}/discard`,
   uploadAdvertisementSource: "/api/uploads/advertisement-source",
+  contacts: "/api/contacts",
+  contact: (id: string) => `/api/contacts/${id}`,
 } as const;
 
 export const AUDIT_ACTIONS = {
@@ -70,6 +72,9 @@ export const AUDIT_ACTIONS = {
   advertisementDraftStyleSelected: "advertisement_draft.style_selected",
   advertisementDraftSaved: "advertisement_draft.saved",
   advertisementDraftDiscarded: "advertisement_draft.discarded",
+  agencyContactCreated: "agency_contact.created",
+  agencyContactUpdated: "agency_contact.updated",
+  agencyContactDeleted: "agency_contact.deleted",
 } as const;
 
 export const RATE_LIMITS = {

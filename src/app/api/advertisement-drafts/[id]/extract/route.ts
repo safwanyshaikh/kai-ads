@@ -17,7 +17,7 @@ export async function POST(
   try {
     const user = await requireAgencyMember("advertisement:create");
     const { id } = await params;
-    const draft = await advertisementDraftService.runExtraction(id, user.agencyId);
+    const draft = await advertisementDraftService.runExtraction(id, user.agencyId, user.id);
     return NextResponse.json({ data: draft });
   } catch (error) {
     return handleApiError(error);
