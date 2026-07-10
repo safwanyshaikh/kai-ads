@@ -8,6 +8,7 @@ import { assertBusinessEmail } from "@/server/services/email-validation.service"
 import { resolveAgencyByEmailDomain } from "@/server/services/domain-validation.service";
 import { AUDIT_ACTIONS } from "@/lib/constants";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { paginate, toSkipTake, type PaginationParams } from "@/lib/pagination";
 import type { CreateJoinRequestInput } from "@/lib/validations/join-request";
 
 export const joinRequestService = {
@@ -65,6 +66,15 @@ export const joinRequestService = {
 
   async listForAgency(agencyId: string) {
     return joinRequestRepository.listByAgency(agencyId, "PENDING");
+  },
+
+  async listForAgencyPaginated(agencyId: string, pagination: PaginationParams) {
+    const { skip, take } = toSkipTake(pagination);
+    const [data, total] = await Promise.all([
+      joinRequestRepository.listByAgencyPaginated(agencyId, "PENDING", skip, take),
+      joinRequestRepository.countByAgency(agencyId, "PENDING"),
+    ]);
+    return paginate(data, total, pagination);
   },
 
   async approve(joinRequestId: string, actorId: string) {

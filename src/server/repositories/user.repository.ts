@@ -28,6 +28,19 @@ export const userRepository = {
     });
   },
 
+  listByAgencyPaginated(agencyId: string, skip: number, take: number): Promise<User[]> {
+    return db.user.findMany({
+      where: { agencyId },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    });
+  },
+
+  countByAgency(agencyId: string): Promise<number> {
+    return db.user.count({ where: { agencyId } });
+  },
+
   countAdminsForAgency(agencyId: string): Promise<number> {
     return db.user.count({
       where: { agencyId, role: "AGENCY_ADMIN", status: "ACTIVE" },

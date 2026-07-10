@@ -43,7 +43,12 @@ const envSchema = z.object({
   MICROSOFT_TENANT_ID: z.string().default("common"),
 
   // Magic Link email delivery
-  EMAIL_PROVIDER: z.enum(["resend", "smtp", "none"]).default("none"),
+  // FIX-004: mandatory, no default — app fails to start until an explicit
+  // choice is made ("none" is a valid, explicit choice; unset is not).
+  EMAIL_PROVIDER: z.enum(["resend", "smtp", "none"], {
+    error: () =>
+      "EMAIL_PROVIDER is required. Set it to \"resend\", \"smtp\", or \"none\" (explicit opt-out) — there is no default.",
+  }),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().email().optional(),
   SMTP_HOST: z.string().optional(),
@@ -53,7 +58,11 @@ const envSchema = z.object({
   SMTP_SECURE: z.coerce.boolean().optional(),
 
   // File storage (agency logos)
-  STORAGE_PROVIDER: z.enum(["s3", "vercel-blob", "none"]).default("none"),
+  // FIX-005: mandatory, no default — same rationale as EMAIL_PROVIDER.
+  STORAGE_PROVIDER: z.enum(["s3", "vercel-blob", "none"], {
+    error: () =>
+      "STORAGE_PROVIDER is required. Set it to \"s3\", \"vercel-blob\", or \"none\" (explicit opt-out) — there is no default.",
+  }),
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_REGION: z.string().optional(),
   STORAGE_ACCESS_KEY_ID: z.string().optional(),

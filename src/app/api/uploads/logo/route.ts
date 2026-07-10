@@ -2,16 +2,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { storageService, InvalidFileError } from "@/server/services/storage.service";
 import { handleApiError, AppError } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
+import { enforceRateLimit } from "@/server/rate-limit";
+import { RATE_LIMITS } from "@/lib/constants";
 
 const log = createLogger("api:uploads:logo");
 
 /**
  * POST /api/uploads/logo — multipart/form-data with field "file".
  * Public (used during agency registration, before an account exists).
- * Returns the storage URL to embed in the registration payload.
+ * Rate limited per IP. Returns the storage URL to embed in the
+ * registration payload.
  */
 export async function POST(request: NextRequest) {
   try {
+    await enforceRateLimit(request, "uploads:logo", RATE_LIMITS.logoUpload);
+
     if (!storageService.isConfigured) {
       throw new AppError(
         "File storage is not configured yet. Set STORAGE_PROVIDER and its credentials.",

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, Agency } from "@prisma/client";
 import { agencyRepository } from "@/server/repositories/agency.repository";
 import { userRepository } from "@/server/repositories/user.repository";
 import { auditLogService } from "@/server/services/audit-log.service";
@@ -9,6 +9,7 @@ import { assertDomainIsAvailable } from "@/server/services/domain-validation.ser
 import { AUDIT_ACTIONS } from "@/lib/constants";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
+import { paginate, toSkipTake, type PaginationParams, type Paginated } from "@/lib/pagination";
 import type { RegisterAgencyInput } from "@/lib/validations/agency";
 
 const log = createLogger("agency-service");
@@ -92,6 +93,15 @@ export const agencyService = {
 
   async listAll(params: { skip?: number; take?: number } = {}) {
     return agencyRepository.findMany(params);
+  },
+
+  async listAllPaginated(pagination: PaginationParams): Promise<Paginated<Agency>> {
+    const { skip, take } = toSkipTake(pagination);
+    const [data, total] = await Promise.all([
+      agencyRepository.findMany({ skip, take }),
+      agencyRepository.count({}),
+    ]);
+    return paginate(data, total, pagination);
   },
 
   async getById(id: string) {
@@ -252,5 +262,14 @@ export const agencyService = {
 
   async listEmployees(agencyId: string) {
     return userRepository.listByAgency(agencyId);
+  },
+
+  async listEmployeesPaginated(agencyId: string, pagination: PaginationParams) {
+    const { skip, take } = toSkipTake(pagination);
+    const [data, total] = await Promise.all([
+      userRepository.listByAgencyPaginated(agencyId, skip, take),
+      userRepository.countByAgency(agencyId),
+    ]);
+    return paginate(data, total, pagination);
   },
 };

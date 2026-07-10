@@ -12,6 +12,17 @@ const log = createLogger("auth");
 const env = getEnv();
 const integrations = getIntegrationStatus(env);
 
+// FIX-008 (HTTPS): refuse to boot in production with a non-HTTPS auth URL.
+// Better Auth issues Secure cookies in production (see advanced.useSecureCookies
+// below); those cookies are silently dropped by browsers over plain HTTP,
+// which would look like "login doesn't work" rather than a clear config error.
+if (env.NODE_ENV === "production" && !env.BETTER_AUTH_URL.startsWith("https://")) {
+  throw new Error(
+    `BETTER_AUTH_URL must use https:// in production (got "${env.BETTER_AUTH_URL}"). ` +
+      "Secure cookies will not be sent over plain HTTP.",
+  );
+}
+
 /**
  * Better Auth server instance.
  *
@@ -31,6 +42,10 @@ export const auth = betterAuth({
 
   database: prismaAdapter(db, { provider: "postgresql" }),
 
+  // FIX-008: origin/redirect validation is scoped to APP_URL /
+  // BETTER_AUTH_URL explicitly rather than left to library inference.
+  trustedOrigins: [env.APP_URL, env.BETTER_AUTH_URL],
+
   user: {
     additionalFields: {
       role: { type: "string", input: false, defaultValue: "AGENCY_USER" },
@@ -39,9 +54,13 @@ export const auth = betterAuth({
     },
   },
 
+  // FIX-008 (Session Expiry / Refresh Strategy): 7-day session, rolling
+  // refresh once per day of activity — a session that's used daily never
+  // expires; one that goes untouched for 7 days does. No "remember me"
+  // forever-session exists.
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24, // refresh once per day
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
   },
 
   socialProviders: {
@@ -50,8 +69,17 @@ export const auth = betterAuth({
           google: {
             clientId: env.GOOGLE_CLIENT_ID!,
             clientSecret: env.GOOGLE_CLIENT_SECRET!,
-            // Business email only — personal Gmail accounts are rejected
-            // at the callback hook below, matching the Golden Rule.
+            // FIX-007: `hd: "*"` requires (and Better Auth verifies against
+            // the id token's `hd` claim) that the account belongs to SOME
+            // Google Workspace hosted domain. Personal @gmail.com accounts
+            // have no `hd` claim and are rejected by Better Auth itself
+            // before a session is ever created — this is enforced by the
+            // library against Google's signed token, not just our
+            // databaseHooks personal-email check below. The two are
+            // intentionally layered: this catches it at the OAuth
+            // callback; the databaseHooks check below is defense in depth
+            // for every other signup path (magic link, Microsoft).
+            hd: "*",
           },
         }
       : {}),
@@ -91,6 +119,26 @@ export const auth = betterAuth({
     database: {
       generateId: false, // let Prisma's cuid() default handle IDs
     },
+    // FIX-008 (Secure Cookies): explicit rather than relying on the
+    // library default, so this is auditable in one place. Better Auth
+    // already secures cookies in production by default — this makes that
+    // fact a line of code, not an assumption.
+    useSecureCookies: env.NODE_ENV === "production",
+    // FIX-008 (SameSite): "lax" allows the OAuth redirect flow (Google/
+    // Microsoft send the browser back to our domain via a top-level
+    // navigation, which Lax permits) while still blocking cross-site
+    // POST/fetch requests that would carry the session cookie — the
+    // relevant CSRF vector for state-changing requests.
+    defaultCookieAttributes: {
+      sameSite: "lax",
+      secure: env.NODE_ENV === "production",
+      httpOnly: true,
+    },
+    // FIX-008 (CSRF): explicitly NOT disabled. Better Auth's built-in CSRF
+    // protection (origin header validation + Fetch Metadata checks) stays
+    // on. This line exists so "is CSRF protection on?" is answered by
+    // reading the file, not by knowing the library default.
+    disableCSRFCheck: false,
   },
 });
 

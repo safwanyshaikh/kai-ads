@@ -4,16 +4,22 @@ import { getCurrentUser } from "@/lib/session";
 import { assertPermission } from "@/lib/rbac";
 import { ForbiddenError } from "@/lib/rbac";
 import { agencyService } from "@/server/services/agency.service";
+import { parsePagination } from "@/lib/pagination";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AgencyStatusBadge } from "@/components/agency/agency-status-badge";
 import { AgencyActions } from "@/components/agency/agency-actions";
+import { PaginationControls } from "@/components/shared/pagination-controls";
 import { APP_ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Agency Approvals" };
 
 /** KAI Super Admin Approval — Sprint 001. Approve / Reject / Suspend / Activate agencies. */
-export default async function AdminAgenciesPage() {
+export default async function AdminAgenciesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect(APP_ROUTES.login);
   if (user.status === "PENDING") redirect(APP_ROUTES.pendingApproval);
@@ -25,7 +31,9 @@ export default async function AdminAgenciesPage() {
     throw error;
   }
 
-  const agencies = await agencyService.listAll({});
+  const params = await searchParams;
+  const pagination = parsePagination(params);
+  const result = await agencyService.listAllPaginated(pagination);
 
   return (
     <DashboardShell user={user}>
@@ -37,7 +45,7 @@ export default async function AdminAgenciesPage() {
       </div>
 
       <div className="space-y-4">
-        {agencies.length === 0 && (
+        {result.data.length === 0 && (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">
               No agencies registered yet.
@@ -45,7 +53,7 @@ export default async function AdminAgenciesPage() {
           </Card>
         )}
 
-        {agencies.map((agency) => (
+        {result.data.map((agency) => (
           <Card key={agency.id}>
             <CardHeader className="flex-row items-start justify-between space-y-0">
               <div>
@@ -61,6 +69,13 @@ export default async function AdminAgenciesPage() {
             </CardContent>
           </Card>
         ))}
+
+        <PaginationControls
+          basePath={APP_ROUTES.adminAgencies}
+          page={result.page}
+          totalPages={result.totalPages}
+          total={result.total}
+        />
       </div>
     </DashboardShell>
   );

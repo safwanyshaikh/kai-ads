@@ -27,6 +27,20 @@ export const joinRequestRepository = {
     });
   },
 
+  listByAgencyPaginated(agencyId: string, status: JoinRequestStatus | undefined, skip: number, take: number) {
+    return db.joinRequest.findMany({
+      where: { agencyId, ...(status ? { status } : {}) },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    });
+  },
+
+  countByAgency(agencyId: string, status?: JoinRequestStatus): Promise<number> {
+    return db.joinRequest.count({ where: { agencyId, ...(status ? { status } : {}) } });
+  },
+
   updateStatus(
     id: string,
     status: JoinRequestStatus,

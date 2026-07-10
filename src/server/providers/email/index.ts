@@ -2,15 +2,17 @@ import { getEnv } from "@/lib/env";
 import type { EmailProvider } from "./email-provider.interface";
 import { ResendEmailProvider } from "./resend-provider";
 import { SmtpEmailProvider } from "./smtp-provider";
+import { NullEmailProvider } from "./null-provider";
 
 export * from "./email-provider.interface";
 
 let cachedProvider: EmailProvider | null = null;
 
 /**
- * Returns the configured EmailProvider based on EMAIL_PROVIDER env var.
+ * Returns the configured EmailProvider based on the mandatory
+ * EMAIL_PROVIDER env var (FIX-004: no default, no silent fallback).
  * Throws only when .send() is actually called without credentials —
- * the factory itself never throws so the app can boot in Phase A.
+ * selecting a provider never throws, so the app can still boot.
  */
 export function getEmailProvider(): EmailProvider {
   if (cachedProvider) return cachedProvider;
@@ -23,10 +25,9 @@ export function getEmailProvider(): EmailProvider {
     case "smtp":
       cachedProvider = new SmtpEmailProvider();
       break;
-    default:
-      // No provider selected — default to Resend adapter (most common),
-      // it will correctly report isConfigured = false until env is set.
-      cachedProvider = new ResendEmailProvider();
+    case "none":
+      cachedProvider = new NullEmailProvider();
+      break;
   }
 
   return cachedProvider;

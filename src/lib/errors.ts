@@ -34,6 +34,16 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  constructor(resetAt: Date) {
+    super(
+      `Too many requests. Try again after ${resetAt.toISOString()}.`,
+      429,
+      "TOO_MANY_REQUESTS",
+    );
+  }
+}
+
 interface ApiErrorBody {
   error: {
     code: string;

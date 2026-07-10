@@ -28,4 +28,19 @@ export const auditLogRepository = {
       orderBy: { createdAt: "desc" },
     });
   },
+
+  listPaginated(params: { agencyId?: string; skip: number; take: number }) {
+    return db.auditLog.findMany({
+      where: params.agencyId ? { agencyId: params.agencyId } : undefined,
+      orderBy: { createdAt: "desc" },
+      skip: params.skip,
+      take: params.take,
+    });
+  },
+
+  count(params: { agencyId?: string }): Promise<number> {
+    return db.auditLog.count({
+      where: params.agencyId ? { agencyId: params.agencyId } : undefined,
+    });
+  },
 };

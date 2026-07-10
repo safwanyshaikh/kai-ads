@@ -43,3 +43,12 @@ export const AUDIT_ACTIONS = {
 export const MAX_LOGO_SIZE_BYTES = 5 * 1024 * 1024;
 
 export const SESSION_COOKIE_NAME = "kai_ads.session";
+
+export const RATE_LIMITS = {
+  agencyRegistration: { limit: 5, windowSeconds: 60 * 60 },
+  joinRequest: { limit: 10, windowSeconds: 60 * 60 },
+  logoUpload: { limit: 10, windowSeconds: 60 * 60 },
+} as const;
+
+export const DEFAULT_PAGE_SIZE = 25;
+export const MAX_PAGE_SIZE = 100;

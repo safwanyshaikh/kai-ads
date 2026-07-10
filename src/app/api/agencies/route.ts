@@ -4,13 +4,18 @@ import { agencyService } from "@/server/services/agency.service";
 import { handleApiError } from "@/lib/errors";
 import { requireCurrentUser } from "@/lib/session";
 import { assertPermission } from "@/lib/rbac";
+import { enforceRateLimit } from "@/server/rate-limit";
+import { RATE_LIMITS } from "@/lib/constants";
+import { parsePagination } from "@/lib/pagination";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("api:agencies");
 
-/** POST /api/agencies — public agency registration (Screen 2). */
+/** POST /api/agencies — public agency registration (Screen 2). Rate limited per IP. */
 export async function POST(request: NextRequest) {
   try {
+    await enforceRateLimit(request, "agencies:register", RATE_LIMITS.agencyRegistration);
+
     const body = await request.json();
     const input = registerAgencySchema.parse(body);
 
@@ -32,19 +37,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** GET /api/agencies — KAI Super Admin only. Supports ?status=PENDING */
+/** GET /api/agencies — KAI Super Admin only. Paginated (?page=&pageSize=, default 25). */
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCurrentUser();
     assertPermission(user, "agency:view_all");
 
-    const status = request.nextUrl.searchParams.get("status");
-    const agencies =
-      status === "PENDING"
-        ? await agencyService.listPending()
-        : await agencyService.listAll({});
+    const pagination = parsePagination(request.nextUrl.searchParams);
+    const result = await agencyService.listAllPaginated(pagination);
 
-    return NextResponse.json({ data: agencies });
+    return NextResponse.json({ data: result.data, pagination: result });
   } catch (error) {
     return handleApiError(error);
   }
