@@ -16,7 +16,13 @@ export type Permission =
   | "agency:manage_own"
   | "join_request:review"
   | "join_request:create"
-  | "dashboard:view";
+  | "dashboard:view"
+  | "advertisement:create"
+  | "advertisement:view"
+  | "advertisement:edit"
+  | "advertisement:delete"
+  | "advertisement:archive"
+  | "advertisement:duplicate";
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   KAI_SUPER_ADMIN: [
@@ -31,8 +37,22 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "agency:manage_own",
     "join_request:review",
     "dashboard:view",
+    "advertisement:create",
+    "advertisement:view",
+    "advertisement:edit",
+    "advertisement:delete",
+    "advertisement:archive",
+    "advertisement:duplicate",
   ],
-  AGENCY_USER: ["dashboard:view"],
+  AGENCY_USER: [
+    "dashboard:view",
+    "advertisement:create",
+    "advertisement:view",
+    "advertisement:edit",
+    "advertisement:delete",
+    "advertisement:archive",
+    "advertisement:duplicate",
+  ],
 };
 
 export function roleHasPermission(

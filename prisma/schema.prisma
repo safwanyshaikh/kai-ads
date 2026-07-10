@@ -51,6 +51,38 @@ enum JoinRequestStatus {
   REJECTED
 }
 
+enum AdvertisementStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum AdvertisementStyle {
+  VISUAL
+  TYPOGRAPHY
+  NEWSPAPER
+}
+
+enum AdvertisementDraftSourceType {
+  PASTE_TEXT
+  PDF
+  DOCX
+  IMAGE
+  WHATSAPP_SCREENSHOT
+}
+
+enum AdvertisementDraftStatus {
+  UPLOADED
+  EXTRACTING
+  EXTRACTED
+  EXTRACTION_FAILED
+  REVIEWED
+  STYLE_SELECTED
+  SAVED
+  DISCARDED
+}
+
 // ---------------------------------------------------------------------------
 // Core domain models
 // ---------------------------------------------------------------------------
@@ -70,6 +102,9 @@ model Agency {
   joinRequests JoinRequest[]
   approvals    Approval[]
   auditLogs    AuditLog[]
+
+  advertisements       Advertisement[]
+  advertisementDrafts  AdvertisementDraft[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,6 +142,11 @@ model User {
   reviewedJoins JoinRequest[] @relation("JoinRequestReviewer")
   approvalsMade Approval[]    @relation("ApprovalActor")
   auditLogs     AuditLog[]
+
+  createdAdvertisements Advertisement[]        @relation("AdvertisementCreatedBy")
+  advertisementVersions AdvertisementVersion[] @relation("AdvertisementVersionCreatedBy")
+  advertisementHistory  AdvertisementHistory[] @relation("AdvertisementHistoryActor")
+  advertisementDrafts   AdvertisementDraft[]   @relation("AdvertisementDraftCreatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -175,9 +215,142 @@ model AuditLog {
 }
 
 // ---------------------------------------------------------------------------
-// Better Auth required models
-// https://www.better-auth.com/docs/concepts/database
+// Advertisement Intelligence Engine (Sprint 002)
+//
+// Architecture only in this sprint: no AI provider implementation, no
+// rendering, no export. Advertisement content fields (positions, benefits,
+// interview, contact, theme) are stored as Json — the Golden Rule
+// ("editing one block must never affect other blocks") is enforced at the
+// service layer, not by rigid columns, since the exact shape of each block
+// is still expected to evolve once the AI Extraction and rendering engines
+// are built in later sprints.
 // ---------------------------------------------------------------------------
+
+model Advertisement {
+  id     String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  // --- Advertisement Schema (Sprint 002 brief) ---
+  header   String
+  industry String
+  country  String
+  employer String? // Optional per schema
+  positions Json // structured list of positions/requirements
+  benefits  Json // structured list of benefits
+  interview Json // interview date/location/contact details
+  contact   Json // agency contact block shown on the ad
+  footer    String?
+  theme     Json? // free-form theme/trust-stamp flags, "store only"
+
+  style  AdvertisementStyle @default(VISUAL)
+  status AdvertisementStatus @default(DRAFT)
+
+  currentVersion Int @default(1)
+
+  createdById String
+  createdBy   User   @relation("AdvertisementCreatedBy", fields: [createdById], references: [id])
+
+  sourceDraftId String? @unique
+  sourceDraft   AdvertisementDraft? @relation("DraftResultAdvertisement", fields: [sourceDraftId], references: [id])
+
+  duplicatedFromId String?
+  duplicatedFrom   Advertisement?  @relation("AdvertisementDuplicates", fields: [duplicatedFromId], references: [id], onDelete: SetNull)
+  duplicates       Advertisement[] @relation("AdvertisementDuplicates")
+
+  versions AdvertisementVersion[] @relation("AdvertisementVersions")
+  history  AdvertisementHistory[]
+
+  deletedAt DateTime? // soft delete ("trash"), distinct from ARCHIVED status
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId, status])
+  @@index([agencyId, deletedAt])
+  @@index([agencyId, industry])
+  @@index([agencyId, country])
+  @@index([agencyId, createdAt])
+  @@map("advertisements")
+}
+
+model AdvertisementVersion {
+  id              String @id @default(cuid())
+  advertisementId String
+
+  advertisement Advertisement @relation("AdvertisementVersions", fields: [advertisementId], references: [id], onDelete: Cascade)
+
+  versionNumber Int
+  snapshot      Json // full snapshot of every editable field at this version
+  changeSummary String?
+
+  createdById String
+  createdBy   User   @relation("AdvertisementVersionCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([advertisementId, versionNumber])
+  @@index([advertisementId])
+  @@map("advertisement_versions")
+}
+
+model AdvertisementHistory {
+  id              String @id @default(cuid())
+  advertisementId String
+
+  advertisement Advertisement @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+
+  action     String // created | updated | status_changed | duplicated | archived | restored | deleted | undeleted
+  fromStatus AdvertisementStatus?
+  toStatus   AdvertisementStatus?
+  metadata   Json?
+
+  actorId String
+  actor   User   @relation("AdvertisementHistoryActor", fields: [actorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([advertisementId, createdAt])
+  @@map("advertisement_history")
+}
+
+model AdvertisementDraft {
+  id       String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  sourceType    AdvertisementDraftSourceType
+  rawText       String? // Paste Requirement input
+  sourceFileUrl String? // Upload PDF / DOCX / Image / WhatsApp Screenshot
+
+  // AI Extraction Review — populated by a RequirementExtractionProvider
+  // implementation in a future sprint. Nullable: Sprint 002 ships the
+  // provider interfaces only, so this stays empty until one is wired in.
+  extractedData Json?
+  extractionError String?
+
+  // The recruiter's edited/approved version of extractedData — this is
+  // what actually becomes the Advertisement on Save.
+  reviewedData Json?
+
+  selectedStyle AdvertisementStyle?
+
+  status AdvertisementDraftStatus @default(UPLOADED)
+
+  resultAdvertisement Advertisement? @relation("DraftResultAdvertisement")
+
+  createdById String
+  createdBy   User   @relation("AdvertisementDraftCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId, status])
+  @@index([createdById])
+  @@map("advertisement_drafts")
+}
+
+
 
 model Session {
   id        String   @id @default(cuid())

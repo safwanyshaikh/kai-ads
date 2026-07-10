@@ -1,17 +1,19 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/session";
+import { can } from "@/lib/rbac";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 /**
- * Screen 5 — Dashboard Placeholder (Sprint 001).
- * Cards: Create Advertisement (disabled), Credits, Agency Profile,
- * Contacts, Subscription. No advertisement engine in this sprint.
+ * Dashboard — Sprint 001 placeholder, Create Advertisement + Advertisement
+ * Library enabled in Sprint 002. No AI image generation, export, or
+ * rendering yet — see project/SPRINTERS/SPRINT_002.md.
  */
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -28,18 +30,36 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="opacity-60">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        {can(user, "advertisement:create") && (
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Create Advertisement</CardTitle>
-              <Badge variant="secondary">Coming Soon</Badge>
-            </div>
-            <CardDescription>
-              Generate a recruitment advertisement from text, PDF, DOCX, or a
-              pasted WhatsApp/email message.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+              <CardDescription>
+                Paste a requirement or upload a PDF, DOCX, image, or WhatsApp
+                screenshot to start a new advertisement.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild size="sm">
+                <Link href={APP_ROUTES.advertisementNew}>Get Started</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {can(user, "advertisement:view") && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Advertisement Library</CardTitle>
+              <CardDescription>Search, filter, and manage every advertisement.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <a href={APP_ROUTES.advertisements} className="text-sm font-medium text-primary hover:underline">
+                View library →
+              </a>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

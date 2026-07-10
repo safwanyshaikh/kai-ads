@@ -24,6 +24,11 @@ export function DashboardShell({
               <Link href={APP_ROUTES.dashboard} className="hover:text-foreground">
                 Dashboard
               </Link>
+              {can(user, "advertisement:view") && (
+                <Link href={APP_ROUTES.advertisements} className="hover:text-foreground">
+                  Advertisements
+                </Link>
+              )}
               {can(user, "agency:manage_own") && (
                 <Link href={APP_ROUTES.dashboardAgency} className="hover:text-foreground">
                   Agency

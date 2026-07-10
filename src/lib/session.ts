@@ -1,8 +1,8 @@
 import "server-only";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { UnauthorizedError } from "@/lib/errors";
-import type { AuthorizableUser } from "@/lib/rbac";
+import { AppError, UnauthorizedError } from "@/lib/errors";
+import { assertPermission, type AuthorizableUser, type Permission } from "@/lib/rbac";
 
 export interface CurrentUser extends AuthorizableUser {
   id: string;
@@ -36,4 +36,22 @@ export async function requireCurrentUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) throw new UnauthorizedError();
   return user;
+}
+
+/**
+ * Combines the three checks every tenant-scoped route needs: signed in,
+ * has the given permission, and belongs to an agency (so `agencyId` is
+ * always non-null and always session-derived — never trusted from the
+ * client). Use this instead of hand-rolling requireCurrentUser() +
+ * assertPermission() + a null check in every advertisement route.
+ */
+export async function requireAgencyMember(
+  permission: Permission,
+): Promise<CurrentUser & { agencyId: string }> {
+  const user = await requireCurrentUser();
+  assertPermission(user, permission);
+  if (!user.agencyId) {
+    throw new AppError("You are not associated with an agency.", 400);
+  }
+  return user as CurrentUser & { agencyId: string };
 }
