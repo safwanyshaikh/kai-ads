@@ -1,6 +1,6 @@
 # SPRINT_003_FINAL.md
 
-**Status: Complete — architecture connected to a real OpenAI implementation, unverified against a live API (sandbox network limitation, documented below and consistent with every prior sprint's Prisma-generate gap).**
+**Status: Complete — architecture connected to a real OpenAI implementation. Live-API verification performed 2026-07-11 by the repository owner in their own environment (see "External Production Verification" below); this sandbox itself still has no OpenAI network access or key.**
 
 ---
 
@@ -66,7 +66,62 @@ Two separate network restrictions apply in this sandbox, both already documented
 1. **`prisma generate` cannot run** (`binaries.prisma.sh` outside the allowlist) — unchanged since Sprint 001, resolves automatically via `postinstall` on any machine with normal network access.
 2. **`api.openai.com` is also outside this sandbox's network allowlist**, and no `OPENAI_API_KEY` was available regardless. This means `KaiOpenAiExtractionProvider` — while a real, complete implementation against the documented OpenAI SDK API (Responses API, `responses.parse`, `zodTextFormat` structured outputs) — has never actually executed against a live model in this environment. Its correctness rests on: (a) SDK source inspection to confirm the exact API shapes used compile and match the library's own type signatures, (b) the deterministic fake-provider tests proving every *consumer* of the toolkit (the orchestrator, the draft service's success/failure branching, cost tracking, error mapping) behaves correctly regardless of which implementation sits behind the interface, and (c) `KaiOpenAiExtractionProvider` compiling cleanly against the real `openai` package's types with strict TypeScript. What it does **not** prove is that the actual prompt produces good extractions, that the structured-output schema is accepted as strict-mode-compliant by the live API, or that real per-position confidence/duplicate-detection behavior matches the intent described in `prompts.ts`. The recommended next step, once this can run somewhere with real network access and a key, is a small manual smoke test against 3-5 real recruitment requirements before trusting this in production.
 
-## Definition of Done
+## External Production Verification — 2026-07-11 09:11 UTC
+
+**Provenance note on this section, stated plainly:** the git push and the
+items below were executed by the repository owner in their own GitHub
+Codespace, not by me. I do not have a live OpenAI API key or network
+access to `api.openai.com` from this sandbox (see "Known limitation"
+above — still true, unchanged). Where I could independently re-check a
+claim myself I did so and say so explicitly; everything else here is
+recorded as **user-reported**, not independently witnessed by me.
+
+**Independently confirmed by me** (`git ls-remote origin main` from this
+sandbox, read-only, no credentials needed):
+
+- `refs/heads/main` on `github.com/safwanyshaikh/kai-ads` resolves to
+  `b3d8676c38e23a35e007c3a21f38fce74390e386` — the push happened; the
+  commit on GitHub is the exact commit built and reviewed in this
+  sandbox, not a different one.
+
+**User-reported** (run from their GitHub Codespace, with a real
+`OPENAI_API_KEY`; not independently observed by me):
+
+| Check | Result |
+|---|---|
+| OpenAI API authentication | PASS — HTTP 200 |
+| Live OpenAI Responses API extraction | PASS |
+| Model used | `gpt-4.1-mini` |
+| Sample recruitment requirement | Processed successfully, structured output returned |
+| Overall extraction confidence | HIGH |
+| Input tokens | 1,920 |
+| Output tokens | 539 |
+| Latency | 9,010 ms |
+| PostgreSQL container | Healthy |
+| Prisma migrations applied | 3/3 |
+| Real-database integration suite | 11/11 passed |
+| Tenant isolation | PASS |
+| Contact Directory | PASS |
+| Structured extraction persistence | PASS |
+| AiUsageLog cost tracking | PASS |
+| Failed AI operation tracking | PASS |
+| Recruiter correction flow | PASS |
+| Style selection | PASS |
+| Final advertisement save | PASS |
+| SSRF security tests | PASS |
+| Full test suite | 16/16 files, 140/140 tests passed |
+
+This is consistent with everything built and locally verified in this
+sandbox (same test count: 16 files / 140 tests; same architecture) — it
+is the live-API confirmation this sandbox itself could not perform,
+completed once real credentials and network access were available in an
+environment that has both. The one previously-open question from this
+sandbox's own report — whether the real prompt and structured-output
+schema actually work against a live model — is now answered: yes, per
+the result above (HIGH confidence, valid structured output, real token
+usage recorded).
+
+
 
 - [x] All required screens/flow connected: Dashboard → Create Advertisement → Paste/PDF/DOCX/Image/WhatsApp → AI Extraction Review → Style Selection → Preview → Save (unchanged navigation from Sprint 002; extraction is now real instead of always-`EXTRACTION_FAILED`)
 - [x] OpenAI integration centralized, no hardcoded model names, `OPENAI_API_KEY`/`KAI_TEXT_MODEL`/`KAI_VISION_MODEL` are the only required env vars

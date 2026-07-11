@@ -167,8 +167,13 @@ plus an optional 8th "composite" capability for the full rich result in
 one round trip. PDF/DOCX are converted to text before reaching the model;
 images go to the vision model directly. Contact Directory and Cost
 Tracking (`AgencyContact`, `AiUsageLog`) shipped as new tables. 140 tests
-pass using a deterministic, dependency-injected fake provider — the real
-implementation has never executed against a live OpenAI API in this
-sandbox (network-restricted, same category of limitation as the
-Prisma-generate gap documented since Sprint 001), so treat it as
-structurally correct and unit-verified, not live-verified.
+pass using a deterministic, dependency-injected fake provider.
+
+**Status: formally VERIFIED as of 2026-07-11.** This sandbox has no
+OpenAI network access or API key, so the real provider was never
+exercised against a live model from here. The repository owner ran the
+live-API verification themselves in their own GitHub Codespace (real
+`OPENAI_API_KEY`, model `gpt-4.1-mini`) and reported a passing result —
+see `SPRINT_003_FINAL.md`'s "External Production Verification" section
+for the full evidence table and for which specific claims I was able to
+independently re-check myself versus which are recorded as user-reported.
