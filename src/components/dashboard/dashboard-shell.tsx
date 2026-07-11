@@ -39,6 +39,11 @@ export function DashboardShell({
                   Agency Approvals
                 </Link>
               )}
+              {can(user, "agency:verify") && (
+                <Link href={APP_ROUTES.adminAgencyVerifications} className="hover:text-foreground">
+                  Agency Verification
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-3">

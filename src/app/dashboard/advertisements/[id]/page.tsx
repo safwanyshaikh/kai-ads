@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AdvertisementStatusBadge } from "@/components/advertisement/advertisement-status-badge";
 import { AdvertisementDetailActions } from "@/components/advertisement/advertisement-detail-actions";
 import { AdvertisementPreview } from "@/components/advertisement/advertisement-preview";
+import { GenerationPanel } from "@/components/advertisement/generation-panel";
 import { APP_ROUTES } from "@/lib/constants";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 
@@ -68,8 +69,17 @@ export default async function AdvertisementDetailPage({
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
           <AdvertisementPreview data={previewData} />
+          {can(user, "advertisement:generate") && (
+            <GenerationPanel
+              advertisementId={advertisement.id}
+              currentStyle={advertisement.style}
+              generatedAssetUrl={advertisement.generatedAssetUrl}
+              trustStatus={advertisement.trustStatus}
+              trustWarnings={(advertisement.trustWarnings as string[] | null) ?? []}
+            />
+          )}
         </div>
 
         <div className="space-y-6">

@@ -12,6 +12,7 @@ export const APP_ROUTES = {
   dashboard: "/dashboard",
   dashboardAgency: "/dashboard/agency",
   adminAgencies: "/admin/agencies",
+  adminAgencyVerifications: "/admin/agency-verifications",
   advertisements: "/dashboard/advertisements",
   advertisementNew: "/dashboard/advertisements/new",
   advertisementDraft: (draftId: string) => `/dashboard/advertisements/drafts/${draftId}`,
@@ -48,6 +49,16 @@ export const API_ROUTES = {
   uploadAdvertisementSource: "/api/uploads/advertisement-source",
   contacts: "/api/contacts",
   contact: (id: string) => `/api/contacts/${id}`,
+  platformFormats: "/api/platform-formats",
+  themeFamilies: "/api/theme-families",
+  advertisementGenerate: (id: string) => `/api/advertisements/${id}/generate`,
+  advertisementSection: (id: string) => `/api/advertisements/${id}/section`,
+  agencyVerifications: "/api/agency-verifications",
+  agencyVerification: (agencyId: string) => `/api/agency-verifications/${agencyId}`,
+  agencyVerificationSuspend: (agencyId: string) => `/api/agency-verifications/${agencyId}/suspend`,
+  agencyVerificationRestore: (agencyId: string) => `/api/agency-verifications/${agencyId}/restore`,
+  agencyVerificationReverify: (agencyId: string) => `/api/agency-verifications/${agencyId}/require-reverification`,
+  generationQuota: "/api/generation-quota",
 } as const;
 
 export const AUDIT_ACTIONS = {
@@ -75,6 +86,11 @@ export const AUDIT_ACTIONS = {
   agencyContactCreated: "agency_contact.created",
   agencyContactUpdated: "agency_contact.updated",
   agencyContactDeleted: "agency_contact.deleted",
+  agencyVerificationVerified: "agency_verification.verified",
+  agencyVerificationSuspended: "agency_verification.suspended",
+  agencyVerificationReverificationRequired: "agency_verification.reverification_required",
+  advertisementGenerated: "advertisement.generated",
+  advertisementSectionRegenerated: "advertisement.section_regenerated",
 } as const;
 
 export const RATE_LIMITS = {
@@ -84,6 +100,7 @@ export const RATE_LIMITS = {
   advertisementCreate: { limit: 60, windowSeconds: 60 * 60 },
   advertisementDraftCreate: { limit: 60, windowSeconds: 60 * 60 },
   advertisementSourceUpload: { limit: 60, windowSeconds: 60 * 60 },
+  qrScan: { limit: 120, windowSeconds: 60 * 60 },
 } as const;
 
 export const DEFAULT_PAGE_SIZE = 25;

@@ -14,6 +14,7 @@ export type Permission =
   | "agency:activate"
   | "agency:view_all"
   | "agency:manage_own"
+  | "agency:verify"
   | "join_request:review"
   | "join_request:create"
   | "dashboard:view"
@@ -22,7 +23,8 @@ export type Permission =
   | "advertisement:edit"
   | "advertisement:delete"
   | "advertisement:archive"
-  | "advertisement:duplicate";
+  | "advertisement:duplicate"
+  | "advertisement:generate";
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   KAI_SUPER_ADMIN: [
@@ -31,6 +33,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "agency:suspend",
     "agency:activate",
     "agency:view_all",
+    "agency:verify",
     "dashboard:view",
   ],
   AGENCY_ADMIN: [
@@ -43,6 +46,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "advertisement:delete",
     "advertisement:archive",
     "advertisement:duplicate",
+    "advertisement:generate",
   ],
   AGENCY_USER: [
     "dashboard:view",
@@ -52,6 +56,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "advertisement:delete",
     "advertisement:archive",
     "advertisement:duplicate",
+    "advertisement:generate",
   ],
 };
 

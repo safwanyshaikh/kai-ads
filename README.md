@@ -1,40 +1,56 @@
-# KAI Ads — Sprint 001: Agency Authentication
+# KAI Ads — Sprint 001–004
 
-**Status: LOCKED — v0.1.0 production baseline.** See
-`project/SPRINTERS/SPRINT_001_FINAL.md` for the full completion record and
-`SPRINT_001_FIX.md` for the stabilization pass that preceded the lock.
+**Status:** Sprint 001–003 verified, closed, and pushed to `main` (see each
+sprint's `_FINAL.md`). Sprint 004 (KAI Advertisement Generation Engine +
+Unified Verification QR Badge + Trust Layer + Section-Based Editing) is
+complete — see `project/SPRINTERS/SPRINT_004_FINAL.md`.
 
-Authentication and agency onboarding module for KAI Ads. This sprint ships
-**no** Advertisement Engine, AI, Templates, Payments, or Export — those are
-future sprints. See `project/SPRINTERS/SPRINT_001.md`.
+No Payments, Candidate Module, advanced analytics dashboard, or social
+auto-publishing — all explicitly out of scope through Sprint 004.
 
 ## Stack (locked)
 
 Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS ·
-shadcn/ui · Prisma · PostgreSQL · Better Auth · React Hook Form · Zod
+shadcn/ui · Prisma · PostgreSQL · Better Auth · React Hook Form · Zod ·
+OpenAI (KAI Intelligence Engine / KAI Creative Engine) · `qrcode` / `jsqr`
 
 ## What's implemented
 
-- Landing Page
-- Agency Registration (with business-domain + personal-email validation)
-- Pending Approval page
-- Login: Google Workspace (Workspace-restricted via verified `hd` claim),
-  Microsoft 365, Magic Link — no passwords
-- KAI Super Admin agency Approve / Reject / Suspend / Activate
-- Agency Admin UI (profile, team, join-request review)
-- Employee Join Request (auto-detects agency from email domain)
-- Dashboard placeholder (advertisement creation disabled)
-- Role-Based Access Control (KAI_SUPER_ADMIN / AGENCY_ADMIN / AGENCY_USER)
-- Full audit logging on every mutation
-- Rate limiting on every public mutation endpoint (in-memory, Redis-ready)
-- Pagination (default 25, configurable) on Agency/Team/Join-Request lists
+**Sprint 001 — Agency Authentication:** registration, approval workflow,
+Google/Microsoft/Magic-Link login, RBAC, audit logging, rate limiting,
+pagination.
+
+**Sprint 002 — Advertisement Intelligence Engine:** Advertisement CRUD,
+versioning, search/filter, duplicate/archive/restore/soft-delete,
+Advertisement Draft flow (paste/upload → review → style → preview →
+save), AI extraction provider architecture (interfaces only at this
+stage).
+
+**Sprint 003 — KAI Recruitment Intelligence Engine:** the Sprint 002
+provider interfaces connected to a real OpenAI implementation (Responses
+API, structured outputs), PDF/DOCX/image input processing, Contact
+Directory, AI cost tracking. Externally verified against a live OpenAI
+API — see `project/SPRINTERS/SPRINT_003_FINAL.md`.
+
+**Sprint 004 — Generation Engine + Trust Layer:**
+- Advertisement Generation Flow: platform format selection → density-
+  based type recommendation → deterministic Typography/Newspaper
+  rendering (real SVG, no AI dependency) → Unified Verification QR Badge
+  → automated QR decode verification → Social Trust Check → versioned save
+- Section-based editing (Critical Editing USP): one section changes at a
+  time, tracked with before/after data, never a full silent regeneration
+- Agency Verification Workflow (KAI Super Admin), Bootstrap Trial Quota
+  (10 free generations, shared per agency), QR Scan Intelligence
+  (privacy-preserving), KAI Creative Engine (OpenAI GPT Image)
+  architecture for the Visual style — see `SPRINT_004_FINAL.md` for what's
+  fully wired vs. architecture-only
 
 ## Getting started
 
 ```bash
 npm install                 # also runs `prisma generate` via postinstall
 cp .env.example .env        # fill in real values, see below
-npx prisma migrate deploy   # applies prisma/migrations/20260101000000_init
+npx prisma migrate deploy   # applies every migration under prisma/migrations/
 npm run db:seed             # bootstraps the first KAI Super Admin (see below)
 npm run dev
 ```
@@ -58,14 +74,16 @@ See `.env.example` for the full contract. Required to boot:
 
 `EMAIL_PROVIDER` and `STORAGE_PROVIDER` are mandatory with no default —
 the app refuses to start without an explicit choice, though `"none"` is a
-valid, explicit choice for local development. Choosing `"none"` reports
-the corresponding feature as disabled and fails loudly and explicitly if
-actually used, rather than silently mocking success — see `src/lib/env.ts`
-and the `NullEmailProvider`/`NullStorageProvider` adapters.
+valid, explicit choice for local development.
 
-Google/Microsoft OAuth credentials are optional; omitting a provider's
-credentials simply means that sign-in button isn't registered rather than
-shipping a button that goes nowhere.
+Optional, feature-gated (the app runs without them, the corresponding
+feature reports itself unavailable): `GOOGLE_CLIENT_ID`/`SECRET`,
+`MICROSOFT_CLIENT_ID`/`SECRET`, `OPENAI_API_KEY` (gates both the KAI
+Intelligence Engine's text/vision extraction and the KAI Creative
+Engine's image generation), `KAI_TEXT_MODEL`, `KAI_VISION_MODEL`,
+`KAI_IMAGE_MODEL`. `KAI_PUBLIC_DOMAIN` controls the QR tracking URL's
+host. `AI_KILL_SWITCH` and `AI_DAILY_BUDGET_USD` are the Sprint 004 cost-
+control guards.
 
 ## Scripts
 
@@ -75,7 +93,7 @@ shipping a button that goes nowhere.
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm test` | Vitest unit tests |
+| `npm test` | Vitest tests (auto-loads `.env`) |
 | `npm run db:migrate` | Create/apply a dev migration |
 | `npm run db:migrate:deploy` | Apply migrations (CI/production) |
 | `npm run db:seed` | Run `prisma/seed.ts` |
@@ -86,81 +104,78 @@ shipping a button that goes nowhere.
 
 ```
 src/
-  app/                     Routes (App Router). No business logic here —
-                            pages fetch via services and render.
+  app/                     Routes (App Router). No business logic here.
+    v/[agencyVerificationId]/  Public QR redirect endpoint (Sprint 004)
   components/
     ui/                    shadcn/ui primitives
-    shared/                 Cross-feature components (e.g. pagination controls)
+    shared/                 Cross-feature components
     <feature>/              Feature components (client interactivity only)
   lib/
     env.ts                 Single source of truth for all env vars (Zod)
-    auth.ts / auth-client.ts   Better Auth server/client config
-    session.ts              requireCurrentUser() / getCurrentUser()
-    rbac.ts                 Centralized permission model
-    errors.ts               AppError hierarchy + handleApiError()
-    logger.ts               Pino structured logger
-    constants.ts             Routes, audit action names, rate limits, etc.
-    pagination.ts            Shared pagination schema/helpers
-    api-client.ts            Shared client-side fetch/error-parsing helper
+    platform-formats.ts     Centralized platform/aspect-ratio registry (Sprint 004)
+    rbac.ts / errors.ts / logger.ts / constants.ts / pagination.ts / api-client.ts
     validations/             Zod schemas (shared by forms and API routes)
   server/
     repositories/            All Prisma access lives here — nowhere else
-    services/                Business logic (registration, approval, RBAC
-                              enforcement, audit logging)
-    providers/
-      email/                  Email adapters: Resend, SMTP, Null (real, not mocked)
-      storage/                Storage adapters: S3-compatible, Vercel Blob, Null
-    rate-limit/               RateLimiter interface + in-memory implementation
-    http/                     Shared API-route factories (e.g. agency lifecycle)
+    services/                Business logic
+    providers/                Email/storage adapters (Sprint 001)
+    ai/
+      openai/                 KAI Intelligence Engine — real OpenAI text/vision (Sprint 003)
+      image/                  KAI Creative Engine — real OpenAI image generation (Sprint 004)
+    generation/               Density/type/theme/badge intelligence, QR gen+decode,
+                              deterministic section renderer, trust check (Sprint 004)
+    rate-limit/ / http/
 prisma/
   schema.prisma
-  migrations/                 Hand-authored initial migration (see note below)
+  migrations/                 Hand-authored (see "Known environment limitation")
   seed.ts
+decisions/
+  ADR-006 Advertisement Rendering Architecture.md   AI background + deterministic
+                                                     text/QR/badge composition, and why
 tests/
   *.test.ts                   Unit tests
-  integration/                Real-database integration test
+  integration/                Real-database integration tests
 ```
 
 **Layering rule:** UI components never touch Prisma. Pages/API routes call
 `server/services/*`, services call `server/repositories/*`, repositories
-call `db` (the Prisma client). External integrations (email, storage,
-OAuth) are only ever reached through an interface in `server/providers/*`,
-selected by `src/lib/env.ts` — so swapping Resend for SMTP, or S3 for
-Vercel Blob, is a config change, not a code change.
+call `db`. External integrations (email, storage, OAuth, AI text/vision,
+AI image) are only ever reached through an interface in
+`server/providers/*` or `server/ai/*`, selected by `src/lib/env.ts`.
 
 **Multi-tenancy:** every query that returns tenant data is scoped by
 `agencyId` derived from the authenticated session — never from a client-
-supplied parameter. See `src/app/api/employees/route.ts` and the
-join-request approve/reject routes for the pattern.
+supplied parameter.
 
 ## Known environment limitation
 
-This sandbox's network is restricted to package registries (npm, GitHub) —
-`binaries.prisma.sh`, which Prisma's CLI needs to download its query/schema
-engine, is not reachable. This means `prisma generate` / `prisma migrate
-dev` could not be executed inside this sandbox, and `tsc --noEmit` here
-still reports (only) `@prisma/client` type-resolution errors as a
-consequence.
+This sandbox's network is restricted to package registries — neither
+`binaries.prisma.sh` (Prisma's engine binaries) nor `api.openai.com` are
+reachable from here, and no OpenAI API key is available in this
+environment either. `prisma generate` therefore could not run here, and
+every real OpenAI-backed implementation (Sprint 003's text/vision
+extraction, Sprint 004's image generation) is architecturally complete
+and type-checks against the real SDK but has never executed against a
+live model *from this sandbox*. Sprint 003's implementation *was*
+externally verified against a live OpenAI API afterward — see
+`project/SPRINTERS/SPRINT_003_FINAL.md`'s "External Production
+Verification" section.
 
-Nothing else is broken by this: the code is correct, `prisma/schema.prisma`
-is the single source of truth, and `prisma/migrations/20260101000000_init/migration.sql`
-was hand-authored to mirror it exactly. On any machine/CI with normal
-internet access, `npm install` (which runs `prisma generate` via
-`postinstall`) resolves this immediately with no code changes required.
-
-Despite this, the schema and full auth/onboarding flow **have** been
-verified against a real PostgreSQL 16 instance — see
-`SPRINT_001_FIX.md` FIX-001/FIX-002 for exactly how, and the caveats that
-come with that substitution.
+Nothing else is broken by this: `prisma/schema.prisma` is the single
+source of truth, and every migration under `prisma/migrations/` was
+hand-authored to mirror it exactly, then applied and verified against a
+real PostgreSQL 16 instance. `npm install` (which runs `prisma generate`
+via `postinstall`) resolves the Prisma half of this automatically on any
+machine with normal network access.
 
 ## Testing
 
-`npm test` (auto-loads `.env`) runs 39 tests across 6 files:
-
-- `tests/integration/e2e-flow.test.ts` — the full Registration → Pending
-  Approval → Admin Approval → Login → Employee Join Request → Approval →
-  Dashboard flow against a **real PostgreSQL instance**. Skips
-  automatically if `DATABASE_URL` isn't reachable.
-- Unit tests covering RBAC, personal-email/domain validation, the agency
-  registration Zod schema, pagination math, and the in-memory rate
-  limiter — none of these require a database connection.
+`npm test` runs 214 tests across 27 files, including real-database
+integration tests (Sprint 001 auth flow, Sprint 002 advertisement
+lifecycle, Sprint 003 KAI Intelligence Engine + tenant isolation, Sprint
+004 generation engine + Agency Verification + Bootstrap Trial Quota + QR
+Scan Intelligence) and genuine QR generate-and-decode-verify tests
+against the real `qrcode`/`jsqr`/`pngjs` libraries — not simulated.
+Deterministic dependency-injected fake providers (`tests/fakes/`) stand
+in for OpenAI in every automated test; no live API key is required to run
+the suite.

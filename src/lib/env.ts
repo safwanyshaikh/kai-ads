@@ -85,6 +85,20 @@ const envSchema = z.object({
   KAI_TEXT_MODEL: z.string().default("gpt-4.1-mini"),
   KAI_VISION_MODEL: z.string().default("gpt-4.1-mini"),
 
+  // KAI Creative Engine (Sprint 004) — image generation. Same optional/
+  // feature-gated pattern as the text engine above.
+  KAI_IMAGE_MODEL: z.string().default("gpt-image-1"),
+  KAI_IMAGE_QUALITY: z.enum(["low", "medium", "high"]).default("medium"),
+  KAI_IMAGE_SIZE: z.string().default("1024x1024"),
+
+  // Public domain the unified verification QR badge points at
+  // (https://{KAI_PUBLIC_DOMAIN}/v/{agencyVerificationId}?a={advertisementId}).
+  KAI_PUBLIC_DOMAIN: z.string().default("http://localhost:3000"),
+
+  // Bootstrap Trial Quota / Cost Control (Sprint 004)
+  AI_KILL_SWITCH: z.coerce.boolean().default(false),
+  AI_DAILY_BUDGET_USD: z.coerce.number().positive().default(50),
+
   // Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])

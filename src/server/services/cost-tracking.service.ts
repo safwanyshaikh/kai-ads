@@ -22,6 +22,12 @@ export const costTrackingService = {
     agencyId?: string | null;
     userId?: string | null;
     advertisementDraftId?: string | null;
+    advertisementId?: string | null;
+    advertisementVersionId?: string | null;
+    imageSize?: string | null;
+    imageQuality?: string | null;
+    /** "Do not charge or consume user quota for system failures." Defaults true; the generation orchestrator sets it false on any failed operation. */
+    billable?: boolean;
   }): Promise<void> {
     try {
       const estimatedCostUsd = estimateCostUsd(entry.model, entry.inputTokens, entry.outputTokens);
@@ -36,9 +42,14 @@ export const costTrackingService = {
         latencyMs: entry.latencyMs,
         success: entry.success,
         errorMessage: entry.errorMessage,
+        billable: entry.billable ?? entry.success,
         agency: entry.agencyId ? { connect: { id: entry.agencyId } } : undefined,
         user: entry.userId ? { connect: { id: entry.userId } } : undefined,
         advertisementDraftId: entry.advertisementDraftId,
+        advertisementId: entry.advertisementId,
+        advertisementVersionId: entry.advertisementVersionId,
+        imageSize: entry.imageSize,
+        imageQuality: entry.imageQuality,
       });
     } catch (error) {
       log.error({ err: error, entry }, "Failed to record AI usage log");

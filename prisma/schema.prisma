@@ -92,6 +92,46 @@ enum AiOperationType {
   SALARY_DETECTION
   INTERVIEW_DETECTION
   COMPOSITE_EXTRACTION
+  FULL_AD_GENERATION
+  SECTION_REGENERATION
+  THEME_VARIATION
+  RETRY
+  SYSTEM_RETRY
+}
+
+enum AdvertisementDensity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AdvertisementSection {
+  HEADER
+  COUNTRY_INDUSTRY
+  POSITIONS
+  BENEFITS
+  INTERVIEW
+  CONTACT
+  AGENCY_FOOTER
+  VERIFICATION_BADGE
+}
+
+enum RegenerationMethod {
+  AI_REGENERATED
+  MANUAL_EDIT
+}
+
+enum AdvertisementTrustStatus {
+  TRUST_READY
+  REVIEW_RECOMMENDED
+  BLOCKED
+}
+
+enum AgencyVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  SUSPENDED
+  REVERIFICATION_REQUIRED
 }
 
 // ---------------------------------------------------------------------------
@@ -118,6 +158,8 @@ model Agency {
   advertisementDrafts  AdvertisementDraft[]
   contacts             AgencyContact[]
   aiUsageLogs          AiUsageLog[]
+  verification         AgencyVerification?
+  generationQuota      AgencyGenerationQuota?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -162,6 +204,7 @@ model User {
   advertisementDrafts   AdvertisementDraft[]   @relation("AdvertisementDraftCreatedBy")
   createdContacts       AgencyContact[]        @relation("AgencyContactCreatedBy")
   aiUsageLogs           AiUsageLog[]
+  verifiedAgencies      AgencyVerification[]   @relation("AgencyVerificationVerifiedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -261,6 +304,18 @@ model Advertisement {
   style  AdvertisementStyle @default(VISUAL)
   status AdvertisementStatus @default(DRAFT)
 
+  // --- Sprint 004: generation, density, trust, tracking ---
+  // platformFormat is a String key into a centralized TS registry
+  // (src/lib/platform-formats.ts), not a DB enum — the brief requires
+  // "architecture must support adding future platforms without
+  // rewriting the generation engine," which a growing DB enum would defeat.
+  platformFormat   String?
+  density          AdvertisementDensity?
+  generatedAssetUrl String? // the composed/rendered advertisement image, once generated
+  badgeConfig      Json? // { shape, size } chosen by KAI for the unified verification QR badge
+  trustStatus      AdvertisementTrustStatus?
+  trustWarnings    Json? // string[] — reasons trustStatus isn't TRUST_READY
+
   currentVersion Int @default(1)
 
   createdById String
@@ -275,6 +330,7 @@ model Advertisement {
 
   versions AdvertisementVersion[] @relation("AdvertisementVersions")
   history  AdvertisementHistory[]
+  qrScanEvents QrScanEvent[]
 
   deletedAt DateTime? // soft delete ("trash"), distinct from ARCHIVED status
 
@@ -297,7 +353,14 @@ model AdvertisementVersion {
 
   versionNumber Int
   snapshot      Json // full snapshot of every editable field at this version
-  changeSummary String?
+  changeSummary String? // doubles as "reason if provided" per the brief
+
+  // Critical Editing USP: which section changed and how, so an edit to
+  // one section is provably isolated rather than a full regeneration.
+  changedSection      AdvertisementSection?
+  regenerationMethod  RegenerationMethod?
+  previousSectionData Json? // the changed section's content before this version
+  newSectionData      Json? // the changed section's content after this version
 
   createdById String
   createdBy   User   @relation("AdvertisementVersionCreatedBy", fields: [createdById], references: [id])
@@ -421,6 +484,16 @@ model AiUsageLog {
   estimatedCostUsd Decimal? @db.Decimal(10, 6)
   latencyMs    Int?
 
+  // Sprint 004: image generation specifics. Nullable — text extraction
+  // rows (Sprint 003) never set these.
+  imageSize    String?
+  imageQuality String?
+  // "Do not charge or consume user quota for system failures" — a failed
+  // provider execution is recorded (success=false) but billable=false,
+  // so quota accounting can filter on this instead of inferring it from
+  // success, which conflates "we tried and failed" with "should count."
+  billable Boolean @default(true)
+
   success      Boolean
   errorMessage String?
 
@@ -430,13 +503,95 @@ model AiUsageLog {
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  advertisementDraftId String?
+  advertisementDraftId    String?
+  advertisementId         String?
+  advertisementVersionId  String?
 
   createdAt DateTime @default(now())
 
   @@index([agencyId, createdAt])
   @@index([operationType])
+  @@index([advertisementId])
   @@map("ai_usage_logs")
+}
+
+/**
+ * Agency Verification Workflow (Sprint 004). One row per Agency — created
+ * the moment a KAI Super Admin first verifies (or explicitly marks
+ * unverified) an agency. `id` is the "permanent Agency Verification ID"
+ * the brief requires, kept distinct from Agency.id so it can be used in
+ * public-facing QR/tracking URLs without implying anything about
+ * internal record structure.
+ */
+model AgencyVerification {
+  id       String @id @default(cuid())
+  agencyId String @unique
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  status                  AgencyVerificationStatus @default(UNVERIFIED)
+  officialVerificationUrl String? // the real Government of India / eMigrate destination the QR ultimately redirects to
+  verificationDate        DateTime?
+  verifiedById            String?
+  verifiedBy              User?     @relation("AgencyVerificationVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  evidenceReference       String?
+  licenseValidUntil       DateTime?
+  reverificationRequired  Boolean   @default(false)
+  notes                   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("agency_verifications")
+}
+
+/**
+ * Bootstrap Trial Quota (Sprint 004). One row per Agency. Quota belongs
+ * to the agency, not any one employee — every user in the agency draws
+ * from the same counters. No payment collection yet; usage tracking only.
+ */
+model AgencyGenerationQuota {
+  id       String @id @default(cuid())
+  agencyId String @unique
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  totalQuota               Int @default(10) // bootstrap trial: 10 free full generations
+  successfulGenerationsUsed Int @default(0)
+  sectionRegenerationCount  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("agency_generation_quotas")
+}
+
+/**
+ * QR Scan Intelligence (Sprint 004). Privacy-preserving by design: no
+ * candidate identity, no login/registration, no indefinitely-retained
+ * raw IP — only approximate geography and device category, and only
+ * what's needed to answer "which advertisement/version drove this scan."
+ */
+model QrScanEvent {
+  id String @id @default(cuid())
+
+  advertisementId        String
+  advertisement           Advertisement @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  advertisementVersionId  String?
+
+  sourcePlatform   String?
+  countryCode      String? // approximate, from request geolocation — never raw IP
+  region           String?
+  city             String?
+  deviceCategory   String?
+  referrer         String?
+
+  destinationUrl   String? // the official verification URL redirected to at scan time
+  redirectSuccess  Boolean
+
+  scannedAt DateTime @default(now())
+
+  @@index([advertisementId, scannedAt])
+  @@map("qr_scan_events")
 }
 
 
