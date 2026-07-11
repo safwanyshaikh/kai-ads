@@ -89,6 +89,34 @@ export function isValidThemeKey(key: string): boolean {
 }
 
 /**
+ * The one concrete visual property each theme family controls in this
+ * sprint's deterministic renderer: an accent color used for the DTP rule
+ * line, badge border, and section headings. Recruiters never see a hex
+ * code — they pick "Urgent Hiring" and get red, "Premium" and get gold,
+ * etc. Kept intentionally small (one property, not a full design token
+ * set) so every theme has a real, testable effect on the output rather
+ * than being a stored-but-unused label.
+ */
+const THEME_ACCENT_COLORS: Record<string, string> = {
+  corporate: "#1e3a8a",
+  industrial: "#78350f",
+  urgent_hiring: "#b91c1c",
+  premium: "#92400e",
+  minimal: "#374151",
+  high_contrast: "#000000",
+  newspaper_classic: "#1a1a1a",
+  newspaper_modern: "#1a1a1a",
+  country_inspired: "#065f46",
+  industry_inspired: "#1e3a8a",
+};
+const DEFAULT_ACCENT_COLOR = "#1a1a1a";
+
+export function getThemeAccentColor(themeKey: string | null | undefined): string {
+  if (!themeKey) return DEFAULT_ACCENT_COLOR;
+  return THEME_ACCENT_COLORS[themeKey] ?? DEFAULT_ACCENT_COLOR;
+}
+
+/**
  * Recommends an ordered shortlist of theme families for the chosen
  * advertisement style/density — the recruiter picks visually from these,
  * never types a color. `hasLogo` biases toward the more brand-forward

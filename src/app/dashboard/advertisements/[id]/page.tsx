@@ -9,6 +9,7 @@ import { AdvertisementStatusBadge } from "@/components/advertisement/advertiseme
 import { AdvertisementDetailActions } from "@/components/advertisement/advertisement-detail-actions";
 import { AdvertisementPreview } from "@/components/advertisement/advertisement-preview";
 import { GenerationPanel } from "@/components/advertisement/generation-panel";
+import { SectionEditor } from "@/components/advertisement/section-editor";
 import { APP_ROUTES } from "@/lib/constants";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 
@@ -79,6 +80,9 @@ export default async function AdvertisementDetailPage({
               trustStatus={advertisement.trustStatus}
               trustWarnings={(advertisement.trustWarnings as string[] | null) ?? []}
             />
+          )}
+          {can(user, "advertisement:edit") && (
+            <SectionEditor advertisementId={advertisement.id} header={advertisement.header} footer={advertisement.footer} />
           )}
         </div>
 

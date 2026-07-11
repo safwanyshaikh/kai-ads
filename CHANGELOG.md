@@ -2,6 +2,51 @@
 
 All notable changes to KAI Ads are documented here.
 
+## [0.5.0] — Sprint 005 — MVP Completion
+
+### Added
+
+- Visual style now produces a real, finished, downloadable advertisement:
+  AI-generated background (via the real `KaiCreativeEngineProvider`) or,
+  when unconfigured/unavailable, a deterministic industry-themed gradient
+  fallback — Visual never returns "not implemented"
+- Real SVG-to-PNG rasterization (`sharp`) and multi-format export
+  (`sharp` for JPG, `pdf-lib` for a real single-page PDF) — the
+  advertisement is now an actual image, not an SVG data URI
+- `GET /api/advertisements/[id]/export?format=png|jpg|pdf`, gated on the
+  trust check (which itself already encodes "QR must decode
+  successfully"), with useful, secret-free filenames
+- Theme selection now has a real, tested effect on the rendered output
+  (accent color applied to the DTP rule, section headings, badge border)
+- Section Editor UI (Header/Footer), Usage/Quota display on the
+  Advertisement Library, Admin Usage Visibility on the Agency
+  Verification page
+- High-density + Visual style now surfaces an explicit recruiter warning
+  rather than silently degrading
+- 27 new tests (241/241 total), including a test that rasterizes the
+  full composition for all three styles and decodes the QR from the
+  final image, not just the standalone QR
+
+### Fixed (self-audit)
+
+- Real architecture bug: the agency logo was embedded via a remote URL
+  in SVG; `sharp`'s renderer silently produces a blank image for remote
+  `<image href>` URLs (verified directly before writing any composition
+  code) — now fetched and inlined as base64 first
+- `usedAiBackground` was computed but never used — now recorded in the
+  version snapshot
+
+### Known limitations
+
+- No live OpenAI Visual generation test was possible from this sandbox —
+  no `OPENAI_API_KEY` and no network path to `api.openai.com` (confirmed
+  directly, same as every prior sprint's disclosed limitation)
+- Section Editor UI covers Header/Footer directly; Positions/Benefits/
+  Interview/Contact remain edited through the existing full-form editor
+- Not verified on real mobile/tablet/desktop browsers — no browser
+  available in this sandbox; every new component reuses the same
+  responsive patterns established since Sprint 001
+
 ## [0.4.0] — Sprint 004 — Generation Engine + Trust Layer
 
 ### Added

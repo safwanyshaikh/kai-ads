@@ -1,18 +1,19 @@
-# KAI Ads — Sprint 001–004
+# KAI Ads — Sprint 001–005
 
-**Status:** Sprint 001–003 verified, closed, and pushed to `main` (see each
-sprint's `_FINAL.md`). Sprint 004 (KAI Advertisement Generation Engine +
-Unified Verification QR Badge + Trust Layer + Section-Based Editing) is
-complete — see `project/SPRINTERS/SPRINT_004_FINAL.md`.
+**Status:** Sprint 001–004 closed (see each sprint's `_FINAL.md`). Sprint
+005 (MVP Completion — Visual composition, real PNG/JPG/PDF export,
+production UI) complete — see
+`project/SPRINTERS/SPRINT_005_FINAL.md`.
 
 No Payments, Candidate Module, advanced analytics dashboard, or social
-auto-publishing — all explicitly out of scope through Sprint 004.
+auto-publishing — all explicitly out of scope through Sprint 005.
 
 ## Stack (locked)
 
 Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS ·
 shadcn/ui · Prisma · PostgreSQL · Better Auth · React Hook Form · Zod ·
 OpenAI (KAI Intelligence Engine / KAI Creative Engine) · `qrcode` / `jsqr`
+· `sharp` (SVG rasterization, PNG/JPG export) · `pdf-lib` (PDF export)
 
 ## What's implemented
 
@@ -44,6 +45,16 @@ API — see `project/SPRINTERS/SPRINT_003_FINAL.md`.
   (privacy-preserving), KAI Creative Engine (OpenAI GPT Image)
   architecture for the Visual style — see `SPRINT_004_FINAL.md` for what's
   fully wired vs. architecture-only
+
+**Sprint 005 — MVP Completion:**
+- Visual style closed the loop: real AI background (or an honest
+  deterministic gradient fallback) rasterized together with the exact
+  recruitment text/QR/badge into one finished PNG — all three
+  advertisement styles now produce a real, downloadable result
+- Real PNG/JPG/PDF export, gated on the QR decoding successfully and the
+  trust check passing, with useful and secret-free filenames
+- Theme selection has a genuine effect on the rendered output
+- Section Editor UI, Usage/Quota display, Admin usage visibility
 
 ## Getting started
 
@@ -170,12 +181,15 @@ machine with normal network access.
 
 ## Testing
 
-`npm test` runs 214 tests across 27 files, including real-database
+`npm test` runs 241 tests across 31 files, including real-database
 integration tests (Sprint 001 auth flow, Sprint 002 advertisement
 lifecycle, Sprint 003 KAI Intelligence Engine + tenant isolation, Sprint
 004 generation engine + Agency Verification + Bootstrap Trial Quota + QR
-Scan Intelligence) and genuine QR generate-and-decode-verify tests
-against the real `qrcode`/`jsqr`/`pngjs` libraries — not simulated.
-Deterministic dependency-injected fake providers (`tests/fakes/`) stand
-in for OpenAI in every automated test; no live API key is required to run
-the suite.
+Scan Intelligence, Sprint 005 quota-exhaustion scenarios), genuine QR
+generate-and-decode-verify tests against the real `qrcode`/`jsqr`/`pngjs`
+libraries, and — critically — a test that rasterizes the full advertisement
+composition (background + text + QR + badge) for all three styles and
+decodes the QR from that final image, not just the standalone QR. None
+of this is simulated. Deterministic dependency-injected fake providers
+(`tests/fakes/`) stand in for OpenAI in every automated test; no live API
+key is required to run the suite.

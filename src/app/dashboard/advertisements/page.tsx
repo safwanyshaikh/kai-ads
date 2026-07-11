@@ -4,11 +4,13 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/session";
 import { can } from "@/lib/rbac";
 import { advertisementService } from "@/server/services/advertisement.service";
+import { generationQuotaService } from "@/server/services/generation-quota.service";
 import { advertisementSearchQuerySchema } from "@/lib/validations/advertisement";
 import { parsePagination } from "@/lib/pagination";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AdvertisementStatusBadge } from "@/components/advertisement/advertisement-status-badge";
 import { AdvertisementRowActions } from "@/components/advertisement/advertisement-row-actions";
 import { AdvertisementSearchBar } from "@/components/advertisement/advertisement-search-bar";
@@ -38,6 +40,7 @@ export default async function AdvertisementLibraryPage({
   const pagination = parsePagination(params);
 
   const result = await advertisementService.list({ agencyId: user.agencyId, ...query }, pagination);
+  const quota = await generationQuotaService.getStatus(user.agencyId);
 
   return (
     <DashboardShell user={user}>
@@ -56,6 +59,21 @@ export default async function AdvertisementLibraryPage({
       <div className="mb-6">
         <AdvertisementSearchBar q={query.q} status={query.status} industry={query.industry} country={query.country} />
       </div>
+
+      <Card className="mb-6">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+          <div>
+            <p className="text-sm font-medium">Free Trial Generations</p>
+            <p className="text-xs text-muted-foreground">Shared across every employee at your agency.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant={quota.remaining > 0 ? "success" : "destructive"}>
+              {quota.remaining} of {quota.totalQuota} remaining
+            </Badge>
+            <span className="text-xs text-muted-foreground">{quota.used} used</span>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="space-y-4">
         {result.data.length === 0 && (

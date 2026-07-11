@@ -4,6 +4,7 @@ import { advertisementStyleSchema } from "./advertisement";
 export const generateAdvertisementSchema = z.object({
   platformFormat: z.string().min(1, "Platform format is required"),
   style: advertisementStyleSchema.optional(),
+  theme: z.string().optional(),
   isUrgent: z.boolean().optional(),
 });
 export type GenerateAdvertisementInput = z.infer<typeof generateAdvertisementSchema>;

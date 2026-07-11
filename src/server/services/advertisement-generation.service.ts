@@ -11,7 +11,9 @@ import { recommendAdvertisementType } from "@/server/generation/advertisement-ty
 import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
 import { renderSectionComposition } from "@/server/generation/section-renderer";
+import { rasterizeSvg } from "@/server/generation/image-export.service";
 import { runTrustCheck } from "@/server/generation/trust-validation.service";
+import { getThemeAccentColor, isValidThemeKey } from "@/server/generation/theme-recommendation.service";
 import { getPlatformFormat, isValidPlatformFormatKey } from "@/lib/platform-formats";
 import { getImageGenerationProvider, ImageProviderNotImplementedError } from "@/server/ai/image";
 import { AUDIT_ACTIONS } from "@/lib/constants";
@@ -71,37 +73,75 @@ export const advertisementGenerationService = {
         hasEmployerLogo: Boolean(agency.logoUrl),
       }).style;
 
+    // "Never force a high-density requirement into a visual-heavy layout
+    // that makes positions unreadable... If Visual style is selected
+    // despite excessive density: Warn the recruiter." This is a warning
+    // surfaced via the trust check's warnings list, not a block — the
+    // recruiter explicitly chose Visual (input.style), so their choice
+    // is honored, just flagged.
+    const densityWarnings: string[] = [];
+    if (style === "VISUAL" && density === "HIGH") {
+      densityWarnings.push(
+        "This requirement has a high number of positions — Visual style may be harder to read than Typography or Newspaper for this many roles.",
+      );
+    }
+
+    let backgroundImageDataUri: string | null = null;
+    let usedAiBackground = false;
+    const imageStartedAt = Date.now();
+
     if (style === "VISUAL") {
-      // Per ADR-006: Visual depends on the AI background provider. This
-      // genuinely calls the real KAI Creative Engine architecture rather
-      // than hardcoding a rejection — if OPENAI_API_KEY is configured,
-      // this actually generates a background image; full composition of
-      // that image into the final advertisement (see ADR-006's
-      // "Consequences" / follow-up note) isn't wired up yet, so even a
-      // successful background generation currently still can't complete
-      // a Visual advertisement end-to-end.
+      const provider = getImageGenerationProvider();
       try {
-        await getImageGenerationProvider().generate({
-          prompt: `${advertisement.industry} recruitment, ${advertisement.country}, professional, no text`,
+        const { output, usage } = await provider.generate({
+          prompt: buildBackgroundPrompt(advertisement.industry, advertisement.country),
           widthPx: platformFormat.widthPx,
           heightPx: platformFormat.heightPx,
           quality: "medium",
         });
+        backgroundImageDataUri = `data:${output.mimeType};base64,${output.imageBase64}`;
+        usedAiBackground = true;
+
+        await costTrackingService.record({
+          operationType: "FULL_AD_GENERATION",
+          provider: provider.name,
+          model: usage.model,
+          inputTokens: null,
+          outputTokens: null,
+          latencyMs: usage.latencyMs,
+          success: true,
+          agencyId,
+          userId: actorId,
+          advertisementId,
+          imageSize: `${platformFormat.widthPx}x${platformFormat.heightPx}`,
+          imageQuality: "medium",
+        });
       } catch (error) {
-        throw new AppError(
-          error instanceof ImageProviderNotImplementedError
-            ? "The Visual advertisement style requires the KAI Creative Engine, which isn't configured yet. Choose Typography or Newspaper instead."
-            : "The KAI Creative Engine could not generate a background image right now. Choose Typography or Newspaper, or try again shortly.",
-          503,
-          "VISUAL_STYLE_UNAVAILABLE",
+        // Honest fallback, not a failure: Visual must always complete.
+        // Only a genuinely configured-but-failing provider is logged as
+        // a cost-tracking failure; an intentionally unconfigured
+        // provider (ImageProviderNotImplementedError) isn't a "failure"
+        // worth recording — it's the expected, documented state.
+        if (!(error instanceof ImageProviderNotImplementedError)) {
+          await costTrackingService.record({
+            operationType: "FULL_AD_GENERATION",
+            provider: "openai",
+            model: "unknown",
+            inputTokens: null,
+            outputTokens: null,
+            latencyMs: Date.now() - imageStartedAt,
+            success: false,
+            errorMessage: error instanceof Error ? error.message : "Image generation failed",
+            agencyId,
+            userId: actorId,
+            advertisementId,
+          });
+          log.warn({ advertisementId, err: error }, "KAI Creative Engine failed — using fallback background");
+        }
+        densityWarnings.push(
+          "This advertisement uses a KAI-designed background instead of an AI photo — connect the KAI Creative Engine for photo backgrounds.",
         );
       }
-
-      throw new AppError(
-        "Visual advertisement composition (combining the generated background with your recruitment details) isn't wired up yet in this build. Choose Typography or Newspaper.",
-        501,
-        "VISUAL_COMPOSITION_NOT_IMPLEMENTED",
-      );
     }
 
     const badge = selectBadgeConfig({
@@ -138,6 +178,13 @@ export const advertisementGenerationService = {
       throw error;
     }
 
+    const agencyLogoDataUri = await fetchImageAsDataUri(agency.logoUrl);
+
+    if (input.theme && !isValidThemeKey(input.theme)) {
+      throw new AppError(`Unknown theme "${input.theme}".`, 400);
+    }
+    const accentColor = getThemeAccentColor(input.theme);
+
     const svg = renderSectionComposition({
       platformFormat,
       header: advertisement.header,
@@ -153,8 +200,13 @@ export const advertisementGenerationService = {
       raLicenseId: agency.registrationNumber,
       qrDataUri: `data:image/png;base64,${qrResult.png.toString("base64")}`,
       badge,
-      style: style as "TYPOGRAPHY" | "NEWSPAPER",
+      style,
+      backgroundImageDataUri,
+      agencyLogoDataUri,
+      accentColor,
     });
+
+    const pngBuffer = await rasterizeSvg(svg, platformFormat.widthPx, platformFormat.heightPx);
 
     const trustCheck = runTrustCheck({
       agencyName: agency.name,
@@ -163,8 +215,9 @@ export const advertisementGenerationService = {
       contactPresent: Boolean(contact.phone || contact.email || contact.whatsapp),
       advertisementTexts: [advertisement.header, advertisement.footer, "MEA REGISTERED AGENCY", "VERIFY AGENCY"],
     });
+    trustCheck.warnings = [...trustCheck.warnings, ...densityWarnings];
 
-    const generatedAssetUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+    const generatedAssetUrl = `data:image/png;base64,${pngBuffer.toString("base64")}`;
     const nextVersion = advertisement.currentVersion + 1;
 
     const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -174,6 +227,7 @@ export const advertisementGenerationService = {
           platformFormat: input.platformFormat,
           density,
           style,
+          theme: (input.theme ? { key: input.theme } : advertisement.theme) as Prisma.InputJsonValue,
           generatedAssetUrl,
           badgeConfig: badge as unknown as Prisma.InputJsonValue,
           trustStatus: trustCheck.status,
@@ -192,6 +246,7 @@ export const advertisementGenerationService = {
             style,
             badge,
             trustStatus: trustCheck.status,
+            usedAiBackground,
           } as unknown as Prisma.InputJsonValue,
           changeSummary: "Full advertisement generated",
           regenerationMethod: "AI_REGENERATED",
@@ -342,3 +397,36 @@ export const advertisementGenerationService = {
     return updated;
   },
 };
+
+/**
+ * Fetches an image (agency logo, always our own storage's URL, never
+ * client-supplied at this point — see storageService/uploads) and
+ * inlines it as a base64 data URI. SVG rasterization here does not fetch
+ * remote URLs itself (verified: a remote <image href> silently renders
+ * blank), so this is required, not an optimization. Failure is
+ * non-fatal — a logo that can't be fetched just means no logo on the
+ * advertisement, not a broken generation.
+ */
+async function fetchImageAsDataUri(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type") ?? "image/png";
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Visual Advertisement Rules: background relevant to industry/country/
+ * project type/trade — never generic corporate imagery, never an
+ * employer logo or branding (the model is explicitly told not to invent
+ * any). No text is requested — exact recruitment text is always
+ * deterministic composition (ADR-006), never image-model output.
+ */
+function buildBackgroundPrompt(industry: string, country: string): string {
+  return `A professional, realistic photograph representing the ${industry} industry in ${country}, showing relevant industrial or workplace environment and context. No people's faces in close-up, no text, no logos, no watermarks, no signage, no visible brand names. Suitable as a background image for a recruitment advertisement.`;
+}

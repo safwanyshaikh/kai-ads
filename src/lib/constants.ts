@@ -53,6 +53,7 @@ export const API_ROUTES = {
   themeFamilies: "/api/theme-families",
   advertisementGenerate: (id: string) => `/api/advertisements/${id}/generate`,
   advertisementSection: (id: string) => `/api/advertisements/${id}/section`,
+  advertisementExport: (id: string, format: string) => `/api/advertisements/${id}/export?format=${format}`,
   agencyVerifications: "/api/agency-verifications",
   agencyVerification: (agencyId: string) => `/api/agency-verifications/${agencyId}`,
   agencyVerificationSuspend: (agencyId: string) => `/api/agency-verifications/${agencyId}/suspend`,

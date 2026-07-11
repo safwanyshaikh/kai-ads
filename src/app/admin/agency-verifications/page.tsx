@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/session";
 import { assertPermission, ForbiddenError } from "@/lib/rbac";
 import { agencyService } from "@/server/services/agency.service";
 import { agencyVerificationService } from "@/server/services/agency-verification.service";
+import { generationQuotaService } from "@/server/services/generation-quota.service";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,10 @@ export default async function AgencyVerificationsPage() {
   ]);
 
   const verificationByAgency = new Map(verifications.map((v) => [v.agencyId, v]));
+  const quotas = await Promise.all(
+    agencies.map(async (agency) => ({ agencyId: agency.id, quota: await generationQuotaService.getStatus(agency.id) })),
+  );
+  const quotaByAgency = new Map(quotas.map((q) => [q.agencyId, q.quota]));
 
   return (
     <DashboardShell user={user}>
@@ -52,12 +57,16 @@ export default async function AgencyVerificationsPage() {
         {agencies.map((agency) => {
           const verification = verificationByAgency.get(agency.id);
           const status = verification?.status ?? "UNVERIFIED";
+          const quota = quotaByAgency.get(agency.id);
           return (
             <Card key={agency.id}>
               <CardHeader className="flex-row items-start justify-between space-y-0">
                 <div>
                   <CardTitle className="text-base">{agency.name}</CardTitle>
-                  <CardDescription>{agency.registrationNumber}</CardDescription>
+                  <CardDescription>
+                    {agency.registrationNumber}
+                    {quota ? ` · ${quota.used}/${quota.totalQuota} generations used` : ""}
+                  </CardDescription>
                 </div>
                 <Badge variant={STATUS_VARIANT[status] ?? "outline"}>{status.replace(/_/g, " ")}</Badge>
               </CardHeader>
