@@ -32,10 +32,20 @@ export function LoginForm() {
     setError(null);
     setSocialLoading(provider);
     try {
-      await authClient.signIn.social({
+      // Better Auth's client does not throw on a failed sign-in — it
+      // resolves with { error } (see better-auth's fetch-plugins redirect
+      // hook, which only navigates on a successful response). Without
+      // checking it, a rejected provider (e.g. unregistered/misconfigured)
+      // left this button stuck on "Redirecting..." forever with no
+      // feedback and no navigation.
+      const { error: signInError } = await authClient.signIn.social({
         provider,
         callbackURL: APP_ROUTES.dashboard,
       });
+      if (signInError) {
+        setError(signInError.message ?? "Sign-in failed");
+        setSocialLoading(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed");
       setSocialLoading(null);
