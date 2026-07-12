@@ -1,0 +1,72 @@
+name: Production Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "migrate" to confirm running migrations against production'
+        required: true
+        type: string
+
+jobs:
+  migrate:
+    name: prisma migrate deploy
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'migrate'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run migrations (production-safe deploy only)
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Verify schema tables
+        run: |
+          npx tsx -e "
+            const { Client } = await import('pg');
+            const client = new Client({ connectionString: process.env.DATABASE_URL });
+            await client.connect();
+
+            const expected = [
+              'agencies', 'domains', 'users', 'sessions', 'accounts',
+              'verifications', 'join_requests', 'approvals', 'audit_logs',
+              'advertisements', 'advertisement_versions', 'advertisement_history',
+              'advertisement_drafts', 'agency_contacts', 'ai_usage_logs',
+              'agency_verifications', 'agency_generation_quotas', 'qr_scan_events',
+              '_prisma_migrations'
+            ];
+
+            const res = await client.query(
+              \`SELECT tablename FROM pg_tables WHERE schemaname = 'public'\`
+            );
+            const actual = new Set(res.rows.map(r => r.tablename));
+
+            const missing = expected.filter(t => !actual.has(t));
+            if (missing.length > 0) {
+              console.error('MISSING TABLES:', missing.join(', '));
+              process.exit(1);
+            }
+
+            console.log('All', expected.length, 'expected tables present.');
+            console.log('Tables found:', [...actual].sort().join(', '));
+            await client.end();
+          "
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
