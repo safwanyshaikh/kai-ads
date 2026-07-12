@@ -1,0 +1,127 @@
+name: Phase 5 — OpenAI API Verification
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify-openai:
+    name: Verify OpenAI Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Write verification script
+        run: |
+          cat > kai-verify.mjs << 'JSEOF'
+          import OpenAI from 'openai';
+
+          const apiKey = process.env.OPENAI_API_KEY;
+          if (!apiKey) { console.error('OPENAI_API_KEY not set'); process.exit(1); }
+
+          const client = new OpenAI({ apiKey });
+          const textModel = process.env.KAI_TEXT_MODEL ?? 'gpt-4.1-mini';
+          const imageModel = process.env.KAI_IMAGE_MODEL ?? 'gpt-image-1';
+
+          // --- KAI Intelligence Engine: one text extraction ---
+          console.log('=== KAI Intelligence Engine ===');
+          const sampleText = [
+            'Urgently Required — Saudi Arabia Construction Project',
+            'Positions: Welder (SMAW/GTAW), Pipe Fitter, Scaffolder',
+            'Experience: Minimum 3 years industrial construction',
+            'Nationality: Indian / Nepalese preferred',
+            'Interview: Walk-in, 20 July 2026, Mumbai',
+          ].join('\n');
+
+          const t1 = Date.now();
+          const chat = await client.chat.completions.create({
+            model: textModel,
+            messages: [
+              {
+                role: 'system',
+                content: 'Extract structured recruitment data. Return JSON with: country (string), industry (string), positions (string[]), tradeSummary (one sentence string), hasValidRecruitmentContent (boolean).',
+              },
+              { role: 'user', content: sampleText },
+            ],
+            response_format: { type: 'json_object' },
+            max_tokens: 256,
+          });
+          const t1ms = Date.now() - t1;
+
+          const extracted = JSON.parse(chat.choices[0].message.content ?? '{}');
+          const inTok  = chat.usage?.prompt_tokens  ?? 0;
+          const outTok = chat.usage?.completion_tokens ?? 0;
+          // gpt-4.1-mini: $0.40/1M input, $1.60/1M output
+          const estTextCostUsd = (inTok * 0.40 + outTok * 1.60) / 1_000_000;
+
+          console.log('Text model       :', textModel);
+          console.log('Latency          :', t1ms + 'ms');
+          console.log('Input tokens     :', inTok);
+          console.log('Output tokens    :', outTok);
+          console.log('Est. cost (USD)  : $' + estTextCostUsd.toFixed(6));
+          console.log('Industry         :', extracted.industry ?? '(not extracted)');
+          console.log('Positions        :', (extracted.positions ?? []).join(', '));
+          console.log('Trade summary    :', extracted.tradeSummary ?? '(not extracted)');
+          console.log('Country          :', extracted.country ?? '(not extracted)');
+          console.log('Valid content    :', extracted.hasValidRecruitmentContent);
+
+          if (!extracted.hasValidRecruitmentContent) {
+            console.error('FAIL: hasValidRecruitmentContent is false');
+            process.exit(1);
+          }
+          if (!extracted.industry || !Array.isArray(extracted.positions) || extracted.positions.length === 0) {
+            console.error('FAIL: industry or positions missing from extraction output');
+            process.exit(1);
+          }
+          if (!extracted.tradeSummary) {
+            console.error('FAIL: tradeSummary missing from extraction output');
+            process.exit(1);
+          }
+          console.log('KAI Intelligence Engine : PASS');
+
+          // --- KAI Creative Engine: ONE image generation ---
+          console.log('');
+          console.log('=== KAI Creative Engine ===');
+          const t2 = Date.now();
+          const imgResp = await client.images.generate({
+            model: imageModel,
+            prompt: 'Professional industrial construction site, blue-grey tones, corporate recruitment advertisement background, clean abstract.',
+            size: '1024x1024',
+            quality: 'low',
+            n: 1,
+          });
+          const t2ms = Date.now() - t2;
+
+          const img = imgResp.data?.[0];
+          if (!img?.b64_json) {
+            console.error('FAIL: no base64 image data returned');
+            process.exit(1);
+          }
+          const sizeKb = Math.round(Buffer.from(img.b64_json, 'base64').length / 1024);
+
+          console.log('Image model      :', imageModel);
+          console.log('Latency          :', t2ms + 'ms');
+          console.log('Image size       :', sizeKb + ' KB (PNG 1024x1024 low-quality)');
+          console.log('Est. cost (USD)  : token-based billing — not returned by SDK (see ADR-006)');
+          console.log('KAI Creative Engine : PASS');
+
+          console.log('');
+          console.log('=== Phase 5 OpenAI Verification : ALL CHECKS PASSED ===');
+          JSEOF
+
+      - name: Run verification (one text call + one image call)
+        run: node kai-verify.mjs
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          KAI_TEXT_MODEL: gpt-4.1-mini
+          KAI_IMAGE_MODEL: gpt-image-1
