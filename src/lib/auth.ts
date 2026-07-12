@@ -9,20 +9,6 @@ import { createLogger } from "@/lib/logger";
 
 const log = createLogger("auth");
 
-const env = getEnv();
-const integrations = getIntegrationStatus(env);
-
-// FIX-008 (HTTPS): refuse to boot in production with a non-HTTPS auth URL.
-// Better Auth issues Secure cookies in production (see advanced.useSecureCookies
-// below); those cookies are silently dropped by browsers over plain HTTP,
-// which would look like "login doesn't work" rather than a clear config error.
-if (env.NODE_ENV === "production" && !env.BETTER_AUTH_URL.startsWith("https://")) {
-  throw new Error(
-    `BETTER_AUTH_URL must use https:// in production (got "${env.BETTER_AUTH_URL}"). ` +
-      "Secure cookies will not be sent over plain HTTP.",
-  );
-}
-
 /**
  * Better Auth server instance.
  *
@@ -35,8 +21,30 @@ if (env.NODE_ENV === "production" && !env.BETTER_AUTH_URL.startsWith("https://")
  * This is intentional: Better Auth will reject sign-in attempts for a
  * provider that isn't registered, rather than us shipping a fake button
  * that goes nowhere.
+ *
+ * Built lazily (same pattern as getOpenAiClient() in
+ * server/ai/openai/openai-client.ts) rather than at module scope: Next.js's
+ * build-time "Collecting page data" step requires() every route module,
+ * including ones that only transitively import this file via session.ts.
+ * Eagerly calling getEnv()/betterAuth() at module scope ran this
+ * validation during the build itself instead of at request time.
  */
-export const auth = betterAuth({
+function buildAuth() {
+  const env = getEnv();
+  const integrations = getIntegrationStatus(env);
+
+  // FIX-008 (HTTPS): refuse to boot in production with a non-HTTPS auth URL.
+  // Better Auth issues Secure cookies in production (see advanced.useSecureCookies
+  // below); those cookies are silently dropped by browsers over plain HTTP,
+  // which would look like "login doesn't work" rather than a clear config error.
+  if (env.NODE_ENV === "production" && !env.BETTER_AUTH_URL.startsWith("https://")) {
+    throw new Error(
+      `BETTER_AUTH_URL must use https:// in production (got "${env.BETTER_AUTH_URL}"). ` +
+        "Secure cookies will not be sent over plain HTTP.",
+    );
+  }
+
+  const instance = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
 
@@ -140,16 +148,29 @@ export const auth = betterAuth({
     // reading the file, not by knowing the library default.
     disableCSRFCheck: false,
   },
-});
+  });
 
-if (!integrations.google) {
-  log.warn("Google OAuth not configured — GOOGLE_CLIENT_ID/SECRET missing");
-}
-if (!integrations.microsoft) {
-  log.warn("Microsoft OAuth not configured — MICROSOFT_CLIENT_ID/SECRET missing");
-}
-if (!emailService.isConfigured) {
-  log.warn("Email provider not configured — Magic Link cannot deliver email");
+  if (!integrations.google) {
+    log.warn("Google OAuth not configured — GOOGLE_CLIENT_ID/SECRET missing");
+  }
+  if (!integrations.microsoft) {
+    log.warn("Microsoft OAuth not configured — MICROSOFT_CLIENT_ID/SECRET missing");
+  }
+  if (!emailService.isConfigured) {
+    log.warn("Email provider not configured — Magic Link cannot deliver email");
+  }
+
+  return instance;
 }
 
-export type Auth = typeof auth;
+let cachedAuth: ReturnType<typeof buildAuth> | null = null;
+
+/** The only place `betterAuth(...)` is constructed — see buildAuth() above for why this is lazy. */
+export function getAuth() {
+  if (!cachedAuth) {
+    cachedAuth = buildAuth();
+  }
+  return cachedAuth;
+}
+
+export type Auth = ReturnType<typeof buildAuth>;
