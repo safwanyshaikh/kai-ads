@@ -69,6 +69,11 @@ const envSchema = z.object({
   STORAGE_ENDPOINT: z.string().optional(),
   STORAGE_PUBLIC_URL: z.string().optional(),
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  // Set automatically by Vercel when a Blob store is "Connected" to the
+  // project via OIDC (no static token issued). @vercel/blob's put()
+  // resolves auth itself in that case, via VERCEL_OIDC_TOKEN + this store
+  // id — see VercelBlobStorageProvider.
+  BLOB_STORE_ID: z.string().optional(),
 
   // Registration policy
   PERSONAL_EMAIL_DOMAINS: z

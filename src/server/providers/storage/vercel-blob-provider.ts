@@ -9,8 +9,18 @@ import {
 export class VercelBlobStorageProvider implements StorageProvider {
   readonly name = "vercel-blob";
 
+  /**
+   * Two supported connection modes, matching what @vercel/blob's put()
+   * itself accepts (see resolveBlobAuth in @vercel/blob's source):
+   *  - a static BLOB_READ_WRITE_TOKEN (classic token-based connection), or
+   *  - BLOB_STORE_ID with no token — the project's Blob store is
+   *    "Connected" via OIDC, and put() resolves the short-lived
+   *    VERCEL_OIDC_TOKEN itself at call time when no `token` option is
+   *    passed. Either variable being present means the store is usable.
+   */
   get isConfigured(): boolean {
-    return Boolean(getEnv().BLOB_READ_WRITE_TOKEN);
+    const env = getEnv();
+    return Boolean(env.BLOB_READ_WRITE_TOKEN) || Boolean(env.BLOB_STORE_ID);
   }
 
   async upload(input: UploadFileInput): Promise<{ url: string; key: string }> {
@@ -23,7 +33,10 @@ export class VercelBlobStorageProvider implements StorageProvider {
     const blob = await put(key, input.data, {
       access: "public",
       contentType: input.contentType,
-      token: env.BLOB_READ_WRITE_TOKEN,
+      // Only pass an explicit token when one is configured; omitting the
+      // key (rather than passing it as undefined) lets put() fall through
+      // to its own OIDC resolution when only BLOB_STORE_ID is set.
+      ...(env.BLOB_READ_WRITE_TOKEN ? { token: env.BLOB_READ_WRITE_TOKEN } : {}),
     });
 
     return { url: blob.url, key };
