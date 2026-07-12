@@ -40,33 +40,35 @@ jobs:
       - name: Verify schema tables
         run: |
           npx tsx -e "
-            const { Client } = await import('pg');
-            const client = new Client({ connectionString: process.env.DATABASE_URL });
-            await client.connect();
+            (async () => {
+              const { Client } = await import('pg');
+              const client = new Client({ connectionString: process.env.DATABASE_URL });
+              await client.connect();
 
-            const expected = [
-              'agencies', 'domains', 'users', 'sessions', 'accounts',
-              'verifications', 'join_requests', 'approvals', 'audit_logs',
-              'advertisements', 'advertisement_versions', 'advertisement_history',
-              'advertisement_drafts', 'agency_contacts', 'ai_usage_logs',
-              'agency_verifications', 'agency_generation_quotas', 'qr_scan_events',
-              '_prisma_migrations'
-            ];
+              const expected = [
+                'agencies', 'domains', 'users', 'sessions', 'accounts',
+                'verifications', 'join_requests', 'approvals', 'audit_logs',
+                'advertisements', 'advertisement_versions', 'advertisement_history',
+                'advertisement_drafts', 'agency_contacts', 'ai_usage_logs',
+                'agency_verifications', 'agency_generation_quotas', 'qr_scan_events',
+                '_prisma_migrations'
+              ];
 
-            const res = await client.query(
-              \`SELECT tablename FROM pg_tables WHERE schemaname = 'public'\`
-            );
-            const actual = new Set(res.rows.map(r => r.tablename));
+              const res = await client.query(
+                \`SELECT tablename FROM pg_tables WHERE schemaname = 'public'\`
+              );
+              const actual = new Set(res.rows.map(r => r.tablename));
 
-            const missing = expected.filter(t => !actual.has(t));
-            if (missing.length > 0) {
-              console.error('MISSING TABLES:', missing.join(', '));
-              process.exit(1);
-            }
+              const missing = expected.filter(t => !actual.has(t));
+              if (missing.length > 0) {
+                console.error('MISSING TABLES:', missing.join(', '));
+                process.exit(1);
+              }
 
-            console.log('All', expected.length, 'expected tables present.');
-            console.log('Tables found:', [...actual].sort().join(', '));
-            await client.end();
+              console.log('All', expected.length, 'expected tables present.');
+              console.log('Tables found:', [...actual].sort().join(', '));
+              await client.end();
+            })();
           "
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
