@@ -1,0 +1,46 @@
+name: Bootstrap KAI Super Admin
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "bootstrap" to confirm creating/promoting the KAI Super Admin in production'
+        required: true
+        type: string
+
+jobs:
+  seed-super-admin:
+    name: prisma db seed (Super Admin bootstrap)
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'bootstrap'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # Uses the existing prisma/seed.ts bootstrap mechanism unmodified.
+      # SEED_SUPER_ADMIN_EMAIL comes from a GitHub Actions secret, never
+      # from source control. GitHub Actions automatically masks any
+      # workflow output that matches a value sourced from `secrets.*`, so
+      # this step's console output (including seed.ts's own log lines) has
+      # the email redacted as *** rather than printed in the clear.
+      - name: Run Super Admin bootstrap seed
+        run: npx prisma db seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SEED_SUPER_ADMIN_EMAIL: ${{ secrets.SEED_SUPER_ADMIN_EMAIL }}
+          SEED_SUPER_ADMIN_NAME: "KAI Super Admin"
