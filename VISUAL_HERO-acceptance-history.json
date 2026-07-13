@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "finalScore": 91,
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 93,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 95,
+        "defects": [
+          "The contact details area and QR code area feel slightly cramped making the bottom busy",
+          "The repeated use of the same job requirement phrase for all roles reduces visual engagement and hierarchy"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase padding around the contact details and QR code to reduce cramped appearance."
+          },
+          {
+            "type": "OTHER",
+            "note": "Vary the wording or visually group the similar job requirements for better hierarchy and readability."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

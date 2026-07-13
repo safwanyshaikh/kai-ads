@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "finalScore": 90,
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 92,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 87,
+        "ctaScore": 90,
+        "trustScore": 93,
+        "defects": [
+          "The QR code looks a bit small and positioned in a corner that might reduce scan ease.",
+          "There is a lot of white space on the canvas, especially in the middle and bottom areas, which could be better utilized for emphasis or visual balance."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Better utilize white space and consider slightly repositioning elements for improved balance."
+          },
+          {
+            "type": "OTHER",
+            "note": "Enlarge and reposition the QR code for easier scanning while keeping design harmony."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

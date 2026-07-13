@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "finalScore": 86,
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 86,
+        "commercialQualityScore": 85,
+        "hierarchyScore": 87,
+        "readabilityScore": 90,
+        "imageryScore": 70,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Imagery is completely absent, making the ad visually flat and less attention-grabbing",
+          "The 'Required for Saudi Arabia' headline is slightly less prominent compared to the main job heading, reducing immediate country clarity",
+          "Text blocks and spacing could be adjusted to reduce clustering around interview dates and contact info for better breathing room"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Add relevant and professional imagery related to oil & gas or project technicians to enhance visual appeal."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make 'REQUIRED FOR SAUDI ARABIA' more prominent to immediately communicate the job location."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing around interview date boxes and contact information to avoid crowding and improve clarity."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    }
+  ]
+}

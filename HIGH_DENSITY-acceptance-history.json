@@ -1,0 +1,115 @@
+{
+  "status": "PASS",
+  "finalScore": 88,
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 82,
+        "commercialQualityScore": 80,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 70,
+        "canvasUtilizationScore": 80,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "Imagery is very minimal and plain, reducing attention-stopping power",
+          "The headline emphasis could be stronger to immediately capture the viewer's attention",
+          "Bottom section with contact details and QR code feels cramped horizontally with little padding",
+          "The different interview dates are presented as small buttons which do not stand out enough as important info or CTA",
+          "No strong use of color or graphic elements to enhance visual interest and break text monotony"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Add a relevant background or graphic element to improve visual appeal and attention-stopping power"
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the headline text bigger or more distinctive to immediately highlight the job and location"
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing and padding especially around the bottom contact and QR code area for better balance"
+          },
+          {
+            "type": "OTHER",
+            "note": "Highlight interview dates better with stronger buttons or visual cues to make them more prominent as key info"
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Visual hierarchy can be slightly improved to make the 'Hiring for Bilfinger Shutdown Project' headline more dominant over the subtext.",
+          "The QR code integration is good but could be slightly larger or better aligned to feel more integrated, avoiding a 'sticker' appearance.",
+          "The section mentioning basic salary and daily overtime could use more spacing above and below to separate it visually from the text above and below for better readability."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the main headline 'Hiring for Bilfinger Shutdown Project' more visually prominent to immediately grab attention."
+          },
+          {
+            "type": "OTHER",
+            "note": "Adjust spacing around the salary and overtime info box for clearer separation."
+          },
+          {
+            "type": "OTHER",
+            "note": "Slightly increase QR code size and adjust alignment to integrate better with the footer."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
