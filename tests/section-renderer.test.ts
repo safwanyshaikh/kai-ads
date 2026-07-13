@@ -85,8 +85,12 @@ describe("renderSectionComposition — deterministic text, no AI dependency", ()
 
   it("never renders literal 'N/A' or 'Not Available' placeholders", () => {
     const svg = renderSectionComposition({ ...baseInput, employer: null, interview: {}, benefits: [] });
-    expect(svg.toLowerCase()).not.toContain("n/a");
-    expect(svg.toLowerCase()).not.toContain("not available");
+    // Excludes the embedded-font <style> block: its base64 font data is
+    // effectively random bytes and can coincidentally contain "n/a" as a
+    // substring — this check is about recruiter-facing content, not font data.
+    const content = svg.replace(/<style>[\s\S]*?<\/style>/, "");
+    expect(content.toLowerCase()).not.toContain("n/a");
+    expect(content.toLowerCase()).not.toContain("not available");
   });
 
   it("renders differently for NEWSPAPER vs TYPOGRAPHY (a real, distinguishable layout difference)", () => {
@@ -100,5 +104,47 @@ describe("renderSectionComposition — deterministic text, no AI dependency", ()
     const svg = renderSectionComposition(baseInput);
     expect(svg).toContain(`width="${baseInput.platformFormat.widthPx}"`);
     expect(svg).toContain(`height="${baseInput.platformFormat.heightPx}"`);
+  });
+
+  it("embeds fonts as self-contained @font-face data instead of referencing system font names (FIX-009 — sharp's SVG rasterizer has no fonts installed on Vercel's serverless runtime)", () => {
+    const svg = renderSectionComposition(baseInput);
+    expect(svg).toContain("@font-face");
+    expect(svg).toContain("base64");
+    expect(svg).not.toContain("Arial");
+    expect(svg).not.toContain("Helvetica");
+    expect(svg).not.toContain("Georgia");
+    expect(svg).not.toContain("Times New Roman");
+  });
+
+  it("scales the logo, badge, and text block proportionally with canvas height instead of using fixed pixel values (FIX-010 — a tall format like WhatsApp Status/Instagram Story otherwise clusters all content near the top and strands the QR badge far below it)", () => {
+    const shortFormat = getPlatformFormat("generic_square"); // 1080x1080
+    const tallFormat = getPlatformFormat("whatsapp_status"); // 1080x1920 — the tallest supported format
+
+    const shortSvg = renderSectionComposition({ ...baseInput, platformFormat: shortFormat });
+    const tallSvg = renderSectionComposition({ ...baseInput, platformFormat: tallFormat });
+
+    const logoWidthOf = (svg: string) => {
+      const match = svg.match(/<image x="\d+" y="-?\d+" width="(\d+)" height="\d+" href="data:image\/png/);
+      return match ? Number(match[1]) : null;
+    };
+    const shortLogoWidth = logoWidthOf(shortSvg);
+    const tallLogoWidth = logoWidthOf(tallSvg);
+    expect(shortLogoWidth).not.toBeNull();
+    expect(tallLogoWidth).not.toBeNull();
+    // Taller canvas -> proportionally larger logo, never the same fixed 64px on both.
+    expect(tallLogoWidth! / tallFormat.heightPx).toBeCloseTo(shortLogoWidth! / shortFormat.heightPx, 3);
+    expect(tallLogoWidth).toBeGreaterThan(shortLogoWidth!);
+
+    // The badge's own size scales the same way — never the same fixed
+    // pixel size regardless of canvas height.
+    const badgeSizeOf = (svg: string) => {
+      const match = svg.match(/<rect x="\d+" y="-?\d+" width="(\d+)" height="\d+" rx="\d+" fill="#ffffff"/);
+      return match ? Number(match[1]) : null;
+    };
+    const shortBadgeSize = badgeSizeOf(shortSvg);
+    const tallBadgeSize = badgeSizeOf(tallSvg);
+    expect(shortBadgeSize).not.toBeNull();
+    expect(tallBadgeSize).not.toBeNull();
+    expect(tallBadgeSize! / tallFormat.heightPx).toBeCloseTo(shortBadgeSize! / shortFormat.heightPx, 3);
   });
 });

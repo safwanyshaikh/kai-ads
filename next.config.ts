@@ -18,11 +18,23 @@ const nextConfig: NextConfig = {
     "pino",
     "nodemailer",
     "@aws-sdk/client-s3",
+    "sharp",
   ],
   experimental: {
     // Tree-shakes named imports from these packages instead of pulling
     // in the whole module graph for a handful of exports.
     optimizePackageImports: ["zod", "react-hook-form"],
+  },
+  // FIX-009: the advertisement renderer reads these .ttf files with
+  // fs.readFileSync at request time (see server/generation/embedded-fonts.ts)
+  // so the SVG it produces never depends on a system font being installed
+  // on the serverless host. Next's file tracer can miss a dynamically
+  // constructed fs path, so the font files are listed explicitly here to
+  // guarantee they're included in the deployed function bundle.
+  outputFileTracingIncludes: {
+    "/api/advertisements/[id]/generate": ["./src/server/generation/fonts/*.ttf"],
+    "/api/advertisements/[id]/export": ["./src/server/generation/fonts/*.ttf"],
+    "/api/advertisements/[id]/section": ["./src/server/generation/fonts/*.ttf"],
   },
 };
 

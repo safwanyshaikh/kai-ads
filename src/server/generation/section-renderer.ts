@@ -1,6 +1,20 @@
 import type { PlatformFormat } from "@/lib/platform-formats";
 import type { BadgeConfig } from "./badge-selection.service";
 import { buildFallbackBackgroundSvgFragment } from "./fallback-background";
+import { buildEmbeddedFontStyleBlock, KAI_SANS_FONT_FAMILY, KAI_SERIF_FONT_FAMILY } from "./embedded-fonts";
+
+/**
+ * Every fixed pixel constant below (padding, logo/badge size, line
+ * spacing, font sizes) was tuned against this reference canvas. FIX-010:
+ * two separate scale factors are derived from it — see `layoutScale` and
+ * `fontScale` below — so the template holds its proportions across every
+ * platform format instead of clustering all content in a small top-left
+ * corner (and leaving the badge, which already anchors to
+ * widthPx/heightPx directly, stranded far below it) on tall formats like
+ * WhatsApp Status / Instagram Story.
+ */
+const BASELINE_WIDTH_PX = 1080;
+const BASELINE_HEIGHT_PX = 1350;
 
 interface RenderablePosition {
   title: string;
@@ -72,7 +86,20 @@ export function renderSectionComposition(input: SectionRenderInput): string {
   const fmt = input.platformFormat;
   const isNewspaper = input.style === "NEWSPAPER";
   const isVisual = input.style === "VISUAL";
-  const padding = 48;
+
+  // FIX-010: layoutScale (spacing, padding, logo/badge size) is driven by
+  // height, so tall formats get generously spread-out content instead of
+  // a cluster near the top with the badge stranded far below. fontScale
+  // is capped by width too — a single <text> line is never wrapped, so
+  // letting font size grow with height alone on a tall-but-not-wide
+  // format (e.g. WhatsApp Status, 1080x1920 — same 1080px width as every
+  // square format) clipped the header off the right edge of the canvas.
+  const layoutScale = fmt.heightPx / BASELINE_HEIGHT_PX;
+  const fontScale = Math.min(layoutScale, fmt.widthPx / BASELINE_WIDTH_PX);
+  const px = (baseline: number) => Math.round(baseline * layoutScale);
+  const fpx = (baseline: number) => Math.round(baseline * fontScale);
+
+  const padding = px(48);
 
   const positionLines = input.positions
     .map((p) => {
@@ -90,16 +117,18 @@ export function renderSectionComposition(input: SectionRenderInput): string {
     .filter(Boolean)
     .join("  ·  ");
 
-  const badgeSize = BADGE_SIZE_PX[input.badge.size];
+  const badgeSize = px(BADGE_SIZE_PX[input.badge.size]);
   const badgeX = fmt.widthPx - padding - badgeSize;
   const badgeY = fmt.heightPx - padding - badgeSize;
   const badgeRx =
-    input.badge.shape === "circular" ? badgeSize / 2 : input.badge.shape === "rounded_square" ? 16 : 8;
+    input.badge.shape === "circular" ? badgeSize / 2 : input.badge.shape === "rounded_square" ? px(16) : px(8);
 
-  const fontFamily = isNewspaper ? "Georgia, 'Times New Roman', serif" : "Arial, Helvetica, sans-serif";
+  // FIX-009: embedded, self-contained fonts — see embedded-fonts.ts for
+  // why these can no longer be system font-family names.
+  const fontFamily = isNewspaper ? KAI_SERIF_FONT_FAMILY : KAI_SANS_FONT_FAMILY;
   const accentColor = input.accentColor ?? "#1a1a1a";
   const rule = isNewspaper
-    ? `<line x1="${padding}" y1="180" x2="${fmt.widthPx - padding}" y2="180" stroke="${accentColor}" stroke-width="2" />`
+    ? `<line x1="${padding}" y1="${px(180)}" x2="${fmt.widthPx - padding}" y2="${px(180)}" stroke="${accentColor}" stroke-width="2" />`
     : "";
 
   // Visual: text sits on a dark, semi-transparent panel over the bottom
@@ -111,7 +140,7 @@ export function renderSectionComposition(input: SectionRenderInput): string {
 
   const background = input.backgroundImageDataUri
     ? `<image x="0" y="0" width="${fmt.widthPx}" height="${fmt.heightPx}" href="${input.backgroundImageDataUri}" preserveAspectRatio="xMidYMid slice" />
-  <rect x="0" y="0" width="${fmt.widthPx}" height="140" fill="#000000" fill-opacity="0.35" />
+  <rect x="0" y="0" width="${fmt.widthPx}" height="${px(140)}" fill="#000000" fill-opacity="0.35" />
   <rect x="0" y="${panelTop}" width="${fmt.widthPx}" height="${fmt.heightPx - panelTop}" fill="#000000" fill-opacity="0.55" />`
     : isVisual
       ? buildFallbackBackgroundSvgFragment({ widthPx: fmt.widthPx, heightPx: fmt.heightPx, industry: input.industry })
@@ -120,56 +149,66 @@ export function renderSectionComposition(input: SectionRenderInput): string {
   const positionsBlock = positionLines
     .map(
       (line, i) =>
-        `<text x="${padding}" y="${260 + i * 34}" font-family="${fontFamily}" font-size="22" fill="${isVisual ? "#ffffff" : "#222222"}">${line}</text>`,
+        `<text x="${padding}" y="${px(260 + i * 34)}" font-family="${fontFamily}" font-size="${fpx(22)}" fill="${isVisual ? "#ffffff" : "#222222"}">${line}</text>`,
     )
     .join("\n  ");
 
+  // FIX-011: the "Benefits" header and its first line previously landed
+  // at the identical y-coordinate for any number of positions
+  // (260 + n*34 + 40 === 300 + n*34 + 0, always, for every n) — the
+  // header text and first benefit line rendered on top of each other,
+  // garbling both. Benefit lines are now spaced a fixed gap below
+  // wherever the header actually landed, instead of from an
+  // independently-computed baseline that happened to coincide with it.
+  const benefitsHeaderBaseline = 260 + positionLines.length * 34 + 40;
   const benefitsBlock =
     benefitLines.length > 0
-      ? `<text x="${padding}" y="${260 + positionLines.length * 34 + 40}" font-family="${fontFamily}" font-size="24" font-weight="700" fill="${textColor}">Benefits</text>
+      ? `<text x="${padding}" y="${px(benefitsHeaderBaseline)}" font-family="${fontFamily}" font-size="${fpx(24)}" font-weight="700" fill="${textColor}">Benefits</text>
   ${benefitLines
     .map(
       (line, i) =>
-        `<text x="${padding}" y="${300 + positionLines.length * 34 + i * 30}" font-family="${fontFamily}" font-size="20" fill="${secondaryTextColor}">${line}</text>`,
+        `<text x="${padding}" y="${px(benefitsHeaderBaseline + 36 + i * 30)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">${line}</text>`,
     )
     .join("\n  ")}`
       : "";
 
   const interviewBlock =
     input.interview.date || input.interview.location
-      ? `<text x="${padding}" y="${fmt.heightPx - 220}" font-family="${fontFamily}" font-size="20" fill="${secondaryTextColor}">Interview: ${escapeXml([input.interview.date, input.interview.location].filter(Boolean).join(", "))}</text>`
+      ? `<text x="${padding}" y="${fmt.heightPx - px(220)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">Interview: ${escapeXml([input.interview.date, input.interview.location].filter(Boolean).join(", "))}</text>`
       : "";
 
   const contactBlock = contactLine
-    ? `<text x="${padding}" y="${fmt.heightPx - 180}" font-family="${fontFamily}" font-size="20" font-weight="600" fill="${textColor}">${escapeXml(contactLine)}</text>`
+    ? `<text x="${padding}" y="${fmt.heightPx - px(180)}" font-family="${fontFamily}" font-size="${fpx(20)}" font-weight="600" fill="${textColor}">${escapeXml(contactLine)}</text>`
     : "";
 
   const raBlock = input.raLicenseId
-    ? `<text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - 8}" font-family="${fontFamily}" font-size="8" text-anchor="middle" fill="#333333">RA ${escapeXml(input.raLicenseId)}</text>`
+    ? `<text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(8)}" font-family="${fontFamily}" font-size="${fpx(8)}" text-anchor="middle" fill="#333333">RA ${escapeXml(input.raLicenseId)}</text>`
     : "";
 
+  const logoSize = px(64);
   const logoBlock = input.agencyLogoDataUri
-    ? `<image x="${padding}" y="${padding - 20}" width="64" height="64" href="${input.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`
+    ? `<image x="${padding}" y="${px(48 - 20)}" width="${logoSize}" height="${logoSize}" href="${input.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`
     : "";
 
-  const headerX = input.agencyLogoDataUri ? padding + 80 : padding;
+  const headerX = input.agencyLogoDataUri ? px(48 + 80) : padding;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt.widthPx}" height="${fmt.heightPx}" viewBox="0 0 ${fmt.widthPx} ${fmt.heightPx}">
+  ${buildEmbeddedFontStyleBlock()}
   ${background}
   ${logoBlock}
-  <text x="${headerX}" y="90" font-family="${fontFamily}" font-size="${isNewspaper ? 40 : 52}" font-weight="700" fill="${textColor}">${escapeXml(input.header)}</text>
-  <text x="${headerX}" y="130" font-family="${fontFamily}" font-size="24" fill="${secondaryTextColor}">${escapeXml(input.industry)} \u00b7 ${escapeXml(input.country)}${input.employer ? " \u00b7 " + escapeXml(input.employer) : ""}</text>
+  <text x="${headerX}" y="${px(90)}" font-family="${fontFamily}" font-size="${isNewspaper ? fpx(40) : fpx(52)}" font-weight="700" fill="${textColor}">${escapeXml(input.header)}</text>
+  <text x="${headerX}" y="${px(130)}" font-family="${fontFamily}" font-size="${fpx(24)}" fill="${secondaryTextColor}">${escapeXml(input.industry)} · ${escapeXml(input.country)}${input.employer ? " · " + escapeXml(input.employer) : ""}</text>
   ${rule}
-  <text x="${padding}" y="220" font-family="${fontFamily}" font-size="28" font-weight="700" fill="${accentColor === "#1a1a1a" ? textColor : accentColor}">Positions</text>
+  <text x="${padding}" y="${px(220)}" font-family="${fontFamily}" font-size="${fpx(28)}" font-weight="700" fill="${accentColor === "#1a1a1a" ? textColor : accentColor}">Positions</text>
   ${positionsBlock}
   ${benefitsBlock}
   ${interviewBlock}
   ${contactBlock}
-  <text x="${padding}" y="${fmt.heightPx - padding}" font-family="${fontFamily}" font-size="16" fill="${secondaryTextColor}">${escapeXml(input.agencyName)}${input.footer ? " \u00b7 " + escapeXml(input.footer) : ""}</text>
+  <text x="${padding}" y="${fmt.heightPx - padding}" font-family="${fontFamily}" font-size="${fpx(16)}" fill="${secondaryTextColor}">${escapeXml(input.agencyName)}${input.footer ? " · " + escapeXml(input.footer) : ""}</text>
   <rect x="${badgeX}" y="${badgeY}" width="${badgeSize}" height="${badgeSize}" rx="${badgeRx}" fill="#ffffff" stroke="${accentColor}" stroke-width="2" />
-  <image x="${badgeX + 8}" y="${badgeY + 8}" width="${badgeSize - 16}" height="${badgeSize - 40}" href="${input.qrDataUri}" />
-  <text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - 20}" font-family="${fontFamily}" font-size="9" text-anchor="middle" fill="#111111">MEA REGISTERED</text>
+  <image x="${badgeX + px(8)}" y="${badgeY + px(8)}" width="${badgeSize - px(16)}" height="${badgeSize - px(40)}" href="${input.qrDataUri}" />
+  <text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(20)}" font-family="${fontFamily}" font-size="${fpx(9)}" text-anchor="middle" fill="#111111">MEA REGISTERED</text>
   ${raBlock}
-  <text x="${badgeX + badgeSize / 2}" y="${badgeY - 8}" font-family="${fontFamily}" font-size="12" text-anchor="middle" fill="#333333">VERIFY AGENCY</text>
+  <text x="${badgeX + badgeSize / 2}" y="${badgeY - px(8)}" font-family="${fontFamily}" font-size="${fpx(12)}" text-anchor="middle" fill="#333333">VERIFY AGENCY</text>
 </svg>`;
 }
