@@ -33,6 +33,19 @@ describe("interview-events — Decision 3 (structured multi-city interview suppo
     expect(stored.events).toHaveLength(1);
   });
 
+  it("reads extraction-engine events that use 'venue' instead of 'location' (real-API acceptance run found venues silently dropped)", () => {
+    const events = normalizeInterviewEvents({
+      events: [
+        { date: "14th July", venue: "Baroda" },
+        { date: "18th July", venue: "Mumbai" },
+      ],
+    });
+    expect(events).toEqual([
+      { date: "14th July", location: "Baroda" },
+      { date: "18th July", location: "Mumbai" },
+    ]);
+  });
+
   it("filters out empty events when reading a structured record with a stray empty entry", () => {
     const events = normalizeInterviewEvents({ events: [{ date: "1 Aug 2026", location: "Mumbai" }, { date: "", location: "" }] });
     expect(events).toHaveLength(1);

@@ -176,7 +176,13 @@ export function renderVisualHero(input: CompositionInput): string {
     const cols = Math.min(facts.interview.length, 2);
     const gap = px(16);
     const boxW = (width - gap * (cols - 1)) / cols;
-    const boxH = px(66);
+    // Found by the real-API acceptance run: with 3+ interview events the
+    // second row of boxes ran under the CTA bar. The box height adapts to
+    // the space actually left above the bar, down to a legible floor.
+    const rows = Math.ceil(facts.interview.length / cols);
+    const barTop = H - px(150);
+    const available = barTop - startY - px(34) - gap * (rows - 1) - px(16);
+    const boxH = Math.max(px(40), Math.min(px(66), Math.floor(available / Math.max(rows, 1))));
     parts.push(
       `<text x="${x}" y="${cy + fpx(20)}" font-family="${font}" font-size="${fpx(20)}" font-weight="700" letter-spacing="2" fill="${accent}">INTERVIEW</text>`,
     );

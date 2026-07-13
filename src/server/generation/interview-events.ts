@@ -29,16 +29,32 @@ function hasContent(event: InterviewEvent | undefined | null): event is Intervie
   return Boolean(event && (event.date || event.location));
 }
 
+/**
+ * The extraction engine's interviewEvents use `venue` (matching the
+ * singular interviewVenue field), while this module's canonical name is
+ * `location` — found by the real-API acceptance run, where venues
+ * silently vanished from every rendered interview box. Reading treats
+ * `venue` as an alias so events survive regardless of which producer
+ * wrote them.
+ */
+function toEvent(raw: { date?: string | null; location?: string | null; venue?: string | null }): InterviewEvent {
+  return {
+    date: raw.date ?? undefined,
+    location: raw.location ?? raw.venue ?? undefined,
+  };
+}
+
 /** Reads the interview JSON column in either its legacy single-event or current multi-event shape. */
 export function normalizeInterviewEvents(raw: unknown): InterviewEvent[] {
   if (!raw || typeof raw !== "object") return [];
   const obj = raw as Partial<StructuredInterviewShape> & LegacySingleInterviewShape;
 
   if (Array.isArray(obj.events)) {
-    return obj.events.filter(hasContent);
+    return obj.events.map(toEvent).filter(hasContent);
   }
-  if (hasContent(obj)) {
-    return [{ date: obj.date, location: obj.location }];
+  const single = toEvent(obj as { date?: string; location?: string; venue?: string });
+  if (hasContent(single)) {
+    return [single];
   }
   return [];
 }
