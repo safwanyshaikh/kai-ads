@@ -116,6 +116,55 @@ describe("renderSectionComposition — deterministic text, no AI dependency", ()
     expect(svg).not.toContain("Times New Roman");
   });
 
+  it("shrinks a long, realistic header instead of clipping it off-canvas (FIX-012 — found by rendering the real 'Hiring for Bilfinger Shutdown Project, Saudi Arabia' header, which clipped at the original fixed font size)", () => {
+    const shortHeaderSvg = renderSectionComposition({ ...baseInput, header: "Welders Needed" });
+    const longHeaderSvg = renderSectionComposition({
+      ...baseInput,
+      header: "Hiring for Bilfinger Shutdown Project, Saudi Arabia",
+    });
+    const fontSizeOf = (svg: string) => {
+      const match = svg.match(/font-size="(\d+)" font-weight="700" fill="#111111">Hiring|font-size="(\d+)" font-weight="700" fill="#111111">Welders/);
+      return match ? Number(match[1] ?? match[2]) : null;
+    };
+    const shortSize = fontSizeOf(shortHeaderSvg);
+    const longSize = fontSizeOf(longHeaderSvg);
+    expect(shortSize).not.toBeNull();
+    expect(longSize).not.toBeNull();
+    // The longer header must use a smaller (or equal) font size than the
+    // short one — never the same fixed size regardless of string length.
+    expect(longSize!).toBeLessThan(shortSize!);
+    // Full text content must still be present (shrunk to fit, not truncated).
+    expect(longHeaderSvg).toContain("Hiring for Bilfinger Shutdown Project, Saudi Arabia");
+  });
+
+  it("shrinks the RA badge text to fit a long official registration number instead of overflowing the badge (FIX-012 — found by rendering the real 'RC-B1487/MUM/PART/1000+/9986/2022' full RC format)", () => {
+    const shortRcSvg = renderSectionComposition({ ...baseInput, raLicenseId: "9986" });
+    const longRcSvg = renderSectionComposition({ ...baseInput, raLicenseId: "RC-B1487/MUM/PART/1000+/9986/2022" });
+    const raFontSizeOf = (svg: string) => {
+      const match = svg.match(/font-size="(\d+)" text-anchor="middle" fill="#333333">RA /);
+      return match ? Number(match[1]) : null;
+    };
+    const shortSize = raFontSizeOf(shortRcSvg);
+    const longSize = raFontSizeOf(longRcSvg);
+    expect(shortSize).not.toBeNull();
+    expect(longSize).not.toBeNull();
+    expect(longSize!).toBeLessThan(shortSize!);
+    // The full RC number (including its "+" character) must still be
+    // present verbatim, never truncated or altered.
+    expect(longRcSvg).toContain("RC-B1487/MUM/PART/1000+/9986/2022");
+  });
+
+  it("renders 'VERIFY AGENCY' in a color that stays legible against the Visual style's dark background (previously a fixed dark gray, invisible against a dark backdrop)", () => {
+    const visualSvg = renderSectionComposition({ ...baseInput, style: "VISUAL" });
+    const typographySvg = renderSectionComposition({ ...baseInput, style: "TYPOGRAPHY" });
+    const verifyColorOf = (svg: string) => {
+      const match = svg.match(/font-size="\d+" text-anchor="middle" fill="(#[0-9a-fA-F]{6})">VERIFY AGENCY/);
+      return match ? match[1] : null;
+    };
+    expect(verifyColorOf(visualSvg)).toBe("#ffffff");
+    expect(verifyColorOf(typographySvg)).toBe("#111111");
+  });
+
   it("scales the logo, badge, and text block proportionally with canvas height instead of using fixed pixel values (FIX-010 — a tall format like WhatsApp Status/Instagram Story otherwise clusters all content near the top and strands the QR badge far below it)", () => {
     const shortFormat = getPlatformFormat("generic_square"); // 1080x1080
     const tallFormat = getPlatformFormat("whatsapp_status"); // 1080x1920 — the tallest supported format

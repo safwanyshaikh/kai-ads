@@ -62,6 +62,28 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/**
+ * FIX-012: a single-line, non-wrapping <text> element clips silently
+ * off-canvas once the string is long enough relative to its font size —
+ * found by rendering this real, longer-than-the-original-test-fixtures
+ * header ("Hiring for Bilfinger Shutdown Project, Saudi Arabia") and the
+ * full official RC number format inside the compact badge. Shrinks the
+ * font size (down to a floor, never below legibility) until the string's
+ * estimated rendered width fits the available space, using an average
+ * glyph-width ratio since no real text-measurement API is available in
+ * this server-side rasterization path (no DOM/canvas metrics). This is
+ * an approximation, not exact per-glyph measurement — deliberately
+ * conservative (slightly overestimates width) so it shrinks a little
+ * early rather than risk still clipping.
+ */
+function fitFontSize(text: string, maxWidthPx: number, startFontSizePx: number, minFontSizePx: number): number {
+  const AVG_GLYPH_WIDTH_RATIO = 0.62; // conservative for a bold sans/serif at this font stack
+  const estimatedWidth = text.length * startFontSizePx * AVG_GLYPH_WIDTH_RATIO;
+  if (estimatedWidth <= maxWidthPx || maxWidthPx <= 0) return startFontSizePx;
+  const fitted = Math.floor(maxWidthPx / (text.length * AVG_GLYPH_WIDTH_RATIO));
+  return Math.max(minFontSizePx, Math.min(startFontSizePx, fitted));
+}
+
 const BADGE_SIZE_PX: Record<BadgeConfig["size"], number> = {
   compact: 96,
   standard: 128,
@@ -181,8 +203,15 @@ export function renderSectionComposition(input: SectionRenderInput): string {
     ? `<text x="${padding}" y="${fmt.heightPx - px(180)}" font-family="${fontFamily}" font-size="${fpx(20)}" font-weight="600" fill="${textColor}">${escapeXml(contactLine)}</text>`
     : "";
 
+  // FIX-012: raLicenseId can be a short compact code ("9986") or a much
+  // longer full official registration string
+  // ("RC-B1487/MUM/PART/1000+/9986/2022") — the badge is a small, fixed
+  // box (a "constrained visual area"), so its font size is fitted to
+  // that box's actual width rather than assuming a short code.
+  const raText = input.raLicenseId ? `RA ${input.raLicenseId}` : "";
+  const raFontSize = raText ? fitFontSize(raText, badgeSize - px(16), fpx(8), fpx(5)) : fpx(8);
   const raBlock = input.raLicenseId
-    ? `<text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(8)}" font-family="${fontFamily}" font-size="${fpx(8)}" text-anchor="middle" fill="#333333">RA ${escapeXml(input.raLicenseId)}</text>`
+    ? `<text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(8)}" font-family="${fontFamily}" font-size="${raFontSize}" text-anchor="middle" fill="#333333">${escapeXml(raText)}</text>`
     : "";
 
   const logoSize = px(64);
@@ -191,12 +220,19 @@ export function renderSectionComposition(input: SectionRenderInput): string {
     : "";
 
   const headerX = input.agencyLogoDataUri ? px(48 + 80) : padding;
+  // FIX-012: a long, realistic header ("Hiring for Bilfinger Shutdown
+  // Project, Saudi Arabia") clipped off the right edge of the canvas at
+  // the fixed baseline font size — fitted the same way as the RA badge
+  // text above, against the actual available width right of the header.
+  const headerBaseFontSize = isNewspaper ? fpx(40) : fpx(52);
+  const headerAvailableWidth = fmt.widthPx - headerX - padding;
+  const headerFontSize = fitFontSize(input.header, headerAvailableWidth, headerBaseFontSize, fpx(28));
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt.widthPx}" height="${fmt.heightPx}" viewBox="0 0 ${fmt.widthPx} ${fmt.heightPx}">
   ${buildEmbeddedFontStyleBlock()}
   ${background}
   ${logoBlock}
-  <text x="${headerX}" y="${px(90)}" font-family="${fontFamily}" font-size="${isNewspaper ? fpx(40) : fpx(52)}" font-weight="700" fill="${textColor}">${escapeXml(input.header)}</text>
+  <text x="${headerX}" y="${px(90)}" font-family="${fontFamily}" font-size="${headerFontSize}" font-weight="700" fill="${textColor}">${escapeXml(input.header)}</text>
   <text x="${headerX}" y="${px(130)}" font-family="${fontFamily}" font-size="${fpx(24)}" fill="${secondaryTextColor}">${escapeXml(input.industry)} · ${escapeXml(input.country)}${input.employer ? " · " + escapeXml(input.employer) : ""}</text>
   ${rule}
   <text x="${padding}" y="${px(220)}" font-family="${fontFamily}" font-size="${fpx(28)}" font-weight="700" fill="${accentColor === "#1a1a1a" ? textColor : accentColor}">Positions</text>
@@ -209,6 +245,6 @@ export function renderSectionComposition(input: SectionRenderInput): string {
   <image x="${badgeX + px(8)}" y="${badgeY + px(8)}" width="${badgeSize - px(16)}" height="${badgeSize - px(40)}" href="${input.qrDataUri}" />
   <text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(20)}" font-family="${fontFamily}" font-size="${fpx(9)}" text-anchor="middle" fill="#111111">MEA REGISTERED</text>
   ${raBlock}
-  <text x="${badgeX + badgeSize / 2}" y="${badgeY - px(8)}" font-family="${fontFamily}" font-size="${fpx(12)}" text-anchor="middle" fill="#333333">VERIFY AGENCY</text>
+  <text x="${badgeX + badgeSize / 2}" y="${badgeY - px(8)}" font-family="${fontFamily}" font-size="${fpx(12)}" text-anchor="middle" fill="${textColor}">VERIFY AGENCY</text>
 </svg>`;
 }

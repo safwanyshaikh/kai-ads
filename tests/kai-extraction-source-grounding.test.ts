@@ -70,4 +70,43 @@ describe("enforceSourceGrounding — deterministic backstop for the prompt's No 
     expect(grounded.employer.value).toBeNull();
     expect(grounded.benefits.value).toBeNull();
   });
+
+  describe("real Bilfinger Shutdown Project content", () => {
+    const bilfingerSource = `Hiring for Bilfinger Shutdown Project, Saudi Arabia
+
+Welders – TIG & Multi
+Instrument & Control Technician
+Rotating Equipment Technician
+Mechanical Technician
+Electrical Technician
+
+Basic salary + daily overtime up to 4 hours.
+All applicants must have experience in shutdown projects.
+
+Contact: 9324995767
+Email: jobs@alyousufent.com
+
+Interviews: Baroda on 14th & 15th July and Mumbai on 18th July.`;
+
+    it("keeps 'Bilfinger' as employer — it is genuinely present in the source, unlike the adversarial BILFINGER case above", () => {
+      const grounded = enforceSourceGrounding(
+        resultWith({ employer: { value: "Bilfinger", confidence: "HIGH" } }),
+        bilfingerSource,
+      );
+      expect(grounded.employer.value).toBe("Bilfinger");
+    });
+
+    it("keeps the real benefit and drops a plausible-sounding but unstated one (e.g. accommodation, flights)", () => {
+      const grounded = enforceSourceGrounding(
+        resultWith({
+          benefits: {
+            value: ["Basic salary + daily overtime up to 4 hours", "Free accommodation", "Flight tickets provided"],
+            confidence: "HIGH",
+          },
+        }),
+        bilfingerSource,
+      );
+      expect(grounded.benefits.value).toEqual(["Basic salary + daily overtime up to 4 hours"]);
+    });
+  });
 });
