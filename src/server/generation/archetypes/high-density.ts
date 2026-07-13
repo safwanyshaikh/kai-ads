@@ -1,6 +1,7 @@
 import { buildEmbeddedFontStyleBlock, KAI_SANS_FONT_FAMILY } from "../embedded-fonts";
 import type { CompositionInput } from "./types";
 import {
+  clampTuning,
   checkIcon,
   contactParts,
   escapeXml,
@@ -55,7 +56,8 @@ export function renderHighDensity(input: CompositionInput): string {
 
   // --- Headline band ---
   let y = stripH + px(52);
-  const headlineSize = fitFontSize(facts.header, W - pad * 2, fpx(44), fpx(20));
+  const headlineScale = clampTuning(plan.tuning?.headlineScale);
+  const headlineSize = fitFontSize(facts.header, W - pad * 2, Math.round(fpx(44) * headlineScale), fpx(20));
   parts.push(
     `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headlineSize}" font-weight="700" fill="${ink}">${escapeXml(facts.header)}</text>`,
   );
@@ -97,7 +99,8 @@ export function renderHighDensity(input: CompositionInput): string {
   const tableActualH = headerRowH + rowsPerCol * rowH;
   const leftoverBelowTable =
     H - y - tableActualH - benefitsStripH - footerNoteH - interviewActualH - barH - px(70);
-  const sectionGap = Math.max(px(20), Math.min(px(110), Math.floor(leftoverBelowTable / 3)));
+  const spacingScale = clampTuning(plan.tuning?.spacingScale);
+  const sectionGap = Math.max(px(20), Math.min(Math.round(px(110) * spacingScale), Math.floor((leftoverBelowTable / 3) * spacingScale)));
 
   for (let c = 0; c < tableCols; c++) {
     const tx = pad + c * (tableW + colGap);

@@ -5,7 +5,15 @@ import { renderHighDensity } from "./high-density";
 import { renderDtpNewspaper } from "./dtp-newspaper";
 
 export * from "./types";
-export { selectArchetype, archetypeUsesGeneratedImagery, buildImageBrief } from "./archetype-selection";
+export {
+  selectArchetype,
+  archetypeUsesGeneratedImagery,
+  buildImageBrief,
+  recommendArchetype,
+  styleForArchetype,
+  type ArchetypeRecommendation,
+  type ArchetypeSuitabilityInput,
+} from "./archetype-selection";
 
 /**
  * Creative Brain dispatch: routes the grounded facts + composition plan

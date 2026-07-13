@@ -1,6 +1,7 @@
 import { buildEmbeddedFontStyleBlock, KAI_SANS_FONT_FAMILY } from "../embedded-fonts";
 import type { CompositionInput } from "./types";
 import {
+  clampTuning,
   checkIcon,
   contactParts,
   escapeXml,
@@ -67,7 +68,8 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   let y = bannerH + px(56);
 
   // --- Headline + country chip ---
-  const headline = fitWrappedText(facts.header, colW, fpx(50), fpx(26), 2);
+  const headlineScale = clampTuning(plan.tuning?.headlineScale);
+  const headline = fitWrappedText(facts.header, colW, Math.round(fpx(50) * headlineScale), fpx(26), 2);
   for (const line of headline.lines) {
     y += Math.round(headline.fontSize * 1.15);
     parts.push(

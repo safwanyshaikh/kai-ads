@@ -52,6 +52,20 @@ export type AdvertisementArchetype =
   | "HIGH_DENSITY"
   | "DTP_NEWSPAPER";
 
+/**
+ * Bounded presentation corrections the acceptance loop may apply between
+ * iterations (Brain C feedback → Brain B adjustment). Strictly layout-
+ * level: no field here can touch a fact. Values are multipliers clamped
+ * by the engines themselves, so a runaway correction loop cannot push a
+ * composition into absurdity.
+ */
+export interface CompositionTuning {
+  /** Multiplies headline starting font size (engines clamp to sane bounds). */
+  headlineScale?: number;
+  /** Multiplies section-gap/spread allocation in engines that distribute vertical space. */
+  spacingScale?: number;
+}
+
 export interface CompositionPlan {
   archetype: AdvertisementArchetype;
   platformFormat: PlatformFormat;
@@ -60,6 +74,7 @@ export interface CompositionPlan {
   qrDataUri: string;
   backgroundImageDataUri?: string | null;
   agencyLogoDataUri?: string | null;
+  tuning?: CompositionTuning;
 }
 
 export interface CompositionInput {

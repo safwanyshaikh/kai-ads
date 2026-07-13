@@ -32,6 +32,105 @@ export function archetypeUsesGeneratedImagery(archetype: AdvertisementArchetype)
   return archetype === "VISUAL_HERO";
 }
 
+/** The persisted style enum value each archetype maps back to — archetype stays presentation-layer, the Prisma enum stays untouched. */
+export function styleForArchetype(archetype: AdvertisementArchetype): AdvertisementStyle {
+  switch (archetype) {
+    case "VISUAL_HERO":
+      return "VISUAL";
+    case "DTP_NEWSPAPER":
+      return "NEWSPAPER";
+    case "STRUCTURED_PROFESSIONAL":
+    case "HIGH_DENSITY":
+      return "TYPOGRAPHY";
+  }
+}
+
+export interface ArchetypeSuitabilityInput {
+  positionCount: number;
+  totalHeadcount: number;
+  benefitCount: number;
+  interviewEventCount: number;
+  hasSalarySignal: boolean;
+  isUrgent: boolean;
+  /** Aspect ratio of the target platform format (width / height). */
+  aspectRatio: number;
+}
+
+export interface ArchetypeRecommendation {
+  recommendedArchetype: AdvertisementArchetype;
+  suitabilityScores: Record<AdvertisementArchetype, number>;
+  reasons: string[];
+}
+
+const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+
+/**
+ * Creative Brain — content-aware archetype suitability.
+ *
+ * Not every archetype suits every requirement: a five-position project
+ * posting doesn't belong in the 20-30-row High-Density table, and a
+ * 25-trade mass-hiring drive would be unreadable as a Visual Hero. Each
+ * archetype is scored from the requirement's actual content shape, and
+ * the recruiter can still manually override the recommendation (the API
+ * layer keeps accepting an explicit style).
+ */
+export function recommendArchetype(input: ArchetypeSuitabilityInput): ArchetypeRecommendation {
+  const reasons: string[] = [];
+  const { positionCount, totalHeadcount, benefitCount, interviewEventCount, hasSalarySignal, isUrgent } = input;
+
+  // VISUAL_HERO — strongest for 1-2 focal roles on social formats; each
+  // extra position dilutes the hero's single-message impact.
+  let hero = 72;
+  if (positionCount <= 2) hero += 18;
+  else if (positionCount <= 5) hero += 4;
+  else hero -= (positionCount - 5) * 6;
+  if (hasSalarySignal) hero -= 4; // a figure competes with imagery
+  if (input.aspectRatio < 1.1) hero += 4; // portrait/square social canvases showcase imagery best
+
+  // STRUCTURED_PROFESSIONAL — the professional default for 2-9 position
+  // project recruitment with sections to organize.
+  let structured = 70;
+  if (positionCount >= 2 && positionCount <= 9) structured += 16;
+  if (benefitCount > 0) structured += 4;
+  if (interviewEventCount > 0) structured += 4;
+  if (positionCount > 12) structured -= (positionCount - 12) * 4;
+  if (hasSalarySignal || isUrgent) structured += 4; // fast-scan card layout carries the key figure well
+
+  // HIGH_DENSITY — earns its table only with genuinely dense content.
+  let dense = 30;
+  dense += Math.min(55, Math.max(0, (positionCount - 5) * 7));
+  dense += Math.min(15, Math.max(0, (totalHeadcount - 20) * 0.5));
+  if (positionCount <= 5 && totalHeadcount <= 15) {
+    reasons.push(
+      `High-Density scored low: ${positionCount} positions / ~${totalHeadcount} headcount does not justify a vacancy table.`,
+    );
+  }
+
+  // DTP_NEWSPAPER — traditional print/WhatsApp circulation; likes text
+  // density and is the classic form for larger multi-trade listings.
+  let dtp = 62;
+  if (positionCount >= 6) dtp += 10;
+  if (benefitCount + interviewEventCount >= 3) dtp += 6;
+  if (input.aspectRatio >= 1.3) dtp -= 6; // print grammar is weakest on wide screens
+
+  const suitabilityScores: Record<AdvertisementArchetype, number> = {
+    VISUAL_HERO: clamp(hero),
+    STRUCTURED_PROFESSIONAL: clamp(structured),
+    HIGH_DENSITY: clamp(dense),
+    DTP_NEWSPAPER: clamp(dtp),
+  };
+
+  const recommendedArchetype = (Object.entries(suitabilityScores) as [AdvertisementArchetype, number][]).reduce(
+    (best, next) => (next[1] > best[1] ? next : best),
+  )[0];
+
+  reasons.unshift(
+    `Recommended ${recommendedArchetype} for ${positionCount} position(s), ~${totalHeadcount} headcount, ${benefitCount} benefit(s), ${interviewEventCount} interview event(s).`,
+  );
+
+  return { recommendedArchetype, suitabilityScores, reasons };
+}
+
 /**
  * Creative Brain — image brief for the KAI Creative Engine (gpt-image-1).
  *

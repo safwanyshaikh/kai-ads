@@ -191,3 +191,12 @@ export function contactParts(contact: {
   const rest = [contact.name, contact.email].filter(Boolean).join("  ·  ");
   return { primary: phones, secondary: rest };
 }
+
+/**
+ * Clamps an acceptance-loop tuning multiplier into a bounded range so a
+ * correction loop can nudge, never distort, a composition.
+ */
+export function clampTuning(value: number | undefined, min = 0.85, max = 1.3): number {
+  if (value === undefined || !Number.isFinite(value)) return 1;
+  return Math.max(min, Math.min(max, value));
+}

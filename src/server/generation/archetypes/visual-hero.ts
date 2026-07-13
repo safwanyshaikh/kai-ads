@@ -2,6 +2,7 @@ import { buildEmbeddedFontStyleBlock, KAI_SANS_FONT_FAMILY } from "../embedded-f
 import { buildFallbackBackgroundSvgFragment } from "../fallback-background";
 import type { CompositionInput } from "./types";
 import {
+  clampTuning,
   checkIcon,
   contactParts,
   escapeXml,
@@ -92,7 +93,8 @@ export function renderVisualHero(input: CompositionInput): string {
   );
   y += px(30);
 
-  const headline = fitWrappedText(facts.header, contentW, fpx(72), fpx(36), 3);
+  const headlineScale = clampTuning(plan.tuning?.headlineScale);
+  const headline = fitWrappedText(facts.header, contentW, Math.round(fpx(72) * headlineScale), fpx(36), 3);
   for (const line of headline.lines) {
     y += Math.round(headline.fontSize * 1.14);
     parts.push(

@@ -7,7 +7,6 @@ import { auditLogService } from "@/server/services/audit-log.service";
 import { costTrackingService } from "@/server/services/cost-tracking.service";
 import { generationQuotaService } from "@/server/services/generation-quota.service";
 import { classifyDensity } from "@/server/generation/density-classification.service";
-import { recommendAdvertisementType } from "@/server/generation/advertisement-type-recommendation.service";
 import { detectCompensationSignal } from "@/server/generation/compensation-signal.service";
 import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
@@ -15,8 +14,13 @@ import {
   archetypeUsesGeneratedImagery,
   buildImageBrief,
   composeAdvertisement,
+  recommendArchetype,
   selectArchetype,
+  styleForArchetype,
 } from "@/server/generation/archetypes";
+import { runAcceptanceLoop } from "@/server/generation/acceptance/acceptance-loop";
+import { getVisualQaProvider } from "@/server/ai/visual-qa";
+import sharp from "sharp";
 import { normalizeInterviewEvents } from "@/server/generation/interview-events";
 import { rasterizeSvg } from "@/server/generation/image-export.service";
 import { runTrustCheck } from "@/server/generation/trust-validation.service";
@@ -74,18 +78,25 @@ export const advertisementGenerationService = {
     };
 
     const density = classifyDensity(positions.map((p) => ({ title: p.title, count: p.count })));
+    const hasSalaryInfo = detectCompensationSignal(benefits);
 
-    const style =
-      input.style ??
-      recommendAdvertisementType({
-        density,
-        // Decision 2: computed from the advertisement's own grounded
-        // benefits content — was previously hardcoded false regardless
-        // of whether compensation info was actually present.
-        hasSalaryInfo: detectCompensationSignal(benefits),
-        isUrgent: Boolean(input.isUrgent),
-        hasEmployerLogo: Boolean(agency.logoUrl),
-      }).style;
+    // Creative Brain: content-aware archetype suitability. The recruiter's
+    // explicit style choice is always honored (manual override); otherwise
+    // the recommendation drives both the archetype and the persisted style
+    // enum (presentation-layer decision, no schema migration).
+    const recommendation = recommendArchetype({
+      positionCount: positions.length,
+      totalHeadcount: positions.reduce((sum, p) => sum + (p.count ?? 1), 0),
+      benefitCount: benefits.length,
+      interviewEventCount: interview.length,
+      hasSalarySignal: hasSalaryInfo,
+      isUrgent: Boolean(input.isUrgent),
+      aspectRatio: platformFormat.widthPx / platformFormat.heightPx,
+    });
+    const archetype = input.style
+      ? selectArchetype({ style: input.style, density })
+      : recommendation.recommendedArchetype;
+    const style = input.style ?? styleForArchetype(archetype);
 
     // "Never force a high-density requirement into a visual-heavy layout
     // that makes positions unreadable... If Visual style is selected
@@ -99,10 +110,6 @@ export const advertisementGenerationService = {
         "This requirement has a high number of positions — Visual style may be harder to read than Typography or Newspaper for this many roles.",
       );
     }
-
-    // Creative Brain: archetype decision (presentation-layer only — the
-    // persisted style enum is unchanged, no migration).
-    const archetype = selectArchetype({ style, density });
 
     let backgroundImageDataUri: string | null = null;
     let usedAiBackground = false;
@@ -220,35 +227,76 @@ export const advertisementGenerationService = {
     // legally/officially required, e.g. the footer text a recruiter sets).
     const compactRaLicenseId = deriveCompactRegistrationNumber(agency.registrationNumber);
 
-    // Two-Brain composition: facts (Truth Brain — every value grounded in
-    // the extracted Advertisement record) are handed to the archetype's
-    // composition engine chosen by the Creative Brain above.
-    const svg = composeAdvertisement({
-      facts: {
-        header: advertisement.header,
-        industry: advertisement.industry,
-        country: advertisement.country,
-        employer: advertisement.employer,
-        positions,
-        benefits,
-        interview,
-        contact,
-        footer: advertisement.footer,
-        agencyName: agency.name,
-        raLicenseId: compactRaLicenseId,
-        fullRegistrationNumber: agency.registrationNumber,
-      },
-      plan: {
-        archetype,
-        platformFormat,
-        accentColor,
-        qrDataUri: `data:image/png;base64,${qrResult.png.toString("base64")}`,
-        backgroundImageDataUri,
-        agencyLogoDataUri,
-      },
+    // Three-Brain closed loop: facts (Truth Brain — every value grounded
+    // in the extracted Advertisement record, immutable through the loop)
+    // are composed by the archetype engine (Creative Brain), then the
+    // final rendered image is inspected by the Visual QA Brain — after
+    // the deterministic gates (source fidelity, technical render, QR
+    // round-trip) pass. Corrections are bounded, presentation-only, and
+    // capped at MAX_ACCEPTANCE_ITERATIONS; the decorative background is
+    // reused across iterations unless Visual QA explicitly requires
+    // imagery regeneration.
+    const facts = {
+      header: advertisement.header,
+      industry: advertisement.industry,
+      country: advertisement.country,
+      employer: advertisement.employer,
+      positions,
+      benefits,
+      interview,
+      contact,
+      footer: advertisement.footer,
+      agencyName: agency.name,
+      raLicenseId: compactRaLicenseId,
+      fullRegistrationNumber: agency.registrationNumber,
+    };
+    const basePlan = {
+      archetype,
+      platformFormat,
+      accentColor,
+      qrDataUri: `data:image/png;base64,${qrResult.png.toString("base64")}`,
+      backgroundImageDataUri,
+      agencyLogoDataUri,
+    };
+
+    const acceptance = await runAcceptanceLoop(facts, basePlan, {
+      compose: (f, p) => composeAdvertisement({ facts: f, plan: p }),
+      rasterize: (composedSvg) => rasterizeSvg(composedSvg, platformFormat.widthPx, platformFormat.heightPx),
+      visualQa: getVisualQaProvider(),
+      expectedQrUrl: qrUrl,
+      cropQrRegion: (png) => cropBottomRightQuadrant(png, platformFormat.widthPx, platformFormat.heightPx),
+      regenerateImage: usedAiBackground
+        ? async (defectNotes) => {
+            try {
+              const provider = getImageGenerationProvider();
+              const { output } = await provider.generate({
+                prompt: `${buildImageBrief(facts)} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
+                widthPx: platformFormat.widthPx,
+                heightPx: platformFormat.heightPx,
+                quality: "medium",
+              });
+              return `data:${output.mimeType};base64,${output.imageBase64}`;
+            } catch (error) {
+              log.warn({ advertisementId, err: error }, "Image regeneration failed — reusing previous background");
+              return null;
+            }
+          }
+        : undefined,
     });
 
-    const pngBuffer = await rasterizeSvg(svg, platformFormat.widthPx, platformFormat.heightPx);
+    if (acceptance.status === "BLOCKED_DETERMINISTIC") {
+      throw new AppError(
+        `Advertisement generation failed a deterministic acceptance gate: ${acceptance.blockReason}`,
+        500,
+      );
+    }
+    if (acceptance.status === "BLOCKED_VISUAL_QA") {
+      densityWarnings.push(
+        `KAI Visual QA scored this advertisement below the commercial threshold after ${acceptance.iterations.length} attempts (final score: ${acceptance.finalScore}/100). It is saved but not marked commercially accepted — review it before publishing.`,
+      );
+    }
+
+    const pngBuffer = acceptance.finalPng;
 
     const trustCheck = runTrustCheck({
       agencyName: agency.name,
@@ -286,9 +334,21 @@ export const advertisementGenerationService = {
             platformFormat: input.platformFormat,
             density,
             style,
+            archetype,
+            archetypeRecommendation: recommendation,
             badge,
             trustStatus: trustCheck.status,
             usedAiBackground,
+            visualQa: {
+              status: acceptance.status,
+              finalScore: acceptance.finalScore,
+              iterations: acceptance.iterations.map((it) => ({
+                iteration: it.iteration,
+                score: it.visualQa?.overallScore ?? null,
+                defects: it.visualQa?.defects ?? [],
+                regeneratedImage: it.regeneratedImage,
+              })),
+            },
           } as unknown as Prisma.InputJsonValue,
           changeSummary: "Full advertisement generated",
           regenerationMethod: "AI_REGENERATED",
@@ -449,6 +509,16 @@ export const advertisementGenerationService = {
  * non-fatal — a logo that can't be fetched just means no logo on the
  * advertisement, not a broken generation.
  */
+/** Phone-camera-style fallback region for the QR gate: every archetype anchors its verification panel bottom-right. */
+async function cropBottomRightQuadrant(png: Buffer, widthPx: number, heightPx: number): Promise<Buffer> {
+  const cropW = Math.round(widthPx * 0.45);
+  const cropH = Math.round(heightPx * 0.3);
+  return sharp(png)
+    .extract({ left: widthPx - cropW, top: heightPx - cropH, width: cropW, height: cropH })
+    .png()
+    .toBuffer();
+}
+
 async function fetchImageAsDataUri(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
   try {

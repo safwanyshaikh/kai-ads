@@ -1,6 +1,7 @@
 import { buildEmbeddedFontStyleBlock, KAI_SERIF_FONT_FAMILY } from "../embedded-fonts";
 import type { CompositionInput } from "./types";
 import {
+  clampTuning,
   checkIcon,
   contactParts,
   escapeXml,
@@ -92,7 +93,7 @@ export function renderDtpNewspaper(input: CompositionInput): string {
       `<text x="${colCenterX}" y="${y}" text-anchor="middle" font-family="${font}" font-size="${fpx(24)}" font-weight="700" letter-spacing="4" fill="${accent}">REQUIRED FOR ${escapeXml(facts.country.toUpperCase())}</text>`,
     );
     y += px(20);
-    const headline = fitWrappedText(facts.header, contentW, fpx(48), fpx(24), 2);
+    const headline = fitWrappedText(facts.header, contentW, Math.round(fpx(48) * clampTuning(plan.tuning?.headlineScale)), fpx(24), 2);
     for (const line of headline.lines) {
       y += Math.round(headline.fontSize * 1.2);
       frags.push(
@@ -203,7 +204,7 @@ export function renderDtpNewspaper(input: CompositionInput): string {
 
   const probe = buildBody(y, 0);
   const leftover = bandY - px(36) - probe.bottom;
-  const spread = Math.max(0, Math.min(px(72), Math.floor(leftover / 5)));
+  const spread = Math.max(0, Math.min(Math.round(px(72) * clampTuning(plan.tuning?.spacingScale)), Math.floor(leftover / 5)));
   const body = spread > px(6) ? buildBody(y, spread) : probe;
   parts.push(...body.frags);
   const panelH = px(120);
