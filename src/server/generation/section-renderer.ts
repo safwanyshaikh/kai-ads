@@ -193,12 +193,43 @@ export function renderSectionComposition(input: SectionRenderInput): string {
       ? buildFallbackBackgroundSvgFragment({ widthPx: fmt.widthPx, heightPx: fmt.heightPx, industry: input.industry })
       : `<rect width="${fmt.widthPx}" height="${fmt.heightPx}" fill="#ffffff" />`;
 
+  // Design grammar (reference R&D, Sprint 006): the Typography/"Structured
+  // Professional" style is the one archetype whose reference ads (e.g.
+  // the Qatar and UAE construction ads reviewed) consistently open with a
+  // solid colored banner strip announcing role/country, rather than
+  // black-on-white text — Visual already gets an equivalent effect from
+  // its own photo scrim above, and Newspaper's dense DTP grammar is
+  // deliberately plain black-on-white with a rule, so the banner is
+  // scoped to Typography only rather than applied blindly to all three.
+  const isTypography = !isNewspaper && !isVisual;
+  const headerBannerHeight = px(150);
+  const headerBanner = isTypography
+    ? `<rect x="0" y="0" width="${fmt.widthPx}" height="${headerBannerHeight}" fill="${accentColor}" />`
+    : "";
+  const headerTextColor = isTypography ? "#ffffff" : textColor;
+  const headerSecondaryColor = isTypography ? "#f0f0f0" : secondaryTextColor;
+  const logoBackdrop =
+    isTypography && input.agencyLogoDataUri
+      ? `<rect x="${padding - px(8)}" y="${px(48 - 20) - px(8)}" width="${px(64) + px(16)}" height="${px(64) + px(16)}" rx="${px(8)}" fill="#ffffff" />`
+      : "";
+
+  // Design grammar (reference R&D, Sprint 006): every real recruitment
+  // advertisement reviewed uses a bullet/check marker per line item, never
+  // a plain unmarked list — "•" is a safe embedded-font glyph (verified
+  // separately; unlike a Unicode checkmark, it's guaranteed present in
+  // Liberation Sans). checkmarkIcon() below draws benefits' check as a
+  // real vector path instead, so it never depends on font glyph coverage.
   const positionsBlock = positionLines
     .map(
       (line, i) =>
-        `<text x="${padding}" y="${px(260 + i * 34)}" font-family="${fontFamily}" font-size="${fpx(22)}" fill="${isVisual ? "#ffffff" : "#222222"}">${line}</text>`,
+        `<text x="${padding}" y="${px(260 + i * 34)}" font-family="${fontFamily}" font-size="${fpx(22)}" fill="${isVisual ? "#ffffff" : "#222222"}">• ${line}</text>`,
     )
     .join("\n  ");
+
+  function checkmarkIcon(x: number, y: number, size: number, color: string): string {
+    const s = size / 10;
+    return `<path d="M ${x} ${y - 3 * s} L ${x + 3 * s} ${y} L ${x + 8 * s} ${y - 6 * s}" stroke="${color}" stroke-width="${Math.max(1.5, s)}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`;
+  }
 
   // FIX-011: the "Benefits" header and its first line previously landed
   // at the identical y-coordinate for any number of positions
@@ -208,37 +239,62 @@ export function renderSectionComposition(input: SectionRenderInput): string {
   // wherever the header actually landed, instead of from an
   // independently-computed baseline that happened to coincide with it.
   const benefitsHeaderBaseline = 260 + positionLines.length * 34 + 40;
+  const benefitIconSize = fpx(16);
   const benefitsBlock =
     benefitLines.length > 0
       ? `<text x="${padding}" y="${px(benefitsHeaderBaseline)}" font-family="${fontFamily}" font-size="${fpx(24)}" font-weight="700" fill="${textColor}">Benefits</text>
   ${benefitLines
     .map(
       (line, i) =>
-        `<text x="${padding}" y="${px(benefitsHeaderBaseline + 36 + i * 30)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">${line}</text>`,
+        `${checkmarkIcon(padding, px(benefitsHeaderBaseline + 36 + i * 30) - benefitIconSize * 0.6, benefitIconSize, secondaryTextColor)}
+  <text x="${padding + benefitIconSize + px(6)}" y="${px(benefitsHeaderBaseline + 36 + i * 30)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">${line}</text>`,
     )
     .join("\n  ")}`
       : "";
 
-  // Decision 3: a single interview event keeps the original one-line
-  // "Interview: ..." format anchored at a fixed distance from the
-  // bottom. Two or more events render as their own block (mirroring
-  // Benefits above) — a bold "Interview" header plus one line per event
-  // — anchored so its LAST line lands exactly where the single-line case
-  // would have, so contact/footer below are never displaced.
+  // Decision 3 + reference R&D (Sprint 006): a single interview event
+  // keeps the original one-line "Interview: ..." format anchored at a
+  // fixed distance from the bottom. Two or more events — the common
+  // multi-city case (e.g. the real Baroda + Mumbai Bilfinger posting) —
+  // render as side-by-side bordered boxes, matching every multi-city
+  // reference advertisement reviewed (never a stacked bullet list): a
+  // bold "Interview" header above a row of boxes, wrapping to further
+  // rows past 2 events. Anchored so the box grid's bottom edge lands
+  // where the single-line case's baseline would have, so contact/footer
+  // below are never displaced.
   const interviewEvents = input.interview;
-  const interviewExtraLines = Math.max(0, interviewEvents.length - 1);
+  const interviewBlockBottomY = fmt.heightPx - px(220);
   const interviewBlock =
     interviewEvents.length === 0
       ? ""
       : interviewEvents.length === 1
-        ? `<text x="${padding}" y="${fmt.heightPx - px(220)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">Interview: ${escapeXml(formatInterviewLine(interviewEvents[0]))}</text>`
-        : `<text x="${padding}" y="${fmt.heightPx - px(220) - px(interviewExtraLines * 26) - px(30)}" font-family="${fontFamily}" font-size="${fpx(20)}" font-weight="700" fill="${textColor}">Interview</text>
-  ${interviewEvents
-    .map(
-      (event, i) =>
-        `<text x="${padding}" y="${fmt.heightPx - px(220) - px((interviewExtraLines - i) * 26)}" font-family="${fontFamily}" font-size="${fpx(18)}" fill="${secondaryTextColor}">${escapeXml(formatInterviewLine(event))}</text>`,
-    )
-    .join("\n  ")}`;
+        ? `<text x="${padding}" y="${interviewBlockBottomY}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">Interview: ${escapeXml(formatInterviewLine(interviewEvents[0]))}</text>`
+        : (() => {
+            const columns = Math.min(interviewEvents.length, 2);
+            const rows = Math.ceil(interviewEvents.length / columns);
+            const gap = px(16);
+            const boxHeight = px(64);
+            const availableWidth = fmt.widthPx - padding * 2;
+            const boxWidth = (availableWidth - gap * (columns - 1)) / columns;
+            const totalBoxesHeight = rows * boxHeight + (rows - 1) * gap;
+            const headerY = interviewBlockBottomY - totalBoxesHeight - px(24);
+            const boxesTopY = headerY + px(16);
+            const boxFill = isVisual ? "rgba(255,255,255,0.10)" : "#f5f5f5";
+            const boxStroke = isVisual ? "#ffffff" : accentColor;
+            const boxes = interviewEvents
+              .map((event, i) => {
+                const col = i % columns;
+                const row = Math.floor(i / columns);
+                const boxX = padding + col * (boxWidth + gap);
+                const boxY = boxesTopY + row * (boxHeight + gap);
+                const centerX = boxX + boxWidth / 2;
+                return `<rect x="${boxX}" y="${boxY}" width="${boxWidth}" height="${boxHeight}" rx="${px(8)}" fill="${boxFill}" stroke="${boxStroke}" stroke-width="1.5" />
+  <text x="${centerX}" y="${boxY + boxHeight / 2 + fpx(6)}" text-anchor="middle" font-family="${fontFamily}" font-size="${fitFontSize(formatInterviewLine(event), boxWidth - px(12), fpx(17), fpx(11))}" font-weight="600" fill="${textColor}">${escapeXml(formatInterviewLine(event))}</text>`;
+              })
+              .join("\n  ");
+            return `<text x="${padding}" y="${headerY}" font-family="${fontFamily}" font-size="${fpx(20)}" font-weight="700" fill="${textColor}">Interview</text>
+  ${boxes}`;
+          })();
 
   const contactBlock = contactLine
     ? `<text x="${padding}" y="${fmt.heightPx - px(180)}" font-family="${fontFamily}" font-size="${fpx(20)}" font-weight="600" fill="${textColor}">${escapeXml(contactLine)}</text>`
@@ -272,9 +328,11 @@ export function renderSectionComposition(input: SectionRenderInput): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt.widthPx}" height="${fmt.heightPx}" viewBox="0 0 ${fmt.widthPx} ${fmt.heightPx}">
   ${buildEmbeddedFontStyleBlock()}
   ${background}
+  ${headerBanner}
+  ${logoBackdrop}
   ${logoBlock}
-  <text x="${headerX}" y="${px(90)}" font-family="${fontFamily}" font-size="${headerFontSize}" font-weight="700" fill="${textColor}">${escapeXml(input.header)}</text>
-  <text x="${headerX}" y="${px(130)}" font-family="${fontFamily}" font-size="${fpx(24)}" fill="${secondaryTextColor}">${escapeXml(input.industry)} · ${escapeXml(input.country)}${input.employer ? " · " + escapeXml(input.employer) : ""}</text>
+  <text x="${headerX}" y="${px(90)}" font-family="${fontFamily}" font-size="${headerFontSize}" font-weight="700" fill="${headerTextColor}">${escapeXml(input.header)}</text>
+  <text x="${headerX}" y="${px(130)}" font-family="${fontFamily}" font-size="${fpx(24)}" fill="${headerSecondaryColor}">${escapeXml(input.industry)} · ${escapeXml(input.country)}${input.employer ? " · " + escapeXml(input.employer) : ""}</text>
   ${rule}
   <text x="${padding}" y="${px(220)}" font-family="${fontFamily}" font-size="${fpx(28)}" font-weight="700" fill="${accentColor === "#1a1a1a" ? textColor : accentColor}">Positions</text>
   ${positionsBlock}

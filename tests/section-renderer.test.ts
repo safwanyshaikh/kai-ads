@@ -123,7 +123,10 @@ describe("renderSectionComposition — deterministic text, no AI dependency", ()
       header: "Hiring for Bilfinger Shutdown Project, Saudi Arabia",
     });
     const fontSizeOf = (svg: string) => {
-      const match = svg.match(/font-size="(\d+)" font-weight="700" fill="#111111">Hiring|font-size="(\d+)" font-weight="700" fill="#111111">Welders/);
+      // Header text renders on the Typography style's colored banner
+      // strip (reference-grammar addition, Sprint 006), so it's white
+      // rather than the default dark body text color.
+      const match = svg.match(/font-size="(\d+)" font-weight="700" fill="#ffffff">Hiring|font-size="(\d+)" font-weight="700" fill="#ffffff">Welders/);
       return match ? Number(match[1] ?? match[2]) : null;
     };
     const shortSize = fontSizeOf(shortHeaderSvg);
