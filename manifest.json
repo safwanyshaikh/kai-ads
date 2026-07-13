@@ -1,0 +1,92 @@
+{
+  "generatedAt": "2026-07-13T15:28:49.738Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "324c3dbc685870a57a5ee2444915f8dee747a3a9",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "EMPLOYER_PROJECT",
+    "emphasis": {
+      "country": true,
+      "employer": true,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1783956362733",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1783956362733",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 92,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 92). Defects: Headline hierarchy could be slightly stronger compared to the green category labels.; The QR code looks somewhat detached and could better integrate with surrounding elements.; Imagery is weak and generic, could be more relevant or engaging to the job roles or candidate audience; Contact info and QR code could be slightly larger for higher immediate visibility; The phone number and email could have slightly more visual emphasis to increase CTA clarity.; The QR code, while integrated, could be larger for easier scanning on small devices.",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 84,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 84). Defects: Text hierarchy could be improved; the main job/project headline is large but not emphatic enough compared to other text elements, reducing immediate position clarity.; The 'WE ARE HIRING' header is small and red on a dark background; low emphasis and poor color contrast reduces attention.; The job roles list has small text with multiple bullet points which slightly crowd the middle of the canvas, making quick scanning harder.; The bottom red banner is strong but contains many elements close together: phone, email, QR code, verification note - they compete for attention, lowering CTA clarity.; The QR code design looks slightly pasted over rather than integrated into the overall design, making it seem like an afterthought.; Visual hierarchy can be improved: 'Bilfinger Shutdown Project' dominates but 'Saudi Arabia' and job roles can have more emphasis for immediate clarity.; The repeated 'Baroda' interview dates may confuse readers, suggesting a need for clearer spacing or grouping.; The red box around salary and overtime looks slightly cramped.; The dark background with a busy industrial image slightly reduces text contrast in some areas, affecting readability on smaller screens.; Visual hierarchy is not fully optimal; the main role text 'Bilfinger Shutdown Project' competes with other text blocks for attention, causing slight confusion about the primary message.; Some text blocks are tightly spaced and could benefit from improved line spacing to enhance readability, especially in the lists of roles.; The red button styled element 'SAUDI ARABIA' is prominent but visually disconnected from the location clarity as the country is only mentioned there, which can confuse the viewer initially.; The lower text block with contact details and interview info is compact; the phone and email iconography could be a bit larger for quicker CTA recognition.; The QR code is integrated but could be slightly larger and more centrally placed in the footer area for better emphasis and scanning ease.",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 79,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 79). Defects: Imagery is very minimal and does not effectively attract attention or support the recruitment message.; The headline 'Bilfinger Shutdown Project' could be more prominent and visually emphasized to better capture immediate job clarity.; Contact and QR code CTA area is relatively small and low contrast against the dark background, reducing immediate visibility.; The use of space below interview dates is somewhat empty; this contributes to moderate underutilization of canvas space.; The brand logo at top-left is small and not emphasized, limiting brand presence.; Weak visual hierarchy, the main job title 'Bilfinger Shutdown Project' is prominent but the supporting country and sector info blends too much into the headline instead of standing out separately.; The top green bar with the agency name and registration number is visually cramped and lacks breathing space.; The interview dates boxes at the bottom feel disconnected and spaced unevenly, with the second Baroda date oddly shifted right, breaking the alignment balance.; The image lacks any photographic or graphic imagery that would increase attention and create relevance; it is purely text-based, which reduces the ad's power to stop users scrolling.; The overall layout is a bit dry and utilitarian; adding some subtle color highlights or separators to differentiate sections could improve scanning speed.; Some white space on the canvas is underutilized, particularly the center bottom area that might accommodate the interview dates better.; Imagery is very minimal and generic which reduces attention-stopping power; The headline does not dominate strongly enough over other text elements, reducing immediate clarity; Contact CTA is small and could be emphasized more for better visibility; Spacing between elements feels tight in some areas, affecting readability and scan-ability; The QR code looks somewhat stuck-in and lacks integrated design harmony with the rest of the ad",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 88,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 88). Defects: Imagery is minimal and not very attention-grabbing; mostly text-based layout; Some spacing under job titles and interview locations could be improved for breathing room; The headline could be slightly more emphasized relative to the subtext; Imagery is minimal and uninspiring; lacks attention-stopping visuals compared to typical Gulf recruitment ads; Some text blocks could have slightly better spacing for breathing room; The design is conservative and clean but could improve visual engagement; Visual hierarchy is somewhat flat; the headline could have stronger emphasis to better stop attention.; The ad is very text-heavy with minimal imagery, which may affect immediate engagement on social platforms.; Spacing between some sections could be improved for better visual separation and flow.; QR code integration is good but could be slightly larger or more visually integrated to enhance scanning prominence.",
+      "usedRealAiImage": false
+    }
+  ]
+}

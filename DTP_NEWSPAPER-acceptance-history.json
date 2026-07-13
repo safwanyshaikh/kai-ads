@@ -1,0 +1,158 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 88,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 88). Defects: Imagery is minimal and not very attention-grabbing; mostly text-based layout; Some spacing under job titles and interview locations could be improved for breathing room; The headline could be slightly more emphasized relative to the subtext; Imagery is minimal and uninspiring; lacks attention-stopping visuals compared to typical Gulf recruitment ads; Some text blocks could have slightly better spacing for breathing room; The design is conservative and clean but could improve visual engagement; Visual hierarchy is somewhat flat; the headline could have stronger emphasis to better stop attention.; The ad is very text-heavy with minimal imagery, which may affect immediate engagement on social platforms.; Spacing between some sections could be improved for better visual separation and flow.; QR code integration is good but could be slightly larger or more visually integrated to enhance scanning prominence.",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 87,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Imagery is minimal and not very attention-grabbing; mostly text-based layout",
+          "Some spacing under job titles and interview locations could be improved for breathing room",
+          "The headline could be slightly more emphasized relative to the subtext"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Enhance the headline prominence slightly to increase immediate job and country clarity"
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more breathing space below job listings and interview date boxes for better readability"
+          },
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Consider adding a relevant, professional background image or subtle graphic to improve visual attention and reduce text heaviness"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 87,
+        "hierarchyScore": 90,
+        "readabilityScore": 92,
+        "imageryScore": 70,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 93,
+        "defects": [
+          "Imagery is minimal and uninspiring; lacks attention-stopping visuals compared to typical Gulf recruitment ads",
+          "Some text blocks could have slightly better spacing for breathing room",
+          "The design is conservative and clean but could improve visual engagement"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Add more relevant and attractive imagery or graphic elements to increase visual appeal and attention-stopping power"
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Slightly increase spacing between text blocks for improved readability and visual comfort"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 87,
+        "hierarchyScore": 85,
+        "readabilityScore": 95,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Visual hierarchy is somewhat flat; the headline could have stronger emphasis to better stop attention.",
+          "The ad is very text-heavy with minimal imagery, which may affect immediate engagement on social platforms.",
+          "Spacing between some sections could be improved for better visual separation and flow.",
+          "QR code integration is good but could be slightly larger or more visually integrated to enhance scanning prominence."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the headline 'Bilfinger Shutdown Project' more visually dominant to improve attention stopping power."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing between interview dates and below the job roles box to improve readability and separation."
+          },
+          {
+            "type": "OTHER",
+            "note": "Consider increasing QR code size or adding a visual element around it to better integrate it into the design and highlight scanning functionality."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

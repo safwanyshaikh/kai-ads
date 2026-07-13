@@ -1,0 +1,176 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 84,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 84). Defects: Text hierarchy could be improved; the main job/project headline is large but not emphatic enough compared to other text elements, reducing immediate position clarity.; The 'WE ARE HIRING' header is small and red on a dark background; low emphasis and poor color contrast reduces attention.; The job roles list has small text with multiple bullet points which slightly crowd the middle of the canvas, making quick scanning harder.; The bottom red banner is strong but contains many elements close together: phone, email, QR code, verification note - they compete for attention, lowering CTA clarity.; The QR code design looks slightly pasted over rather than integrated into the overall design, making it seem like an afterthought.; Visual hierarchy can be improved: 'Bilfinger Shutdown Project' dominates but 'Saudi Arabia' and job roles can have more emphasis for immediate clarity.; The repeated 'Baroda' interview dates may confuse readers, suggesting a need for clearer spacing or grouping.; The red box around salary and overtime looks slightly cramped.; The dark background with a busy industrial image slightly reduces text contrast in some areas, affecting readability on smaller screens.; Visual hierarchy is not fully optimal; the main role text 'Bilfinger Shutdown Project' competes with other text blocks for attention, causing slight confusion about the primary message.; Some text blocks are tightly spaced and could benefit from improved line spacing to enhance readability, especially in the lists of roles.; The red button styled element 'SAUDI ARABIA' is prominent but visually disconnected from the location clarity as the country is only mentioned there, which can confuse the viewer initially.; The lower text block with contact details and interview info is compact; the phone and email iconography could be a bit larger for quicker CTA recognition.; The QR code is integrated but could be slightly larger and more centrally placed in the footer area for better emphasis and scanning ease.",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 82,
+        "commercialQualityScore": 80,
+        "hierarchyScore": 78,
+        "readabilityScore": 85,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 80,
+        "trustScore": 85,
+        "defects": [
+          "Text hierarchy could be improved; the main job/project headline is large but not emphatic enough compared to other text elements, reducing immediate position clarity.",
+          "The 'WE ARE HIRING' header is small and red on a dark background; low emphasis and poor color contrast reduces attention.",
+          "The job roles list has small text with multiple bullet points which slightly crowd the middle of the canvas, making quick scanning harder.",
+          "The bottom red banner is strong but contains many elements close together: phone, email, QR code, verification note - they compete for attention, lowering CTA clarity.",
+          "The QR code design looks slightly pasted over rather than integrated into the overall design, making it seem like an afterthought."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the job/project title and country indicator bigger or more visually dominant to immediately tell viewers the position and location."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Adjust vertical spacing between the job roles and the red benefit box to reduce crowding."
+          },
+          {
+            "type": "OTHER",
+            "note": "Increase the size and/or contrast of 'WE ARE HIRING' and reposition it for better hierarchy."
+          },
+          {
+            "type": "OTHER",
+            "note": "Rework the bottom red banner layout to separate contact details and the QR code for clearer CTA and trust signals."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 85,
+        "readabilityScore": 88,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 86,
+        "ctaScore": 88,
+        "trustScore": 87,
+        "defects": [
+          "Visual hierarchy can be improved: 'Bilfinger Shutdown Project' dominates but 'Saudi Arabia' and job roles can have more emphasis for immediate clarity.",
+          "The repeated 'Baroda' interview dates may confuse readers, suggesting a need for clearer spacing or grouping.",
+          "The red box around salary and overtime looks slightly cramped.",
+          "The dark background with a busy industrial image slightly reduces text contrast in some areas, affecting readability on smaller screens."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make 'SAUDI ARABIA' and job roles more visually prominent to improve immediate job and country clarity."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Adjust spacing around interview dates and the salary/overtime section to reduce crowding and enhance readability."
+          },
+          {
+            "type": "OTHER",
+            "note": "Slightly increase text contrast or add a semi-transparent overlay behind text areas to improve readability against the background image."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.2400000000000002,
+        "spacingScale": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 84,
+        "commercialQualityScore": 82,
+        "hierarchyScore": 80,
+        "readabilityScore": 85,
+        "imageryScore": 88,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 85,
+        "trustScore": 85,
+        "defects": [
+          "Visual hierarchy is not fully optimal; the main role text 'Bilfinger Shutdown Project' competes with other text blocks for attention, causing slight confusion about the primary message.",
+          "Some text blocks are tightly spaced and could benefit from improved line spacing to enhance readability, especially in the lists of roles.",
+          "The red button styled element 'SAUDI ARABIA' is prominent but visually disconnected from the location clarity as the country is only mentioned there, which can confuse the viewer initially.",
+          "The lower text block with contact details and interview info is compact; the phone and email iconography could be a bit larger for quicker CTA recognition.",
+          "The QR code is integrated but could be slightly larger and more centrally placed in the footer area for better emphasis and scanning ease."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the job role title 'Bilfinger Shutdown Project' more visually dominant to immediately clarify the job focus."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase line spacing in the list of roles to improve reading comfort and clarity."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more breathing room around the contact CTA and interview details for cleaner presentation."
+          },
+          {
+            "type": "OTHER",
+            "note": "Adjust the size and placement of the QR code to appear more integrated and easier to scan."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    }
+  ]
+}

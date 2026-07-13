@@ -1,0 +1,146 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 92,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 92). Defects: Headline hierarchy could be slightly stronger compared to the green category labels.; The QR code looks somewhat detached and could better integrate with surrounding elements.; Imagery is weak and generic, could be more relevant or engaging to the job roles or candidate audience; Contact info and QR code could be slightly larger for higher immediate visibility; The phone number and email could have slightly more visual emphasis to increase CTA clarity.; The QR code, while integrated, could be larger for easier scanning on small devices.",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 92,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 92,
+        "defects": [
+          "Headline hierarchy could be slightly stronger compared to the green category labels.",
+          "The QR code looks somewhat detached and could better integrate with surrounding elements."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the main job title 'Bilfinger Shutdown Project' headline slightly more prominent to dominate the job and country labels visually."
+          },
+          {
+            "type": "OTHER",
+            "note": "Integrate the QR code better with surrounding contact info, e.g. by adding a subtle border or background shape to unify it with the footer text."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 92,
+        "readabilityScore": 95,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "Imagery is weak and generic, could be more relevant or engaging to the job roles or candidate audience",
+          "Contact info and QR code could be slightly larger for higher immediate visibility"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Use a more relevant or appealing background image that relates directly to the oil & gas shutdown project or recruitment theme."
+          },
+          {
+            "type": "OTHER",
+            "note": "Increase the size or prominence of contact phone/email and the QR code for easier scanning and immediate action."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 95,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 95,
+        "defects": [
+          "The phone number and email could have slightly more visual emphasis to increase CTA clarity.",
+          "The QR code, while integrated, could be larger for easier scanning on small devices."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Increase visual emphasis slightly on contact details and CTA area to improve prompt user action."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Slightly enlarge the QR code for better scanning ability without overcrowding."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

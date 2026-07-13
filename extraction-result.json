@@ -1,0 +1,225 @@
+{
+  "result": {
+    "country": {
+      "value": "Saudi Arabia",
+      "confidence": "HIGH"
+    },
+    "industry": {
+      "value": "Oil & Gas",
+      "confidence": "HIGH"
+    },
+    "projectType": {
+      "value": "Shutdown Project",
+      "confidence": "HIGH"
+    },
+    "employer": {
+      "value": "Bilfinger",
+      "confidence": "HIGH"
+    },
+    "positions": [
+      {
+        "title": "Welders - TIG & Multi",
+        "tradeSummary": "Perform TIG and multi-process welding for industrial shutdown projects.",
+        "quantity": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryAmount": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryCurrency": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "experience": {
+          "value": "shutdown project experience",
+          "confidence": "HIGH"
+        },
+        "qualification": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "ageLimit": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "possibleDuplicateOfIndex": null
+      },
+      {
+        "title": "Instrument and Control Technician",
+        "tradeSummary": "Maintain and repair instrumentation and control systems during shutdown projects.",
+        "quantity": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryAmount": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryCurrency": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "experience": {
+          "value": "shutdown project experience",
+          "confidence": "HIGH"
+        },
+        "qualification": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "ageLimit": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "possibleDuplicateOfIndex": null
+      },
+      {
+        "title": "Rotating Equipment Technician",
+        "tradeSummary": "Service and troubleshoot rotating equipment in shutdown projects.",
+        "quantity": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryAmount": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryCurrency": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "experience": {
+          "value": "shutdown project experience",
+          "confidence": "HIGH"
+        },
+        "qualification": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "ageLimit": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "possibleDuplicateOfIndex": null
+      },
+      {
+        "title": "Mechanical Technician",
+        "tradeSummary": "Perform mechanical maintenance and repairs during shutdown projects.",
+        "quantity": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryAmount": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryCurrency": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "experience": {
+          "value": "shutdown project experience",
+          "confidence": "HIGH"
+        },
+        "qualification": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "ageLimit": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "possibleDuplicateOfIndex": null
+      },
+      {
+        "title": "Electrical Technician",
+        "tradeSummary": "Execute electrical maintenance and troubleshooting in shutdown projects.",
+        "quantity": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryAmount": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "salaryCurrency": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "experience": {
+          "value": "shutdown project experience",
+          "confidence": "HIGH"
+        },
+        "qualification": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "ageLimit": {
+          "value": null,
+          "confidence": "LOW"
+        },
+        "possibleDuplicateOfIndex": null
+      }
+    ],
+    "benefits": {
+      "value": [
+        "Basic salary",
+        "daily overtime up to 4 hours"
+      ],
+      "confidence": "HIGH"
+    },
+    "interviewMode": {
+      "value": "in_person",
+      "confidence": "HIGH"
+    },
+    "interviewDate": {
+      "value": null,
+      "confidence": "LOW"
+    },
+    "interviewTime": {
+      "value": null,
+      "confidence": "LOW"
+    },
+    "interviewVenue": {
+      "value": null,
+      "confidence": "LOW"
+    },
+    "interviewEvents": [
+      {
+        "date": "14th July",
+        "venue": "Baroda",
+        "mode": "in_person"
+      },
+      {
+        "date": "15th July",
+        "venue": "Baroda",
+        "mode": "in_person"
+      },
+      {
+        "date": "18th July",
+        "venue": "Mumbai",
+        "mode": "in_person"
+      }
+    ],
+    "contact": {
+      "value": {
+        "name": null,
+        "phone": "9324995767",
+        "email": "jobs@alyousufent.com",
+        "whatsapp": null
+      },
+      "confidence": "HIGH"
+    },
+    "originalSourceText": "Hiring for Bilfinger Shutdown Project Saudi Arabia\n\nPositions:\n- Welders - TIG & Multi\n- Instrument and Control Technician\n- Rotating Equipment Technician\n- Mechanical Technician\n- Electrical Technician\n\nBenefit:\n- Basic salary + daily overtime up to 4 hours\n\nMandatory experience:\n- All applicants must have experience in shutdown projects\n\nContact:\n9324995767\n\nEmail:\njobs@alyousufent.com\n\nInterview:\n- Baroda — 14th & 15th July\n- Mumbai — 18th July",
+    "overallConfidence": "HIGH",
+    "warnings": []
+  },
+  "model": "gpt-4.1-mini",
+  "usage": {
+    "inputTokens": 2367,
+    "outputTokens": 838,
+    "latencyMs": 17298
+  }
+}

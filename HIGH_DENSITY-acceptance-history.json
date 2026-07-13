@@ -1,0 +1,186 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 79,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (last score: 79). Defects: Imagery is very minimal and does not effectively attract attention or support the recruitment message.; The headline 'Bilfinger Shutdown Project' could be more prominent and visually emphasized to better capture immediate job clarity.; Contact and QR code CTA area is relatively small and low contrast against the dark background, reducing immediate visibility.; The use of space below interview dates is somewhat empty; this contributes to moderate underutilization of canvas space.; The brand logo at top-left is small and not emphasized, limiting brand presence.; Weak visual hierarchy, the main job title 'Bilfinger Shutdown Project' is prominent but the supporting country and sector info blends too much into the headline instead of standing out separately.; The top green bar with the agency name and registration number is visually cramped and lacks breathing space.; The interview dates boxes at the bottom feel disconnected and spaced unevenly, with the second Baroda date oddly shifted right, breaking the alignment balance.; The image lacks any photographic or graphic imagery that would increase attention and create relevance; it is purely text-based, which reduces the ad's power to stop users scrolling.; The overall layout is a bit dry and utilitarian; adding some subtle color highlights or separators to differentiate sections could improve scanning speed.; Some white space on the canvas is underutilized, particularly the center bottom area that might accommodate the interview dates better.; Imagery is very minimal and generic which reduces attention-stopping power; The headline does not dominate strongly enough over other text elements, reducing immediate clarity; Contact CTA is small and could be emphasized more for better visibility; Spacing between elements feels tight in some areas, affecting readability and scan-ability; The QR code looks somewhat stuck-in and lacks integrated design harmony with the rest of the ad",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 81,
+        "commercialQualityScore": 80,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 70,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 80,
+        "trustScore": 90,
+        "defects": [
+          "Imagery is very minimal and does not effectively attract attention or support the recruitment message.",
+          "The headline 'Bilfinger Shutdown Project' could be more prominent and visually emphasized to better capture immediate job clarity.",
+          "Contact and QR code CTA area is relatively small and low contrast against the dark background, reducing immediate visibility.",
+          "The use of space below interview dates is somewhat empty; this contributes to moderate underutilization of canvas space.",
+          "The brand logo at top-left is small and not emphasized, limiting brand presence."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Use a more engaging and relevant background or imagery that visually supports the oil & gas shutdown project theme to increase attractiveness and commercial impact."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the job title and country more visually prominent to improve immediate clarity and stop potential candidates quickly."
+          },
+          {
+            "type": "OTHER",
+            "note": "Increase the prominence and contrast of the contact phone, email, and QR code area for better call-to-action visibility."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Better utilize space below interview dates to reduce dead zones and improve overall canvas utilization."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 82,
+        "commercialQualityScore": 80,
+        "hierarchyScore": 75,
+        "readabilityScore": 90,
+        "imageryScore": 70,
+        "canvasUtilizationScore": 80,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "Weak visual hierarchy, the main job title 'Bilfinger Shutdown Project' is prominent but the supporting country and sector info blends too much into the headline instead of standing out separately.",
+          "The top green bar with the agency name and registration number is visually cramped and lacks breathing space.",
+          "The interview dates boxes at the bottom feel disconnected and spaced unevenly, with the second Baroda date oddly shifted right, breaking the alignment balance.",
+          "The image lacks any photographic or graphic imagery that would increase attention and create relevance; it is purely text-based, which reduces the ad's power to stop users scrolling.",
+          "The overall layout is a bit dry and utilitarian; adding some subtle color highlights or separators to differentiate sections could improve scanning speed.",
+          "Some white space on the canvas is underutilized, particularly the center bottom area that might accommodate the interview dates better."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more padding in the top green bar around the agency name and registration to improve breathability."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Align the interview date boxes evenly in a consistent row or grid for balanced visual flow."
+          },
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Incorporate a relevant, professional image or themed graphic to increase visual appeal and commercial impact."
+          },
+          {
+            "type": "OTHER",
+            "note": "Enhance the visual hierarchy by separating the country/sector line from headline text, perhaps by adding line spacing or color contrast."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 79,
+        "commercialQualityScore": 75,
+        "hierarchyScore": 80,
+        "readabilityScore": 85,
+        "imageryScore": 70,
+        "canvasUtilizationScore": 80,
+        "ctaScore": 75,
+        "trustScore": 90,
+        "defects": [
+          "Imagery is very minimal and generic which reduces attention-stopping power",
+          "The headline does not dominate strongly enough over other text elements, reducing immediate clarity",
+          "Contact CTA is small and could be emphasized more for better visibility",
+          "Spacing between elements feels tight in some areas, affecting readability and scan-ability",
+          "The QR code looks somewhat stuck-in and lacks integrated design harmony with the rest of the ad"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Use stronger, more relevant and attention-grabbing imagery related to shutdown projects or Gulf/Oil & Gas context."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the position and country headline visually dominant to improve immediate job and country clarity."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add breathing space between position listings and interview venue sections to improve scan-ability."
+          },
+          {
+            "type": "OTHER",
+            "note": "Integrate the QR code design more seamlessly with the footer area; avoid looking like a sticker."
+          },
+          {
+            "type": "OTHER",
+            "note": "Enhance the visibility and prominence of the contact CTA details to increase user engagement."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    }
+  ]
+}
