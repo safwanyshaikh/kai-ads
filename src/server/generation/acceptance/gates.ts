@@ -1,6 +1,7 @@
 import { PNG } from "pngjs";
 import jsQR from "jsqr";
 import type { AdvertisementFacts } from "../archetypes";
+import { coreHeaderText } from "../archetypes/advertisement-intelligence";
 
 /**
  * Deterministic acceptance gates (Task: "do not let AI visual QA become
@@ -40,7 +41,14 @@ export function runSourceFidelityGate(facts: AdvertisementFacts, svg: string): G
   const failures: string[] = [];
 
   const mustContain: { label: string; value: string }[] = [
-    { label: "header", value: facts.header },
+    // The header's FACTUAL core must appear — the Advertisement
+    // Intelligence copy plan may legitimately strip listing boilerplate
+    // ("Hiring for") and the trailing country (which every archetype
+    // renders in its own dedicated slot, checked separately below via
+    // the country-bearing fields... country itself is presentation-
+    // mandatory in all archetypes, so add it explicitly).
+    { label: "header", value: coreHeaderText(facts.header, facts.country) },
+    { label: "country", value: facts.country },
     ...facts.positions.map((p, i) => ({ label: `position[${i}]`, value: p.title })),
     ...facts.benefits.map((b, i) => ({ label: `benefit[${i}]`, value: b.label })),
     ...facts.interview.flatMap((e, i) =>

@@ -38,7 +38,9 @@ export function renderVisualHero(input: CompositionInput): string {
   const fmt = plan.platformFormat;
   const { px, fpx, isLandscape } = makeScalers(fmt);
   const font = KAI_SANS_FONT_FAMILY;
-  const accent = plan.accentColor === "#1a1a1a" ? "#e0342c" : plan.accentColor;
+  // Agency Visual DNA: accent continuity only — structure stays the hero's own.
+  const accent = plan.dna?.accentColor ?? (plan.accentColor === "#1a1a1a" ? "#e0342c" : plan.accentColor);
+  const dnaSecondary = plan.dna?.secondaryColor ?? accent;
   const W = fmt.widthPx;
   const H = fmt.heightPx;
   const pad = px(56);
@@ -94,7 +96,10 @@ export function renderVisualHero(input: CompositionInput): string {
   y += px(30);
 
   const headlineScale = clampTuning(plan.tuning?.headlineScale);
-  const headline = fitWrappedText(facts.header, contentW, Math.round(fpx(72) * headlineScale), fpx(36), 3);
+  // Advertisement Intelligence: the display headline leads with substance
+  // (boilerplate-stripped, still fully grounded) when a copy plan exists.
+  const headlineText = plan.copy?.primaryHeadline ?? facts.header;
+  const headline = fitWrappedText(headlineText, contentW, Math.round(fpx(72) * headlineScale), fpx(36), 3);
   for (const line of headline.lines) {
     y += Math.round(headline.fontSize * 1.14);
     parts.push(
@@ -113,7 +118,19 @@ export function renderVisualHero(input: CompositionInput): string {
   <text x="${pad + pillW / 2}" y="${y + pillH / 2 + pillFont * 0.36}" text-anchor="middle" font-family="${font}" font-size="${pillFont}" font-weight="700" fill="#ffffff">${escapeXml(countryText)}</text>
   <text x="${pad + pillW + px(24)}" y="${y + pillH / 2 + fpx(8)}" font-family="${font}" font-size="${fpx(22)}" fill="#e8e8e8">${escapeXml(facts.industry)}${facts.employer ? " · " + escapeXml(facts.employer) : ""}</text>`,
   );
-  y += pillH + px(44);
+  y += pillH + px(38);
+
+  // Advertisement Intelligence: grounded secondary hook (e.g. the classic
+  // multi-city interview line) gets its own emphasized slot.
+  if (plan.copy?.secondaryHeadline) {
+    const secondary = plan.copy.secondaryHeadline;
+    const size = fitFontSize(secondary, contentW, fpx(26), fpx(15));
+    parts.push(
+      `<text x="${pad}" y="${y + fpx(6)}" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffd24d">${escapeXml(secondary)}</text>`,
+    );
+    y += fpx(30);
+  }
+  y += px(14);
 
   // --- Content blocks as column-aware emitters, so landscape can place
   // the requirement detail (chips + interview) in a right-hand column
@@ -149,7 +166,7 @@ export function renderVisualHero(input: CompositionInput): string {
       const line = formatBenefitLine(b);
       const size = fitFontSize(line, width - px(90), fpx(24), fpx(14));
       parts.push(
-        `${checkIcon(x + px(26), by - fpx(14), fpx(20), accent)}
+        `${checkIcon(x + px(26), by - fpx(14), fpx(20), dnaSecondary)}
   <text x="${x + px(58)}" y="${by + fpx(2)}" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`,
       );
       by += lineH;

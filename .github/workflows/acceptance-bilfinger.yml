@@ -52,7 +52,7 @@ jobs:
           KAI_TEXT_MODEL: gpt-4.1-mini
           KAI_VISION_MODEL: gpt-4.1-mini
           KAI_IMAGE_MODEL: gpt-image-1
-          KAI_PUBLIC_DOMAIN: ${{ vars.KAI_PUBLIC_DOMAIN || 'https://kai-ads.example.com' }}
+          KAI_PUBLIC_DOMAIN: ${{ vars.KAI_PUBLIC_DOMAIN || 'https://kai-ads.vercel.app' }}
           # Dummy values satisfying env validation only — the acceptance
           # script never touches the database, auth, email, or storage.
           NODE_ENV: development

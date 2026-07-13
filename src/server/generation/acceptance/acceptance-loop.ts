@@ -60,6 +60,38 @@ export interface AcceptanceLoopDeps {
   expectedQrUrl: string;
   /** Optional QR-region crop used as the phone-camera-style fallback scan. */
   cropQrRegion?: (png: Buffer) => Promise<Buffer>;
+  /**
+   * Visual QA pass bar. Defaults to the technical minimum
+   * (VISUAL_QA_PASS_THRESHOLD, 85). The commercial launch gate runs the
+   * same loop at COMMERCIAL_LAUNCH_THRESHOLD (95).
+   */
+  passThreshold?: number;
+}
+
+/** Commercial launch-candidate bar — stricter than the technical minimum; used by the launch acceptance run, not by everyday production generation. */
+export const COMMERCIAL_LAUNCH_THRESHOLD = 95;
+
+/**
+ * Guard for the verification moat: an advertisement whose QR encodes a
+ * placeholder/dev domain must never be treated as production-ready.
+ */
+export function isPlaceholderVerificationDomain(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.endsWith(".local") ||
+      host === "example.com" ||
+      host.endsWith(".example.com") ||
+      host.endsWith(".example.org") ||
+      host.endsWith(".example.net") ||
+      host.endsWith(".test") ||
+      host.endsWith(".invalid")
+    );
+  } catch {
+    return true; // unparseable destination is never production-ready
+  }
 }
 
 /**
@@ -166,7 +198,8 @@ export async function runAcceptanceLoop(
     // and a non-empty catastrophic-defect list blocks PASS regardless of
     // how high the numeric score is (a score must never hide a clipped,
     // overlapping, or fabricated-branding output).
-    if (qa.overallScore >= VISUAL_QA_PASS_THRESHOLD && qa.catastrophicDefects.length === 0) {
+    const passThreshold = deps.passThreshold ?? VISUAL_QA_PASS_THRESHOLD;
+    if (qa.overallScore >= passThreshold && qa.catastrophicDefects.length === 0) {
       return { status: "PASS", finalSvg, finalPng, finalScore: qa.overallScore, iterations };
     }
 
@@ -200,7 +233,7 @@ export async function runAcceptanceLoop(
     finalPng,
     finalScore: lastScore,
     iterations,
-    blockReason: `Visual QA stayed below ${VISUAL_QA_PASS_THRESHOLD}/100 after ${MAX_ACCEPTANCE_ITERATIONS} iterations (last score: ${lastScore ?? "n/a"}). Defects: ${iterations
+    blockReason: `Visual QA stayed below ${deps.passThreshold ?? VISUAL_QA_PASS_THRESHOLD}/100 after ${MAX_ACCEPTANCE_ITERATIONS} iterations (last score: ${lastScore ?? "n/a"}). Defects: ${iterations
       .flatMap((r) => r.visualQa?.defects ?? [])
       .join("; ")}`,
   };

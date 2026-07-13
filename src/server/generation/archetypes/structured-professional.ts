@@ -31,7 +31,10 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   const fmt = plan.platformFormat;
   const { px, fpx, isLandscape } = makeScalers(fmt);
   const font = KAI_SANS_FONT_FAMILY;
-  const accent = plan.accentColor === "#1a1a1a" ? "#0d4f8b" : plan.accentColor;
+  // Agency Visual DNA: the identity banner carries the agency's primary
+  // brand color; checkmarks carry the secondary. Structure is untouched.
+  const accent = plan.dna?.primaryColor ?? (plan.accentColor === "#1a1a1a" ? "#0d4f8b" : plan.accentColor);
+  const dnaSecondary = plan.dna?.secondaryColor ?? accent;
   const W = fmt.widthPx;
   const H = fmt.heightPx;
   const pad = px(56);
@@ -69,7 +72,8 @@ export function renderStructuredProfessional(input: CompositionInput): string {
 
   // --- Headline + country chip ---
   const headlineScale = clampTuning(plan.tuning?.headlineScale);
-  const headline = fitWrappedText(facts.header, colW, Math.round(fpx(50) * headlineScale), fpx(26), 2);
+  const headlineText = plan.copy?.primaryHeadline ?? facts.header;
+  const headline = fitWrappedText(headlineText, colW, Math.round(fpx(50) * headlineScale), fpx(26), 2);
   for (const line of headline.lines) {
     y += Math.round(headline.fontSize * 1.15);
     parts.push(
@@ -91,10 +95,19 @@ export function renderStructuredProfessional(input: CompositionInput): string {
     );
     y += fpx(34);
   }
+  if (plan.copy?.secondaryHeadline) {
+    const secondary = plan.copy.secondaryHeadline;
+    parts.push(
+      `<text x="${leftX}" y="${y + chipH + fpx(58)}" font-family="${font}" font-size="${fitFontSize(secondary, colW, fpx(24), fpx(13))}" font-weight="700" fill="${dnaSecondary}">${escapeXml(secondary)}</text>`,
+    );
+    y += fpx(34);
+  }
   y += chipH + px(40);
 
   // --- OPEN POSITIONS card ---
-  const rowH = px(46);
+  // Row height expands for shorter position lists so the card owns its
+  // share of the canvas (Brain C repeatedly flagged mid-canvas dead space).
+  const rowH = facts.positions.length <= 6 ? px(58) : px(46);
   const cardPad = px(24);
   const posCardH = cardPad * 2 + px(34) + facts.positions.length * rowH;
   parts.push(
@@ -128,7 +141,7 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   let ry = isLandscape ? bannerH + px(56) : leftAfterPositions;
 
   if (facts.benefits.length > 0) {
-    const bRowH = px(44);
+    const bRowH = px(50);
     const benCardH = cardPad * 2 + px(34) + facts.benefits.length * bRowH - px(10);
     parts.push(
       `<rect x="${rightX}" y="${ry}" width="${colW}" height="${benCardH}" rx="${px(12)}" fill="${cardFill}" />
@@ -140,7 +153,7 @@ export function renderStructuredProfessional(input: CompositionInput): string {
       const line = formatBenefitLine(b);
       const size = fitFontSize(line, colW - cardPad * 2 - px(48), fpx(22), fpx(13));
       parts.push(
-        `${checkIcon(rightX + cardPad + px(4), by - fpx(2), fpx(22), accent)}
+        `${checkIcon(rightX + cardPad + px(4), by - fpx(2), fpx(22), dnaSecondary)}
   <text x="${rightX + cardPad + px(40)}" y="${by + fpx(14)}" font-family="${font}" font-size="${size}" font-weight="600" fill="${ink}">${escapeXml(line)}</text>`,
       );
       by += bRowH;
@@ -164,10 +177,16 @@ export function renderStructuredProfessional(input: CompositionInput): string {
       `<text x="${rightX}" y="${ry + fpx(18)}" font-family="${font}" font-size="${fpx(20)}" font-weight="700" letter-spacing="2" fill="${accent}">INTERVIEW SCHEDULE</text>`,
     );
     ry += px(32);
-    const cols = Math.min(facts.interview.length, 2);
+    // Up to three events sit in ONE row of boxes (reference grammar) —
+    // wrapping to a second row risked colliding with the CTA bar.
+    const cols = Math.min(facts.interview.length, 3);
     const gap = px(16);
     const boxW = (colW - gap * (cols - 1)) / cols;
-    const boxH = px(70);
+    // Adaptive: with 3+ events (two rows) the grid must stay above the
+    // CTA bar — same overflow guard the Visual Hero uses.
+    const iRows = Math.ceil(facts.interview.length / cols);
+    const iAvailable = H - px(162) - ry - gap * (iRows - 1) - px(16);
+    const boxH = Math.max(px(48), Math.min(px(78), Math.floor(iAvailable / Math.max(iRows, 1))));
     facts.interview.forEach((event, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
@@ -183,15 +202,15 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   }
 
   // --- Bottom CTA bar with integrated verification panel ---
-  const barH = px(150);
+  const barH = px(162);
   const barY = H - barH;
   parts.push(`<rect x="0" y="${barY}" width="${W}" height="${barH}" fill="${ink}" />
   <rect x="0" y="${barY}" width="${W}" height="${px(8)}" fill="${accent}" />`);
 
   const panelProbe = verificationPanel({
     x: 0,
-    y: barY + Math.round((barH - px(108)) / 2) + px(4),
-    height: px(108),
+    y: barY + Math.round((barH - px(120)) / 2) + px(4),
+    height: px(120),
     qrDataUri: plan.qrDataUri,
     raLicenseId: facts.raLicenseId,
     fontFamily: font,
@@ -202,8 +221,8 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   parts.push(
     verificationPanel({
       x: panelX,
-      y: barY + Math.round((barH - px(108)) / 2) + px(4),
-      height: px(108),
+      y: barY + Math.round((barH - px(120)) / 2) + px(4),
+      height: px(120),
       qrDataUri: plan.qrDataUri,
       raLicenseId: facts.raLicenseId,
       fontFamily: font,

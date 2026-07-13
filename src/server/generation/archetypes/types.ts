@@ -75,6 +75,10 @@ export interface CompositionPlan {
   backgroundImageDataUri?: string | null;
   agencyLogoDataUri?: string | null;
   tuning?: CompositionTuning;
+  /** Agency Visual DNA (see visual-dna.ts) — tenant color/identity continuity. Color-level influence only; engines keep their own structure. */
+  dna?: import("./visual-dna").AgencyVisualDna | null;
+  /** Advertisement Intelligence copy plan (see advertisement-intelligence.ts) — grounded emphasis, never new facts. */
+  copy?: import("./advertisement-intelligence").AdCopyPlan | null;
 }
 
 export interface CompositionInput {

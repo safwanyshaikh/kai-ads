@@ -14,18 +14,24 @@
  * Never prints or writes any secret. Writes all artifacts + a manifest
  * to scripts/acceptance/artifacts/ for upload by the workflow.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { runKaiExtraction } from "@/server/ai/openai/kai-extraction-engine";
 import {
+  buildAdCopyPlan,
   buildImageBrief,
   composeAdvertisement,
   recommendArchetype,
+  resolveAgencyVisualDna,
   type AdvertisementArchetype,
   type AdvertisementFacts,
 } from "@/server/generation/archetypes";
-import { runAcceptanceLoop } from "@/server/generation/acceptance/acceptance-loop";
+import {
+  COMMERCIAL_LAUNCH_THRESHOLD,
+  isPlaceholderVerificationDomain,
+  runAcceptanceLoop,
+} from "@/server/generation/acceptance/acceptance-loop";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import { getVisualQaProvider } from "@/server/ai/visual-qa";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
@@ -156,6 +162,28 @@ async function main() {
   const visualQa = getVisualQaProvider();
   console.log("Visual QA Brain:", visualQa ? `configured (${env.KAI_VISION_MODEL})` : "NOT CONFIGURED");
 
+  // Commercial launch gate: the QR must encode the canonical production
+  // domain — a placeholder/dev domain can never be production-ready.
+  const placeholderDomain = isPlaceholderVerificationDomain(qrUrl);
+  console.log("QR canonical-domain check:", placeholderDomain ? "PLACEHOLDER (NOT production-ready)" : "PRODUCTION DOMAIN OK");
+  if (placeholderDomain) {
+    console.error("KAI_PUBLIC_DOMAIN is a placeholder domain — set it to the canonical production domain.");
+    process.exit(1);
+  }
+
+  // Agency Visual DNA — derived from the tenant's real logo asset.
+  const logoBuffer = readFileSync(path.join(process.cwd(), "scripts", "acceptance", "assets", "al-yousuf-logo.png"));
+  const agencyLogoDataUri = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+  const dna = await resolveAgencyVisualDna({ logo: logoBuffer });
+  console.log("Agency Visual DNA:", JSON.stringify(dna));
+  writeFileSync(path.join(OUT, "visual-dna.json"), JSON.stringify(dna, null, 2));
+
+  // Advertisement Intelligence — grounded emphasis plan.
+  const copy = buildAdCopyPlan(facts, { hasCompensationSignal: true });
+  console.log("Ad copy plan:", JSON.stringify(copy));
+  writeFileSync(path.join(OUT, "ad-copy-plan.json"), JSON.stringify(copy, null, 2));
+  console.log("Commercial launch threshold:", COMMERCIAL_LAUNCH_THRESHOLD);
+
   const cropQrRegion = async (png: Buffer) => {
     const w = Math.round(fmt.widthPx * 0.45);
     const h = Math.round(fmt.heightPx * 0.3);
@@ -200,6 +228,9 @@ async function main() {
         accentColor: ACCENTS[archetype],
         qrDataUri,
         backgroundImageDataUri,
+        agencyLogoDataUri,
+        dna,
+        copy,
       },
       {
         compose: (f, p) => composeAdvertisement({ facts: f, plan: p }),
@@ -207,6 +238,7 @@ async function main() {
         visualQa,
         expectedQrUrl: qrUrl,
         cropQrRegion,
+        passThreshold: COMMERCIAL_LAUNCH_THRESHOLD,
         regenerateImage:
           archetype === "VISUAL_HERO"
             ? async (defectNotes) => {
@@ -274,6 +306,10 @@ async function main() {
         branch: process.env.GITHUB_REF_NAME ?? null,
         commit: process.env.GITHUB_SHA ?? null,
         models: { text: env.KAI_TEXT_MODEL, vision: env.KAI_VISION_MODEL, image: env.KAI_IMAGE_MODEL },
+        commercialThreshold: COMMERCIAL_LAUNCH_THRESHOLD,
+        qrCanonicalDomainOk: !placeholderDomain,
+        visualDna: dna,
+        adCopyPlan: copy,
         advertisementId,
         verificationId,
         qrDestination: qrUrl,

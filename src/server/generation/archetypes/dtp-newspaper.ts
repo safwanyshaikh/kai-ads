@@ -30,7 +30,10 @@ export function renderDtpNewspaper(input: CompositionInput): string {
   const fmt = plan.platformFormat;
   const { px, fpx, isLandscape } = makeScalers(fmt);
   const font = KAI_SERIF_FONT_FAMILY;
-  const accent = plan.accentColor === "#1a1a1a" ? "#111111" : plan.accentColor;
+  // Agency Visual DNA: only the "REQUIRED FOR" line and checkmarks carry
+  // brand color — the DTP form stays deliberately ink-and-paper.
+  const accent = plan.dna?.primaryColor ?? (plan.accentColor === "#1a1a1a" ? "#111111" : plan.accentColor);
+  const dnaSecondary = plan.dna?.secondaryColor ?? accent;
   const W = fmt.widthPx;
   const H = fmt.heightPx;
   const margin = px(28);
@@ -90,10 +93,10 @@ export function renderDtpNewspaper(input: CompositionInput): string {
     // "URGENTLY REQUIRED": urgency is a factual claim, and unless the
     // source stated it (Truth Brain), presentation may not add it.
     frags.push(
-      `<text x="${colCenterX}" y="${y}" text-anchor="middle" font-family="${font}" font-size="${fpx(24)}" font-weight="700" letter-spacing="4" fill="${accent}">REQUIRED FOR ${escapeXml(facts.country.toUpperCase())}</text>`,
+      `<text x="${colCenterX}" y="${y}" text-anchor="middle" font-family="${font}" font-size="${fpx(30)}" font-weight="700" letter-spacing="4" fill="${accent}">REQUIRED FOR ${escapeXml(facts.country.toUpperCase())}</text>`,
     );
     y += px(20);
-    const headline = fitWrappedText(facts.header, contentW, Math.round(fpx(48) * clampTuning(plan.tuning?.headlineScale)), fpx(24), 2);
+    const headline = fitWrappedText(plan.copy?.primaryHeadline ?? facts.header, contentW, Math.round(fpx(48) * clampTuning(plan.tuning?.headlineScale)), fpx(24), 2);
     for (const line of headline.lines) {
       y += Math.round(headline.fontSize * 1.2);
       frags.push(
@@ -143,7 +146,7 @@ export function renderDtpNewspaper(input: CompositionInput): string {
         const size = fitFontSize(line, col2W - px(60), fpx(24), fpx(13));
         const textW = line.length * size * 0.58;
         frags.push(
-          `${checkIcon(col2CenterX - textW / 2 - px(34), cy - fpx(16), fpx(22), accent)}
+          `${checkIcon(col2CenterX - textW / 2 - px(34), cy - fpx(16), fpx(22), dnaSecondary)}
   <text x="${col2CenterX + px(2)}" y="${cy}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${ink}">${escapeXml(line)}</text>`,
         );
         cy += px(38);

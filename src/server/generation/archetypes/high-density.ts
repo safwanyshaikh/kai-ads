@@ -29,7 +29,10 @@ export function renderHighDensity(input: CompositionInput): string {
   const fmt = plan.platformFormat;
   const { px, fpx, isLandscape } = makeScalers(fmt);
   const font = KAI_SANS_FONT_FAMILY;
-  const accent = plan.accentColor === "#1a1a1a" ? "#0d4f8b" : plan.accentColor;
+  // Agency Visual DNA: identity strip carries the agency primary color;
+  // checkmarks the secondary. Table structure untouched.
+  const accent = plan.dna?.primaryColor ?? (plan.accentColor === "#1a1a1a" ? "#0d4f8b" : plan.accentColor);
+  const dnaSecondary = plan.dna?.secondaryColor ?? accent;
   const W = fmt.widthPx;
   const H = fmt.heightPx;
   const pad = px(48);
@@ -57,9 +60,10 @@ export function renderHighDensity(input: CompositionInput): string {
   // --- Headline band ---
   let y = stripH + px(52);
   const headlineScale = clampTuning(plan.tuning?.headlineScale);
-  const headlineSize = fitFontSize(facts.header, W - pad * 2, Math.round(fpx(44) * headlineScale), fpx(20));
+  const headlineText = plan.copy?.primaryHeadline ?? facts.header;
+  const headlineSize = fitFontSize(headlineText, W - pad * 2, Math.round(fpx(48) * headlineScale), fpx(20));
   parts.push(
-    `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headlineSize}" font-weight="700" fill="${ink}">${escapeXml(facts.header)}</text>`,
+    `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headlineSize}" font-weight="700" fill="${ink}">${escapeXml(headlineText)}</text>`,
   );
   y += px(34);
   const subline = `${facts.country.toUpperCase()} · ${facts.industry}${facts.employer ? " · " + facts.employer : ""}`;
@@ -78,7 +82,7 @@ export function renderHighDensity(input: CompositionInput): string {
   const benefitsStripH = facts.benefits.length > 0 ? px(64) : 0;
   const footerNoteH = facts.footer ? px(40) : 0;
   const interviewH = facts.interview.length > 0 ? px(96) : 0;
-  const barH = px(132);
+  const barH = px(146);
   const headerRowH = px(48);
   const availableTableH = H - y - benefitsStripH - footerNoteH - interviewH - barH - px(90);
   // Row height adapts BOTH ways: 20-30 rows compress toward the px(30)
@@ -95,7 +99,7 @@ export function renderHighDensity(input: CompositionInput): string {
   // across the section gaps below it, so a medium-count requirement never
   // pools empty canvas above the contact bar.
   const interviewRows = facts.interview.length > 0 ? Math.ceil(facts.interview.length / 2) : 0;
-  const interviewActualH = facts.interview.length > 0 ? px(26) + interviewRows * (px(54) + px(14)) : 0;
+  const interviewActualH = facts.interview.length > 0 ? px(26) + interviewRows * (px(62) + px(14)) : 0;
   const tableActualH = headerRowH + rowsPerCol * rowH;
   const leftoverBelowTable =
     H - y - tableActualH - benefitsStripH - footerNoteH - interviewActualH - barH - px(70);
@@ -137,7 +141,7 @@ export function renderHighDensity(input: CompositionInput): string {
       const line = formatBenefitLine(b);
       const size = fitFontSize(line, W - pad * 2 - px(80), fpx(21), fpx(12));
       parts.push(
-        `${checkIcon(bx, by - fpx(11), fpx(20), accent)}
+        `${checkIcon(bx, by - fpx(11), fpx(20), dnaSecondary)}
   <text x="${bx + px(30)}" y="${by + size * 0.36}" font-family="${font}" font-size="${size}" font-weight="700" fill="${ink}">${escapeXml(line)}</text>`,
       );
       bx += px(34) + line.length * size * 0.58 + px(30);
@@ -162,7 +166,7 @@ export function renderHighDensity(input: CompositionInput): string {
     const cols = Math.min(facts.interview.length, 2);
     const gap = px(14);
     const boxW = (W - pad * 2 - gap * (cols - 1)) / cols;
-    const boxH = px(54);
+    const boxH = px(62);
     const boxTop = y + px(26);
     facts.interview.forEach((event, i) => {
       const col = i % cols;
@@ -183,8 +187,8 @@ export function renderHighDensity(input: CompositionInput): string {
   parts.push(`<rect x="0" y="${barY}" width="${W}" height="${barH}" fill="${ink}" />`);
   const panelProbe = verificationPanel({
     x: 0,
-    y: barY + Math.round((barH - px(96)) / 2),
-    height: px(96),
+    y: barY + Math.round((barH - px(112)) / 2),
+    height: px(112),
     qrDataUri: plan.qrDataUri,
     raLicenseId: facts.raLicenseId,
     fontFamily: font,
@@ -195,8 +199,8 @@ export function renderHighDensity(input: CompositionInput): string {
   parts.push(
     verificationPanel({
       x: panelX,
-      y: barY + Math.round((barH - px(96)) / 2),
-      height: px(96),
+      y: barY + Math.round((barH - px(112)) / 2),
+      height: px(112),
       qrDataUri: plan.qrDataUri,
       raLicenseId: facts.raLicenseId,
       fontFamily: font,

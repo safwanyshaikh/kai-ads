@@ -5,6 +5,8 @@ import { renderHighDensity } from "./high-density";
 import { renderDtpNewspaper } from "./dtp-newspaper";
 
 export * from "./types";
+export { resolveAgencyVisualDna, type AgencyVisualDna, type VisualDnaOverrides } from "./visual-dna";
+export { buildAdCopyPlan, type AdCopyPlan } from "./advertisement-intelligence";
 export {
   selectArchetype,
   archetypeUsesGeneratedImagery,

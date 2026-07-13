@@ -12,9 +12,11 @@ import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
 import {
   archetypeUsesGeneratedImagery,
+  buildAdCopyPlan,
   buildImageBrief,
   composeAdvertisement,
   recommendArchetype,
+  resolveAgencyVisualDna,
   selectArchetype,
   styleForArchetype,
 } from "@/server/generation/archetypes";
@@ -250,6 +252,15 @@ export const advertisementGenerationService = {
       raLicenseId: compactRaLicenseId,
       fullRegistrationNumber: agency.registrationNumber,
     };
+    // Agency Visual DNA: tenant color continuity derived from the
+    // agency's own logo (no schema migration — see visual-dna.ts).
+    const dna = await resolveAgencyVisualDna({
+      logo: agencyLogoDataUri ? dataUriToBuffer(agencyLogoDataUri) : null,
+    });
+    // Advertisement Intelligence: grounded emphasis (headline core,
+    // secondary hook) — decides emphasis, never facts.
+    const copy = buildAdCopyPlan(facts, { hasCompensationSignal: hasSalaryInfo });
+
     const basePlan = {
       archetype,
       platformFormat,
@@ -257,6 +268,8 @@ export const advertisementGenerationService = {
       qrDataUri: `data:image/png;base64,${qrResult.png.toString("base64")}`,
       backgroundImageDataUri,
       agencyLogoDataUri,
+      dna,
+      copy,
     };
 
     const acceptance = await runAcceptanceLoop(facts, basePlan, {
@@ -509,6 +522,16 @@ export const advertisementGenerationService = {
  * non-fatal — a logo that can't be fetched just means no logo on the
  * advertisement, not a broken generation.
  */
+function dataUriToBuffer(dataUri: string): Buffer | null {
+  const comma = dataUri.indexOf(",");
+  if (comma === -1) return null;
+  try {
+    return Buffer.from(dataUri.slice(comma + 1), "base64");
+  } catch {
+    return null;
+  }
+}
+
 /** Phone-camera-style fallback region for the QR gate: every archetype anchors its verification panel bottom-right. */
 async function cropBottomRightQuadrant(png: Buffer, widthPx: number, heightPx: number): Promise<Buffer> {
   const cropW = Math.round(widthPx * 0.45);

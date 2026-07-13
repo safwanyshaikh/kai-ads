@@ -205,6 +205,14 @@ describe("runAcceptanceLoop — closed-loop generation", () => {
     expect(qa.calls).toBe(0);
   });
 
+  it("the commercial launch threshold (95) rejects a score that passes the technical minimum (85)", async () => {
+    const qa = fakeQa([qaScore(90)]);
+    const outcome = await runAcceptanceLoop(bilfingerFacts, basePlan, realDeps({ visualQa: qa, passThreshold: 95 }));
+    expect(outcome.status).toBe("BLOCKED_VISUAL_QA");
+    expect(qa.calls).toBe(MAX_ACCEPTANCE_ITERATIONS);
+    expect(outcome.blockReason).toContain("below 95/100");
+  });
+
   it("a catastrophic defect blocks PASS even at a high overall score (score can never hide a broken output)", async () => {
     const catastrophic = { ...qaScore(95), catastrophicDefects: ["position text overlaps contact bar"] };
     const qa = fakeQa([catastrophic, catastrophic, catastrophic]);
