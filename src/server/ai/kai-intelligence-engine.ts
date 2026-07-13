@@ -113,6 +113,7 @@ async function reassembleFromRequiredInterfaces(
     interviewDate: emptyField,
     interviewTime: emptyField,
     interviewVenue: emptyField,
+    interviewEvents: [],
     contact: { value: null, confidence: "LOW" },
     originalSourceText: input.text ?? "(image input)",
     overallConfidence: "MEDIUM",

@@ -13,7 +13,7 @@ const baseInput = {
     { title: "Pipe Fitter", count: 5 },
   ],
   benefits: [{ label: "Free accommodation" }],
-  interview: { date: "1 Aug 2026", location: "Mumbai" },
+  interview: [{ date: "1 Aug 2026", location: "Mumbai" }],
   contact: { name: "Agency Desk", phone: "+91-9000000000" },
   footer: "Reg. No. RA-1234",
   agencyName: "Al Noor Overseas Recruitment",
@@ -74,7 +74,7 @@ describe("renderSectionComposition — deterministic text, no AI dependency", ()
   });
 
   it("omits the interview block entirely when no interview data is present (optional data disappears cleanly)", () => {
-    const svg = renderSectionComposition({ ...baseInput, interview: {} });
+    const svg = renderSectionComposition({ ...baseInput, interview: [] });
     expect(svg).not.toContain("Interview:");
   });
 
@@ -84,7 +84,7 @@ describe("renderSectionComposition — deterministic text, no AI dependency", ()
   });
 
   it("never renders literal 'N/A' or 'Not Available' placeholders", () => {
-    const svg = renderSectionComposition({ ...baseInput, employer: null, interview: {}, benefits: [] });
+    const svg = renderSectionComposition({ ...baseInput, employer: null, interview: [], benefits: [] });
     // Excludes the embedded-font <style> block: its base64 font data is
     // effectively random bytes and can coincidentally contain "n/a" as a
     // substring — this check is about recruiter-facing content, not font data.
@@ -195,5 +195,97 @@ describe("renderSectionComposition — deterministic text, no AI dependency", ()
     expect(shortBadgeSize).not.toBeNull();
     expect(tallBadgeSize).not.toBeNull();
     expect(tallBadgeSize! / tallFormat.heightPx).toBeCloseTo(shortBadgeSize! / shortFormat.heightPx, 3);
+  });
+
+  it("renders a single interview event in the original one-line format (backward-compatible visual output)", () => {
+    const svg = renderSectionComposition({ ...baseInput, interview: [{ date: "1 Aug 2026", location: "Mumbai" }] });
+    expect(svg).toContain("Interview: Mumbai — 1 Aug 2026");
+  });
+
+  it("renders two distinct interview events on separate lines, never concatenated into one ambiguous string (Decision 3 — the real Baroda/Mumbai case)", () => {
+    const svg = renderSectionComposition({
+      ...baseInput,
+      interview: [
+        { date: "14th & 15th July", location: "Baroda" },
+        { date: "18th July", location: "Mumbai" },
+      ],
+    });
+    expect(svg).toContain(">Interview<"); // bold header, no trailing colon/date for the multi-event case
+    expect(svg).toContain("Baroda — 14th &amp; 15th July");
+    expect(svg).toContain("Mumbai — 18th July");
+    // The two events must never be concatenated into a single string.
+    expect(svg).not.toContain("Baroda — 14th &amp; 15th July, Mumbai — 18th July");
+  });
+
+  describe("landscape composition (Decision 4 — dedicated two-column layout)", () => {
+    const landscapeFormat = getPlatformFormat("generic_landscape"); // 1600x900, 16:9
+    const landscapeInput = {
+      ...baseInput,
+      platformFormat: landscapeFormat,
+      interview: [
+        { date: "14th & 15th July", location: "Baroda" },
+        { date: "18th July", location: "Mumbai" },
+      ],
+    };
+
+    it("uses a genuinely different two-column composition, not a re-scaled single-column template", () => {
+      const landscapeSvg = renderSectionComposition(landscapeInput);
+      const portraitSvg = renderSectionComposition({
+        ...landscapeInput,
+        platformFormat: getPlatformFormat("generic_portrait"),
+      });
+      // The column divider line is unique to the landscape composition.
+      const dividerCount = (svg: string) => (svg.match(/<line x1="\d+" y1="\d+" x2="\d+" y2="\d+"/g) ?? []).length;
+      expect(dividerCount(landscapeSvg)).toBeGreaterThan(0);
+      expect(landscapeSvg).not.toBe(portraitSvg);
+    });
+
+    it("preserves every piece of required content — header, positions, benefits, both interview events, contact, badge", () => {
+      const svg = renderSectionComposition(landscapeInput);
+      expect(svg).toContain("Welders Needed — Gulf");
+      expect(svg).toContain("6G Welder (10)");
+      expect(svg).toContain("Pipe Fitter (5)");
+      expect(svg).toContain("Free accommodation");
+      expect(svg).toContain("Baroda — 14th &amp; 15th July");
+      expect(svg).toContain("Mumbai — 18th July");
+      expect(svg).toContain("+91-9000000000");
+      expect(svg).toContain("MEA REGISTERED");
+      expect(svg).toContain("VERIFY AGENCY");
+      expect(svg).toContain(baseInput.qrDataUri);
+    });
+
+    it("matches the exact platform dimensions", () => {
+      const svg = renderSectionComposition(landscapeInput);
+      expect(svg).toContain(`width="${landscapeFormat.widthPx}"`);
+      expect(svg).toContain(`height="${landscapeFormat.heightPx}"`);
+    });
+
+    it("does not clip the header even when a long, realistic header is combined with the two-column layout's narrower left column", () => {
+      const svg = renderSectionComposition({
+        ...landscapeInput,
+        header: "Hiring for Bilfinger Shutdown Project, Saudi Arabia",
+      });
+      expect(svg).toContain("Hiring for Bilfinger Shutdown Project, Saudi Arabia");
+    });
+
+    it("still shrinks the RA badge text to fit the full official RC number in landscape too", () => {
+      const svg = renderSectionComposition({
+        ...landscapeInput,
+        raLicenseId: "RC-B1487/MUM/PART/1000+/9986/2022",
+      });
+      expect(svg).toContain("RC-B1487/MUM/PART/1000+/9986/2022");
+    });
+
+    it("only applies the landscape composition to genuinely wide formats — square and portrait formats keep the single-column template", () => {
+      const squareSvg = renderSectionComposition({ ...baseInput, platformFormat: getPlatformFormat("generic_square") });
+      const portraitSvg = renderSectionComposition({ ...baseInput, platformFormat: getPlatformFormat("generic_portrait") });
+      // Neither should contain the landscape column-divider line.
+      const hasVerticalDivider = (svg: string, fmt: { widthPx: number; heightPx: number }) => {
+        const dividerX = Math.round(fmt.widthPx * 0.4);
+        return svg.includes(`x1="${dividerX}"`) && svg.includes(`x2="${dividerX}"`);
+      };
+      expect(hasVerticalDivider(squareSvg, getPlatformFormat("generic_square"))).toBe(false);
+      expect(hasVerticalDivider(portraitSvg, getPlatformFormat("generic_portrait"))).toBe(false);
+    });
   });
 });

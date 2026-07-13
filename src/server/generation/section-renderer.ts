@@ -2,6 +2,7 @@ import type { PlatformFormat } from "@/lib/platform-formats";
 import type { BadgeConfig } from "./badge-selection.service";
 import { buildFallbackBackgroundSvgFragment } from "./fallback-background";
 import { buildEmbeddedFontStyleBlock, KAI_SANS_FONT_FAMILY, KAI_SERIF_FONT_FAMILY } from "./embedded-fonts";
+import type { InterviewEvent } from "./interview-events";
 
 /**
  * Every fixed pixel constant below (padding, logo/badge size, line
@@ -15,6 +16,9 @@ import { buildEmbeddedFontStyleBlock, KAI_SANS_FONT_FAMILY, KAI_SERIF_FONT_FAMIL
  */
 const BASELINE_WIDTH_PX = 1080;
 const BASELINE_HEIGHT_PX = 1350;
+
+/** Decision 4: any format meaningfully wider than it is tall gets the dedicated two-column landscape composition below, not a re-scaled portrait template with unused horizontal space. */
+const LANDSCAPE_ASPECT_THRESHOLD = 1.3;
 
 interface RenderablePosition {
   title: string;
@@ -30,7 +34,8 @@ interface SectionRenderInput {
   employer?: string | null;
   positions: RenderablePosition[];
   benefits: { label: string; detail?: string }[];
-  interview: { date?: string; location?: string };
+  /** Decision 3: one or more interview events — see server/generation/interview-events.ts. */
+  interview: InterviewEvent[];
   contact: { name?: string; phone?: string; email?: string; whatsapp?: string };
   footer?: string | null;
   agencyName: string;
@@ -84,6 +89,15 @@ function fitFontSize(text: string, maxWidthPx: number, startFontSizePx: number, 
   return Math.max(minFontSizePx, Math.min(startFontSizePx, fitted));
 }
 
+/**
+ * Decision 3: one line per interview event — "City — Date" — never a
+ * single string concatenating multiple unrelated cities/dates. Falls
+ * back to whichever of date/location is present if only one is given.
+ */
+function formatInterviewLine(event: InterviewEvent): string {
+  return [event.location, event.date].filter(Boolean).join(" — ");
+}
+
 const BADGE_SIZE_PX: Record<BadgeConfig["size"], number> = {
   compact: 96,
   standard: 128,
@@ -103,9 +117,20 @@ const BADGE_SIZE_PX: Record<BadgeConfig["size"], number> = {
  * column, Visual gets a full-bleed background with a readability panel
  * behind the text block. Section-based editing works because each block
  * is rendered independently from the advertisement's own named sections.
+ *
+ * Decision 4: landscape formats (aspect ratio meaningfully wider than
+ * tall) use renderLandscapeComposition() instead — a re-scaled version
+ * of this single-column template left ~45% of a 1600x900 canvas
+ * permanently blank, since every constant scales with height/width but
+ * the template itself is a single narrow column regardless of how wide
+ * the canvas actually is.
  */
 export function renderSectionComposition(input: SectionRenderInput): string {
   const fmt = input.platformFormat;
+  if (fmt.widthPx / fmt.heightPx >= LANDSCAPE_ASPECT_THRESHOLD) {
+    return renderLandscapeComposition(input);
+  }
+
   const isNewspaper = input.style === "NEWSPAPER";
   const isVisual = input.style === "VISUAL";
 
@@ -194,10 +219,26 @@ export function renderSectionComposition(input: SectionRenderInput): string {
     .join("\n  ")}`
       : "";
 
+  // Decision 3: a single interview event keeps the original one-line
+  // "Interview: ..." format anchored at a fixed distance from the
+  // bottom. Two or more events render as their own block (mirroring
+  // Benefits above) — a bold "Interview" header plus one line per event
+  // — anchored so its LAST line lands exactly where the single-line case
+  // would have, so contact/footer below are never displaced.
+  const interviewEvents = input.interview;
+  const interviewExtraLines = Math.max(0, interviewEvents.length - 1);
   const interviewBlock =
-    input.interview.date || input.interview.location
-      ? `<text x="${padding}" y="${fmt.heightPx - px(220)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">Interview: ${escapeXml([input.interview.date, input.interview.location].filter(Boolean).join(", "))}</text>`
-      : "";
+    interviewEvents.length === 0
+      ? ""
+      : interviewEvents.length === 1
+        ? `<text x="${padding}" y="${fmt.heightPx - px(220)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">Interview: ${escapeXml(formatInterviewLine(interviewEvents[0]))}</text>`
+        : `<text x="${padding}" y="${fmt.heightPx - px(220) - px(interviewExtraLines * 26) - px(30)}" font-family="${fontFamily}" font-size="${fpx(20)}" font-weight="700" fill="${textColor}">Interview</text>
+  ${interviewEvents
+    .map(
+      (event, i) =>
+        `<text x="${padding}" y="${fmt.heightPx - px(220) - px((interviewExtraLines - i) * 26)}" font-family="${fontFamily}" font-size="${fpx(18)}" fill="${secondaryTextColor}">${escapeXml(formatInterviewLine(event))}</text>`,
+    )
+    .join("\n  ")}`;
 
   const contactBlock = contactLine
     ? `<text x="${padding}" y="${fmt.heightPx - px(180)}" font-family="${fontFamily}" font-size="${fpx(20)}" font-weight="600" fill="${textColor}">${escapeXml(contactLine)}</text>`
@@ -241,6 +282,135 @@ export function renderSectionComposition(input: SectionRenderInput): string {
   ${interviewBlock}
   ${contactBlock}
   <text x="${padding}" y="${fmt.heightPx - padding}" font-family="${fontFamily}" font-size="${fpx(16)}" fill="${secondaryTextColor}">${escapeXml(input.agencyName)}${input.footer ? " · " + escapeXml(input.footer) : ""}</text>
+  <rect x="${badgeX}" y="${badgeY}" width="${badgeSize}" height="${badgeSize}" rx="${badgeRx}" fill="#ffffff" stroke="${accentColor}" stroke-width="2" />
+  <image x="${badgeX + px(8)}" y="${badgeY + px(8)}" width="${badgeSize - px(16)}" height="${badgeSize - px(40)}" href="${input.qrDataUri}" />
+  <text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(20)}" font-family="${fontFamily}" font-size="${fpx(9)}" text-anchor="middle" fill="#111111">MEA REGISTERED</text>
+  ${raBlock}
+  <text x="${badgeX + badgeSize / 2}" y="${badgeY - px(8)}" font-family="${fontFamily}" font-size="${fpx(12)}" text-anchor="middle" fill="${textColor}">VERIFY AGENCY</text>
+</svg>`;
+}
+
+/**
+ * Decision 4: a dedicated two-column composition for landscape formats
+ * (currently generic_landscape, 1600x900 — but written generically off
+ * the aspect ratio, not a hardcoded format key, per platform-formats.ts's
+ * "support future platforms without rewriting the generation engine").
+ * Left column carries identity/title (logo, header, industry/country/
+ * employer, agency name + RC). Right column carries the requirement
+ * detail (positions, benefits, interview events, contact) — the content
+ * that actually varies in length and benefits from the extra vertical
+ * room a wide-but-short canvas gives it. The trust badge stays anchored
+ * to the canvas's true bottom-right corner, as in every other format.
+ */
+function renderLandscapeComposition(input: SectionRenderInput): string {
+  const fmt = input.platformFormat;
+  const isNewspaper = input.style === "NEWSPAPER";
+  const isVisual = input.style === "VISUAL";
+
+  const layoutScale = fmt.heightPx / BASELINE_HEIGHT_PX;
+  const fontScale = Math.min(layoutScale, fmt.widthPx / (BASELINE_WIDTH_PX * 1.4));
+  const px = (baseline: number) => Math.round(baseline * layoutScale);
+  const fpx = (baseline: number) => Math.round(baseline * fontScale);
+
+  const padding = px(48);
+  const leftColumnWidth = Math.round(fmt.widthPx * 0.4);
+  const rightColumnX = leftColumnWidth + padding;
+  const rightColumnWidth = fmt.widthPx - rightColumnX - padding;
+
+  const fontFamily = isNewspaper ? KAI_SERIF_FONT_FAMILY : KAI_SANS_FONT_FAMILY;
+  const accentColor = input.accentColor ?? "#1a1a1a";
+  const textColor = isVisual ? "#ffffff" : "#111111";
+  const secondaryTextColor = isVisual ? "#e5e5e5" : "#444444";
+
+  const background = input.backgroundImageDataUri
+    ? `<image x="0" y="0" width="${fmt.widthPx}" height="${fmt.heightPx}" href="${input.backgroundImageDataUri}" preserveAspectRatio="xMidYMid slice" />
+  <rect x="0" y="0" width="${fmt.widthPx}" height="${fmt.heightPx}" fill="#000000" fill-opacity="0.45" />`
+    : isVisual
+      ? buildFallbackBackgroundSvgFragment({ widthPx: fmt.widthPx, heightPx: fmt.heightPx, industry: input.industry })
+      : `<rect width="${fmt.widthPx}" height="${fmt.heightPx}" fill="#ffffff" />`;
+
+  const divider = `<line x1="${leftColumnWidth}" y1="${padding}" x2="${leftColumnWidth}" y2="${fmt.heightPx - padding}" stroke="${isVisual ? "#ffffff" : accentColor}" stroke-opacity="${isVisual ? 0.4 : 1}" stroke-width="2" />`;
+
+  // --- Left column: identity/title ---
+  const logoSize = px(56);
+  const logoBlock = input.agencyLogoDataUri
+    ? `<image x="${padding}" y="${padding}" width="${logoSize}" height="${logoSize}" href="${input.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`
+    : "";
+  const headerY = input.agencyLogoDataUri ? padding + logoSize + fpx(44) : padding + fpx(44);
+  const headerAvailableWidth = leftColumnWidth - padding * 2;
+  const headerFontSize = fitFontSize(input.header, headerAvailableWidth, fpx(36), fpx(20));
+
+  const leftColumn = `
+  ${logoBlock}
+  <text x="${padding}" y="${headerY}" font-family="${fontFamily}" font-size="${headerFontSize}" font-weight="700" fill="${textColor}">${escapeXml(input.header)}</text>
+  <text x="${padding}" y="${headerY + fpx(34)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">${escapeXml(input.industry)} · ${escapeXml(input.country)}</text>
+  ${input.employer ? `<text x="${padding}" y="${headerY + fpx(64)}" font-family="${fontFamily}" font-size="${fpx(20)}" fill="${secondaryTextColor}">${escapeXml(input.employer)}</text>` : ""}
+  <text x="${padding}" y="${fmt.heightPx - padding}" font-family="${fontFamily}" font-size="${fpx(15)}" fill="${secondaryTextColor}">${escapeXml(input.agencyName)}${input.footer ? " · " + escapeXml(input.footer) : ""}</text>`;
+
+  // --- Right column: requirement detail, stacked with a running cursor ---
+  let cursorY = padding + fpx(28);
+  const rightLines: string[] = [];
+
+  const pushLine = (text: string, fontSize: number, fill: string, weight?: string, gapAfter = 26) => {
+    rightLines.push(
+      `<text x="${rightColumnX}" y="${cursorY}" font-family="${fontFamily}" font-size="${fontSize}"${weight ? ` font-weight="${weight}"` : ""} fill="${fill}">${text}</text>`,
+    );
+    cursorY += px(gapAfter);
+  };
+
+  if (input.positions.length > 0) {
+    pushLine("Positions", fpx(24), accentColor === "#1a1a1a" ? textColor : accentColor, "700", 34);
+    for (const p of input.positions) {
+      const count = p.count ? ` (${p.count})` : "";
+      const exp = p.experience ? ` — ${p.experience}` : "";
+      const fontSize = fitFontSize(`${p.title}${count}${exp}`, rightColumnWidth, fpx(18), fpx(13));
+      pushLine(escapeXml(`${p.title}${count}${exp}`), fontSize, isVisual ? "#ffffff" : "#222222", undefined, 28);
+    }
+    cursorY += px(10);
+  }
+
+  if (input.benefits.length > 0) {
+    pushLine("Benefits", fpx(20), textColor, "700", 30);
+    for (const b of input.benefits) {
+      const line = b.detail ? `${b.label} — ${b.detail}` : b.label;
+      pushLine(escapeXml(line), fpx(16), secondaryTextColor, undefined, 26);
+    }
+    cursorY += px(10);
+  }
+
+  if (input.interview.length > 0) {
+    pushLine(input.interview.length > 1 ? "Interview" : "Interview:", fpx(18), textColor, "700", 28);
+    for (const event of input.interview) {
+      pushLine(escapeXml(formatInterviewLine(event)), fpx(16), secondaryTextColor, undefined, 26);
+    }
+    cursorY += px(6);
+  }
+
+  const contactLine = [input.contact.name, input.contact.phone, input.contact.whatsapp, input.contact.email]
+    .filter(Boolean)
+    .join("  ·  ");
+  if (contactLine) {
+    pushLine(escapeXml(contactLine), fpx(18), textColor, "600", 0);
+  }
+
+  // --- Badge: same bottom-right anchor used in every other format ---
+  const badgeSize = px(BADGE_SIZE_PX[input.badge.size]);
+  const badgeX = fmt.widthPx - padding - badgeSize;
+  const badgeY = fmt.heightPx - padding - badgeSize;
+  const badgeRx =
+    input.badge.shape === "circular" ? badgeSize / 2 : input.badge.shape === "rounded_square" ? px(16) : px(8);
+  const raText = input.raLicenseId ? `RA ${input.raLicenseId}` : "";
+  const raFontSize = raText ? fitFontSize(raText, badgeSize - px(16), fpx(8), fpx(5)) : fpx(8);
+  const raBlock = input.raLicenseId
+    ? `<text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(8)}" font-family="${fontFamily}" font-size="${raFontSize}" text-anchor="middle" fill="#333333">${escapeXml(raText)}</text>`
+    : "";
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt.widthPx}" height="${fmt.heightPx}" viewBox="0 0 ${fmt.widthPx} ${fmt.heightPx}">
+  ${buildEmbeddedFontStyleBlock()}
+  ${background}
+  ${divider}
+  ${leftColumn}
+  ${rightLines.join("\n  ")}
   <rect x="${badgeX}" y="${badgeY}" width="${badgeSize}" height="${badgeSize}" rx="${badgeRx}" fill="#ffffff" stroke="${accentColor}" stroke-width="2" />
   <image x="${badgeX + px(8)}" y="${badgeY + px(8)}" width="${badgeSize - px(16)}" height="${badgeSize - px(40)}" href="${input.qrDataUri}" />
   <text x="${badgeX + badgeSize / 2}" y="${badgeY + badgeSize - px(20)}" font-family="${fontFamily}" font-size="${fpx(9)}" text-anchor="middle" fill="#111111">MEA REGISTERED</text>

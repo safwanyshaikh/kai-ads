@@ -20,12 +20,28 @@ const benefitSchema = z.object({
   detail: z.string().trim().max(300).optional(),
 });
 
+const interviewEventSchema = z.object({
+  date: z.string().trim().max(60).optional(),
+  location: z.string().trim().max(200).optional(),
+  mode: z.enum(["in_person", "video", "phone"]).optional(),
+});
+
 const interviewSchema = z.object({
   date: z.string().trim().max(60).optional(),
   location: z.string().trim().max(200).optional(),
   mode: z.enum(["in_person", "video", "phone"]).optional(),
   contactPerson: z.string().trim().max(120).optional(),
   notes: z.string().trim().max(500).optional(),
+  /**
+   * Decision 3: multiple interview city/date pairs (e.g. "Baroda on
+   * 14th & 15th July, Mumbai on 18th July"). Additive — the singular
+   * date/location/mode fields above are unchanged and still populated
+   * for the common single-event case; this is populated only when the
+   * requirement genuinely has 2+ distinct interview events. Stored in
+   * the same schemaless `interview` Json column (see
+   * server/generation/interview-events.ts), so no migration is needed.
+   */
+  events: z.array(interviewEventSchema).max(10).optional(),
 });
 
 const contactSchema = z.object({

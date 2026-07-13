@@ -8,12 +8,15 @@ import { costTrackingService } from "@/server/services/cost-tracking.service";
 import { generationQuotaService } from "@/server/services/generation-quota.service";
 import { classifyDensity } from "@/server/generation/density-classification.service";
 import { recommendAdvertisementType } from "@/server/generation/advertisement-type-recommendation.service";
+import { detectCompensationSignal } from "@/server/generation/compensation-signal.service";
 import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
 import { renderSectionComposition } from "@/server/generation/section-renderer";
+import { normalizeInterviewEvents } from "@/server/generation/interview-events";
 import { rasterizeSvg } from "@/server/generation/image-export.service";
 import { runTrustCheck } from "@/server/generation/trust-validation.service";
 import { getThemeAccentColor, isValidThemeKey } from "@/server/generation/theme-recommendation.service";
+import { deriveCompactRegistrationNumber } from "@/lib/registration-number";
 import { getPlatformFormat, isValidPlatformFormatKey } from "@/lib/platform-formats";
 import { getImageGenerationProvider, ImageProviderNotImplementedError } from "@/server/ai/image";
 import { AUDIT_ACTIONS } from "@/lib/constants";
@@ -54,7 +57,10 @@ export const advertisementGenerationService = {
 
     const positions = advertisement.positions as unknown as { title: string; count?: number; experience?: string }[];
     const benefits = advertisement.benefits as unknown as { label: string; detail?: string }[];
-    const interview = advertisement.interview as unknown as { date?: string; location?: string };
+    // Decision 3: interview is a schemaless Json column — normalizeInterviewEvents
+    // reads either the legacy single {date, location} shape or the current
+    // {events: [...]} shape, so existing advertisements need no migration.
+    const interview = normalizeInterviewEvents(advertisement.interview);
     const contact = advertisement.contact as unknown as {
       name?: string;
       phone?: string;
@@ -68,7 +74,10 @@ export const advertisementGenerationService = {
       input.style ??
       recommendAdvertisementType({
         density,
-        hasSalaryInfo: false,
+        // Decision 2: computed from the advertisement's own grounded
+        // benefits content — was previously hardcoded false regardless
+        // of whether compensation info was actually present.
+        hasSalaryInfo: detectCompensationSignal(benefits),
         isUrgent: Boolean(input.isUrgent),
         hasEmployerLogo: Boolean(agency.logoUrl),
       }).style;
@@ -184,6 +193,12 @@ export const advertisementGenerationService = {
       throw new AppError(`Unknown theme "${input.theme}".`, 400);
     }
     const accentColor = getThemeAccentColor(input.theme);
+    // Decision 1: the badge is a small, fixed-size "constrained visual
+    // area" — it shows the compact core RC number, never the full
+    // official string. agency.registrationNumber itself is untouched
+    // (still the full value, the source of truth for anywhere it's
+    // legally/officially required, e.g. the footer text a recruiter sets).
+    const compactRaLicenseId = deriveCompactRegistrationNumber(agency.registrationNumber);
 
     const svg = renderSectionComposition({
       platformFormat,
@@ -197,7 +212,7 @@ export const advertisementGenerationService = {
       contact,
       footer: advertisement.footer,
       agencyName: agency.name,
-      raLicenseId: agency.registrationNumber,
+      raLicenseId: compactRaLicenseId,
       qrDataUri: `data:image/png;base64,${qrResult.png.toString("base64")}`,
       badge,
       style,

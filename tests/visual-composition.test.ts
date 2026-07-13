@@ -12,7 +12,7 @@ const baseInput = {
   employer: null,
   positions: [{ title: "Pipe Fitter", count: 8 }],
   benefits: [],
-  interview: {},
+  interview: [],
   contact: { phone: "+966-500000000" },
   footer: "RA-1234",
   agencyName: "Al Noor Overseas Recruitment",

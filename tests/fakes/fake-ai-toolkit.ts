@@ -58,6 +58,7 @@ export function buildFakeExtractionResult(
     interviewDate: { value: null, confidence: "LOW" },
     interviewTime: { value: null, confidence: "LOW" },
     interviewVenue: { value: null, confidence: "LOW" },
+    interviewEvents: [],
     contact: { value: null, confidence: "LOW" },
     originalSourceText: "Need 10 6G welders and 5 pipe fitters for a UAE construction project.",
     overallConfidence: "MEDIUM",

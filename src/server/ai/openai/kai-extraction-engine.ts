@@ -157,8 +157,23 @@ export function enforceSourceGrounding(result: ExtractionResult, sourceText: str
     benefits = grounded.length > 0 ? { ...benefits, value: grounded } : { value: null, confidence: "LOW" };
   }
 
-  if (employer === result.employer && benefits === result.benefits) return result;
-  return { ...result, employer, benefits };
+  // Decision 3: interviewEvents gets the same treatment — a fabricated
+  // city/venue for a real recruitment posting is exactly the kind of
+  // plausible-sounding, ungrounded detail this guard exists to catch.
+  const interviewEvents = result.interviewEvents.filter(
+    (event) => !event.venue || isGrounded(event.venue),
+  );
+  if (interviewEvents.length !== result.interviewEvents.length) {
+    log.warn(
+      { dropped: result.interviewEvents.filter((event) => event.venue && !isGrounded(event.venue)) },
+      "Dropping ungrounded interview event(s) — venue not found in source text",
+    );
+  }
+
+  if (employer === result.employer && benefits === result.benefits && interviewEvents.length === result.interviewEvents.length) {
+    return result;
+  }
+  return { ...result, employer, benefits, interviewEvents };
 }
 
 function toOutcome(

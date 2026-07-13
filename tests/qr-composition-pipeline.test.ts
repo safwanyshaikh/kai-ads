@@ -29,7 +29,7 @@ describe("QR remains decodable after full composition + rasterization (real pipe
     employer: null,
     positions: [{ title: "Welder", count: 5 }],
     benefits: [{ label: "Free accommodation" }],
-    interview: { date: "1 Aug 2026" },
+    interview: [{ date: "1 Aug 2026" }],
     contact: { phone: "+971-500000000" },
     footer: "RA-9999",
     agencyName: "Test Agency",

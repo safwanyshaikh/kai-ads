@@ -70,6 +70,9 @@ Good examples:
 - 6G Welder: "Perform high-quality pipe welding for oil and gas projects."
 - Industrial Electrician: "Install and maintain industrial electrical systems and equipment."
 
+## Interview Intelligence
+Overseas recruitment often interviews in more than one city on different dates (e.g. "Baroda on 14th & 15th July, Mumbai on 18th July"). If the source describes exactly one interview date/venue, populate interviewDate/interviewVenue/interviewMode as usual and leave interviewEvents empty. If the source describes two or more distinct interview events (each with its own city/venue and date), populate interviewEvents with one entry per event instead — never concatenate multiple cities and dates into a single interviewDate or interviewVenue string. Each interviewEvents entry's date and venue must correspond to each other exactly as stated; never mix a date from one city with a venue from another.
+
 ## Confidence
 Every extracted field has a confidence level: HIGH (explicitly and unambiguously stated), MEDIUM (reasonably inferred from context), or LOW (a guess, or information that is genuinely ambiguous in the source). A field can have LOW confidence and still have a non-null value — confidence describes how sure you are, not whether you found something. Only use null when the information is genuinely absent from the source.
 

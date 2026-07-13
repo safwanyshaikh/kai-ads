@@ -54,6 +54,25 @@ export const extractedPositionSchema = z.object({
 });
 export type ExtractedPosition = z.infer<typeof extractedPositionSchema>;
 
+/**
+ * Decision 3 (Sprint 006 advertisement-foundation gap-closure): overseas
+ * recruitment commonly interviews in more than one city on different
+ * dates (e.g. "Baroda on 14th & 15th July, Mumbai on 18th July") — a
+ * single interviewDate/interviewVenue pair cannot represent that without
+ * concatenating unrelated cities and dates into one ambiguous string.
+ * interviewEvents is additive: the singular interviewDate/interviewVenue/
+ * interviewMode fields above are kept unchanged for the common
+ * single-event case and for backward compatibility with every existing
+ * caller; this array is populated only when the source genuinely
+ * describes multiple distinct interview events.
+ */
+export const interviewEventSchema = z.object({
+  date: z.string().nullable(),
+  venue: z.string().nullable(),
+  mode: z.enum(["in_person", "video", "phone"]).nullable(),
+});
+export type InterviewEventExtraction = z.infer<typeof interviewEventSchema>;
+
 export const extractionResultSchema = z.object({
   country: confidentField(z.string()),
   industry: confidentField(z.string()),
@@ -65,6 +84,8 @@ export const extractionResultSchema = z.object({
   interviewDate: confidentField(z.string()),
   interviewTime: confidentField(z.string()),
   interviewVenue: confidentField(z.string()),
+  /** Populated only when the source describes 2+ distinct interview events — see interviewEventSchema above. */
+  interviewEvents: z.array(interviewEventSchema),
   /** Never invent — only populated when contact details are literally present in the source text. */
   contact: confidentField(contactValueSchema),
   originalSourceText: z.string(),
@@ -88,6 +109,7 @@ export function emptyExtractionResult(sourceText: string): ExtractionResult {
     interviewDate: empty,
     interviewTime: empty,
     interviewVenue: empty,
+    interviewEvents: [],
     contact: { value: null, confidence: "LOW" },
     originalSourceText: sourceText,
     overallConfidence: "LOW",
