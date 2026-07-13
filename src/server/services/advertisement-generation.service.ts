@@ -11,7 +11,12 @@ import { recommendAdvertisementType } from "@/server/generation/advertisement-ty
 import { detectCompensationSignal } from "@/server/generation/compensation-signal.service";
 import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
-import { renderSectionComposition } from "@/server/generation/section-renderer";
+import {
+  archetypeUsesGeneratedImagery,
+  buildImageBrief,
+  composeAdvertisement,
+  selectArchetype,
+} from "@/server/generation/archetypes";
 import { normalizeInterviewEvents } from "@/server/generation/interview-events";
 import { rasterizeSvg } from "@/server/generation/image-export.service";
 import { runTrustCheck } from "@/server/generation/trust-validation.service";
@@ -95,15 +100,30 @@ export const advertisementGenerationService = {
       );
     }
 
+    // Creative Brain: archetype decision (presentation-layer only — the
+    // persisted style enum is unchanged, no migration).
+    const archetype = selectArchetype({ style, density });
+
     let backgroundImageDataUri: string | null = null;
     let usedAiBackground = false;
     const imageStartedAt = Date.now();
 
-    if (style === "VISUAL") {
+    if (archetypeUsesGeneratedImagery(archetype)) {
       const provider = getImageGenerationProvider();
       try {
         const { output, usage } = await provider.generate({
-          prompt: buildBackgroundPrompt(advertisement.industry, advertisement.country),
+          prompt: buildImageBrief({
+            header: advertisement.header,
+            industry: advertisement.industry,
+            country: advertisement.country,
+            employer: advertisement.employer,
+            positions,
+            benefits,
+            interview,
+            contact,
+            footer: advertisement.footer,
+            agencyName: agency.name,
+          }),
           widthPx: platformFormat.widthPx,
           heightPx: platformFormat.heightPx,
           quality: "medium",
@@ -200,25 +220,32 @@ export const advertisementGenerationService = {
     // legally/officially required, e.g. the footer text a recruiter sets).
     const compactRaLicenseId = deriveCompactRegistrationNumber(agency.registrationNumber);
 
-    const svg = renderSectionComposition({
-      platformFormat,
-      header: advertisement.header,
-      industry: advertisement.industry,
-      country: advertisement.country,
-      employer: advertisement.employer,
-      positions,
-      benefits,
-      interview,
-      contact,
-      footer: advertisement.footer,
-      agencyName: agency.name,
-      raLicenseId: compactRaLicenseId,
-      qrDataUri: `data:image/png;base64,${qrResult.png.toString("base64")}`,
-      badge,
-      style,
-      backgroundImageDataUri,
-      agencyLogoDataUri,
-      accentColor,
+    // Two-Brain composition: facts (Truth Brain — every value grounded in
+    // the extracted Advertisement record) are handed to the archetype's
+    // composition engine chosen by the Creative Brain above.
+    const svg = composeAdvertisement({
+      facts: {
+        header: advertisement.header,
+        industry: advertisement.industry,
+        country: advertisement.country,
+        employer: advertisement.employer,
+        positions,
+        benefits,
+        interview,
+        contact,
+        footer: advertisement.footer,
+        agencyName: agency.name,
+        raLicenseId: compactRaLicenseId,
+        fullRegistrationNumber: agency.registrationNumber,
+      },
+      plan: {
+        archetype,
+        platformFormat,
+        accentColor,
+        qrDataUri: `data:image/png;base64,${qrResult.png.toString("base64")}`,
+        backgroundImageDataUri,
+        agencyLogoDataUri,
+      },
     });
 
     const pngBuffer = await rasterizeSvg(svg, platformFormat.widthPx, platformFormat.heightPx);
@@ -433,15 +460,4 @@ async function fetchImageAsDataUri(url: string | null | undefined): Promise<stri
   } catch {
     return null;
   }
-}
-
-/**
- * Visual Advertisement Rules: background relevant to industry/country/
- * project type/trade — never generic corporate imagery, never an
- * employer logo or branding (the model is explicitly told not to invent
- * any). No text is requested — exact recruitment text is always
- * deterministic composition (ADR-006), never image-model output.
- */
-function buildBackgroundPrompt(industry: string, country: string): string {
-  return `A professional, realistic photograph representing the ${industry} industry in ${country}, showing relevant industrial or workplace environment and context. No people's faces in close-up, no text, no logos, no watermarks, no signage, no visible brand names. Suitable as a background image for a recruitment advertisement.`;
 }
