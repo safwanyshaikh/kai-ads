@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "finalScore": 85,
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 85,
+        "commercialQualityScore": 85,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "Flat visual hierarchy with minimal emphasis on location and job role",
+          "Minimal use of visual elements makes the ad less attention-grabbing",
+          "Interview dates text alignment appears slightly inconsistent",
+          "Contact details and QR code integration could be better balanced for prominence"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Enhance the prominence of the job title and country to better grab immediate attention."
+          },
+          {
+            "type": "OTHER",
+            "note": "Consider improving the balance between the QR code, contact details, and interview dates for better visual harmony and CTA prominence."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

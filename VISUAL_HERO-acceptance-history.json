@@ -1,0 +1,52 @@
+{
+  "status": "PASS",
+  "finalScore": 87,
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 87,
+        "canvasUtilizationScore": 88,
+        "ctaScore": 90,
+        "trustScore": 85,
+        "defects": [
+          "Text overlaid on complex background reduces readability slightly, especially in the middle lists",
+          "The 'Basic salary' and 'Daily overtime' box uses a border that blends somewhat into the background",
+          "The interview dates are listed but the spacing between the dates and the header is tight, making it feel slightly cluttered"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing around interview dates for clearer visual separation"
+          },
+          {
+            "type": "OTHER",
+            "note": "Use a slightly more opaque or contrasting background behind the central lists and highlighted info box to enhance text readability"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

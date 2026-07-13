@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-07-13T10:30:34.103Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "c11104673c4de8bd7ebc612061d2ec0e39172177",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "advertisementId": "ad-bilfinger-1783938581719",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.example.com/v/av-al-yousuf-acceptance?a=ad-bilfinger-1783938581719",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "PASS",
+      "finalScore": 88,
+      "iterations": 1,
+      "blockReason": null,
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "PASS",
+      "finalScore": 87,
+      "iterations": 1,
+      "blockReason": null,
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "PASS",
+      "finalScore": 88,
+      "iterations": 2,
+      "blockReason": null,
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "PASS",
+      "finalScore": 85,
+      "iterations": 1,
+      "blockReason": null,
+      "usedRealAiImage": false
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "status": "PASS",
+  "finalScore": 88,
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 82,
+        "commercialQualityScore": 80,
+        "hierarchyScore": 80,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 80,
+        "trustScore": 90,
+        "defects": [
+          "NO IMAGERY OR VISUAL ELEMENTS TO CATCH ATTENTION IN HIGH_DENSITY FORMAT",
+          "TEXT HEADING AND COUNTRY INFO LACK STRONG VISUAL EMPHASIS",
+          "CONTACT CTA AND QR CODE ARE TOO SMALL RELATIVE TO CANVAS",
+          "LAYOUT FEELS GENERIC AND LACKS DISTINCTIVE BRAND ELEMENTS",
+          "WIDE DEAD SPACE ABOVE THE INTERVIEW DATES SHOULD BE BETTER UTILIZED"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Add relevant industry-related imagery or visual elements to enhance attention and commercial appeal."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the job title and location stand out more prominently for immediate clarity."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Adjust spacing to better utilize empty areas, especially above the interview dates section."
+          },
+          {
+            "type": "OTHER",
+            "note": "Enlarge contact phone, email, and QR code for better visibility and CTA prominence."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 87,
+        "hierarchyScore": 89,
+        "readabilityScore": 90,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 86,
+        "ctaScore": 89,
+        "trustScore": 90,
+        "defects": [
+          "The advertisement uses a plain background with no imagery to enhance visual appeal or context about the job or location, which reduces attention-stopping power.",
+          "The text layout is dense but well structured; however, some sections could benefit from more visual separation to improve scan-ability.",
+          "Interview dates are presented in small, separate boxes that do not attract enough attention compared to other textual elements.",
+          "The QR code is integrated in the bottom bar but appears slightly small, potentially diminishing ease of use on mobile screens."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "REGENERATE_IMAGE",
+            "note": "Add relevant and professional imagery or background to improve attention and appeal while maintaining clarity."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing between interview date boxes and use a more prominent style to make them stand out."
+          },
+          {
+            "type": "OTHER",
+            "note": "Increase size and prominence of QR code for better usability and verification emphasis."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    }
+  ]
+}
