@@ -35,6 +35,15 @@ export const visualQaResultSchema = z.object({
   ctaScore: score,
   trustScore: score,
   defects: z.array(z.string()),
+  /**
+   * Catastrophic defects — a NON-EMPTY list here prevents PASS regardless
+   * of overallScore (enforced in code by the acceptance loop, not by the
+   * model's verdict): unreadable/clipped/overlapping content, apparent
+   * fabricated branding or signage inside imagery, generated gibberish
+   * text damaging the advertisement, severe canvas misuse, or missing
+   * agency/verification identity.
+   */
+  catastrophicDefects: z.array(z.string()),
   requiredCorrections: z.array(
     z.object({
       type: visualQaCorrectionTypeSchema,

@@ -70,6 +70,7 @@ function qaScore(overallScore: number, corrections: VisualQaResult["requiredCorr
     ctaScore: overallScore,
     trustScore: overallScore,
     defects: overallScore >= VISUAL_QA_PASS_THRESHOLD ? [] : ["synthetic defect"],
+    catastrophicDefects: [],
     requiredCorrections: corrections,
     verdict: overallScore >= VISUAL_QA_PASS_THRESHOLD ? "PASS" : "REGENERATE",
   };
@@ -202,6 +203,14 @@ describe("runAcceptanceLoop — closed-loop generation", () => {
     expect(outcome.status).toBe("BLOCKED_DETERMINISTIC");
     expect(outcome.blockReason).toContain("QR verification");
     expect(qa.calls).toBe(0);
+  });
+
+  it("a catastrophic defect blocks PASS even at a high overall score (score can never hide a broken output)", async () => {
+    const catastrophic = { ...qaScore(95), catastrophicDefects: ["position text overlaps contact bar"] };
+    const qa = fakeQa([catastrophic, catastrophic, catastrophic]);
+    const outcome = await runAcceptanceLoop(bilfingerFacts, basePlan, realDeps({ visualQa: qa }));
+    expect(outcome.status).toBe("BLOCKED_VISUAL_QA");
+    expect(qa.calls).toBe(MAX_ACCEPTANCE_ITERATIONS);
   });
 
   it("returns PASS_DETERMINISTIC_ONLY (not PASS) when the Visual QA Brain is not configured", async () => {

@@ -1,0 +1,85 @@
+name: Bilfinger Real-API Acceptance Run
+
+# Real OpenAI end-to-end acceptance (extraction -> image generation ->
+# composition -> QR -> deterministic gates -> vision QA loop) using the
+# exact Bilfinger source. Manually triggered, same pattern as the Phase 5
+# verification workflow. The OPENAI_API_KEY secret is passed only as an
+# env var to the run step and is never printed.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/kai-ads-verify-state-upnt70
+    paths:
+      - ".github/workflows/acceptance-bilfinger.yml"
+      - "scripts/acceptance/**"
+
+permissions:
+  contents: write # push of the run's artifacts to a disposable acceptance-artifacts-* branch
+
+jobs:
+  acceptance:
+    name: Real-API Bilfinger acceptance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fail fast if the OpenAI secret is unavailable (without printing it)
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ]; then
+            echo "OPENAI_API_KEY secret is NOT available to this workflow — cannot run the real-API acceptance."
+            exit 1
+          fi
+          echo "OPENAI_API_KEY secret: PRESENT (value not shown)"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run real-API acceptance
+        run: npx tsx scripts/acceptance/bilfinger-acceptance.ts
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          KAI_TEXT_MODEL: gpt-4.1-mini
+          KAI_VISION_MODEL: gpt-4.1-mini
+          KAI_IMAGE_MODEL: gpt-image-1
+          KAI_PUBLIC_DOMAIN: ${{ vars.KAI_PUBLIC_DOMAIN || 'https://kai-ads.example.com' }}
+          # Dummy values satisfying env validation only — the acceptance
+          # script never touches the database, auth, email, or storage.
+          NODE_ENV: development
+          DATABASE_URL: postgresql://user:password@localhost:5432/kai_ads_unused
+          BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef-ci-only
+          BETTER_AUTH_URL: http://localhost:3000
+          EMAIL_PROVIDER: none
+          STORAGE_PROVIDER: none
+
+      - name: Upload acceptance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kai-bilfinger-acceptance-${{ github.run_id }}
+          path: scripts/acceptance/artifacts/
+          retention-days: 30
+
+      - name: Publish artifacts to a disposable inspection branch
+        if: always()
+        run: |
+          set -e
+          cd scripts/acceptance/artifacts
+          git init -b "acceptance-artifacts-${GITHUB_RUN_ID}"
+          git config user.email "actions@github.com"
+          git config user.name "github-actions"
+          git add -A
+          git commit -m "Bilfinger real-API acceptance artifacts (run ${GITHUB_RUN_ID})"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/acceptance-artifacts-${GITHUB_RUN_ID}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

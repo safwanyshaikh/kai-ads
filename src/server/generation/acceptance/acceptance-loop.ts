@@ -162,8 +162,11 @@ export async function runAcceptanceLoop(
     record.visualQa = qa;
     lastScore = qa.overallScore;
 
-    // The threshold decision is code, not the model's verdict field.
-    if (qa.overallScore >= VISUAL_QA_PASS_THRESHOLD) {
+    // The threshold decision is code, not the model's verdict field —
+    // and a non-empty catastrophic-defect list blocks PASS regardless of
+    // how high the numeric score is (a score must never hide a clipped,
+    // overlapping, or fabricated-branding output).
+    if (qa.overallScore >= VISUAL_QA_PASS_THRESHOLD && qa.catastrophicDefects.length === 0) {
       return { status: "PASS", finalSvg, finalPng, finalScore: qa.overallScore, iterations };
     }
 
