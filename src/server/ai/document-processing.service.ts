@@ -1,4 +1,3 @@
-import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import { UnsupportedDocumentError } from "./openai/errors";
 import { createLogger } from "@/lib/logger";
@@ -177,7 +176,17 @@ export async function processDocument(file: {
   }
 }
 
+/**
+ * Dynamically imported so pdf-parse (and its pdfjs-dist / @napi-rs/canvas
+ * dependency chain) is only loaded into the function when a PDF is
+ * actually being processed — see FIX-009: a static top-level import here
+ * pulled that whole chain into every caller of this module, including
+ * Paste Requirement (plain text, no file at all), crashing
+ * POST /api/advertisement-drafts in production because @napi-rs/canvas's
+ * native binary isn't resolvable in Vercel's serverless function bundle.
+ */
 async function extractPdfText(data: Buffer): Promise<string> {
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data });
   try {
     const result = await parser.getText();
