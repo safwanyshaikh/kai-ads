@@ -1,0 +1,143 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 90,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: Text on image partially competing with background due to industrial backdrop but still mostly readable; The agency logo at top-left is quite small, reducing brand identity impact; The email text inside the yellow shape could have stronger contrast for better clarity; Canvas bottom area slightly underutilized with some dead space below the agency details and QR code.; Some text in the body could be spaced slightly better for enhanced clarity; The lower yellow text on green background could benefit from slightly higher contrast",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 85,
+        "defects": [
+          "Text on image partially competing with background due to industrial backdrop but still mostly readable",
+          "The agency logo at top-left is quite small, reducing brand identity impact",
+          "The email text inside the yellow shape could have stronger contrast for better clarity"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Increase contrast between the email text and its yellow background to improve readability."
+          },
+          {
+            "type": "OTHER",
+            "note": "Consider increasing the size of the agency logo slightly for improved brand visibility without overpowering the top."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "scrimOpacity": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 92,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Canvas bottom area slightly underutilized with some dead space below the agency details and QR code."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Improve the bottom spacing to reduce the slight dead zone below the agency details and QR code, to fully utilize the canvas."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "scrimOpacity": 1.15,
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 95,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Some text in the body could be spaced slightly better for enhanced clarity",
+          "The lower yellow text on green background could benefit from slightly higher contrast"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Improve vertical spacing around the job positions list to reduce slight crowding."
+          },
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Increase contrast of the yellow text on green background for better readability, especially in the 'All applicants must have experience...' line."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

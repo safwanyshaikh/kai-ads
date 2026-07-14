@@ -1,0 +1,152 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 90,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: The role and country emphasis could be stronger for immediate attention on smaller mobile displays; The blue banner for interview dates slightly reduces headline clarity due to the DOM separation; The QR code looks somewhat separate, integration could be improved visually; The email contact button's color contrast with dark background is low, limiting readability.; Text in the open positions list has alternating row backgrounds that are very subtle and may be hard to distinguish on mobile.; The small green text for numbering in the open positions is of low contrast and may be less legible.; Imagery is low impact and not candidate attracting, though acceptable for structured professional archetype",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 70,
+        "canvasUtilizationScore": 88,
+        "ctaScore": 92,
+        "trustScore": 95,
+        "defects": [
+          "The role and country emphasis could be stronger for immediate attention on smaller mobile displays",
+          "The blue banner for interview dates slightly reduces headline clarity due to the DOM separation",
+          "The QR code looks somewhat separate, integration could be improved visually"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make 'BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA' visually more dominant, especially on mobile screens to pass the candidate-first attention test fully."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce the separation between the main headline and the blue banner below to improve visual flow and hierarchy."
+          },
+          {
+            "type": "OTHER",
+            "note": "Integrate the QR code visually with the agency brand/footer area so it looks designed in, not a separate sticker."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15,
+        "qrPanelScale": 1.08
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 85,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 88,
+        "trustScore": 90,
+        "defects": [
+          "The email contact button's color contrast with dark background is low, limiting readability.",
+          "Text in the open positions list has alternating row backgrounds that are very subtle and may be hard to distinguish on mobile.",
+          "The small green text for numbering in the open positions is of low contrast and may be less legible."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Improve contrast on the Email contact button text over the yellow background for better legibility."
+          },
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Increase contrast or modify row backgrounds in the open positions list for clearer separation on mobile."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15,
+        "qrPanelScale": 1.08,
+        "scrimOpacity": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 65,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "Imagery is low impact and not candidate attracting, though acceptable for structured professional archetype"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Improve candidate-attracting visual elements or icons to enhance attention and engagement as imagery is minimal and low impact for social platforms, even in structured format."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

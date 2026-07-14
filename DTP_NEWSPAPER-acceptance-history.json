@@ -1,0 +1,148 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 88,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 88). Defects: Repetitive phrasing in job descriptions reduces scanning efficiency; The job roles block is visually dense and could benefit from improved spacing; The visual hierarchy could be slightly more candidate-first by emphasizing the job roles more than the project title.; The interview dates layout is somewhat tight and could benefit from more spacing for better readability.; Text density is quite high but well organized for newspaper archetype; The QR code looks slightly detached and could integrate better in design; Headline 'Bilfinger Shutdown Project' could have slightly more visual emphasis to dominate more",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 86,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 87,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "Repetitive phrasing in job descriptions reduces scanning efficiency",
+          "The job roles block is visually dense and could benefit from improved spacing"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more spacing between job roles to reduce crowding and improve readability in the job listing block."
+          },
+          {
+            "type": "OTHER",
+            "note": "Consider rephrasing the repeated phrase 'Experience in shutdown projects mandatory' to improve scanning and reduce redundancy."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 88,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 88,
+        "trustScore": 90,
+        "defects": [
+          "The visual hierarchy could be slightly more candidate-first by emphasizing the job roles more than the project title.",
+          "The interview dates layout is somewhat tight and could benefit from more spacing for better readability."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more spacing around the interview date boxes to improve readability and avoid crowding."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the job roles stand out slightly more to pass the first-second attention test and reinforce candidate-first hierarchy."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.2999999999999998,
+        "headlineScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 87,
+        "readabilityScore": 90,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Text density is quite high but well organized for newspaper archetype",
+          "The QR code looks slightly detached and could integrate better in design",
+          "Headline 'Bilfinger Shutdown Project' could have slightly more visual emphasis to dominate more"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Enhance visual integration of the QR code element to feel more designed-in and less like a sticker."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Increase prominence of 'Bilfinger Shutdown Project' headline to make it the strongest visual focus after the agency name."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

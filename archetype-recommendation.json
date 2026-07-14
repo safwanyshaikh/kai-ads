@@ -1,0 +1,13 @@
+{
+  "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+  "suitabilityScores": {
+    "VISUAL_HERO": 76,
+    "STRUCTURED_PROFESSIONAL": 98,
+    "HIGH_DENSITY": 30,
+    "DTP_NEWSPAPER": 68
+  },
+  "reasons": [
+    "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+    "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+  ]
+}

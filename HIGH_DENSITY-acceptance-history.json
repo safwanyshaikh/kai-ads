@@ -1,0 +1,178 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 89,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 89). Defects: agency logo lacks contrast and is hard to see at the top left corner; contact CTA is not sufficiently prominent or large for mobile social viewing; significant unused white space in the middle and bottom sections results in dead canvas; the key recruitment headline is not visually dominant enough compared to the agency name and location line; the QRC is not visually integrated and appears as an afterthought with minimal styling; IMPROVE_SPACING: The lower half of the image has large empty white space that feels like unused canvas, reducing proportional balance.; INCREASE_HEADLINE_EMPHASIS: 'BILFINGER SHUTDOWN PROJECT' headline could be slightly larger or more visually dominant for immediate clarity on mobile devices.; OTHER: The interview date buttons appear somewhat disconnected and inconsistent in spacing, confusing visual flow.; Repetitive phrasing 'Experience in shutdown projects mandatory' reduces text dynamism; Interview dates could have stronger visual grouping for easier scanning",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 78,
+        "commercialQualityScore": 70,
+        "hierarchyScore": 80,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 75,
+        "ctaScore": 75,
+        "trustScore": 80,
+        "defects": [
+          "agency logo lacks contrast and is hard to see at the top left corner",
+          "contact CTA is not sufficiently prominent or large for mobile social viewing",
+          "significant unused white space in the middle and bottom sections results in dead canvas",
+          "the key recruitment headline is not visually dominant enough compared to the agency name and location line",
+          "the QRC is not visually integrated and appears as an afterthought with minimal styling"
+        ],
+        "catastrophicDefects": [
+          "contact CTA hard to find",
+          "more than ~20% unjustified dead canvas",
+          "visual hierarchy materially weaker than professional Gulf overseas-recruitment advertisements"
+        ],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Enlarge and reposition the contact phone and email to increase prominence and ease of contact on mobile devices."
+          },
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Enhance the visibility and contrast of the agency logo in the top left corner for clear agency identity."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce unused white space by tightening layout vertically and redistributing content to avoid large dead canvas areas."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the 'BILFINGER SHUTDOWN PROJECT' headline more dominant visually to immediately capture candidate attention."
+          },
+          {
+            "type": "OTHER",
+            "note": "Redesign the QR code area for better integration with the footer section, making it look designed-in rather than a sticker."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15,
+        "ctaScale": 1.12,
+        "scrimOpacity": 1.15,
+        "qrPanelScale": 1.08
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 84,
+        "commercialQualityScore": 85,
+        "hierarchyScore": 80,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 75,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "IMPROVE_SPACING: The lower half of the image has large empty white space that feels like unused canvas, reducing proportional balance.",
+          "INCREASE_HEADLINE_EMPHASIS: 'BILFINGER SHUTDOWN PROJECT' headline could be slightly larger or more visually dominant for immediate clarity on mobile devices.",
+          "OTHER: The interview date buttons appear somewhat disconnected and inconsistent in spacing, confusing visual flow."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce large empty white space below the interview dates to better balance the composition within the Instagram square format."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the main project headline larger or bolder to ensure it immediately captures attention on small screens."
+          },
+          {
+            "type": "OTHER",
+            "note": "Adjust spacing and alignment of interview date boxes to visually connect and organize them clearly."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.2400000000000002,
+        "spacingScale": 1.2999999999999998,
+        "ctaScale": 1.12,
+        "scrimOpacity": 1.15,
+        "qrPanelScale": 1.08
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 92,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 87,
+        "ctaScore": 95,
+        "trustScore": 90,
+        "defects": [
+          "Repetitive phrasing 'Experience in shutdown projects mandatory' reduces text dynamism",
+          "Interview dates could have stronger visual grouping for easier scanning"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Vary phrasing for experience requirements to improve readability and engagement"
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Better grouping and spacing of interview dates to enhance clarity and visual hierarchy"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
