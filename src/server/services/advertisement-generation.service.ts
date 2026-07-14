@@ -13,6 +13,7 @@ import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-
 import {
   archetypeUsesGeneratedImagery,
   buildAdCopyPlan,
+  buildCompositionDirectives,
   buildImageBrief,
   composeAdvertisement,
   recommendArchetype,
@@ -113,6 +114,56 @@ export const advertisementGenerationService = {
       );
     }
 
+    // Decision 1: the badge is a small, fixed-size "constrained visual
+    // area" — it shows the compact core RC number, never the full
+    // official string. agency.registrationNumber itself is untouched
+    // (still the full value, the source of truth for anywhere it's
+    // legally/officially required, e.g. the footer text a recruiter sets).
+    const compactRaLicenseId = deriveCompactRegistrationNumber(agency.registrationNumber);
+
+    // Three-Brain closed loop: facts (Truth Brain — every value grounded
+    // in the extracted Advertisement record, immutable through the loop)
+    // are composed by the archetype engine (Creative Brain), then the
+    // final rendered image is inspected by the Visual QA Brain — after
+    // the deterministic gates (source fidelity, technical render, QR
+    // round-trip) pass. Corrections are bounded, presentation-only, and
+    // capped at MAX_ACCEPTANCE_ITERATIONS; the creative canvas is reused
+    // across iterations unless Visual QA explicitly requires imagery
+    // regeneration.
+    const facts = {
+      header: advertisement.header,
+      industry: advertisement.industry,
+      country: advertisement.country,
+      employer: advertisement.employer,
+      positions,
+      benefits,
+      interview,
+      contact,
+      footer: advertisement.footer,
+      agencyName: agency.name,
+      raLicenseId: compactRaLicenseId,
+      fullRegistrationNumber: agency.registrationNumber,
+    };
+
+    const agencyLogoDataUri = await fetchImageAsDataUri(agency.logoUrl);
+    // Agency Visual DNA: tenant color continuity derived from the
+    // agency's own logo (no schema migration — see visual-dna.ts).
+    const dna = await resolveAgencyVisualDna({
+      logo: agencyLogoDataUri ? dataUriToBuffer(agencyLogoDataUri) : null,
+    });
+    // Advertisement Intelligence: grounded emphasis (headline core,
+    // secondary hook) — decides emphasis, never facts.
+    const copy = buildAdCopyPlan(facts, { hasCompensationSignal: hasSalaryInfo });
+    // Constitution directives — the same decision composeAdvertisement
+    // will make, computed here so the creative brief and the composition
+    // share one hook/density/priority decision (traceable end to end).
+    const briefContext = {
+      copy,
+      dna,
+      directives: buildCompositionDirectives(facts, { archetype, copy }),
+      aspectRatio: platformFormat.widthPx / platformFormat.heightPx,
+    };
+
     let backgroundImageDataUri: string | null = null;
     let usedAiBackground = false;
     const imageStartedAt = Date.now();
@@ -121,18 +172,7 @@ export const advertisementGenerationService = {
       const provider = getImageGenerationProvider();
       try {
         const { output, usage } = await provider.generate({
-          prompt: buildImageBrief({
-            header: advertisement.header,
-            industry: advertisement.industry,
-            country: advertisement.country,
-            employer: advertisement.employer,
-            positions,
-            benefits,
-            interview,
-            contact,
-            footer: advertisement.footer,
-            agencyName: agency.name,
-          }),
+          prompt: buildImageBrief(facts, briefContext),
           widthPx: platformFormat.widthPx,
           heightPx: platformFormat.heightPx,
           quality: "medium",
@@ -216,50 +256,10 @@ export const advertisementGenerationService = {
       throw error;
     }
 
-    const agencyLogoDataUri = await fetchImageAsDataUri(agency.logoUrl);
-
     if (input.theme && !isValidThemeKey(input.theme)) {
       throw new AppError(`Unknown theme "${input.theme}".`, 400);
     }
     const accentColor = getThemeAccentColor(input.theme);
-    // Decision 1: the badge is a small, fixed-size "constrained visual
-    // area" — it shows the compact core RC number, never the full
-    // official string. agency.registrationNumber itself is untouched
-    // (still the full value, the source of truth for anywhere it's
-    // legally/officially required, e.g. the footer text a recruiter sets).
-    const compactRaLicenseId = deriveCompactRegistrationNumber(agency.registrationNumber);
-
-    // Three-Brain closed loop: facts (Truth Brain — every value grounded
-    // in the extracted Advertisement record, immutable through the loop)
-    // are composed by the archetype engine (Creative Brain), then the
-    // final rendered image is inspected by the Visual QA Brain — after
-    // the deterministic gates (source fidelity, technical render, QR
-    // round-trip) pass. Corrections are bounded, presentation-only, and
-    // capped at MAX_ACCEPTANCE_ITERATIONS; the decorative background is
-    // reused across iterations unless Visual QA explicitly requires
-    // imagery regeneration.
-    const facts = {
-      header: advertisement.header,
-      industry: advertisement.industry,
-      country: advertisement.country,
-      employer: advertisement.employer,
-      positions,
-      benefits,
-      interview,
-      contact,
-      footer: advertisement.footer,
-      agencyName: agency.name,
-      raLicenseId: compactRaLicenseId,
-      fullRegistrationNumber: agency.registrationNumber,
-    };
-    // Agency Visual DNA: tenant color continuity derived from the
-    // agency's own logo (no schema migration — see visual-dna.ts).
-    const dna = await resolveAgencyVisualDna({
-      logo: agencyLogoDataUri ? dataUriToBuffer(agencyLogoDataUri) : null,
-    });
-    // Advertisement Intelligence: grounded emphasis (headline core,
-    // secondary hook) — decides emphasis, never facts.
-    const copy = buildAdCopyPlan(facts, { hasCompensationSignal: hasSalaryInfo });
 
     const basePlan = {
       archetype,
@@ -283,7 +283,7 @@ export const advertisementGenerationService = {
             try {
               const provider = getImageGenerationProvider();
               const { output } = await provider.generate({
-                prompt: `${buildImageBrief(facts)} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
+                prompt: `${buildImageBrief(facts, briefContext)} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
                 widthPx: platformFormat.widthPx,
                 heightPx: platformFormat.heightPx,
                 quality: "medium",

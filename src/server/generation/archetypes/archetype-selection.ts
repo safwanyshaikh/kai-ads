@@ -1,6 +1,9 @@
 import type { AdvertisementStyle } from "@prisma/client";
 import type { DensityLevel } from "../density-classification.service";
 import type { AdvertisementArchetype, AdvertisementFacts } from "./types";
+import type { AdCopyPlan } from "./advertisement-intelligence";
+import type { AgencyVisualDna } from "./visual-dna";
+import { buildCompositionDirectives, type CompositionDirectives } from "./composition-constitution";
 
 /**
  * Creative Brain — archetype decision.
@@ -132,24 +135,64 @@ export function recommendArchetype(input: ArchetypeSuitabilityInput): ArchetypeR
 }
 
 /**
- * Creative Brain — image brief for the KAI Creative Engine (gpt-image-1).
- *
- * The brief describes ENVIRONMENT only (industry, country context, work
- * setting) — presentation, not facts. It explicitly prohibits text,
- * logos, brands, and signage so no employer identity or factual claim
- * can ever be fabricated inside the image (ADR-006: imagery is a
- * decorative layer; every fact is deterministic SVG text on top).
+ * Optional creative context for the image brief. Everything here is
+ * derived from grounded facts or tenant identity — never invented — and
+ * everything is optional so the brief degrades gracefully to an
+ * environment-only brief when a caller has no context yet.
  */
-export function buildImageBrief(facts: AdvertisementFacts): string {
+export interface ImageBriefContext {
+  copy?: AdCopyPlan | null;
+  dna?: AgencyVisualDna | null;
+  directives?: CompositionDirectives;
+  /** width / height of the target platform format. */
+  aspectRatio?: number;
+}
+
+/**
+ * Creative Brain — creative-director brief for the KAI Creative Engine
+ * (gpt-image-1). GPT is asked to design the MAIN visual advertisement
+ * canvas — composition, hierarchy, zone architecture, lighting, energy —
+ * not a decorative stock background. Dynamically constructed from the
+ * grounded facts, the Brain B hook, the Constitution's directives
+ * (density class, information priority) and the Agency Visual DNA.
+ *
+ * Text-precision law (ADR-006, Composition Constitution): the truthful
+ * hook is communicated as OVERLAY CONTEXT only — quoted, and explicitly
+ * forbidden from being rendered. The brief prohibits ALL text, logos,
+ * signage, and brand names inside the image; every fact, the real logo,
+ * and the real verification QR are guaranteed deterministically on top,
+ * inside the text-safe zones this brief instructs GPT to design in.
+ */
+export function buildImageBrief(facts: AdvertisementFacts, context: ImageBriefContext = {}): string {
+  const directives =
+    context.directives ?? buildCompositionDirectives(facts, { archetype: "VISUAL_HERO", copy: context.copy });
   const trades = facts.positions
     .slice(0, 3)
     .map((p) => p.title)
     .join(", ");
-  const tradeClause = trades ? ` The scene should evoke work such as: ${trades}.` : "";
+  const densityGuidance =
+    directives.contentDensityClass === "SPARSE"
+      ? "Content is sparse, so the imagery and graphic energy must carry MORE of the canvas — bolder, closer, more dramatic."
+      : directives.contentDensityClass === "HIGH"
+        ? "Content is dense, so keep the composition's zones calmer and cleaner to leave room for structured overlays."
+        : "Balance imagery drama with clean zones for the structured overlays.";
+  const palette = context.dna
+    ? ` BRAND PALETTE — the agency's Visual DNA; echo these subtly in lighting and graphic tones, never as flat fills over the whole frame: primary ${context.dna.primaryColor}, secondary ${context.dna.secondaryColor}, accent ${context.dna.accentColor}.`
+    : "";
+  const format = context.aspectRatio
+    ? ` The canvas is a ${context.aspectRatio >= 1.2 ? "landscape" : context.aspectRatio <= 0.85 ? "portrait" : "square"} social-media format.`
+    : "";
   return (
-    `A dramatic, professional, photorealistic photograph of a ${facts.industry} work environment in ${facts.country} — ` +
-    `industrial setting, equipment, and atmosphere relevant to that industry.${tradeClause} ` +
-    `Wide dramatic panorama at dusk with glowing plant lights and rich structural detail in the lower two-thirds, and a clear, bright, uncluttered sky occupying the upper third of the frame (reserved for headline overlay). Cinematic lighting, strong depth, suitable as the hero background of a recruitment advertisement. ` +
-    `Strictly no readable text, no logos, no watermarks, no signage, no visible brand names, no close-up identifiable faces.`
+    `You are a world-class overseas-recruitment advertising creative director and visual designer. ` +
+    `Design the MAIN VISUAL ADVERTISEMENT CANVAS for a premium overseas recruitment advertisement — a complete, art-directed advertising composition, not a stock photo and not a plain background.${format} ` +
+    `AUDIENCE AND OPPORTUNITY (grounded facts only): skilled candidates${trades ? ` in trades such as ${trades}` : ""} considering overseas work; hiring destination ${facts.country}; industry ${facts.industry}. ` +
+    `The advertisement's dominant truthful hook — which will be overlaid afterwards in exact typography by the platform, so you must NOT render it or any other text — is: "${directives.dominantHook}". Let its subject and energy drive the scene. ` +
+    `COMMERCIAL REQUIREMENTS: full-bleed cinematic ${facts.industry} environment with dramatic depth, premium lighting, and a sense of scale and opportunity; professional Gulf overseas-recruitment poster grammar; scroll-stopping within one second on a mobile feed and comprehensible within three; mobile-first contrast; full canvas utilisation with no dead, flat, or purposeless areas. ${densityGuidance} ` +
+    `TEXT-SAFE ZONE ARCHITECTURE (exact text, the real agency logo, and the real verification QR are overlaid deterministically afterwards — design these zones INTO the composition): ` +
+    `top ~40-45% of the frame: a bright, clean, high-contrast, uncluttered zone (open sky or light backdrop) as the dominant headline zone for very large stacked type; ` +
+    `around the vertical midpoint: a strong horizontal energy band where a diagonal announcement ribbon will sit; ` +
+    `lower third: a darker, grounded zone with rich structural detail over which positions, benefits, and contact panels remain readable; ` +
+    `bottom ~10%: a calm dark zone for the agency trust strip and verification QR.${palette} ` +
+    `ABSOLUTE PROHIBITIONS (truth law): render no readable text, letters, numerals, or typography of any kind anywhere in the image; no logos, no watermarks, no signage, no visible brand names; no close-up identifiable faces; never depict money, salaries, documents, or any factual claim — every fact is guaranteed by the platform's deterministic overlay.`
   );
 }

@@ -20,6 +20,7 @@ import sharp from "sharp";
 import { runKaiExtraction } from "@/server/ai/openai/kai-extraction-engine";
 import {
   buildAdCopyPlan,
+  buildCompositionDirectives,
   buildImageBrief,
   composeAdvertisement,
   recommendArchetype,
@@ -182,6 +183,13 @@ async function main() {
   const copy = buildAdCopyPlan(facts, { hasCompensationSignal: true });
   console.log("Ad copy plan:", JSON.stringify(copy));
   writeFileSync(path.join(OUT, "ad-copy-plan.json"), JSON.stringify(copy, null, 2));
+
+  // Constitution directives + the exact creative brief sent to the image
+  // model — persisted as run evidence (decision → composition → output).
+  const heroDirectives = buildCompositionDirectives(facts, { archetype: "VISUAL_HERO", copy });
+  const heroBriefContext = { copy, dna, directives: heroDirectives, aspectRatio: fmt.widthPx / fmt.heightPx };
+  writeFileSync(path.join(OUT, "composition-directives.json"), JSON.stringify(heroDirectives, null, 2));
+  writeFileSync(path.join(OUT, "visual-hero-creative-brief.txt"), buildImageBrief(facts, heroBriefContext));
   console.log("Commercial launch threshold:", COMMERCIAL_LAUNCH_THRESHOLD);
 
   const cropQrRegion = async (png: Buffer) => {
@@ -210,7 +218,7 @@ async function main() {
       console.log("KAI Creative Engine: generating real background (model:", env.KAI_IMAGE_MODEL, ")...");
       const provider = getImageGenerationProvider();
       const { output, usage } = await provider.generate({
-        prompt: buildImageBrief(facts),
+        prompt: buildImageBrief(facts, heroBriefContext),
         widthPx: fmt.widthPx,
         heightPx: fmt.heightPx,
         quality: "medium",
@@ -246,7 +254,7 @@ async function main() {
                 try {
                   const provider = getImageGenerationProvider();
                   const { output } = await provider.generate({
-                    prompt: `${buildImageBrief(facts)} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
+                    prompt: `${buildImageBrief(facts, heroBriefContext)} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
                     widthPx: fmt.widthPx,
                     heightPx: fmt.heightPx,
                     quality: "medium",

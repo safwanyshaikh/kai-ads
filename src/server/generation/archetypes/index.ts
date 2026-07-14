@@ -30,6 +30,7 @@ export {
   styleForArchetype,
   type ArchetypeRecommendation,
   type ArchetypeSuitabilityInput,
+  type ImageBriefContext,
 } from "./archetype-selection";
 
 /**

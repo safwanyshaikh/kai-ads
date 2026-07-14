@@ -170,20 +170,49 @@ describe("composeAdvertisement — Truth Brain fidelity (real Bilfinger source)"
   });
 });
 
-describe("buildImageBrief — Creative Brain image strategy (presentation only, no fabricated identity)", () => {
-  it("describes the industry/country environment and the trades", () => {
+describe("buildImageBrief — creative-director canvas brief (GPT designs the canvas, KAI guarantees the text)", () => {
+  it("asks for the MAIN visual advertisement canvas, not a decorative background or stock photo", () => {
+    const brief = buildImageBrief(bilfingerFacts);
+    expect(brief).toContain("creative director");
+    expect(brief).toContain("MAIN VISUAL ADVERTISEMENT CANVAS");
+    expect(brief).toContain("not a stock photo");
+  });
+  it("describes the industry/country environment, the trades, and the text-safe zone architecture", () => {
     const brief = buildImageBrief(bilfingerFacts);
     expect(brief).toContain("Oil & Gas");
     expect(brief).toContain("Saudi Arabia");
     expect(brief).toContain("Welders — TIG & Multi");
+    expect(brief).toContain("TEXT-SAFE ZONE ARCHITECTURE");
+    expect(brief).toContain("dominant headline zone");
+    expect(brief).toContain("trust strip and verification QR");
+  });
+  it("is dynamically constructed from the constitution's decisions and the Agency Visual DNA", () => {
+    const withDna = buildImageBrief(bilfingerFacts, {
+      dna: { primaryColor: "#7c9f53", secondaryColor: "#5d9bb9", accentColor: "#c0392b", hasLogo: true },
+      aspectRatio: 1,
+    });
+    expect(withDna).toContain("#7c9f53");
+    expect(withDna).toContain("square");
+    // Sparse content changes the density guidance — the brief is a live
+    // decision, not a static template.
+    const sparse = buildImageBrief({ ...bilfingerFacts, positions: [bilfingerFacts.positions[0]], benefits: [], interview: [], footer: null, employer: null });
+    expect(sparse).toContain("sparse");
+    expect(buildImageBrief(bilfingerFacts)).not.toContain("sparse");
   });
   it("explicitly prohibits text, logos, brands and signage inside the image", () => {
     const brief = buildImageBrief(bilfingerFacts);
     expect(brief).toContain("no logos");
     expect(brief).toContain("no visible brand names");
     expect(brief).toContain("no readable text");
-    // The employer's name must never be sent as something to DEPICT.
-    expect(brief).not.toContain("Bilfinger");
+  });
+  it("communicates the truthful hook as overlay context only — never as something to depict", () => {
+    const brief = buildImageBrief(bilfingerFacts);
+    // The hook is quoted and explicitly marked as overlaid-later text.
+    expect(brief).toContain("must NOT render it or any other text");
+    // Outside that single quoted overlay hook, the employer's name never
+    // appears — GPT is never asked to DEPICT the employer.
+    const withoutQuotedHook = brief.replace(/"[^"]*"/g, "");
+    expect(withoutQuotedHook.toLowerCase()).not.toContain("bilfinger");
   });
 });
 
