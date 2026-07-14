@@ -96,7 +96,7 @@ export function renderDtpNewspaper(input: CompositionInput): string {
       `<text x="${colCenterX}" y="${y}" text-anchor="middle" font-family="${font}" font-size="${fpx(30)}" font-weight="700" letter-spacing="4" fill="${accent}">REQUIRED FOR ${escapeXml(facts.country.toUpperCase())}</text>`,
     );
     y += px(20);
-    const headline = fitWrappedText(plan.copy?.primaryHeadline ?? facts.header, contentW, Math.round(fpx(48) * clampTuning(plan.tuning?.headlineScale)), fpx(24), 2);
+    const headline = fitWrappedText((plan.copy?.primaryHeadline ?? facts.header).toUpperCase(), contentW, Math.round(fpx(58) * clampTuning(plan.tuning?.headlineScale)), fpx(26), 2);
     for (const line of headline.lines) {
       y += Math.round(headline.fontSize * 1.2);
       frags.push(
@@ -123,7 +123,7 @@ export function renderDtpNewspaper(input: CompositionInput): string {
       const ry = y + px(8) + i * rowH;
       const title = p.experience ? `${p.title} — ${p.experience}` : p.title;
       const withCount = p.count ? `${title}   (${p.count} Nos)` : title;
-      const size = fitFontSize(withCount, contentW - px(40), fpx(26), fpx(13));
+      const size = fitFontSize(withCount, contentW - px(40), fpx(30), fpx(14));
       frags.push(
         `<text x="${colCenterX}" y="${ry + rowH / 2 + size * 0.36}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${ink}">${escapeXml(withCount)}</text>`,
       );

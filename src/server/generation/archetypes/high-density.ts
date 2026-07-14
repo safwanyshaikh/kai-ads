@@ -60,8 +60,8 @@ export function renderHighDensity(input: CompositionInput): string {
   // --- Headline band ---
   let y = stripH + px(52);
   const headlineScale = clampTuning(plan.tuning?.headlineScale);
-  const headlineText = plan.copy?.primaryHeadline ?? facts.header;
-  const headlineSize = fitFontSize(headlineText, W - pad * 2, Math.round(fpx(48) * headlineScale), fpx(20));
+  const headlineText = (plan.copy?.primaryHeadline ?? facts.header).toUpperCase();
+  const headlineSize = fitFontSize(headlineText, W - pad * 2, Math.round(fpx(62) * headlineScale), fpx(22));
   parts.push(
     `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headlineSize}" font-weight="700" fill="${ink}">${escapeXml(headlineText)}</text>`,
   );
@@ -117,7 +117,7 @@ export function renderHighDensity(input: CompositionInput): string {
     colPositions.forEach((p, i) => {
       const ry = y + headerRowH + i * rowH;
       const title = p.experience ? `${p.title} — ${p.experience}` : p.title;
-      const size = fitFontSize(title, tableW - px(32) - countColW, fpx(22), fpx(11));
+      const size = fitFontSize(title, tableW - px(32) - countColW, fpx(26), fpx(12));
       parts.push(
         `<rect x="${tx}" y="${ry}" width="${tableW}" height="${rowH}" fill="${i % 2 === 0 ? "#f2f5f8" : "#ffffff"}" />
   <text x="${tx + px(16)}" y="${ry + rowH / 2 + size * 0.36}" font-family="${font}" font-size="${size}" font-weight="600" fill="${ink}">${escapeXml(title)}</text>

@@ -126,7 +126,7 @@ describe("Agency Visual DNA — tenant-level continuity, no migration", () => {
     const dna = await resolveAgencyVisualDna({ logo: readFileSync(logoPath) });
     const outputs = ALL_ARCHETYPES.map((a) => render(a, dna));
     // Still four genuinely different structures...
-    expect(outputs[0]).toContain("WE ARE HIRING");
+    expect(outputs[0]).toContain("heroTopWash");
     expect(outputs[1]).toContain("OPEN POSITIONS");
     expect(outputs[2]).toContain(">POSITION");
     expect(outputs[3]).toContain("REQUIRED FOR SAUDI ARABIA");

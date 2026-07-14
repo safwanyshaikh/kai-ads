@@ -200,3 +200,92 @@ export function clampTuning(value: number | undefined, min = 0.85, max = 1.3): n
   if (value === undefined || !Number.isFinite(value)) return 1;
   return Math.max(min, Math.min(max, value));
 }
+
+// ---------------------------------------------------------------------------
+// Benchmark poster components (market-reference grammar: angled interview
+// ribbon, gold email pill, trust roundel) — shared shapes only; each engine
+// decides placement, scale, and color, keeping archetypes distinct.
+// ---------------------------------------------------------------------------
+
+/** Angled full-width ribbon with a bold white line and optional highlight (yellow) second line. */
+export function angledRibbon(p: {
+  y: number;
+  width: number;
+  height: number;
+  fill: string;
+  line1: string;
+  line2?: string | null;
+  fontFamily: string;
+  line1Size: number;
+  line2Size: number;
+  skewPx?: number;
+}): string {
+  const skew = p.skewPx ?? Math.round(p.height * 0.35);
+  const textX = Math.round(p.width * 0.06);
+  const oneLine = !p.line2;
+  const line1Y = oneLine ? p.y + p.height / 2 + p.line1Size * 0.36 : p.y + p.height / 2 - p.line1Size * 0.18;
+  return `<polygon points="0,${p.y} ${p.width},${p.y + skew * 0.4} ${p.width},${p.y + p.height} 0,${p.y + p.height - skew * 0.4}" fill="${p.fill}" />
+  <text x="${textX}" y="${line1Y}" font-family="${p.fontFamily}" font-size="${p.line1Size}" font-weight="700" fill="#ffffff">${escapeXml(p.line1)}</text>
+  ${p.line2 ? `<text x="${textX}" y="${p.y + p.height / 2 + p.line2Size * 1.05}" font-family="${p.fontFamily}" font-size="${p.line2Size}" font-weight="700" fill="#ffd21f">${escapeXml(p.line2)}</text>` : ""}`;
+}
+
+/** Rounded gold pill with dark bold text (the market's email treatment). Returns fragment + width. */
+export function goldPill(p: {
+  x: number;
+  y: number;
+  height: number;
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  fill?: string;
+  textColor?: string;
+}): { svg: string; width: number } {
+  const padX = Math.round(p.height * 0.55);
+  const width = Math.round(estimateTextWidth(p.text, p.fontSize)) + padX * 2;
+  return {
+    svg: `<rect x="${p.x}" y="${p.y}" width="${width}" height="${p.height}" rx="${p.height / 2}" fill="${p.fill ?? "#f2b705"}" />
+  <text x="${p.x + width / 2}" y="${p.y + p.height / 2 + p.fontSize * 0.36}" text-anchor="middle" font-family="${p.fontFamily}" font-size="${p.fontSize}" font-weight="700" fill="${p.textColor ?? "#101d33"}">${escapeXml(p.text)}</text>`,
+    width,
+  };
+}
+
+/** Trust roundel (starred double-ring circle) carrying grounded trust text — mirrors the market's "positions available" badge shape without inventing counts. */
+export function trustRoundel(p: {
+  cx: number;
+  cy: number;
+  r: number;
+  fill: string;
+  ringColor: string;
+  fontFamily: string;
+  topText: string;
+  mainText: string;
+  bottomText: string;
+}): string {
+  const star = (x: number, y: number, s: number) =>
+    `<path d="M ${x} ${y - s} L ${x + s * 0.29} ${y - s * 0.31} L ${x + s * 0.95} ${y - s * 0.31} L ${x + s * 0.42} ${y + s * 0.12} L ${x + s * 0.59} ${y + s * 0.81} L ${x} ${y + s * 0.38} L ${x - s * 0.59} ${y + s * 0.81} L ${x - s * 0.42} ${y + s * 0.12} L ${x - s * 0.95} ${y - s * 0.31} L ${x - s * 0.29} ${y - s * 0.31} Z" fill="${p.ringColor}" />`;
+  return `<circle cx="${p.cx}" cy="${p.cy}" r="${p.r}" fill="${p.fill}" />
+  <circle cx="${p.cx}" cy="${p.cy}" r="${p.r - Math.max(3, p.r * 0.08)}" fill="none" stroke="${p.ringColor}" stroke-width="${Math.max(1.5, p.r * 0.035)}" />
+  ${star(p.cx, p.cy - p.r * 0.62, p.r * 0.11)}
+  ${star(p.cx - p.r * 0.32, p.cy - p.r * 0.56, p.r * 0.085)}
+  ${star(p.cx + p.r * 0.32, p.cy - p.r * 0.56, p.r * 0.085)}
+  <text x="${p.cx}" y="${p.cy - p.r * 0.18}" text-anchor="middle" font-family="${p.fontFamily}" font-size="${Math.round(p.r * 0.22)}" font-weight="700" fill="#ffffff">${escapeXml(p.topText)}</text>
+  <text x="${p.cx}" y="${p.cy + p.r * 0.16}" text-anchor="middle" font-family="${p.fontFamily}" font-size="${Math.round(p.r * 0.34)}" font-weight="700" fill="#ffd21f">${escapeXml(p.mainText)}</text>
+  <text x="${p.cx}" y="${p.cy + p.r * 0.48}" text-anchor="middle" font-family="${p.fontFamily}" font-size="${Math.round(p.r * 0.17)}" font-weight="700" fill="#ffffff">${escapeXml(p.bottomText)}</text>`;
+}
+
+/** Darkens a hex color until white text (or use on light backgrounds) holds contrast — DNA-derived brand colors can be too light for poster duty. */
+export function ensureDeepColor(hex: string, maxLuma = 105): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  let r = parseInt(m[1].slice(0, 2), 16);
+  let g = parseInt(m[1].slice(2, 4), 16);
+  let b = parseInt(m[1].slice(4, 6), 16);
+  const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+  if (luma > maxLuma) {
+    const f = maxLuma / luma;
+    r = Math.round(r * f);
+    g = Math.round(g * f);
+    b = Math.round(b * f);
+  }
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}

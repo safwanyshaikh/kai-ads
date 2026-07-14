@@ -149,7 +149,7 @@ export function buildImageBrief(facts: AdvertisementFacts): string {
   return (
     `A dramatic, professional, photorealistic photograph of a ${facts.industry} work environment in ${facts.country} — ` +
     `industrial setting, equipment, and atmosphere relevant to that industry.${tradeClause} ` +
-    `Cinematic lighting, strong depth, suitable as the hero background of a recruitment advertisement with dark overlay at the bottom. ` +
+    `Wide dramatic panorama at dusk with glowing plant lights and rich structural detail in the lower two-thirds, and a clear, bright, uncluttered sky occupying the upper third of the frame (reserved for headline overlay). Cinematic lighting, strong depth, suitable as the hero background of a recruitment advertisement. ` +
     `Strictly no readable text, no logos, no watermarks, no signage, no visible brand names, no close-up identifiable faces.`
   );
 }

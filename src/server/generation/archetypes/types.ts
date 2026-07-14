@@ -79,6 +79,15 @@ export interface CompositionPlan {
   dna?: import("./visual-dna").AgencyVisualDna | null;
   /** Advertisement Intelligence copy plan (see advertisement-intelligence.ts) — grounded emphasis, never new facts. */
   copy?: import("./advertisement-intelligence").AdCopyPlan | null;
+  /**
+   * Advertisement Composition Constitution directives
+   * (docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md). Normally left
+   * unset: composeAdvertisement computes them itself so no caller can
+   * skip the constitutional decision. Settable only so callers that
+   * already made the decision (e.g. acceptance tooling persisting the
+   * directives as evidence) render with the exact same values they logged.
+   */
+  directives?: import("./composition-constitution").CompositionDirectives;
 }
 
 export interface CompositionInput {

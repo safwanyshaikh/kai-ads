@@ -2,297 +2,295 @@ import { buildEmbeddedFontStyleBlock, KAI_SANS_FONT_FAMILY } from "../embedded-f
 import { buildFallbackBackgroundSvgFragment } from "../fallback-background";
 import type { CompositionInput } from "./types";
 import {
+  angledRibbon,
+  ensureDeepColor,
   clampTuning,
-  checkIcon,
-  contactParts,
   escapeXml,
   fitFontSize,
   fitWrappedText,
-  formatBenefitLine,
   formatInterviewLine,
-  formatPositionLine,
+  goldPill,
   makeScalers,
   phoneIcon,
-  mailIcon,
+  trustRoundel,
   verificationPanel,
 } from "./composition-shared";
 
 /**
- * ARCHETYPE 1 — VISUAL HERO.
+ * ARCHETYPE 1 — VISUAL HERO (benchmark poster grammar).
  *
- * Reference grammar (Saudi Electrical Technician ad, Saudi Textile
- * Mechanics ad): a dominant full-bleed industry photograph, a dark
- * gradient scrim rising from the bottom, an eyebrow line ("WE ARE
- * HIRING"), a very large wrapped headline, a country/industry accent
- * pill, position chips, a boxed benefit callout where grounded, and a
- * strong bottom CTA bar carrying contact + the integrated KAI
- * verification panel.
- *
- * The background is presentation (Creative Brain): an AI-generated
- * environment photo when the KAI Creative Engine is configured,
- * otherwise the deterministic industry-gradient fallback. Every fact is
- * SVG text composed here (ADR-006).
+ * Rebuilt against the strongest supplied market references (the Al-Yousuf
+ * "Shutdown Project in Saudi Arabia" posters): a full-bleed industrial
+ * photograph with a light wash over the upper zone carrying a HUGE
+ * stacked two-color hook (first-second read), a trust roundel top-right,
+ * an angled interview ribbon with highlighted dates, a navy contact bar
+ * with a gold email pill, a full-width benefit banner, a banded
+ * positions card, and a bottom identity strip with the integrated KAI
+ * verification panel. Every text node remains deterministic truth
+ * (ADR-006); the photo is Creative Brain presentation only.
  */
 export function renderVisualHero(input: CompositionInput): string {
   const { facts, plan } = input;
   const fmt = plan.platformFormat;
   const { px, fpx, isLandscape } = makeScalers(fmt);
   const font = KAI_SANS_FONT_FAMILY;
-  // Agency Visual DNA: accent continuity only — structure stays the hero's own.
-  const accent = plan.dna?.accentColor ?? (plan.accentColor === "#1a1a1a" ? "#e0342c" : plan.accentColor);
-  const dnaSecondary = plan.dna?.secondaryColor ?? accent;
   const W = fmt.widthPx;
   const H = fmt.heightPx;
-  const pad = px(56);
+  const pad = px(48);
 
-  // Landscape confines content to the left ~58% over a side scrim; portrait
-  // and square use the full width over a bottom scrim.
-  const contentW = isLandscape ? Math.round(W * 0.52) - pad : W - 2 * pad;
+  // Poster palette: navy/green market grammar, tinted by Agency DNA.
+  const navy = "#0e2240";
+  // Market poster green (deep, saturated) — DNA continuity is carried by the logo chip, roundel and identity strip, not by muddying the band palette.
+  const green = "#15683a";
+  void ensureDeepColor;
+  const accent = plan.dna?.accentColor ?? "#e0342c";
+  const gold = "#ffd21f";
+
+  const headlineScale = clampTuning(plan.tuning?.headlineScale);
+  const spacingScale = clampTuning(plan.tuning?.spacingScale);
 
   const background = plan.backgroundImageDataUri
     ? `<image x="0" y="0" width="${W}" height="${H}" href="${plan.backgroundImageDataUri}" preserveAspectRatio="xMidYMid slice" />`
     : buildFallbackBackgroundSvgFragment({ widthPx: W, heightPx: H, industry: facts.industry });
 
-  const scrim = isLandscape
-    ? `<defs><linearGradient id="heroScrim" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.82" />
-      <stop offset="58%" stop-color="#000000" stop-opacity="0.55" />
-      <stop offset="100%" stop-color="#000000" stop-opacity="0.05" />
-    </linearGradient></defs>
-  <rect width="${W}" height="${H}" fill="url(#heroScrim)" />`
-    : `<defs><linearGradient id="heroScrim" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#000000" stop-opacity="0.45" />
-      <stop offset="35%" stop-color="#000000" stop-opacity="0.25" />
-      <stop offset="70%" stop-color="#000000" stop-opacity="0.72" />
-      <stop offset="100%" stop-color="#000000" stop-opacity="0.9" />
-    </linearGradient></defs>
-  <rect width="${W}" height="${H}" fill="url(#heroScrim)" />`;
+  // Light wash over the top ~45% (the benchmark's "bright sky" zone) so
+  // the huge navy/green hook reads over any photograph; dark wash below
+  // for the light-on-dark bands.
+  // The photograph is the star (benchmark grammar): only a soft veil at
+  // the very top holds the identity chip + hook (the image brief demands
+  // a bright sky there), the mid-zone shows the plant RAW, and a dark
+  // wash rises under the lower information bands.
+  const scrims = `<defs>
+    <linearGradient id="heroTopWash" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f4f7fa" stop-opacity="0.62" />
+      <stop offset="55%" stop-color="#f4f7fa" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#f4f7fa" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="heroBottomWash" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#050d1a" stop-opacity="0" />
+      <stop offset="40%" stop-color="#050d1a" stop-opacity="0.72" />
+      <stop offset="100%" stop-color="#050d1a" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="${W}" height="${Math.round(H * 0.42)}" fill="url(#heroTopWash)" />
+  <rect x="0" y="${Math.round(H * 0.44)}" width="${W}" height="${H - Math.round(H * 0.44)}" fill="url(#heroBottomWash)" />`;
 
   const parts: string[] = [];
-  let y = pad + px(20);
 
-  // --- Identity row: logo chip + agency name ---
-  const logoSize = px(72);
+  // --- Identity chip (top-left): logo + agency name ---
+  const chipH = px(84);
+  const logoSize = chipH - px(16);
+  let identityX = pad;
   if (plan.agencyLogoDataUri) {
+    const chipW = logoSize + px(20);
     parts.push(
-      `<rect x="${pad}" y="${y - px(10)}" width="${logoSize + px(20)}" height="${logoSize + px(20)}" rx="${px(12)}" fill="#ffffff" />
-  <image x="${pad + px(10)}" y="${y}" width="${logoSize}" height="${logoSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
+      `<rect x="${pad}" y="${pad}" width="${chipW}" height="${chipH}" rx="${px(10)}" fill="#ffffff" stroke="#d7dee6" stroke-width="1" />
+  <image x="${pad + px(10)}" y="${pad + px(8)}" width="${logoSize}" height="${logoSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
     );
-    parts.push(
-      `<text x="${pad + logoSize + px(44)}" y="${y + logoSize / 2 + fpx(9)}" font-family="${font}" font-size="${fpx(26)}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>`,
-    );
-  } else {
-    parts.push(
-      `<text x="${pad}" y="${y + fpx(24)}" font-family="${font}" font-size="${fpx(26)}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>`,
-    );
+    identityX = pad + chipW + px(18);
   }
-  y += logoSize + px(56);
-
-  // --- Eyebrow + headline ---
+  const agencyNameSize = fitFontSize(facts.agencyName, W - identityX - pad - px(220), fpx(34), fpx(18));
   parts.push(
-    `<rect x="${pad}" y="${y - fpx(20)}" width="${px(56)}" height="${px(6)}" fill="${accent}" />
-  <text x="${pad + px(72)}" y="${y}" font-family="${font}" font-size="${fpx(26)}" font-weight="700" letter-spacing="4" fill="${accent}">WE ARE HIRING</text>`,
+    `<text x="${identityX}" y="${pad + chipH / 2 - fpx(2)}" font-family="${font}" font-size="${agencyNameSize}" font-weight="700" fill="${navy}">${escapeXml(facts.agencyName)}</text>
+  <text x="${identityX}" y="${pad + chipH / 2 + fpx(24)}" font-family="${font}" font-size="${fpx(17)}" letter-spacing="2" fill="#3c4a5d">OVERSEAS RECRUITMENT</text>`,
   );
+
+  // --- Trust roundel (top-right): grounded registration identity ---
+  const roundelR = px(80);
+  parts.push(
+    trustRoundel({
+      cx: W - pad - roundelR,
+      cy: pad + roundelR + px(6),
+      r: roundelR,
+      fill: navy,
+      ringColor: gold,
+      fontFamily: font,
+      topText: "MEA",
+      mainText: facts.raLicenseId ? `RA ${facts.raLicenseId}` : "REGISTERED",
+      bottomText: "REGISTERED",
+    }),
+  );
+
+  // --- HUGE stacked hook (first-second read) ---
+  const hookLines = plan.copy?.hookLines?.length
+    ? plan.copy.hookLines
+    : facts.country && !facts.header.toLowerCase().includes(facts.country.toLowerCase())
+      ? [facts.header.toUpperCase(), `IN ${facts.country.toUpperCase()}`]
+      : [facts.header.toUpperCase()];
+  const roundelBottom = pad + roundelR * 2 + px(6);
+  let y = Math.max(pad + chipH + px(56), roundelBottom + px(10));
+  const hookMaxW = W - pad * 2;
+  hookLines.forEach((line, i) => {
+    const wrapped = fitWrappedText(line, hookMaxW, Math.round(fpx(i === 0 ? 96 : 88) * headlineScale), fpx(48), 2);
+    for (const l of wrapped.lines) {
+      y += Math.round(wrapped.fontSize * 1.04);
+      // White halo under the fill keeps the hook punchy over any photo.
+      parts.push(
+        `<text x="${pad}" y="${y}" font-family="${font}" font-size="${wrapped.fontSize}" font-weight="700" letter-spacing="-1" stroke="#f6f8fa" stroke-width="${Math.max(6, Math.round(wrapped.fontSize * 0.14))}" stroke-linejoin="round" fill="none">${escapeXml(l)}</text>
+  <text x="${pad}" y="${y}" font-family="${font}" font-size="${wrapped.fontSize}" font-weight="700" letter-spacing="-1" fill="${i === 0 ? navy : green}">${escapeXml(l)}</text>`,
+      );
+    }
+    y += px(8);
+  });
+
+  // Employer / industry underline chip (three-second read)
+  const subline = `${facts.industry.toUpperCase()}${facts.employer ? "  ·  " + facts.employer.toUpperCase() : ""}`;
+  const sublineSize = fitFontSize(subline, W - pad * 2, fpx(24), fpx(13));
   y += px(30);
-
-  const headlineScale = clampTuning(plan.tuning?.headlineScale);
-  // Advertisement Intelligence: the display headline leads with substance
-  // (boilerplate-stripped, still fully grounded) when a copy plan exists.
-  const headlineText = plan.copy?.primaryHeadline ?? facts.header;
-  const headline = fitWrappedText(headlineText, contentW, Math.round(fpx(72) * headlineScale), fpx(36), 3);
-  for (const line of headline.lines) {
-    y += Math.round(headline.fontSize * 1.14);
-    parts.push(
-      `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headline.fontSize}" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`,
-    );
-  }
-  y += px(34);
-
-  // --- Country pill + industry ---
-  const countryText = facts.country.toUpperCase();
-  const pillFont = fpx(24);
-  const pillW = Math.round(countryText.length * pillFont * 0.62) + px(48);
-  const pillH = px(48);
   parts.push(
-    `<rect x="${pad}" y="${y}" width="${pillW}" height="${pillH}" rx="${pillH / 2}" fill="${accent}" />
-  <text x="${pad + pillW / 2}" y="${y + pillH / 2 + pillFont * 0.36}" text-anchor="middle" font-family="${font}" font-size="${pillFont}" font-weight="700" fill="#ffffff">${escapeXml(countryText)}</text>
-  <text x="${pad + pillW + px(24)}" y="${y + pillH / 2 + fpx(8)}" font-family="${font}" font-size="${fpx(22)}" fill="#e8e8e8">${escapeXml(facts.industry)}${facts.employer ? " · " + escapeXml(facts.employer) : ""}</text>`,
+    `<rect x="${pad}" y="${y - fpx(20)}" width="${px(52)}" height="${px(7)}" fill="${accent}" />
+  <text x="${pad + px(66)}" y="${y}" font-family="${font}" font-size="${sublineSize}" font-weight="700" letter-spacing="1" stroke="#f6f8fa" stroke-width="${Math.max(4, Math.round(sublineSize * 0.28))}" stroke-linejoin="round" fill="none">${escapeXml(subline)}</text>
+  <text x="${pad + px(66)}" y="${y}" font-family="${font}" font-size="${sublineSize}" font-weight="700" letter-spacing="1" fill="${navy}">${escapeXml(subline)}</text>`,
   );
-  y += pillH + px(38);
 
-  // Advertisement Intelligence: grounded secondary hook (e.g. the classic
-  // multi-city interview line) gets its own emphasized slot.
-  if (plan.copy?.secondaryHeadline) {
-    const secondary = plan.copy.secondaryHeadline;
-    const size = fitFontSize(secondary, contentW, fpx(26), fpx(15));
+  // --- Angled interview ribbon (facts-derived fallback keeps interviews
+  // present even when no copy plan was supplied) ---
+  const ribbon =
+    plan.copy?.interviewRibbon ??
+    (facts.interview.length > 0
+      ? { line1: "INTERVIEW", line2: facts.interview.map((e) => formatInterviewLine(e)).join("  ·  ") }
+      : null);
+  const ribbonH = px(ribbon?.line2 ? 118 : 88);
+  const ribbonY = Math.round(H * 0.455);
+  if (ribbon) {
     parts.push(
-      `<text x="${pad}" y="${y + fpx(6)}" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffd24d">${escapeXml(secondary)}</text>`,
+      angledRibbon({
+        y: ribbonY,
+        width: W,
+        height: ribbonH,
+        fill: green,
+        line1: ribbon.line1,
+        line2: ribbon.line2,
+        fontFamily: font,
+        line1Size: fitFontSize(ribbon.line1, W - px(120), fpx(38), fpx(20)),
+        line2Size: fitFontSize(ribbon.line2 ?? "", W - px(120), fpx(34), fpx(18)),
+      }),
     );
-    y += fpx(30);
   }
-  y += px(14);
 
-  // --- Content blocks as column-aware emitters, so landscape can place
-  // the requirement detail (chips + interview) in a right-hand column
-  // instead of overflowing a single column past the CTA bar. ---
-  const emitChips = (x: number, width: number, startY: number): number => {
-    let cy = startY;
-    const chipH = px(52);
-    const chipGap = px(14);
-    for (const p of facts.positions) {
-      const line = formatPositionLine(p);
-      const size = fitFontSize(line, width - px(56), fpx(24), fpx(15));
-      parts.push(
-        `<rect x="${x}" y="${cy}" width="${width}" height="${chipH}" rx="${px(10)}" fill="#ffffff" fill-opacity="0.13" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.5" />
-  <circle cx="${x + px(26)}" cy="${cy + chipH / 2}" r="${px(5)}" fill="${accent}" />
-  <text x="${x + px(46)}" y="${cy + chipH / 2 + size * 0.36}" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`,
-      );
-      cy += chipH + chipGap;
-    }
-    return cy + px(16);
-  };
-
-  const emitBenefits = (x: number, width: number, startY: number): number => {
-    if (facts.benefits.length === 0) return startY;
-    const cardPad = px(20);
-    const lineH = px(38);
-    const cardH = cardPad * 2 + facts.benefits.length * lineH - px(8);
+  // --- Navy contact bar: big phone + gold email pill ---
+  const contactY = ribbonY + (ribbon ? ribbonH + px(10) : 0);
+  const contactH = px(96);
+  const phone = facts.contact.phone ?? facts.contact.whatsapp;
+  const email = facts.contact.email;
+  parts.push(`<rect x="0" y="${contactY}" width="${W}" height="${contactH}" fill="${navy}" />`);
+  let cx = pad;
+  if (phone) {
+    const size = fpx(44);
     parts.push(
-      `<rect x="${x}" y="${startY}" width="${width}" height="${cardH}" rx="${px(10)}" fill="#000000" fill-opacity="0.45" stroke="${accent}" stroke-width="2" />
-  <rect x="${x}" y="${startY}" width="${px(8)}" height="${cardH}" fill="${accent}" />`,
+      `${phoneIcon(cx, contactY + contactH / 2 - fpx(20), fpx(40), gold)}
+  <text x="${cx + px(52)}" y="${contactY + contactH / 2 + size * 0.34}" font-family="${font}" font-size="${size}" font-weight="700" fill="${gold}">${escapeXml(phone)}</text>`,
     );
-    let by = startY + cardPad + fpx(12);
-    for (const b of facts.benefits) {
-      const line = formatBenefitLine(b);
-      const size = fitFontSize(line, width - px(90), fpx(24), fpx(14));
-      parts.push(
-        `${checkIcon(x + px(26), by - fpx(14), fpx(20), dnaSecondary)}
-  <text x="${x + px(58)}" y="${by + fpx(2)}" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`,
-      );
-      by += lineH;
-    }
-    return startY + cardH + px(28);
-  };
-
-  const emitFooterNote = (x: number, width: number, startY: number): number => {
-    if (!facts.footer) return startY;
-    let cy = startY;
-    const note = fitWrappedText(facts.footer, width, fpx(20), fpx(13), 2);
-    for (const line of note.lines) {
-      cy += Math.round(note.fontSize * 1.3);
-      parts.push(
-        `<text x="${x}" y="${cy}" font-family="${font}" font-size="${note.fontSize}" fill="#dddddd">${escapeXml(line)}</text>`,
-      );
-    }
-    return cy + px(26);
-  };
-
-  const emitInterview = (x: number, width: number, startY: number): number => {
-    if (facts.interview.length === 0) return startY;
-    let cy = startY;
-    const cols = Math.min(facts.interview.length, 2);
-    const gap = px(16);
-    const boxW = (width - gap * (cols - 1)) / cols;
-    // Found by the real-API acceptance run: with 3+ interview events the
-    // second row of boxes ran under the CTA bar. The box height adapts to
-    // the space actually left above the bar, down to a legible floor.
-    const rows = Math.ceil(facts.interview.length / cols);
-    const barTop = H - px(150);
-    const available = barTop - startY - px(34) - gap * (rows - 1) - px(16);
-    const boxH = Math.max(px(40), Math.min(px(66), Math.floor(available / Math.max(rows, 1))));
-    parts.push(
-      `<text x="${x}" y="${cy + fpx(20)}" font-family="${font}" font-size="${fpx(20)}" font-weight="700" letter-spacing="2" fill="${accent}">INTERVIEW</text>`,
-    );
-    cy += px(34);
-    facts.interview.forEach((event, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const bx = x + col * (boxW + gap);
-      const byy = cy + row * (boxH + gap);
-      const line = formatInterviewLine(event);
-      const size = fitFontSize(line, boxW - px(24), fpx(20), fpx(12));
-      parts.push(
-        `<rect x="${bx}" y="${byy}" width="${boxW}" height="${boxH}" rx="${px(10)}" fill="#ffffff" fill-opacity="0.13" stroke="#ffffff" stroke-opacity="0.4" stroke-width="1.5" />
-  <text x="${bx + boxW / 2}" y="${byy + boxH / 2 + size * 0.36}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`,
-      );
+    cx += px(52) + phone.length * size * 0.72 + px(28);
+  }
+  if (email) {
+    const pillH = px(58);
+    const pillSize = fitFontSize(`Email: ${email}`, W - cx - pad - px(60), fpx(28), fpx(15));
+    const pill = goldPill({
+      x: cx,
+      y: contactY + Math.round((contactH - pillH) / 2),
+      height: pillH,
+      text: `Email: ${email}`,
+      fontFamily: font,
+      fontSize: pillSize,
     });
-    return cy + Math.ceil(facts.interview.length / cols) * (boxH + gap);
-  };
+    parts.push(pill.svg);
+  }
 
-  if (isLandscape) {
-    // Left column continues with the benefit callout + note; the
-    // requirement detail (chips + interview) fills the right column.
-    let yl = y;
-    yl = emitBenefits(pad, contentW, yl);
-    emitFooterNote(pad, contentW, yl);
-    const rightX = Math.round(W * 0.56);
-    const rightW = W - rightX - pad;
-    // Readability panel: the side scrim fades out toward the right, so
-    // the right column gets its own translucent backing over the photo.
+  // --- Benefit banner (grounded compensation) ---
+  let bandY = contactY + contactH + px(10);
+  const bannerText =
+    plan.copy?.benefitBanner ??
+    (facts.benefits.length > 0 ? facts.benefits.map((b) => b.label.toUpperCase()).join(" + ") : null);
+  if (bannerText) {
+    const bannerH = px(78);
+    const size = fitFontSize(bannerText, W - pad * 2, fpx(40), fpx(18));
     parts.push(
-      `<rect x="${rightX - px(24)}" y="${pad}" width="${rightW + px(48)}" height="${H - px(150) - pad - px(24)}" rx="${px(14)}" fill="#000000" fill-opacity="0.42" />`,
+      `<rect x="0" y="${bandY}" width="${W}" height="${bannerH}" fill="${green}" />
+  <text x="${W / 2}" y="${bandY + bannerH / 2 + size * 0.36}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${gold}">${escapeXml(bannerText)}</text>`,
     );
-    let yr = pad + px(24);
-    yr = emitChips(rightX, rightW, yr);
-    emitInterview(rightX, rightW, yr + px(8));
-  } else {
-    y = emitChips(pad, contentW, y);
-    y = emitBenefits(pad, contentW, y);
-    y = emitFooterNote(pad, contentW, y);
-    y = emitInterview(pad, contentW, y);
+    bandY += bannerH + px(Math.round(14 * spacingScale));
   }
 
-  // --- Bottom CTA bar: contact + integrated verification panel ---
-  const barH = px(150);
-  const barY = H - barH;
-  const barParts: string[] = [
-    `<rect x="0" y="${barY}" width="${W}" height="${barH}" fill="${accent}" />`,
-  ];
-  const { primary, secondary } = contactParts(facts.contact);
-  const panel = verificationPanel({
-    x: 0, // placeholder, computed below
-    y: barY + Math.round((barH - px(110)) / 2),
-    height: px(110),
+  // --- Positions card (banded rows) ---
+  const bottomStripH = px(120);
+  const cardX = pad;
+  const cardW = W - pad * 2;
+  const headerRowH = px(52);
+  const footerNote = facts.footer;
+  const noteH = footerNote ? px(40) : 0;
+  const availForRows = H - bottomStripH - noteH - bandY - headerRowH - px(30);
+  const rowH = Math.max(px(40), Math.min(px(60), Math.floor(availForRows / Math.max(facts.positions.length, 1))));
+  const cardH = headerRowH + facts.positions.length * rowH;
+  parts.push(
+    `<rect x="${cardX}" y="${bandY}" width="${cardW}" height="${cardH}" rx="${px(8)}" fill="#ffffff" />
+  <rect x="${cardX}" y="${bandY}" width="${cardW}" height="${headerRowH}" rx="${px(8)}" fill="${navy}" />
+  <rect x="${cardX}" y="${bandY + headerRowH - px(8)}" width="${cardW}" height="${px(8)}" fill="${navy}" />
+  <text x="${cardX + px(20)}" y="${bandY + headerRowH / 2 + fpx(9)}" font-family="${font}" font-size="${fpx(24)}" font-weight="700" letter-spacing="3" fill="#ffffff">POSITIONS</text>`,
+  );
+  facts.positions.forEach((p, i) => {
+    const ry = bandY + headerRowH + i * rowH;
+    const label = p.count ? `${p.title}` : p.title;
+    const size = fitFontSize(label, cardW - px(120), fpx(30), fpx(15));
+    parts.push(
+      `<rect x="${cardX}" y="${ry}" width="${cardW}" height="${rowH}" fill="${i % 2 === 0 ? "#eef2f7" : "#ffffff"}" />
+  <path d="M ${cardX + px(20)} ${ry + rowH / 2 - fpx(8)} L ${cardX + px(32)} ${ry + rowH / 2} L ${cardX + px(20)} ${ry + rowH / 2 + fpx(8)} Z" fill="${accent}" />
+  <text x="${cardX + px(46)}" y="${ry + rowH / 2 + size * 0.36}" font-family="${font}" font-size="${size}" font-weight="700" fill="${navy}">${escapeXml(label)}</text>
+  ${p.count ? `<text x="${cardX + cardW - px(20)}" y="${ry + rowH / 2 + fpx(9)}" text-anchor="end" font-family="${font}" font-size="${fpx(26)}" font-weight="700" fill="${green}">${p.count} Nos</text>` : ""}`,
+    );
+  });
+  let afterCard = bandY + cardH + px(14);
+
+  // --- Grounded requirement note ---
+  if (footerNote) {
+    const size = fitFontSize(footerNote, W - pad * 2, fpx(24), fpx(13));
+    parts.push(
+      `<text x="${W / 2}" y="${afterCard + fpx(16)}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${gold}">${escapeXml(footerNote)}</text>`,
+    );
+    afterCard += noteH;
+  }
+
+  // --- Bottom identity strip + KAI verification panel ---
+  const stripY = H - bottomStripH;
+  parts.push(`<rect x="0" y="${stripY}" width="${W}" height="${bottomStripH}" fill="${navy}" />
+  <rect x="0" y="${stripY}" width="${W}" height="${px(6)}" fill="${gold}" />`);
+  const panelProbe = verificationPanel({
+    x: 0,
+    y: stripY + Math.round((bottomStripH - px(92)) / 2) + px(3),
+    height: px(92),
     qrDataUri: plan.qrDataUri,
     raLicenseId: facts.raLicenseId,
     fontFamily: font,
     captionColor: "#ffffff",
-    accentColor: accent,
+    accentColor: green,
   });
-  const panelX = W - pad - panel.width;
-  const panelAt = verificationPanel({
-    x: panelX,
-    y: barY + Math.round((barH - px(110)) / 2),
-    height: px(110),
-    qrDataUri: plan.qrDataUri,
-    raLicenseId: facts.raLicenseId,
-    fontFamily: font,
-    captionColor: "#ffffff",
-    accentColor: accent,
-  });
-  barParts.push(panelAt.svg);
+  const panelX = W - pad - panelProbe.width;
+  parts.push(
+    verificationPanel({
+      x: panelX,
+      y: stripY + Math.round((bottomStripH - px(92)) / 2) + px(3),
+      height: px(92),
+      qrDataUri: plan.qrDataUri,
+      raLicenseId: facts.raLicenseId,
+      fontFamily: font,
+      captionColor: "#ffffff",
+      accentColor: green,
+    }).svg,
+  );
+  const stripTextW = panelX - pad - px(20);
+  parts.push(
+    `<text x="${pad}" y="${stripY + bottomStripH / 2 - fpx(2)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, stripTextW, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>
+  ${facts.fullRegistrationNumber ? `<text x="${pad}" y="${stripY + bottomStripH / 2 + fpx(22)}" font-family="${font}" font-size="${fitFontSize(`Regd. No. ${facts.fullRegistrationNumber}`, stripTextW, fpx(16), fpx(9))}" fill="#c6d2e0">Regd. No. ${escapeXml(facts.fullRegistrationNumber)}</text>` : ""}`,
+  );
 
-  const ctaTextW = panelX - pad - px(24);
-  if (primary) {
-    const size = fitFontSize(primary, ctaTextW - px(44), fpx(34), fpx(16));
-    barParts.push(
-      `${phoneIcon(pad, barY + barH / 2 - fpx(30), fpx(30), "#ffffff")}
-  <text x="${pad + px(44)}" y="${barY + barH / 2 - fpx(6)}" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffffff">${escapeXml(primary)}</text>`,
-    );
-  }
-  if (secondary) {
-    const size = fitFontSize(secondary, ctaTextW - px(44), fpx(20), fpx(12));
-    barParts.push(
-      `${mailIcon(pad, barY + barH / 2 + fpx(6), fpx(24), "#ffffff")}
-  <text x="${pad + px(44)}" y="${barY + barH / 2 + fpx(24)}" font-family="${font}" font-size="${size}" fill="#ffffff">${escapeXml(secondary)}</text>`,
-    );
-  }
+  // Landscape: same grammar compresses naturally via scalers; the hook and
+  // bands span the full width, which suits wide canvases.
+  void isLandscape;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${buildEmbeddedFontStyleBlock()}
   ${background}
-  ${scrim}
+  ${scrims}
   ${parts.join("\n  ")}
-  ${barParts.join("\n  ")}
 </svg>`;
 }

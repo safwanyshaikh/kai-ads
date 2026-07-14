@@ -13,6 +13,17 @@ import type { AdvertisementFacts } from "./types";
 export interface AdCopyPlan {
   /** The display headline — the header stripped of listing boilerplate ("Hiring for", "Urgently required for", ...) so the substance leads. */
   primaryHeadline: string;
+  /**
+   * The poster hook, stacked for dominance: up to two uppercase-ready
+   * lines a scrolling candidate reads in the first second — line 1 the
+   * grounded project/role core, line 2 the country ("IN SAUDI ARABIA").
+   * Benchmark grammar: real market ads stack these in huge two-color type.
+   */
+  hookLines: string[];
+  /** Angled-ribbon interview hook ("CLIENT INTERVIEWS IN BARODA & MUMBAI" + dates line), or null without interview events. All values grounded. */
+  interviewRibbon: { line1: string; line2: string | null } | null;
+  /** Full-width benefit banner text (grounded compensation benefits joined with "+"), or null. */
+  benefitBanner: string | null;
   /** One grounded supporting line for archetypes with a secondary slot, or null when nothing earns it. */
   secondaryHeadline: string | null;
   /** Which grounded angle leads the advertisement. */
@@ -94,8 +105,42 @@ export function buildAdCopyPlan(facts: AdvertisementFacts, opts?: { hasCompensat
     secondaryHeadline = comp ?? null;
   }
 
+  // Poster hook stack: the headline core dominates line 1; the country
+  // gets its own line ("IN <COUNTRY>" — "in" is presentation glue, the
+  // country is grounded). If the core still ends with the country (rare),
+  // it stays a single line.
+  const hookLines: string[] = [primaryHeadline.toUpperCase()];
+  if (facts.country && !primaryHeadline.toLowerCase().includes(facts.country.toLowerCase())) {
+    hookLines.push(`IN ${facts.country.toUpperCase()}`);
+  }
+
+  // Angled interview ribbon — the market's classic urgency hook, grounded
+  // in the actual cities and dates.
+  const uniqueDates = [...new Set(facts.interview.map((e) => e.date).filter((d): d is string => Boolean(d)))];
+  const interviewRibbon =
+    interviewCities.length > 0
+      ? {
+          line1: `CLIENT INTERVIEW${interviewCities.length > 1 ? "S" : ""} IN ${interviewCities
+            .map((c) => c.toUpperCase())
+            .join(" & ")}`,
+          line2: uniqueDates.length > 0 ? `ON ${uniqueDates.map((d) => d.toUpperCase()).join(" · ")}` : null,
+        }
+      : null;
+
+  // Full-width benefit banner: grounded compensation benefits joined with
+  // "+" (glue), uppercase — mirrors the market's yellow-on-green banner.
+  const benefitBanner =
+    hasCompensation && facts.benefits.length > 0
+      ? facts.benefits
+          .map((b) => b.label.toUpperCase())
+          .join(" + ")
+      : null;
+
   return {
     primaryHeadline,
+    hookLines,
+    interviewRibbon,
+    benefitBanner,
     secondaryHeadline,
     strongestSellingPoint,
     emphasis: {

@@ -158,6 +158,21 @@ AI image) are only ever reached through an interface in
 `agencyId` derived from the authenticated session — never from a client-
 supplied parameter.
 
+## Governance & source-of-truth registry
+
+| Document | Authority | Scope |
+| --- | --- | --- |
+| `docs/000_PRODUCT_CONSTITUTION.md` | Product law (LOCKED) | Whole product |
+| `docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md` | Primary commercial design authority | Every advertisement layout, archetype, typography, imagery, footer/CTA, visual-QA decision |
+| `decisions/ADR-*.md` | Architecture decisions | As titled |
+
+If any code, prompt, AI instruction, or older document conflicts with the
+Advertisement Composition Constitution, the Constitution wins unless the
+product owner amends it. Runtime enforcement:
+`src/server/generation/archetypes/composition-constitution.ts` (wired
+through `composeAdvertisement()`); regression lock:
+`tests/composition-constitution.test.ts`.
+
 ## Known environment limitation
 
 This sandbox's network is restricted to package registries — neither

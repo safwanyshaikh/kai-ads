@@ -3,10 +3,25 @@ import { renderVisualHero } from "./visual-hero";
 import { renderStructuredProfessional } from "./structured-professional";
 import { renderHighDensity } from "./high-density";
 import { renderDtpNewspaper } from "./dtp-newspaper";
+import {
+  buildCompositionDirectives,
+  enforceCompositionConstitution,
+} from "./composition-constitution";
 
 export * from "./types";
 export { resolveAgencyVisualDna, type AgencyVisualDna, type VisualDnaOverrides } from "./visual-dna";
 export { buildAdCopyPlan, type AdCopyPlan } from "./advertisement-intelligence";
+export {
+  ADVERTISEMENT_COMPOSITION_CONSTITUTION_PATH,
+  buildCompositionDirectives,
+  classifyContentDensity,
+  enforceCompositionConstitution,
+  CompositionConstitutionViolation,
+  type CompositionDirectives,
+  type ContentDensityClass,
+  type FooterVariant,
+  type InformationPriorityItem,
+} from "./composition-constitution";
 export {
   selectArchetype,
   archetypeUsesGeneratedImagery,
@@ -25,14 +40,43 @@ export {
  * template — see the module docblocks of the four engines.
  */
 export function composeAdvertisement(input: CompositionInput): string {
-  switch (input.plan.archetype) {
+  // ADVERTISEMENT COMPOSITION CONSTITUTION (docs/008): every render —
+  // any archetype, any caller — goes through the directive decision
+  // before composition and the constitutional gate after it. The
+  // Typography Scale Engine's decision is folded into the headline
+  // tuning so sparse sources scale UP instead of shrinking (Article III).
+  const directives =
+    input.plan.directives ??
+    buildCompositionDirectives(input.facts, {
+      archetype: input.plan.archetype,
+      copy: input.plan.copy,
+    });
+  const govern: CompositionInput = {
+    facts: input.facts,
+    plan: {
+      ...input.plan,
+      directives,
+      tuning: {
+        ...input.plan.tuning,
+        headlineScale: (input.plan.tuning?.headlineScale ?? 1) * directives.typographyScale,
+      },
+    },
+  };
+  let svg: string;
+  switch (govern.plan.archetype) {
     case "VISUAL_HERO":
-      return renderVisualHero(input);
+      svg = renderVisualHero(govern);
+      break;
     case "STRUCTURED_PROFESSIONAL":
-      return renderStructuredProfessional(input);
+      svg = renderStructuredProfessional(govern);
+      break;
     case "HIGH_DENSITY":
-      return renderHighDensity(input);
+      svg = renderHighDensity(govern);
+      break;
     case "DTP_NEWSPAPER":
-      return renderDtpNewspaper(input);
+      svg = renderDtpNewspaper(govern);
+      break;
   }
+  enforceCompositionConstitution(svg, input.facts, directives);
+  return svg;
 }
