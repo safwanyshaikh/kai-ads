@@ -222,6 +222,33 @@ export async function runAcceptanceLoop(
     if (corrections.some((c) => c.type === "IMPROVE_SPACING")) {
       tuning.spacingScale = (tuning.spacingScale ?? 1) + 0.15;
     }
+    if (corrections.some((c) => c.type === "IMPROVE_CTA")) {
+      tuning.ctaScale = (tuning.ctaScale ?? 1) + 0.12;
+    }
+    if (corrections.some((c) => c.type === "IMPROVE_CONTRAST")) {
+      tuning.scrimOpacity = (tuning.scrimOpacity ?? 1) + 0.15;
+    }
+
+    // Keyword-based actuator mapping for OTHER corrections — different
+    // defects require different actuators, not a generic no-op.
+    for (const c of corrections.filter((c) => c.type === "OTHER")) {
+      const note = c.note.toLowerCase();
+      if (/\b(email|phone|contact|cta)\b/.test(note) && !/headline/.test(note)) {
+        tuning.ctaScale = (tuning.ctaScale ?? 1) + 0.1;
+      }
+      if (/\b(qr|verification|scan|trust panel)\b/.test(note)) {
+        tuning.qrPanelScale = (tuning.qrPanelScale ?? 1) + 0.08;
+      }
+      if (/\b(scrim|contrast|wash|readab|legib|background.*text|text.*background)\b/.test(note)) {
+        tuning.scrimOpacity = (tuning.scrimOpacity ?? 1) + 0.12;
+      }
+      if (/\b(banner|benefit.*spac|line.?spac)\b/.test(note)) {
+        tuning.bannerSpacing = (tuning.bannerSpacing ?? 1) + 0.1;
+      }
+      if (/\b(dead.*canvas|dead.*zone|empty.*space|gap|section.*spac|redistribut)\b/.test(note)) {
+        tuning.sectionGapScale = (tuning.sectionGapScale ?? 1) + 0.15;
+      }
+    }
     plan = { ...plan, tuning };
 
     const wantsImageRegen = corrections.some((c) => c.type === "REGENERATE_IMAGE");

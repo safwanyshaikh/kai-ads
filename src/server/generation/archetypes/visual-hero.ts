@@ -4,6 +4,7 @@ import type { CompositionInput } from "./types";
 import {
   angledRibbon,
   ensureDeepColor,
+  clampOpacity,
   clampTuning,
   escapeXml,
   fitFontSize,
@@ -48,6 +49,11 @@ export function renderVisualHero(input: CompositionInput): string {
 
   const headlineScale = clampTuning(plan.tuning?.headlineScale);
   const spacingScale = clampTuning(plan.tuning?.spacingScale);
+  const ctaScale = clampTuning(plan.tuning?.ctaScale);
+  const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
+  const bannerSpacing = clampTuning(plan.tuning?.bannerSpacing);
+  const scrimTopOpacity = clampOpacity(plan.tuning?.scrimOpacity, 0.62);
+  const scrimBottomOpacity = clampOpacity(plan.tuning?.scrimOpacity, 0.9);
 
   const background = plan.backgroundImageDataUri
     ? `<image x="0" y="0" width="${W}" height="${H}" href="${plan.backgroundImageDataUri}" preserveAspectRatio="xMidYMid slice" />`
@@ -62,14 +68,14 @@ export function renderVisualHero(input: CompositionInput): string {
   // wash rises under the lower information bands.
   const scrims = `<defs>
     <linearGradient id="heroTopWash" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#f4f7fa" stop-opacity="0.62" />
-      <stop offset="55%" stop-color="#f4f7fa" stop-opacity="0.3" />
+      <stop offset="0%" stop-color="#f4f7fa" stop-opacity="${scrimTopOpacity.toFixed(2)}" />
+      <stop offset="55%" stop-color="#f4f7fa" stop-opacity="${(scrimTopOpacity * 0.48).toFixed(2)}" />
       <stop offset="100%" stop-color="#f4f7fa" stop-opacity="0" />
     </linearGradient>
     <linearGradient id="heroBottomWash" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#050d1a" stop-opacity="0" />
-      <stop offset="40%" stop-color="#050d1a" stop-opacity="0.72" />
-      <stop offset="100%" stop-color="#050d1a" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#050d1a" stop-opacity="${(scrimBottomOpacity * 0.8).toFixed(2)}" />
+      <stop offset="100%" stop-color="#050d1a" stop-opacity="${scrimBottomOpacity.toFixed(2)}" />
     </linearGradient>
   </defs>
   <rect x="0" y="0" width="${W}" height="${Math.round(H * 0.42)}" fill="url(#heroTopWash)" />
@@ -170,22 +176,22 @@ export function renderVisualHero(input: CompositionInput): string {
 
   // --- Navy contact bar: big phone + gold email pill ---
   const contactY = ribbonY + (ribbon ? ribbonH + px(10) : 0);
-  const contactH = px(96);
+  const contactH = px(Math.round(96 * ctaScale));
   const phone = facts.contact.phone ?? facts.contact.whatsapp;
   const email = facts.contact.email;
   parts.push(`<rect x="0" y="${contactY}" width="${W}" height="${contactH}" fill="${navy}" />`);
   let cx = pad;
   if (phone) {
-    const size = fpx(44);
+    const size = fpx(Math.round(44 * ctaScale));
     parts.push(
-      `${phoneIcon(cx, contactY + contactH / 2 - fpx(20), fpx(40), gold)}
+      `${phoneIcon(cx, contactY + contactH / 2 - fpx(20), fpx(Math.round(40 * ctaScale)), gold)}
   <text x="${cx + px(52)}" y="${contactY + contactH / 2 + size * 0.34}" font-family="${font}" font-size="${size}" font-weight="700" fill="${gold}">${escapeXml(phone)}</text>`,
     );
     cx += px(52) + phone.length * size * 0.72 + px(28);
   }
   if (email) {
-    const pillH = px(58);
-    const pillSize = fitFontSize(`Email: ${email}`, W - cx - pad - px(60), fpx(28), fpx(15));
+    const pillH = px(Math.round(58 * ctaScale));
+    const pillSize = fitFontSize(`Email: ${email}`, W - cx - pad - px(60), fpx(Math.round(28 * ctaScale)), fpx(15));
     const pill = goldPill({
       x: cx,
       y: contactY + Math.round((contactH - pillH) / 2),
@@ -209,7 +215,7 @@ export function renderVisualHero(input: CompositionInput): string {
       `<rect x="0" y="${bandY}" width="${W}" height="${bannerH}" fill="${green}" />
   <text x="${W / 2}" y="${bandY + bannerH / 2 + size * 0.36}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${gold}">${escapeXml(bannerText)}</text>`,
     );
-    bandY += bannerH + px(Math.round(14 * spacingScale));
+    bandY += bannerH + px(Math.round(14 * spacingScale * bannerSpacing));
   }
 
   // --- Positions card (banded rows) ---
@@ -254,10 +260,11 @@ export function renderVisualHero(input: CompositionInput): string {
   const stripY = H - bottomStripH;
   parts.push(`<rect x="0" y="${stripY}" width="${W}" height="${bottomStripH}" fill="${navy}" />
   <rect x="0" y="${stripY}" width="${W}" height="${px(6)}" fill="${gold}" />`);
+  const qrH = px(Math.round(92 * qrPanelScale));
   const panelProbe = verificationPanel({
     x: 0,
-    y: stripY + Math.round((bottomStripH - px(92)) / 2) + px(3),
-    height: px(92),
+    y: stripY + Math.round((bottomStripH - qrH) / 2) + px(3),
+    height: qrH,
     qrDataUri: plan.qrDataUri,
     raLicenseId: facts.raLicenseId,
     fontFamily: font,
@@ -268,8 +275,8 @@ export function renderVisualHero(input: CompositionInput): string {
   parts.push(
     verificationPanel({
       x: panelX,
-      y: stripY + Math.round((bottomStripH - px(92)) / 2) + px(3),
-      height: px(92),
+      y: stripY + Math.round((bottomStripH - qrH) / 2) + px(3),
+      height: qrH,
       qrDataUri: plan.qrDataUri,
       raLicenseId: facts.raLicenseId,
       fontFamily: font,

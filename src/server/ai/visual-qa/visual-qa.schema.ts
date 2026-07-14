@@ -21,7 +21,11 @@ export const visualQaCorrectionTypeSchema = z.enum([
   "INCREASE_HEADLINE_EMPHASIS",
   /** Crowding, collisions, or dead zones — layout spacing correction. */
   "IMPROVE_SPACING",
-  /** Anything else — recorded for the report, applied as no structural change. */
+  /** Contact CTA (phone, email) undersized or imbalanced. */
+  "IMPROVE_CTA",
+  /** Text-over-image or text-over-background contrast insufficient. */
+  "IMPROVE_CONTRAST",
+  /** Anything else — recorded for the report, mapped by keyword heuristic when possible. */
   "OTHER",
 ]);
 

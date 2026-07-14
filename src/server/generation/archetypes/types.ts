@@ -64,6 +64,16 @@ export interface CompositionTuning {
   headlineScale?: number;
   /** Multiplies section-gap/spread allocation in engines that distribute vertical space. */
   spacingScale?: number;
+  /** Multiplies contact CTA element sizes (phone number, email pill) — corrects email/phone balance defects. */
+  ctaScale?: number;
+  /** Multiplies scrim/wash opacity for text-over-image separation (Visual Hero only). */
+  scrimOpacity?: number;
+  /** Multiplies the verification panel's QR box size — corrects cramped trust panels. */
+  qrPanelScale?: number;
+  /** Multiplies benefit banner internal line-spacing. */
+  bannerSpacing?: number;
+  /** Multiplies section gap distribution independently of spacingScale — corrects dead-canvas defects by redistributing vertical space across sections. */
+  sectionGapScale?: number;
 }
 
 export interface CompositionPlan {

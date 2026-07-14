@@ -9,7 +9,9 @@ import {
   selectArchetype,
   type AdvertisementArchetype,
   type AdvertisementFacts,
+  type CompositionTuning,
 } from "@/server/generation/archetypes";
+import { highDensityFacts } from "./fixtures/high-density-fixture";
 import { generateAndVerifyQr, buildQrTrackingUrl } from "@/server/generation/qr-renderer";
 import { rasterizeSvg } from "@/server/generation/image-export.service";
 import { getPlatformFormat } from "@/lib/platform-formats";
@@ -213,6 +215,136 @@ describe("buildImageBrief — creative-director canvas brief (GPT designs the ca
     // appears — GPT is never asked to DEPICT the employer.
     const withoutQuotedHook = brief.replace(/"[^"]*"/g, "");
     expect(withoutQuotedHook.toLowerCase()).not.toContain("bilfinger");
+  });
+});
+
+describe("HIGH_DENSITY with genuinely dense fixture (18 positions, 201 headcount)", () => {
+  function renderHd(tuning: CompositionTuning = {}): string {
+    return composeAdvertisement({
+      facts: highDensityFacts,
+      plan: {
+        archetype: "HIGH_DENSITY",
+        platformFormat: getPlatformFormat("instagram_post"),
+        accentColor: "#0d4f8b",
+        qrDataUri: "data:image/png;base64,iVBORw0KGgo=",
+        backgroundImageDataUri: null,
+        agencyLogoDataUri: null,
+        tuning,
+      },
+    });
+  }
+
+  it("renders all 18 positions in the vacancy table", () => {
+    const svg = renderHd();
+    expect(svg).toContain("Pipe Fitter");
+    expect(svg).toContain("Store Keeper");
+    expect(svg).toContain("NDT Technician");
+    expect(svg).toContain("Crane Operator");
+    expect(svg.match(/<text /g)!.length).toBeGreaterThan(20);
+  });
+
+  it("shows vacancy counts for positions that have them", () => {
+    const svg = renderHd();
+    expect(svg).toContain(">25<");
+    expect(svg).toContain(">20<");
+    expect(svg).toContain(">15<");
+  });
+
+  it("preserves all three interview events with city-date pairing", () => {
+    const svg = renderHd();
+    expect(svg).toContain("Mumbai");
+    expect(svg).toContain("Delhi");
+    expect(svg).toContain("Chennai");
+    expect(svg).toContain("21st");
+    expect(svg).toContain("24th July");
+  });
+
+  it("responds to ctaScale tuning by increasing contact CTA size", () => {
+    const base = renderHd();
+    const tuned = renderHd({ ctaScale: 1.2 });
+    expect(base).not.toBe(tuned);
+  });
+
+  it("responds to sectionGapScale tuning (on sparse-enough content)", () => {
+    // With 18 positions the table absorbs nearly all vertical space, so
+    // the section gap clamps at the floor — test on Bilfinger's 5-position
+    // shape where HD has real leftover space to redistribute.
+    const base = render("HIGH_DENSITY");
+    const tuned = composeAdvertisement({
+      facts: bilfingerFacts,
+      plan: {
+        archetype: "HIGH_DENSITY",
+        platformFormat: getPlatformFormat("instagram_post"),
+        accentColor: "#0d4f8b",
+        qrDataUri: "data:image/png;base64,iVBORw0KGgo=",
+        backgroundImageDataUri: null,
+        agencyLogoDataUri: null,
+        tuning: { sectionGapScale: 1.2 },
+      },
+    });
+    expect(base).not.toBe(tuned);
+  });
+
+  it("responds to qrPanelScale tuning", () => {
+    const base = renderHd();
+    const tuned = renderHd({ qrPanelScale: 1.1 });
+    expect(base).not.toBe(tuned);
+  });
+});
+
+describe("Actuator tuning changes composition output across archetypes", () => {
+  for (const archetype of ALL_ARCHETYPES) {
+    it(`${archetype}: ctaScale=1.15 produces a different composition than the default`, () => {
+      const base = render(archetype);
+      const tuned = composeAdvertisement({
+        facts: bilfingerFacts,
+        plan: {
+          archetype,
+          platformFormat: getPlatformFormat("instagram_post"),
+          accentColor: "#0d4f8b",
+          qrDataUri: "data:image/png;base64,iVBORw0KGgo=",
+          backgroundImageDataUri: null,
+          agencyLogoDataUri: null,
+          tuning: { ctaScale: 1.15 },
+        },
+      });
+      expect(base).not.toBe(tuned);
+    });
+
+    it(`${archetype}: qrPanelScale=1.1 produces a different composition than the default`, () => {
+      const base = render(archetype);
+      const tuned = composeAdvertisement({
+        facts: bilfingerFacts,
+        plan: {
+          archetype,
+          platformFormat: getPlatformFormat("instagram_post"),
+          accentColor: "#0d4f8b",
+          qrDataUri: "data:image/png;base64,iVBORw0KGgo=",
+          backgroundImageDataUri: null,
+          agencyLogoDataUri: null,
+          tuning: { qrPanelScale: 1.1 },
+        },
+      });
+      expect(base).not.toBe(tuned);
+    });
+  }
+
+  it("VISUAL_HERO: scrimOpacity=1.2 changes the wash gradient opacity", () => {
+    const base = render("VISUAL_HERO");
+    const tuned = composeAdvertisement({
+      facts: bilfingerFacts,
+      plan: {
+        archetype: "VISUAL_HERO",
+        platformFormat: getPlatformFormat("instagram_post"),
+        accentColor: "#0d4f8b",
+        qrDataUri: "data:image/png;base64,iVBORw0KGgo=",
+        backgroundImageDataUri: null,
+        agencyLogoDataUri: null,
+        tuning: { scrimOpacity: 1.2 },
+      },
+    });
+    expect(base).not.toBe(tuned);
+    expect(tuned).toContain("heroTopWash");
   });
 });
 

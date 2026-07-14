@@ -201,6 +201,12 @@ export function clampTuning(value: number | undefined, min = 0.85, max = 1.3): n
   return Math.max(min, Math.min(max, value));
 }
 
+/** Clamps opacity tuning (0.0–1.0 range) with a default. */
+export function clampOpacity(value: number | undefined, base: number): number {
+  if (value === undefined || !Number.isFinite(value)) return base;
+  return Math.max(0.1, Math.min(1.0, base * value));
+}
+
 // ---------------------------------------------------------------------------
 // Benchmark poster components (market-reference grammar: angled interview
 // ribbon, gold email pill, trust roundel) — shared shapes only; each engine

@@ -71,6 +71,10 @@ export function renderDtpNewspaper(input: CompositionInput): string {
   );
   y += px(48);
 
+  const ctaScale = clampTuning(plan.tuning?.ctaScale);
+  const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
+  const sectionGapScale = clampTuning(plan.tuning?.sectionGapScale);
+
   // --- Bottom band geometry (needed by the body's spread computation) ---
   // Band/panel sized so the QR stays above the minimum reliably-decodable
   // pixel size — an 88px QR of a full tracking URL failed jsQR decoding
@@ -194,7 +198,7 @@ export function renderDtpNewspaper(input: CompositionInput): string {
     const { primary, secondary } = contactParts(facts.contact);
     const contactLine = [primary, secondary].filter(Boolean).join("  ·  ");
     if (contactLine) {
-      const size = fitFontSize(contactLine, col2W, fpx(28), fpx(13));
+      const size = fitFontSize(contactLine, col2W, fpx(Math.round(28 * ctaScale)), fpx(13));
       frags.push(
         `<line x1="${col2CenterX - col2W / 2}" y1="${cy - px(2)}" x2="${col2CenterX + col2W / 2}" y2="${cy - px(2)}" stroke="${ink}" stroke-width="1.5" />
   <text x="${col2CenterX}" y="${cy + px(34)}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${ink}">${escapeXml(contactLine)}</text>`,
@@ -207,10 +211,10 @@ export function renderDtpNewspaper(input: CompositionInput): string {
 
   const probe = buildBody(y, 0);
   const leftover = bandY - px(36) - probe.bottom;
-  const spread = Math.max(0, Math.min(Math.round(px(72) * clampTuning(plan.tuning?.spacingScale)), Math.floor(leftover / 5)));
+  const spread = Math.max(0, Math.min(Math.round(px(72) * clampTuning(plan.tuning?.spacingScale) * sectionGapScale), Math.floor(leftover / 5)));
   const body = spread > px(6) ? buildBody(y, spread) : probe;
   parts.push(...body.frags);
-  const panelH = px(120);
+  const panelH = px(Math.round(120 * qrPanelScale));
   const panelProbe = verificationPanel({
     x: 0,
     y: bandY + Math.round((bandH - panelH) / 2) - px(8),

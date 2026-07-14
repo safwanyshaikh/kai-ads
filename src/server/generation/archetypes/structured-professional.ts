@@ -44,6 +44,9 @@ export function renderStructuredProfessional(input: CompositionInput): string {
 
   const headlineScale = clampTuning(plan.tuning?.headlineScale);
   const spacingScale = clampTuning(plan.tuning?.spacingScale);
+  const ctaScale = clampTuning(plan.tuning?.ctaScale);
+  const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
+  const bannerSpacing = clampTuning(plan.tuning?.bannerSpacing);
 
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="#f7f9fb" />`];
 
@@ -135,28 +138,28 @@ export function renderStructuredProfessional(input: CompositionInput): string {
 
   // --- Navy contact bar ---
   const contactY = (ribbon ? ribbonY + ribbonH : ribbonY) + px(10);
-  const contactH = px(94);
+  const contactH = px(Math.round(94 * ctaScale));
   const phone = facts.contact.phone ?? facts.contact.whatsapp;
   const email = facts.contact.email;
   parts.push(`<rect x="0" y="${contactY}" width="${W}" height="${contactH}" fill="${navy}" />`);
   let cx = pad;
   if (phone) {
-    const size = fpx(44);
+    const size = fpx(Math.round(44 * ctaScale));
     parts.push(
-      `${phoneIcon(cx, contactY + contactH / 2 - fpx(20), fpx(40), gold)}
+      `${phoneIcon(cx, contactY + contactH / 2 - fpx(20), fpx(Math.round(40 * ctaScale)), gold)}
   <text x="${cx + px(52)}" y="${contactY + contactH / 2 + size * 0.34}" font-family="${font}" font-size="${size}" font-weight="700" fill="${gold}">${escapeXml(phone)}</text>`,
     );
     cx += px(52) + phone.length * size * 0.72 + px(28);
   }
   if (email) {
-    const pillH = px(56);
+    const pillH = px(Math.round(56 * ctaScale));
     const pill = goldPill({
       x: cx,
       y: contactY + Math.round((contactH - pillH) / 2),
       height: pillH,
       text: `Email: ${email}`,
       fontFamily: font,
-      fontSize: fitFontSize(`Email: ${email}`, W - cx - pad - px(60), fpx(27), fpx(14)),
+      fontSize: fitFontSize(`Email: ${email}`, W - cx - pad - px(60), fpx(Math.round(27 * ctaScale)), fpx(14)),
     });
     parts.push(pill.svg);
   }
@@ -173,7 +176,7 @@ export function renderStructuredProfessional(input: CompositionInput): string {
       `<rect x="0" y="${bandY}" width="${W}" height="${bannerH}" fill="${brand2}" />
   <text x="${W / 2}" y="${bandY + bannerH / 2 + size * 0.36}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${gold}">${escapeXml(bannerText)}</text>`,
     );
-    bandY += bannerH + px(Math.round(14 * spacingScale));
+    bandY += bannerH + px(Math.round(14 * spacingScale * bannerSpacing));
   }
 
   // --- Positions card (banded rows) ---
@@ -216,7 +219,7 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   const stripY = H - bottomStripH;
   parts.push(`<rect x="0" y="${stripY}" width="${W}" height="${bottomStripH}" fill="${navy}" />
   <rect x="0" y="${stripY}" width="${W}" height="${px(6)}" fill="${gold}" />`);
-  const panelH = px(92);
+  const panelH = px(Math.round(92 * qrPanelScale));
   const panelProbe = verificationPanel({
     x: 0,
     y: stripY + Math.round((bottomStripH - panelH) / 2) + px(3),

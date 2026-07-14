@@ -60,6 +60,9 @@ export function renderHighDensity(input: CompositionInput): string {
   // --- Headline band ---
   let y = stripH + px(52);
   const headlineScale = clampTuning(plan.tuning?.headlineScale);
+  const ctaScale = clampTuning(plan.tuning?.ctaScale);
+  const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
+  const sectionGapScale = clampTuning(plan.tuning?.sectionGapScale);
   const headlineText = (plan.copy?.primaryHeadline ?? facts.header).toUpperCase();
   const headlineSize = fitFontSize(headlineText, W - pad * 2, Math.round(fpx(62) * headlineScale), fpx(22));
   parts.push(
@@ -104,7 +107,8 @@ export function renderHighDensity(input: CompositionInput): string {
   const leftoverBelowTable =
     H - y - tableActualH - benefitsStripH - footerNoteH - interviewActualH - barH - px(70);
   const spacingScale = clampTuning(plan.tuning?.spacingScale);
-  const sectionGap = Math.max(px(20), Math.min(Math.round(px(110) * spacingScale), Math.floor((leftoverBelowTable / 3) * spacingScale)));
+  const combinedGapScale = spacingScale * sectionGapScale;
+  const sectionGap = Math.max(px(20), Math.min(Math.round(px(110) * combinedGapScale), Math.floor((leftoverBelowTable / 3) * combinedGapScale)));
 
   for (let c = 0; c < tableCols; c++) {
     const tx = pad + c * (tableW + colGap);
@@ -185,10 +189,11 @@ export function renderHighDensity(input: CompositionInput): string {
   // --- Contact bar + verification panel ---
   const barY = H - barH;
   parts.push(`<rect x="0" y="${barY}" width="${W}" height="${barH}" fill="${ink}" />`);
+  const qrH = px(Math.round(112 * qrPanelScale));
   const panelProbe = verificationPanel({
     x: 0,
-    y: barY + Math.round((barH - px(112)) / 2),
-    height: px(112),
+    y: barY + Math.round((barH - qrH) / 2),
+    height: qrH,
     qrDataUri: plan.qrDataUri,
     raLicenseId: facts.raLicenseId,
     fontFamily: font,
@@ -199,8 +204,8 @@ export function renderHighDensity(input: CompositionInput): string {
   parts.push(
     verificationPanel({
       x: panelX,
-      y: barY + Math.round((barH - px(112)) / 2),
-      height: px(112),
+      y: barY + Math.round((barH - qrH) / 2),
+      height: qrH,
       qrDataUri: plan.qrDataUri,
       raLicenseId: facts.raLicenseId,
       fontFamily: font,
@@ -211,14 +216,14 @@ export function renderHighDensity(input: CompositionInput): string {
   const { primary, secondary } = contactParts(facts.contact);
   const ctaW = panelX - pad - px(20);
   if (primary) {
-    const size = fitFontSize(primary, ctaW - px(40), fpx(30), fpx(14));
+    const size = fitFontSize(primary, ctaW - px(40), fpx(Math.round(30 * ctaScale)), fpx(14));
     parts.push(
-      `${phoneIcon(pad, barY + barH / 2 - fpx(26), fpx(28), accent)}
+      `${phoneIcon(pad, barY + barH / 2 - fpx(26), fpx(Math.round(28 * ctaScale)), accent)}
   <text x="${pad + px(40)}" y="${barY + barH / 2 - fpx(2)}" font-family="${font}" font-size="${size}" font-weight="700" fill="#ffffff">${escapeXml(primary)}</text>`,
     );
   }
   if (secondary) {
-    const size = fitFontSize(secondary, ctaW, fpx(19), fpx(11));
+    const size = fitFontSize(secondary, ctaW, fpx(Math.round(19 * ctaScale)), fpx(11));
     parts.push(
       `<text x="${pad + px(40)}" y="${barY + barH / 2 + fpx(24)}" font-family="${font}" font-size="${size}" fill="#cfd8e0">${escapeXml(secondary)}</text>`,
     );

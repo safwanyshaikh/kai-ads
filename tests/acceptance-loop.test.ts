@@ -256,6 +256,45 @@ describe("runAcceptanceLoop — closed-loop generation", () => {
     expect(outcome.iterations[0].visualQaError).toContain("vision API down");
   });
 
+  it("maps IMPROVE_CTA corrections to the ctaScale actuator", async () => {
+    const qa = fakeQa([qaScore(70, [{ type: "IMPROVE_CTA" as const, note: "email too small" }]), qaScore(90)]);
+    const outcome = await runAcceptanceLoop(bilfingerFacts, basePlan, realDeps({ visualQa: qa }));
+    expect(outcome.status).toBe("PASS");
+    expect(outcome.iterations[1].tuning.ctaScale).toBeCloseTo(1.12, 5);
+  });
+
+  it("maps IMPROVE_CONTRAST corrections to the scrimOpacity actuator", async () => {
+    const qa = fakeQa([qaScore(70, [{ type: "IMPROVE_CONTRAST" as const, note: "text over photo unreadable" }]), qaScore(90)]);
+    const outcome = await runAcceptanceLoop(
+      bilfingerFacts,
+      { ...basePlan, archetype: "VISUAL_HERO" },
+      realDeps({ visualQa: qa }),
+    );
+    expect(outcome.status).toBe("PASS");
+    expect(outcome.iterations[1].tuning.scrimOpacity).toBeCloseTo(1.15, 5);
+  });
+
+  it("maps OTHER correction notes with keyword 'qr' to qrPanelScale actuator", async () => {
+    const qa = fakeQa([qaScore(70, [{ type: "OTHER" as const, note: "QR panel is cramped and hard to scan" }]), qaScore(90)]);
+    const outcome = await runAcceptanceLoop(bilfingerFacts, basePlan, realDeps({ visualQa: qa }));
+    expect(outcome.status).toBe("PASS");
+    expect(outcome.iterations[1].tuning.qrPanelScale).toBeCloseTo(1.08, 5);
+  });
+
+  it("maps OTHER correction notes with keyword 'dead canvas' to sectionGapScale actuator", async () => {
+    const qa = fakeQa([qaScore(70, [{ type: "OTHER" as const, note: "dead canvas above contact bar" }]), qaScore(90)]);
+    const outcome = await runAcceptanceLoop(bilfingerFacts, basePlan, realDeps({ visualQa: qa }));
+    expect(outcome.status).toBe("PASS");
+    expect(outcome.iterations[1].tuning.sectionGapScale).toBeCloseTo(1.15, 5);
+  });
+
+  it("maps OTHER correction notes about contact/email to ctaScale actuator", async () => {
+    const qa = fakeQa([qaScore(70, [{ type: "OTHER" as const, note: "email and phone CTA are imbalanced" }]), qaScore(90)]);
+    const outcome = await runAcceptanceLoop(bilfingerFacts, basePlan, realDeps({ visualQa: qa }));
+    expect(outcome.status).toBe("PASS");
+    expect(outcome.iterations[1].tuning.ctaScale).toBeCloseTo(1.1, 5);
+  });
+
   it("reuses the generated image across layout-only corrections (no image regeneration call)", async () => {
     let imageRegenCalls = 0;
     const qa = fakeQa([qaScore(70, [{ type: "IMPROVE_SPACING", note: "crowded" }]), qaScore(90)]);
