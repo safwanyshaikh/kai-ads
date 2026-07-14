@@ -1,0 +1,148 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 88,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 88). Defects: Contact email inside a small colored pill shape is slightly less prominent than the phone number, they could be visually balanced better.; The green banners with text contain quite dense blocks, so line spacing could be slightly improved for easier reading.; The headline hierarchy could be slightly stronger with more emphasis on the key job opportunity.; The job positions box background could have slightly better contrast for easier reading.; The email contact CTA could be more prominent and visually distinct from the phone number section.; The background image is slightly busy behind the text areas, mildly impacting text legibility despite outlines.; The headline 'BILFINGER SHUTDOWN PROJECT' could be adjusted to emphasize the roles or opportunities even more distinctly.",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 85,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 88,
+        "ctaScore": 85,
+        "trustScore": 87,
+        "defects": [
+          "Contact email inside a small colored pill shape is slightly less prominent than the phone number, they could be visually balanced better.",
+          "The green banners with text contain quite dense blocks, so line spacing could be slightly improved for easier reading."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase line-height slightly for dense banners to improve readability and reduce crowding."
+          },
+          {
+            "type": "OTHER",
+            "note": "Make email contact as visually prominent as phone number for balanced CTA emphasis."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "The headline hierarchy could be slightly stronger with more emphasis on the key job opportunity.",
+          "The job positions box background could have slightly better contrast for easier reading."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Increase emphasis on the 'Bilfinger Shutdown Project' as the dominant headline to ensure immediate candidate attention."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15,
+        "headlineScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 87,
+        "readabilityScore": 89,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 86,
+        "ctaScore": 89,
+        "trustScore": 87,
+        "defects": [
+          "The email contact CTA could be more prominent and visually distinct from the phone number section.",
+          "The background image is slightly busy behind the text areas, mildly impacting text legibility despite outlines.",
+          "The headline 'BILFINGER SHUTDOWN PROJECT' could be adjusted to emphasize the roles or opportunities even more distinctly."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Increase emphasis on the main candidate hook or job highlight slightly more than the project name."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add subtle background overlays or adjust image contrast behind text to improve readability."
+          },
+          {
+            "type": "OTHER",
+            "note": "Make the email contact visually more distinct and clickable, balanced with the phone CTA."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

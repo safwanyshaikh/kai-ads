@@ -1,0 +1,15 @@
+{
+  "informationPriority": [
+    "DOMINANT_HOOK",
+    "DESTINATION_COUNTRY",
+    "COMPENSATION",
+    "INTERVIEW_EVENTS",
+    "POSITIONS",
+    "CONTACT_CTA",
+    "AGENCY_TRUST"
+  ],
+  "dominantHook": "BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA",
+  "contentDensityClass": "MEDIUM",
+  "typographyScale": 1,
+  "footerVariant": "TRUST_STRIP"
+}

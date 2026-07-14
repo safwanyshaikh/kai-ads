@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-14T17:35:56.554Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "a59cb1e9ca903654be8a817d933c460ef66c22d9",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "hookLines": [
+      "BILFINGER SHUTDOWN PROJECT",
+      "IN SAUDI ARABIA"
+    ],
+    "interviewRibbon": {
+      "line1": "CLIENT INTERVIEWS IN BARODA & MUMBAI",
+      "line2": "ON 14TH JULY · 15TH JULY · 18TH JULY"
+    },
+    "benefitBanner": "BASIC SALARY + DAILY OVERTIME UP TO 4 HOURS",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "EMPLOYER_PROJECT",
+    "emphasis": {
+      "country": true,
+      "employer": true,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1784050473800",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1784050473800",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 90,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: Some dead canvas is visible on left and bottom edges, slightly reducing canvas utilization; No imagery in STRUCTURED_PROFESSIONAL archetype is not a defect; Canvas bottom area under QR code and registration text is slightly cramped with small margins; Headline font size could be marginally larger for even stronger first glance impact",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 88,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 88). Defects: Contact email inside a small colored pill shape is slightly less prominent than the phone number, they could be visually balanced better.; The green banners with text contain quite dense blocks, so line spacing could be slightly improved for easier reading.; The headline hierarchy could be slightly stronger with more emphasis on the key job opportunity.; The job positions box background could have slightly better contrast for easier reading.; The email contact CTA could be more prominent and visually distinct from the phone number section.; The background image is slightly busy behind the text areas, mildly impacting text legibility despite outlines.; The headline 'BILFINGER SHUTDOWN PROJECT' could be adjusted to emphasize the roles or opportunities even more distinctly.",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 83,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 83). Defects: Top label with agency name is smaller and less visually integrated, diminishing immediate agency identity prominence.; The role headline 'BILFINGER SHUTDOWN PROJECT' could be more prominently sized or contrasted for stronger immediate candidate hook.; The lower half has unused white space, particularly below interview dates, leading to moderate dead canvas area.; The interview dates are not visually differentiated strongly enough to attract quick scanning and user attention.; The contact CTA though present, could be visually more distinct or enlarged to increase prominence.; Insufficient headline emphasis compared to agency branding at top; Noticeable dead canvas in middle area reducing visual engagement and making layout feel incomplete; Contact call-to-action is not prominent enough and slightly lost in the footer section; The job title 'Bilfinger Shutdown Project' should be larger and more dominant for immediate candidate focus; Top headline partially cut off, causing legibility issues; Top section suffers from cramped vertical spacing and truncation; Heavy dead canvas below interview section, wasting canvas space",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 90,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: No imagery present but appropriate for DTP_NEWSPAPER archetype; Contact CTA prominence could be improved for mobile viewing; The layout suffers minor crowding in the interview dates section, which could benefit from improved spacing for clarity.; Minor emphasis needed on contact CTA; Slightly more spacing recommended between interview locations; Contrast could be enhanced for very small text in footer",
+      "usedRealAiImage": false
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 90,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: No imagery present but appropriate for DTP_NEWSPAPER archetype; Contact CTA prominence could be improved for mobile viewing; The layout suffers minor crowding in the interview dates section, which could benefit from improved spacing for clarity.; Minor emphasis needed on contact CTA; Slightly more spacing recommended between interview locations; Contrast could be enhanced for very small text in footer",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 86,
+        "commercialQualityScore": 87,
+        "hierarchyScore": 88,
+        "readabilityScore": 85,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 95,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "No imagery present but appropriate for DTP_NEWSPAPER archetype",
+          "Contact CTA prominence could be improved for mobile viewing"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Enhance the prominence and size of the contact phone/email CTA for better mobile visibility."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 91,
+        "defects": [
+          "The layout suffers minor crowding in the interview dates section, which could benefit from improved spacing for clarity."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more space between the interview date boxes to reduce visual crowding and improve clarity."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "Minor emphasis needed on contact CTA",
+          "Slightly more spacing recommended between interview locations",
+          "Contrast could be enhanced for very small text in footer"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Increase emphasis on contact number and email to improve CTA prominence."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more vertical spacing between the interview location boxes for better clarity."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

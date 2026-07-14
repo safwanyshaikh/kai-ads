@@ -1,0 +1,169 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 83,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 83). Defects: Top label with agency name is smaller and less visually integrated, diminishing immediate agency identity prominence.; The role headline 'BILFINGER SHUTDOWN PROJECT' could be more prominently sized or contrasted for stronger immediate candidate hook.; The lower half has unused white space, particularly below interview dates, leading to moderate dead canvas area.; The interview dates are not visually differentiated strongly enough to attract quick scanning and user attention.; The contact CTA though present, could be visually more distinct or enlarged to increase prominence.; Insufficient headline emphasis compared to agency branding at top; Noticeable dead canvas in middle area reducing visual engagement and making layout feel incomplete; Contact call-to-action is not prominent enough and slightly lost in the footer section; The job title 'Bilfinger Shutdown Project' should be larger and more dominant for immediate candidate focus; Top headline partially cut off, causing legibility issues; Top section suffers from cramped vertical spacing and truncation; Heavy dead canvas below interview section, wasting canvas space",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 83,
+        "commercialQualityScore": 80,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 80,
+        "ctaScore": 85,
+        "trustScore": 95,
+        "defects": [
+          "Top label with agency name is smaller and less visually integrated, diminishing immediate agency identity prominence.",
+          "The role headline 'BILFINGER SHUTDOWN PROJECT' could be more prominently sized or contrasted for stronger immediate candidate hook.",
+          "The lower half has unused white space, particularly below interview dates, leading to moderate dead canvas area.",
+          "The interview dates are not visually differentiated strongly enough to attract quick scanning and user attention.",
+          "The contact CTA though present, could be visually more distinct or enlarged to increase prominence."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the main role headline larger and more visually dominant to enhance immediate candidate-facing hook and first-second attention capture."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead canvas by adjusting spacing below interview dates and better balancing lower section content for more efficient canvas utilization."
+          },
+          {
+            "type": "OTHER",
+            "note": "Enhance visual differentiation and emphasis on interview dates for easier quick scanning and candidate comprehension."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 74,
+        "commercialQualityScore": 70,
+        "hierarchyScore": 75,
+        "readabilityScore": 85,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 55,
+        "ctaScore": 80,
+        "trustScore": 90,
+        "defects": [
+          "Insufficient headline emphasis compared to agency branding at top",
+          "Noticeable dead canvas in middle area reducing visual engagement and making layout feel incomplete",
+          "Contact call-to-action is not prominent enough and slightly lost in the footer section",
+          "The job title 'Bilfinger Shutdown Project' should be larger and more dominant for immediate candidate focus"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the job title 'BILFINGER SHUTDOWN PROJECT' significantly larger and bolder, more dominant than other text elements to catch immediate candidate attention."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce empty white space between the interview date section and job list, better balance canvas usage vertically to avoid large dead zones."
+          },
+          {
+            "type": "OTHER",
+            "note": "Make the contact phone and email CTA more visually prominent, for example by increasing font size or using highlight color, to enhance immediate candidate engagement."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.2400000000000002,
+        "spacingScale": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 80,
+        "commercialQualityScore": 80,
+        "hierarchyScore": 75,
+        "readabilityScore": 85,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 70,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Top headline partially cut off, causing legibility issues",
+          "Top section suffers from cramped vertical spacing and truncation",
+          "Heavy dead canvas below interview section, wasting canvas space"
+        ],
+        "catastrophicDefects": [
+          "Dominant headline too small and partially cut off for mobile social viewing",
+          "More than ~20% unjustified dead canvas in lower half"
+        ],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase vertical padding around the top headline to avoid truncation and improve clarity."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead space below interview dates or redistribute content to better utilize full canvas height."
+          },
+          {
+            "type": "OTHER",
+            "note": "Ensure full visibility of the headline 'BILFINGER SHUTDOWN PROJECT' without clipping or letter cutoff."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    }
+  ]
+}
