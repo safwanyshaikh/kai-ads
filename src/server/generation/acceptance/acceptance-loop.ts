@@ -116,6 +116,11 @@ export async function runAcceptanceLoop(
   let finalSvg = "";
   let finalPng: Buffer = Buffer.alloc(0);
   let lastScore: number | null = null;
+  // Corrections are heuristics against a noisy grader — an iteration can
+  // genuinely score WORSE than its predecessor (observed in the real-API
+  // commercial run: 82 -> 87 -> 84). The loop therefore keeps the best
+  // clean iteration's artifact, never blindly the last one.
+  let best: { score: number; svg: string; png: Buffer } | null = null;
 
   for (let i = 1; i <= MAX_ACCEPTANCE_ITERATIONS; i++) {
     const record: IterationRecord = {
@@ -193,6 +198,9 @@ export async function runAcceptanceLoop(
 
     record.visualQa = qa;
     lastScore = qa.overallScore;
+    if (qa.catastrophicDefects.length === 0 && (best === null || qa.overallScore > best.score)) {
+      best = { score: qa.overallScore, svg: finalSvg, png: finalPng };
+    }
 
     // The threshold decision is code, not the model's verdict field —
     // and a non-empty catastrophic-defect list blocks PASS regardless of
@@ -229,11 +237,11 @@ export async function runAcceptanceLoop(
 
   return {
     status: "BLOCKED_VISUAL_QA",
-    finalSvg,
-    finalPng,
-    finalScore: lastScore,
+    finalSvg: best?.svg ?? finalSvg,
+    finalPng: best?.png ?? finalPng,
+    finalScore: best?.score ?? lastScore,
     iterations,
-    blockReason: `Visual QA stayed below ${deps.passThreshold ?? VISUAL_QA_PASS_THRESHOLD}/100 after ${MAX_ACCEPTANCE_ITERATIONS} iterations (last score: ${lastScore ?? "n/a"}). Defects: ${iterations
+    blockReason: `Visual QA stayed below ${deps.passThreshold ?? VISUAL_QA_PASS_THRESHOLD}/100 after ${MAX_ACCEPTANCE_ITERATIONS} iterations (best score: ${best?.score ?? lastScore ?? "n/a"}). Defects: ${iterations
       .flatMap((r) => r.visualQa?.defects ?? [])
       .join("; ")}`,
   };

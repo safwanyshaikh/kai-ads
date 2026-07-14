@@ -213,6 +213,18 @@ describe("runAcceptanceLoop — closed-loop generation", () => {
     expect(outcome.blockReason).toContain("below 95/100");
   });
 
+  it("keeps the best-scoring iteration's artifact when a correction makes the score worse", async () => {
+    const qa = fakeQa([
+      qaScore(82, [{ type: "IMPROVE_SPACING", note: "x" }]),
+      qaScore(87, [{ type: "IMPROVE_SPACING", note: "y" }]),
+      qaScore(84),
+    ]);
+    const outcome = await runAcceptanceLoop(bilfingerFacts, basePlan, realDeps({ visualQa: qa, passThreshold: 95 }));
+    expect(outcome.status).toBe("BLOCKED_VISUAL_QA");
+    expect(outcome.finalScore).toBe(87); // best, not last
+    expect(outcome.blockReason).toContain("best score: 87");
+  });
+
   it("a catastrophic defect blocks PASS even at a high overall score (score can never hide a broken output)", async () => {
     const catastrophic = { ...qaScore(95), catastrophicDefects: ["position text overlaps contact bar"] };
     const qa = fakeQa([catastrophic, catastrophic, catastrophic]);
