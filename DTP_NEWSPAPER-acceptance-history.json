@@ -1,0 +1,136 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 92,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: Agency identity appears both at top and bottom, wasting premium candidate-attention canvas; Some dead canvas space above the top agency name and below the bottom border; Agency name and logo appear both at top and again clearly in footer, wasting prime attention space.; Agency name and logo appear both at top and in footer, wasting premium candidate-attention canvas on redundant trust elements",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 92,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 88,
+        "ctaScore": 90,
+        "trustScore": 92,
+        "defects": [
+          "Agency identity appears both at top and bottom, wasting premium candidate-attention canvas",
+          "Some dead canvas space above the top agency name and below the bottom border"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead space above the top agency name and below the bottom border to better utilize canvas."
+          },
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the agency name from the top to the footer only to avoid redundant branding and free candidate attention for the opportunity headline."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 93,
+        "imageryScore": 100,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 90,
+        "defects": [
+          "Agency name and logo appear both at top and again clearly in footer, wasting prime attention space."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the agency name and logo from the top header to avoid redundancy with footer and to free up premium attention canvas."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 92,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 92,
+        "trustScore": 90,
+        "defects": [
+          "Agency name and logo appear both at top and in footer, wasting premium candidate-attention canvas on redundant trust elements"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate agency name/logo from top to rely solely on footer trust band to avoid canvas waste."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

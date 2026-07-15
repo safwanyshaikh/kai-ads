@@ -1,0 +1,45 @@
+{
+  "status": "BLOCKED_DETERMINISTIC",
+  "finalScore": null,
+  "blockReason": "Source fidelity gate failed: Missing grounded header: \"Bilfinger Shutdown Project\"; Missing grounded country: \"Saudi Arabia\"; Missing grounded position[0]: \"Welder - TIG & Multi\"; Missing grounded position[1]: \"Instrument and Control Technician\"; Missing grounded position[2]: \"Rotating Equipment Technician\"; Missing grounded position[3]: \"Mechanical Technician\"; Missing grounded position[4]: \"Electrical Technician\"; Missing grounded benefit[0]: \"Basic salary\"; Missing grounded benefit[1]: \"Daily overtime up to 4 hours\"; Missing grounded interview[0]: \"Baroda\"; Missing grounded interview[0]: \"14th July\"; Missing grounded interview[1]: \"Baroda\"; Missing grounded interview[1]: \"15th July\"; Missing grounded interview[2]: \"Mumbai\"; Missing grounded contact: \"9324995767\"; Missing grounded contact: \"jobs@alyousufent.com\"; Placeholder text leaked into the composition: \"N/A\"",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": false,
+          "failures": [
+            "Missing grounded header: \"Bilfinger Shutdown Project\"",
+            "Missing grounded country: \"Saudi Arabia\"",
+            "Missing grounded position[0]: \"Welder - TIG & Multi\"",
+            "Missing grounded position[1]: \"Instrument and Control Technician\"",
+            "Missing grounded position[2]: \"Rotating Equipment Technician\"",
+            "Missing grounded position[3]: \"Mechanical Technician\"",
+            "Missing grounded position[4]: \"Electrical Technician\"",
+            "Missing grounded benefit[0]: \"Basic salary\"",
+            "Missing grounded benefit[1]: \"Daily overtime up to 4 hours\"",
+            "Missing grounded interview[0]: \"Baroda\"",
+            "Missing grounded interview[0]: \"14th July\"",
+            "Missing grounded interview[1]: \"Baroda\"",
+            "Missing grounded interview[1]: \"15th July\"",
+            "Missing grounded interview[2]: \"Mumbai\"",
+            "Missing grounded contact: \"9324995767\"",
+            "Missing grounded contact: \"jobs@alyousufent.com\"",
+            "Placeholder text leaked into the composition: \"N/A\""
+          ]
+        },
+        "technicalRender": {
+          "passed": false,
+          "failures": []
+        },
+        "qr": {
+          "passed": false,
+          "failures": []
+        }
+      },
+      "visualQa": null
+    }
+  ]
+}

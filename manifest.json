@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-15T18:56:10.663Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "00ffefa2d359f72e0d546a35b1c1dfc58741f4c7",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "hookLines": [
+      "BILFINGER SHUTDOWN PROJECT",
+      "IN SAUDI ARABIA"
+    ],
+    "interviewRibbon": {
+      "line1": "CLIENT INTERVIEWS IN BARODA & MUMBAI",
+      "line2": "ON 14TH JULY · 15TH JULY · 18TH JULY"
+    },
+    "benefitBanner": "BASIC SALARY + DAILY OVERTIME UP TO 4 HOURS",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "EMPLOYER_PROJECT",
+    "emphasis": {
+      "country": true,
+      "employer": true,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1784141714435",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1784141714435",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 90,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: Agency identity appears only in footer, not repeated at top, but font size could be slightly larger for better visibility; Contact email inside a rounded color shape is clear but could be more prominent to improve CTA balance; Agency identity appears only in footer, not repeated at top, which is good",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_DETERMINISTIC",
+      "finalScore": null,
+      "iterations": 1,
+      "blockReason": "Source fidelity gate failed: Missing grounded header: \"Bilfinger Shutdown Project\"; Missing grounded country: \"Saudi Arabia\"; Missing grounded position[0]: \"Welder - TIG & Multi\"; Missing grounded position[1]: \"Instrument and Control Technician\"; Missing grounded position[2]: \"Rotating Equipment Technician\"; Missing grounded position[3]: \"Mechanical Technician\"; Missing grounded position[4]: \"Electrical Technician\"; Missing grounded benefit[0]: \"Basic salary\"; Missing grounded benefit[1]: \"Daily overtime up to 4 hours\"; Missing grounded interview[0]: \"Baroda\"; Missing grounded interview[0]: \"14th July\"; Missing grounded interview[1]: \"Baroda\"; Missing grounded interview[1]: \"15th July\"; Missing grounded interview[2]: \"Mumbai\"; Missing grounded contact: \"9324995767\"; Missing grounded contact: \"jobs@alyousufent.com\"; Placeholder text leaked into the composition: \"N/A\"",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 93,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 93). Defects: Agency identity repeated at top and footer, wasting premium candidate-attention canvas; Agency identity unnecessarily repeated across both top and bottom of the advertisement; Agency branding repeated at top and bottom wastes premium attention canvas; Dead space in middle and between interview date buttons reduces canvas utilization",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 92,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: Agency identity appears both at top and bottom, wasting premium candidate-attention canvas; Some dead canvas space above the top agency name and below the bottom border; Agency name and logo appear both at top and again clearly in footer, wasting prime attention space.; Agency name and logo appear both at top and in footer, wasting premium candidate-attention canvas on redundant trust elements",
+      "usedRealAiImage": false
+    }
+  ]
+}

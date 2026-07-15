@@ -1,0 +1,131 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 90,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: Agency identity appears only in footer, not repeated at top, but font size could be slightly larger for better visibility; Contact email inside a rounded color shape is clear but could be more prominent to improve CTA balance; Agency identity appears only in footer, not repeated at top, which is good",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 88,
+        "trustScore": 90,
+        "defects": [],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 85,
+        "defects": [
+          "Agency identity appears only in footer, not repeated at top, but font size could be slightly larger for better visibility",
+          "Contact email inside a rounded color shape is clear but could be more prominent to improve CTA balance"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make the contact email visually larger or more prominent to balance with the phone number CTA"
+          },
+          {
+            "type": "OTHER",
+            "note": "Increase footnote trust text size slightly for easier reading on mobile"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 93,
+        "trustScore": 87,
+        "defects": [
+          "Agency identity appears only in footer, not repeated at top, which is good"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Slightly increase padding around the contact phone and email to improve balance and breathing space."
+          },
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "The olive green text for 'YOUR OIL & GAS CAREER IN SAUDI ARABIA' is less prominent and could improve candidate hook if darker or bolder."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

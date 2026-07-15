@@ -1,0 +1,132 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 93,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 93). Defects: Agency identity repeated at top and footer, wasting premium candidate-attention canvas; Agency identity unnecessarily repeated across both top and bottom of the advertisement; Agency branding repeated at top and bottom wastes premium attention canvas; Dead space in middle and between interview date buttons reduces canvas utilization",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 93,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "Agency identity repeated at top and footer, wasting premium candidate-attention canvas"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the agency logo and name from the top to avoid repetition with footer, preserving candidate-first headline canvas space."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity unnecessarily repeated across both top and bottom of the advertisement"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove agency name and logo from top; place agency identity only once in the footer trust band to save candidate attention canvas."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency branding repeated at top and bottom wastes premium attention canvas",
+          "Dead space in middle and between interview date buttons reduces canvas utilization"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce excessive whitespace between interview date buttons and in middle area to improve canvas utilization."
+          },
+          {
+            "type": "OTHER",
+            "note": "Move agency name/logo from top to footer only, consolidating brand identity in one trust footer band."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
