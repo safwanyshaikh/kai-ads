@@ -1,0 +1,142 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 91,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 91). Defects: Agency identity appears only in footer, not repeated at top; Agency identity appears in footer only and not repeated at top (correct).; Candidate hook is strong and dominates top: 'BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA'.; Headline text fully visible, no clipping.; No contrast issues detected; text is legible over background.; No unjustified dead canvas; good utilization with structured blocks.; Contact CTA is prominent and clear: phone and email distinct and easy to find.; Trust and verification is clearly placed in the footer with QR code integration.; agency identity repeated at top and bottom not fully relevant as top is minimal but counts as defect",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 92,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 93,
+        "trustScore": 85,
+        "defects": [
+          "Agency identity appears only in footer, not repeated at top"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase vertical spacing around the 'Client Interviews' banner and the contact details for better separation and clarity."
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make the phone number and email slightly larger or more visually prominent to enhance immediate visibility as a contact CTA."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 92,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity appears in footer only and not repeated at top (correct).",
+          "Candidate hook is strong and dominates top: 'BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA'.",
+          "Headline text fully visible, no clipping.",
+          "No contrast issues detected; text is legible over background.",
+          "No unjustified dead canvas; good utilization with structured blocks.",
+          "Contact CTA is prominent and clear: phone and email distinct and easy to find.",
+          "Trust and verification is clearly placed in the footer with QR code integration."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "agency identity repeated at top and bottom not fully relevant as top is minimal but counts as defect"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Slightly improve vertical spacing around contact details to enhance clarity."
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make the phone number and email visually more balanced and prominent for easier scanning."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
