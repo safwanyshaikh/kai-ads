@@ -6,6 +6,7 @@ import {
   contactParts,
   escapeXml,
   fitFontSize,
+  fitWrappedText,
   formatBenefitLine,
   formatInterviewLine,
   makeScalers,
@@ -52,9 +53,8 @@ export function renderHighDensity(input: CompositionInput): string {
     );
     stripX = pad + logoSize + px(34);
   }
-  const stripText = `${facts.agencyName}${facts.raLicenseId ? "  ·  RA " + facts.raLicenseId : ""}`;
   parts.push(
-    `<text x="${stripX}" y="${stripH / 2 + fpx(8)}" font-family="${font}" font-size="${fitFontSize(stripText, W - stripX - pad, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(stripText)}</text>`,
+    `<text x="${stripX}" y="${stripH / 2 + fpx(8)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, W - stripX - pad, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>`,
   );
 
   // --- Headline band ---
@@ -64,11 +64,13 @@ export function renderHighDensity(input: CompositionInput): string {
   const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
   const sectionGapScale = clampTuning(plan.tuning?.sectionGapScale);
   const headlineText = (plan.copy?.primaryHeadline ?? facts.header).toUpperCase();
-  const headlineSize = fitFontSize(headlineText, W - pad * 2, Math.round(fpx(62) * headlineScale), fpx(22));
-  parts.push(
-    `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headlineSize}" font-weight="700" fill="${ink}">${escapeXml(headlineText)}</text>`,
-  );
-  y += px(34);
+  const headline = fitWrappedText(headlineText, W - pad * 2, Math.round(fpx(62) * headlineScale), fpx(22), 2);
+  for (const line of headline.lines) {
+    parts.push(
+      `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headline.fontSize}" font-weight="700" fill="${ink}">${escapeXml(line)}</text>`,
+    );
+    y += Math.round(headline.fontSize * 1.1);
+  }
   const subline = `${facts.country.toUpperCase()} · ${facts.industry}${facts.employer ? " · " + facts.employer : ""}`;
   parts.push(
     `<text x="${pad}" y="${y}" font-family="${font}" font-size="${fitFontSize(subline, W - pad * 2, fpx(22), fpx(12))}" font-weight="600" fill="${accent}">${escapeXml(subline)}</text>`,

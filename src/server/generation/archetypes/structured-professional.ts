@@ -11,7 +11,6 @@ import {
   goldPill,
   makeScalers,
   phoneIcon,
-  trustRoundel,
   verificationPanel,
 } from "./composition-shared";
 
@@ -65,27 +64,19 @@ export function renderStructuredProfessional(input: CompositionInput): string {
     );
     idX = pad + chipW + px(20);
   }
-  const nameSize = fitFontSize(facts.agencyName, W - idX - pad - px(200), fpx(36), fpx(18));
   parts.push(
-    `<text x="${idX}" y="${bandH / 2 - fpx(2)}" font-family="${font}" font-size="${nameSize}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>
-  <text x="${idX}" y="${bandH / 2 + fpx(26)}" font-family="${font}" font-size="${fpx(17)}" letter-spacing="3" fill="#c9d5e4">OVERSEAS RECRUITMENT · RA ${escapeXml(facts.raLicenseId ?? "")}</text>`,
+    `<text x="${idX}" y="${bandH / 2 + fpx(8)}" font-family="${font}" font-size="${fpx(22)}" font-weight="700" letter-spacing="3" fill="#c9d5e4">OVERSEAS RECRUITMENT</text>`,
   );
 
-  // --- Trust roundel overlapping the band edge (benchmark treatment) ---
-  const roundelR = px(78);
-  parts.push(
-    trustRoundel({
-      cx: W - pad - roundelR,
-      cy: bandH + px(24),
-      r: roundelR,
-      fill: brand,
-      ringColor: gold,
-      fontFamily: font,
-      topText: "MEA",
-      mainText: facts.raLicenseId ? `RA ${facts.raLicenseId}` : "REGISTERED",
-      bottomText: "REGISTERED",
-    }),
-  );
+  // --- Candidate hook (reclaimed from removed trust roundel) ---
+  const candidateHook = plan.directives?.candidateHook;
+  if (candidateHook) {
+    const hookY = bandH + px(56);
+    const hookSize = fitFontSize(candidateHook.text, W - pad * 2, fpx(28), fpx(16));
+    parts.push(
+      `<text x="${pad}" y="${hookY}" font-family="${font}" font-size="${hookSize}" font-weight="700" letter-spacing="2" fill="${brand}">${escapeXml(candidateHook.text)}</text>`,
+    );
+  }
 
   // --- HUGE stacked hook on white ---
   const hookLines = plan.copy?.hookLines?.length
@@ -93,8 +84,8 @@ export function renderStructuredProfessional(input: CompositionInput): string {
     : facts.country && !facts.header.toLowerCase().includes(facts.country.toLowerCase())
       ? [facts.header.toUpperCase(), `IN ${facts.country.toUpperCase()}`]
       : [facts.header.toUpperCase()];
-  let y = bandH + px(96);
-  const hookMaxW = W - pad * 2 - roundelR; // clear the roundel's overlap zone
+  let y = bandH + (candidateHook ? px(78) : px(96));
+  const hookMaxW = W - pad * 2;
   hookLines.forEach((line, i) => {
     const wrapped = fitWrappedText(line, i === 0 ? hookMaxW : W - pad * 2, Math.round(fpx(i === 0 ? 84 : 78) * headlineScale), fpx(40), 2);
     for (const l of wrapped.lines) {

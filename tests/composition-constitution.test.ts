@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   ADVERTISEMENT_COMPOSITION_CONSTITUTION_PATH,
   buildAdCopyPlan,
+  buildCandidateHook,
   buildCompositionDirectives,
+  buildTrustArchitecture,
   classifyContentDensity,
   composeAdvertisement,
   CompositionConstitutionViolation,
@@ -13,6 +15,7 @@ import {
   type AdvertisementArchetype,
   type AdvertisementFacts,
 } from "@/server/generation/archetypes";
+import { contrastRatio, ensureContrastAgainst } from "@/server/generation/archetypes/composition-shared";
 import { buildVisualQaInstructions } from "@/server/ai/visual-qa/kai-visual-qa-provider";
 import { getPlatformFormat } from "@/lib/platform-formats";
 
@@ -260,5 +263,128 @@ describe("Commercial Visual QA — Brain D is constitutionally bound", () => {
 
   it("the pass standard is the commercial pay-and-publish question, not engineering-gate ceremony", () => {
     expect(instructions).toContain("PAY for this advertisement and publish it directly");
+  });
+
+  it("Brain D detects unnecessary agency repetition across top and bottom", () => {
+    expect(instructions).toContain("INFORMATION DEDUPLICATION");
+    expect(instructions).toContain("single integrated trust footer");
+    expect(instructions).toContain("repeated");
+  });
+
+  it("Brain D evaluates candidate hooks positively", () => {
+    expect(instructions).toContain("CANDIDATE HOOK");
+    expect(instructions).toContain("candidate-facing hook");
+  });
+
+  it("Brain D detects headline clipping as catastrophic", () => {
+    expect(instructions).toContain("HEADLINE CLIPPING");
+    expect(instructions).toContain("clipped");
+  });
+
+  it("Brain D detects contrast damage from agency brand colors", () => {
+    expect(instructions).toContain("CONTRAST AND READABILITY");
+    expect(instructions).toContain("brand colors");
+  });
+});
+
+describe("Trust Architecture — single integrated trust footer, no unjustified repetition", () => {
+  it("non-DTP archetypes reclaim ~10% canvas from deduplication", () => {
+    for (const archetype of ["VISUAL_HERO", "STRUCTURED_PROFESSIONAL", "HIGH_DENSITY"] as const) {
+      const trust = buildTrustArchitecture(bilfingerFacts, archetype);
+      expect(trust.primaryTrustZone).toBe("FOOTER");
+      expect(trust.reclaimedCanvasPercent).toBe(10);
+      expect(trust.reclaimedCanvasAllocation.length).toBeGreaterThan(0);
+      expect(trust.reclaimedCanvasAllocation).toContain("CANDIDATE_HOOK");
+    }
+  });
+
+  it("DTP/Newspaper has justified masthead repetition and reclaims 0%", () => {
+    const trust = buildTrustArchitecture(bilfingerFacts, "DTP_NEWSPAPER");
+    expect(trust.reclaimedCanvasPercent).toBe(0);
+    const agencyName = trust.repeatedElements.find((e) => e.element === "AGENCY_NAME")!;
+    expect(agencyName.repetitionJustification).toContain("print convention");
+  });
+
+  it("all trust elements default to no justified repetition (null justification)", () => {
+    const trust = buildTrustArchitecture(bilfingerFacts, "VISUAL_HERO");
+    for (const el of trust.repeatedElements) {
+      if (el.element !== "AGENCY_NAME") {
+        expect(el.repetitionJustification).toBeNull();
+      }
+    }
+  });
+
+  it("VISUAL_HERO and STRUCTURED_PROFESSIONAL render agency name only once (in the footer)", () => {
+    for (const archetype of ["VISUAL_HERO", "STRUCTURED_PROFESSIONAL"] as const) {
+      const svg = render(archetype, bilfingerFacts);
+      const body = svg.replace(/<style>[\s\S]*?<\/style>/g, "");
+      const agencyMatches = body.match(new RegExp(bilfingerFacts.agencyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi"));
+      expect(
+        agencyMatches?.length ?? 0,
+        `${archetype}: agency name should appear exactly once (footer)`,
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("HIGH_DENSITY renders agency name in identity strip and not duplicated elsewhere", () => {
+    const svg = render("HIGH_DENSITY", bilfingerFacts);
+    const body = svg.replace(/<style>[\s\S]*?<\/style>/g, "");
+    const agencyMatches = body.match(new RegExp(bilfingerFacts.agencyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi"));
+    expect((agencyMatches?.length ?? 0)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("Candidate Hook — source-grounded advertising reframe", () => {
+  it("generates a DESTINATION_CAREER hook when country + industry + employer are present", () => {
+    const hook = buildCandidateHook(bilfingerFacts);
+    expect(hook).not.toBeNull();
+    expect(hook!.candidateHookType).toBe("DESTINATION_CAREER");
+    expect(hook!.text.toUpperCase()).toContain("OIL & GAS");
+    expect(hook!.text.toUpperCase()).toContain("SAUDI ARABIA");
+    expect(hook!.candidateHookSourceEvidence.length).toBeGreaterThan(0);
+    expect(hook!.candidateHookConfidence).toBe("HIGH");
+  });
+
+  it("generates a TRADE_DEMAND hook for a single-position source with a short header", () => {
+    const singlePos: AdvertisementFacts = {
+      ...bilfingerFacts,
+      header: "Required",
+      employer: null,
+      industry: "",
+      positions: [{ title: "Welders - TIG & Multi" }],
+    };
+    const hook = buildCandidateHook(singlePos);
+    expect(hook).not.toBeNull();
+    expect(hook!.candidateHookType).toBe("TRADE_DEMAND");
+    expect(hook!.text.toUpperCase()).toContain("WELDERS");
+  });
+
+  it("candidate hook is included in composition directives", () => {
+    const d = buildCompositionDirectives(bilfingerFacts, { archetype: "VISUAL_HERO" });
+    expect(d.candidateHook).not.toBeNull();
+    expect(d.candidateHook!.candidateHookSourceEvidence.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Contrast enforcement — agency brand colors must not damage readability", () => {
+  it("contrastRatio returns ~21 for black on white", () => {
+    const ratio = contrastRatio("#000000", "#ffffff");
+    expect(ratio).toBeGreaterThan(20);
+    expect(ratio).toBeLessThan(22);
+  });
+
+  it("contrastRatio returns ~1 for same colors", () => {
+    expect(contrastRatio("#0d4f8b", "#0d4f8b")).toBeCloseTo(1, 0);
+  });
+
+  it("ensureContrastAgainst darkens a light color against a light background", () => {
+    const result = ensureContrastAgainst("#cccccc", "#ffffff", 4.5, "#111111");
+    const ratio = contrastRatio(result, "#ffffff");
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("ensureContrastAgainst passes through a color that already has sufficient contrast", () => {
+    const result = ensureContrastAgainst("#000000", "#ffffff", 4.5, "#111111");
+    expect(result).toBe("#000000");
   });
 });

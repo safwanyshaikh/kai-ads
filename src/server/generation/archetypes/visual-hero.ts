@@ -3,7 +3,6 @@ import { buildFallbackBackgroundSvgFragment } from "../fallback-background";
 import type { CompositionInput } from "./types";
 import {
   angledRibbon,
-  ensureDeepColor,
   clampOpacity,
   clampTuning,
   escapeXml,
@@ -13,22 +12,25 @@ import {
   goldPill,
   makeScalers,
   phoneIcon,
-  trustRoundel,
   verificationPanel,
 } from "./composition-shared";
 
 /**
  * ARCHETYPE 1 — VISUAL HERO (benchmark poster grammar).
  *
- * Rebuilt against the strongest supplied market references (the Al-Yousuf
- * "Shutdown Project in Saudi Arabia" posters): a full-bleed industrial
- * photograph with a light wash over the upper zone carrying a HUGE
- * stacked two-color hook (first-second read), a trust roundel top-right,
- * an angled interview ribbon with highlighted dates, a navy contact bar
- * with a gold email pill, a full-width benefit banner, a banded
- * positions card, and a bottom identity strip with the integrated KAI
- * verification panel. Every text node remains deterministic truth
- * (ADR-006); the photo is Creative Brain presentation only.
+ * Rebuilt against the strongest supplied market references: a full-bleed
+ * industrial photograph with a light wash over the upper zone carrying
+ * a HUGE stacked two-color hook (first-second read), an angled interview
+ * ribbon with highlighted dates, a navy contact bar with a gold email
+ * pill, a full-width benefit banner, a banded positions card, and a
+ * single integrated trust footer with agency identity, registration,
+ * and the KAI verification panel.
+ *
+ * TRUST ARCHITECTURE (Phase 5): agency name, logo, RA number, and MEA
+ * registration appear ONCE in the integrated trust footer — never
+ * duplicated across top and bottom. The top of the canvas is premium
+ * candidate-attention territory for the hook + destination + candidate
+ * hook, not agency identity repetition.
  */
 export function renderVisualHero(input: CompositionInput): string {
   const { facts, plan } = input;
@@ -39,11 +41,8 @@ export function renderVisualHero(input: CompositionInput): string {
   const H = fmt.heightPx;
   const pad = px(48);
 
-  // Poster palette: navy/green market grammar, tinted by Agency DNA.
   const navy = "#0e2240";
-  // Market poster green (deep, saturated) — DNA continuity is carried by the logo chip, roundel and identity strip, not by muddying the band palette.
   const green = "#15683a";
-  void ensureDeepColor;
   const accent = plan.dna?.accentColor ?? "#e0342c";
   const gold = "#ffd21f";
 
@@ -59,13 +58,6 @@ export function renderVisualHero(input: CompositionInput): string {
     ? `<image x="0" y="0" width="${W}" height="${H}" href="${plan.backgroundImageDataUri}" preserveAspectRatio="xMidYMid slice" />`
     : buildFallbackBackgroundSvgFragment({ widthPx: W, heightPx: H, industry: facts.industry });
 
-  // Light wash over the top ~45% (the benchmark's "bright sky" zone) so
-  // the huge navy/green hook reads over any photograph; dark wash below
-  // for the light-on-dark bands.
-  // The photograph is the star (benchmark grammar): only a soft veil at
-  // the very top holds the identity chip + hook (the image brief demands
-  // a bright sky there), the mid-zone shows the plant RAW, and a dark
-  // wash rises under the lower information bands.
   const scrims = `<defs>
     <linearGradient id="heroTopWash" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#f4f7fa" stop-opacity="${scrimTopOpacity.toFixed(2)}" />
@@ -83,39 +75,21 @@ export function renderVisualHero(input: CompositionInput): string {
 
   const parts: string[] = [];
 
-  // --- Identity chip (top-left): logo + agency name ---
-  const chipH = px(84);
-  const logoSize = chipH - px(16);
-  let identityX = pad;
-  if (plan.agencyLogoDataUri) {
-    const chipW = logoSize + px(20);
+  // --- Candidate hook in reclaimed top-canvas (Phase 5) ---
+  // Instead of repeating agency identity at the top, use this premium
+  // space for a source-grounded candidate-facing hook line.
+  let y = pad + px(16);
+  const candidateHook = plan.directives?.candidateHook;
+  if (candidateHook) {
+    const hookSize = fitFontSize(candidateHook.text, W - pad * 2, fpx(28), fpx(14));
     parts.push(
-      `<rect x="${pad}" y="${pad}" width="${chipW}" height="${chipH}" rx="${px(10)}" fill="#ffffff" stroke="#d7dee6" stroke-width="1" />
-  <image x="${pad + px(10)}" y="${pad + px(8)}" width="${logoSize}" height="${logoSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
+      `<text x="${pad}" y="${y + hookSize}" font-family="${font}" font-size="${hookSize}" font-weight="700" letter-spacing="2" stroke="#f6f8fa" stroke-width="${Math.max(4, Math.round(hookSize * 0.2))}" stroke-linejoin="round" fill="none">${escapeXml(candidateHook.text)}</text>
+  <text x="${pad}" y="${y + hookSize}" font-family="${font}" font-size="${hookSize}" font-weight="700" letter-spacing="2" fill="${green}">${escapeXml(candidateHook.text)}</text>`,
     );
-    identityX = pad + chipW + px(18);
+    y += hookSize + px(24);
+  } else {
+    y += px(20);
   }
-  const agencyNameSize = fitFontSize(facts.agencyName, W - identityX - pad - px(220), fpx(34), fpx(18));
-  parts.push(
-    `<text x="${identityX}" y="${pad + chipH / 2 - fpx(2)}" font-family="${font}" font-size="${agencyNameSize}" font-weight="700" fill="${navy}">${escapeXml(facts.agencyName)}</text>
-  <text x="${identityX}" y="${pad + chipH / 2 + fpx(24)}" font-family="${font}" font-size="${fpx(17)}" letter-spacing="2" fill="#3c4a5d">OVERSEAS RECRUITMENT</text>`,
-  );
-
-  // --- Trust roundel (top-right): grounded registration identity ---
-  const roundelR = px(80);
-  parts.push(
-    trustRoundel({
-      cx: W - pad - roundelR,
-      cy: pad + roundelR + px(6),
-      r: roundelR,
-      fill: navy,
-      ringColor: gold,
-      fontFamily: font,
-      topText: "MEA",
-      mainText: facts.raLicenseId ? `RA ${facts.raLicenseId}` : "REGISTERED",
-      bottomText: "REGISTERED",
-    }),
-  );
 
   // --- HUGE stacked hook (first-second read) ---
   const hookLines = plan.copy?.hookLines?.length
@@ -123,14 +97,11 @@ export function renderVisualHero(input: CompositionInput): string {
     : facts.country && !facts.header.toLowerCase().includes(facts.country.toLowerCase())
       ? [facts.header.toUpperCase(), `IN ${facts.country.toUpperCase()}`]
       : [facts.header.toUpperCase()];
-  const roundelBottom = pad + roundelR * 2 + px(6);
-  let y = Math.max(pad + chipH + px(56), roundelBottom + px(10));
   const hookMaxW = W - pad * 2;
   hookLines.forEach((line, i) => {
     const wrapped = fitWrappedText(line, hookMaxW, Math.round(fpx(i === 0 ? 96 : 88) * headlineScale), fpx(48), 2);
     for (const l of wrapped.lines) {
       y += Math.round(wrapped.fontSize * 1.04);
-      // White halo under the fill keeps the hook punchy over any photo.
       parts.push(
         `<text x="${pad}" y="${y}" font-family="${font}" font-size="${wrapped.fontSize}" font-weight="700" letter-spacing="-1" stroke="#f6f8fa" stroke-width="${Math.max(6, Math.round(wrapped.fontSize * 0.14))}" stroke-linejoin="round" fill="none">${escapeXml(l)}</text>
   <text x="${pad}" y="${y}" font-family="${font}" font-size="${wrapped.fontSize}" font-weight="700" letter-spacing="-1" fill="${i === 0 ? navy : green}">${escapeXml(l)}</text>`,
@@ -149,8 +120,7 @@ export function renderVisualHero(input: CompositionInput): string {
   <text x="${pad + px(66)}" y="${y}" font-family="${font}" font-size="${sublineSize}" font-weight="700" letter-spacing="1" fill="${navy}">${escapeXml(subline)}</text>`,
   );
 
-  // --- Angled interview ribbon (facts-derived fallback keeps interviews
-  // present even when no copy plan was supplied) ---
+  // --- Angled interview ribbon ---
   const ribbon =
     plan.copy?.interviewRibbon ??
     (facts.interview.length > 0
@@ -256,10 +226,25 @@ export function renderVisualHero(input: CompositionInput): string {
     afterCard += noteH;
   }
 
-  // --- Bottom identity strip + KAI verification panel ---
+  // --- Single integrated trust footer (Phase 5) ---
+  // Agency logo + name + registration + QR verification — all in one
+  // integrated band. No repetition from the top of the canvas.
   const stripY = H - bottomStripH;
   parts.push(`<rect x="0" y="${stripY}" width="${W}" height="${bottomStripH}" fill="${navy}" />
   <rect x="0" y="${stripY}" width="${W}" height="${px(6)}" fill="${gold}" />`);
+
+  // Logo in the trust footer (its only appearance)
+  let trustTextX = pad;
+  const logoFooterSize = px(52);
+  if (plan.agencyLogoDataUri) {
+    const logoY = stripY + Math.round((bottomStripH - logoFooterSize) / 2);
+    parts.push(
+      `<rect x="${pad}" y="${logoY}" width="${logoFooterSize + px(8)}" height="${logoFooterSize + px(8)}" rx="${px(6)}" fill="#ffffff" />
+  <image x="${pad + px(4)}" y="${logoY + px(4)}" width="${logoFooterSize}" height="${logoFooterSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
+    );
+    trustTextX = pad + logoFooterSize + px(22);
+  }
+
   const qrH = px(Math.round(92 * qrPanelScale));
   const panelProbe = verificationPanel({
     x: 0,
@@ -284,14 +269,12 @@ export function renderVisualHero(input: CompositionInput): string {
       accentColor: green,
     }).svg,
   );
-  const stripTextW = panelX - pad - px(20);
+  const stripTextW = panelX - trustTextX - px(20);
   parts.push(
-    `<text x="${pad}" y="${stripY + bottomStripH / 2 - fpx(2)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, stripTextW, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>
-  ${facts.fullRegistrationNumber ? `<text x="${pad}" y="${stripY + bottomStripH / 2 + fpx(22)}" font-family="${font}" font-size="${fitFontSize(`Regd. No. ${facts.fullRegistrationNumber}`, stripTextW, fpx(16), fpx(9))}" fill="#c6d2e0">Regd. No. ${escapeXml(facts.fullRegistrationNumber)}</text>` : ""}`,
+    `<text x="${trustTextX}" y="${stripY + bottomStripH / 2 - fpx(2)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, stripTextW, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>
+  ${facts.fullRegistrationNumber ? `<text x="${trustTextX}" y="${stripY + bottomStripH / 2 + fpx(22)}" font-family="${font}" font-size="${fitFontSize(`Regd. No. ${facts.fullRegistrationNumber}`, stripTextW, fpx(16), fpx(9))}" fill="#c6d2e0">Regd. No. ${escapeXml(facts.fullRegistrationNumber)}</text>` : ""}`,
   );
 
-  // Landscape: same grammar compresses naturally via scalers; the hook and
-  // bands span the full width, which suits wide canvases.
   void isLandscape;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">

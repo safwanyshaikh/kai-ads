@@ -14,13 +14,20 @@ export { buildAdCopyPlan, type AdCopyPlan } from "./advertisement-intelligence";
 export {
   ADVERTISEMENT_COMPOSITION_CONSTITUTION_PATH,
   buildCompositionDirectives,
+  buildTrustArchitecture,
+  buildCandidateHook,
   classifyContentDensity,
   enforceCompositionConstitution,
   CompositionConstitutionViolation,
+  type CandidateHook,
   type CompositionDirectives,
   type ContentDensityClass,
   type FooterVariant,
   type InformationPriorityItem,
+  type ReclaimedCanvasTarget,
+  type RepeatedElement,
+  type TrustArchitecture,
+  type TrustZone,
 } from "./composition-constitution";
 export {
   selectArchetype,

@@ -33,6 +33,48 @@ export type InformationPriorityItem =
   | "CONTACT_CTA"
   | "AGENCY_TRUST";
 
+/**
+ * Where each trust element's canonical rendering location is. The
+ * primaryTrustZone is the single integrated trust footer — elements
+ * appear here and only here unless an explicit justification overrides.
+ */
+export type TrustZone = "FOOTER";
+
+export interface TrustArchitecture {
+  primaryTrustZone: TrustZone;
+  /** Elements that the deduplication layer determined should NOT repeat outside the footer. */
+  repeatedElements: RepeatedElement[];
+  /** Canvas percentage reclaimed from deduplication, to be allocated to candidate-facing content. */
+  reclaimedCanvasPercent: number;
+  /** What the reclaimed space should be filled with (ordered by priority). */
+  reclaimedCanvasAllocation: ReclaimedCanvasTarget[];
+}
+
+export interface RepeatedElement {
+  element: "AGENCY_NAME" | "AGENCY_LOGO" | "RA_NUMBER" | "MEA_BADGE" | "REGISTRATION_NUMBER" | "VERIFICATION_MESSAGING";
+  repetitionJustification: string | null;
+}
+
+export type ReclaimedCanvasTarget =
+  | "CANDIDATE_HOOK"
+  | "DESTINATION_EMPHASIS"
+  | "INTERVIEW_PROMINENCE"
+  | "BENEFIT_PROMINENCE"
+  | "POSITION_EMPHASIS"
+  | "CTA_PROMINENCE";
+
+/**
+ * Source-grounded candidate hook — a truthful advertising reframe of
+ * the opportunity that is more compelling than the raw header text.
+ * Every word must trace to source evidence.
+ */
+export interface CandidateHook {
+  text: string;
+  candidateHookType: "DESTINATION_CAREER" | "PROJECT_OPPORTUNITY" | "TRADE_DEMAND" | "INTERVIEW_URGENCY" | "HEADER_DIRECT";
+  candidateHookSourceEvidence: string[];
+  candidateHookConfidence: "HIGH" | "MEDIUM";
+}
+
 export interface CompositionDirectives {
   /** Ordered visual priority; AGENCY_TRUST is constitutionally always last (§11, §20). */
   informationPriority: InformationPriorityItem[];
@@ -47,6 +89,10 @@ export interface CompositionDirectives {
    */
   typographyScale: number;
   footerVariant: FooterVariant;
+  /** Information deduplication: where trust elements render and what doesn't repeat. */
+  trustArchitecture: TrustArchitecture;
+  /** Source-grounded candidate hook for reclaimed canvas space. */
+  candidateHook: CandidateHook | null;
 }
 
 /**
@@ -72,6 +118,106 @@ const TYPOGRAPHY_SCALE: Record<ContentDensityClass, number> = {
   HIGH: 0.94,
 };
 
+/**
+ * Analyzes trust elements for unjustified repetition. The default is ONE
+ * integrated trust footer — elements do not repeat outside it unless
+ * there is an explicit commercial, comprehension, conversion, legal,
+ * or trust justification.
+ */
+export function buildTrustArchitecture(
+  facts: AdvertisementFacts,
+  archetype: AdvertisementArchetype,
+): TrustArchitecture {
+  const repeatedElements: RepeatedElement[] = [
+    { element: "AGENCY_NAME", repetitionJustification: null },
+    { element: "AGENCY_LOGO", repetitionJustification: null },
+    { element: "RA_NUMBER", repetitionJustification: null },
+    { element: "MEA_BADGE", repetitionJustification: null },
+    { element: "REGISTRATION_NUMBER", repetitionJustification: null },
+    { element: "VERIFICATION_MESSAGING", repetitionJustification: null },
+  ];
+
+  // DTP/Newspaper: the print grammar traditionally shows agency masthead
+  // at top AND registration at bottom — justified by print convention.
+  if (archetype === "DTP_NEWSPAPER") {
+    const agencyName = repeatedElements.find((e) => e.element === "AGENCY_NAME")!;
+    agencyName.repetitionJustification = "DTP print convention: centered masthead is the genre's trust architecture";
+  }
+
+  // Reclaimed canvas: removing top-area trust duplication reclaims ~8-12%
+  // of premium canvas for candidate-facing content.
+  const reclaimedCanvasPercent = archetype === "DTP_NEWSPAPER" ? 0 : 10;
+
+  const reclaimedCanvasAllocation: ReclaimedCanvasTarget[] = [];
+  if (reclaimedCanvasPercent > 0) {
+    reclaimedCanvasAllocation.push("CANDIDATE_HOOK", "DESTINATION_EMPHASIS");
+    if (facts.interview.length > 0) reclaimedCanvasAllocation.push("INTERVIEW_PROMINENCE");
+    if (facts.benefits.length > 0) reclaimedCanvasAllocation.push("BENEFIT_PROMINENCE");
+  }
+
+  return {
+    primaryTrustZone: "FOOTER",
+    repeatedElements,
+    reclaimedCanvasPercent,
+    reclaimedCanvasAllocation,
+  };
+}
+
+/**
+ * Builds a source-grounded candidate hook — a truthful advertising
+ * reframe more compelling than the raw header. Every word traces to
+ * source evidence. Never invents urgency, salary, vacancy count,
+ * employer prestige, or benefits not in the source.
+ */
+export function buildCandidateHook(facts: AdvertisementFacts): CandidateHook | null {
+  const country = facts.country;
+  const employer = facts.employer;
+  const industry = facts.industry;
+  const core = coreHeaderText(facts.header, country);
+
+  // Career-destination hook: when there's a clear country + industry
+  if (country && industry && employer) {
+    return {
+      text: `YOUR ${industry.toUpperCase()} CAREER IN ${country.toUpperCase()}`,
+      candidateHookType: "DESTINATION_CAREER",
+      candidateHookSourceEvidence: [
+        `country: ${country}`,
+        `industry: ${industry}`,
+        `employer: ${employer}`,
+      ],
+      candidateHookConfidence: "HIGH",
+    };
+  }
+
+  // Project opportunity hook
+  if (country && core.length > 8) {
+    return {
+      text: `${core.toUpperCase()} — ${country.toUpperCase()}`,
+      candidateHookType: "PROJECT_OPPORTUNITY",
+      candidateHookSourceEvidence: [
+        `header: ${facts.header}`,
+        `country: ${country}`,
+      ],
+      candidateHookConfidence: "HIGH",
+    };
+  }
+
+  // Trade demand hook for specific positions
+  if (facts.positions.length === 1) {
+    return {
+      text: `${facts.positions[0].title.toUpperCase()} REQUIRED FOR ${country.toUpperCase()}`,
+      candidateHookType: "TRADE_DEMAND",
+      candidateHookSourceEvidence: [
+        `position: ${facts.positions[0].title}`,
+        `country: ${country}`,
+      ],
+      candidateHookConfidence: "HIGH",
+    };
+  }
+
+  return null;
+}
+
 export function buildCompositionDirectives(
   facts: AdvertisementFacts,
   options: { archetype: AdvertisementArchetype; copy?: AdCopyPlan | null },
@@ -95,6 +241,8 @@ export function buildCompositionDirectives(
     contentDensityClass,
     typographyScale: TYPOGRAPHY_SCALE[contentDensityClass],
     footerVariant: options.archetype === "DTP_NEWSPAPER" ? "PRINT_SMALL_PRINT" : "TRUST_STRIP",
+    trustArchitecture: buildTrustArchitecture(facts, options.archetype),
+    candidateHook: buildCandidateHook(facts),
   };
 }
 

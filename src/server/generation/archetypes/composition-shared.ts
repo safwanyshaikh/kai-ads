@@ -279,6 +279,42 @@ export function trustRoundel(p: {
   <text x="${p.cx}" y="${p.cy + p.r * 0.48}" text-anchor="middle" font-family="${p.fontFamily}" font-size="${Math.round(p.r * 0.17)}" font-weight="700" fill="#ffffff">${escapeXml(p.bottomText)}</text>`;
 }
 
+/**
+ * Computes WCAG-approximate contrast ratio between two hex colors.
+ * Returns a value >= 1; 4.5 is the AA threshold for normal text.
+ */
+export function contrastRatio(hex1: string, hex2: string): number {
+  const lum = (hex: string) => {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return 0;
+    const channels = [0, 2, 4].map((i) => {
+      const c = parseInt(m[1].slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const l1 = lum(hex1);
+  const l2 = lum(hex2);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+/**
+ * Ensures a text color meets minimum contrast against its background.
+ * If the agency DNA color fails, darkens it progressively. If it
+ * still fails after darkening, returns the fallback.
+ */
+export function ensureContrastAgainst(
+  textColor: string,
+  bgColor: string,
+  minRatio = 4.5,
+  fallback = "#111111",
+): string {
+  if (contrastRatio(textColor, bgColor) >= minRatio) return textColor;
+  const darkened = ensureDeepColor(textColor, 80);
+  if (contrastRatio(darkened, bgColor) >= minRatio) return darkened;
+  return fallback;
+}
+
 /** Darkens a hex color until white text (or use on light backgrounds) holds contrast — DNA-derived brand colors can be too light for poster duty. */
 export function ensureDeepColor(hex: string, maxLuma = 105): string {
   const m = /^#([0-9a-f]{6})$/i.exec(hex);
