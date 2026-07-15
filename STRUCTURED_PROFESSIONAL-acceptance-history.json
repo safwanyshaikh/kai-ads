@@ -1,0 +1,127 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 92,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: Agency identity appears both at top (navy blue 'OVERSEAS RECRUITMENT' band) and footer, wasting premium canvas space; agency identity repeated at top and bottom, wastes prime candidate canvas; Unjustified small red underline under 'OIL & GAS' which distracts from main hierarchy",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 92,
+        "readabilityScore": 93,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 85,
+        "defects": [
+          "Agency identity appears both at top (navy blue 'OVERSEAS RECRUITMENT' band) and footer, wasting premium canvas space"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the top 'OVERSEAS RECRUITMENT' navy band with agency name to avoid duplication with footer for better candidate-first canvas usage."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 92,
+        "readabilityScore": 93,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 88,
+        "ctaScore": 93,
+        "trustScore": 92,
+        "defects": [
+          "agency identity repeated at top and bottom, wastes prime candidate canvas"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or minimize the agency name/identity at the very top to avoid wasting candidate attention canvas; agency identity is clearly visible in the footer."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 93,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "Unjustified small red underline under 'OIL & GAS' which distracts from main hierarchy"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or replace the small red underline under 'OIL & GAS' because it appears as a stray mark and distracts from the clean hierarchy."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

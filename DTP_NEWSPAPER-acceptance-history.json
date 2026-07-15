@@ -1,0 +1,135 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 93,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 93). Defects: Agency identity appearing prominently at both top and bottom, wasting candidate-attention canvas; Agency name/logo appears prominently at the top and also in the footer, but this is acceptable for DTP_NEWSPAPER archetype and not penalized; Agency name appears very prominently at top but this is acceptable for DTP_NEWSPAPER archetype; Spacing below the interview boxes could be slightly improved for better visual balance",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 93,
+        "commercialQualityScore": 89,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "Agency identity appearing prominently at both top and bottom, wasting candidate-attention canvas"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Move the agency name/logo from the top to the footer only, to avoid wasting premium attention space at the top."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 95,
+        "defects": [
+          "Agency name/logo appears prominently at the top and also in the footer, but this is acceptable for DTP_NEWSPAPER archetype and not penalized"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Contact information text could be slightly larger or more visually distinct for enhanced prominence on mobile viewing."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Slightly increase spacing around the interview date boxes to improve clarity and reduce visual crowding."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 95,
+        "imageryScore": 100,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 90,
+        "defects": [
+          "Agency name appears very prominently at top but this is acceptable for DTP_NEWSPAPER archetype",
+          "Spacing below the interview boxes could be slightly improved for better visual balance"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing below the interview date boxes to balance the canvas better"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 91,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 91). Defects: Unjustified dead canvas in top margin reduces canvas utilization; Unjustified dead canvas in lower half reduces overall visual impact; Unjustified top dead canvas bar",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 89,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "Unjustified dead canvas in top margin reduces canvas utilization"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce the excessive empty space at the top of the canvas to improve canvas utilization and candidate attention."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 93,
+        "imageryScore": 80,
+        "canvasUtilizationScore": 88,
+        "ctaScore": 96,
+        "trustScore": 95,
+        "defects": [
+          "Unjustified dead canvas in lower half reduces overall visual impact"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead canvas at bottom and balance vertical spacing to improve visual impact and hierarchy."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 86,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 87,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 80,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "Unjustified top dead canvas bar"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Remove or reduce the large empty green bar at the top to improve canvas utilization and reduce dead space."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
