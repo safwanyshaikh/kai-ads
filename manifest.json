@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-15T19:16:08.424Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "3997039d25682a067de8b4c91eef6a32b76d6bcc",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "hookLines": [
+      "BILFINGER SHUTDOWN PROJECT",
+      "IN SAUDI ARABIA"
+    ],
+    "interviewRibbon": {
+      "line1": "CLIENT INTERVIEWS IN BARODA & MUMBAI",
+      "line2": "ON 14TH JULY · 15TH JULY · 18TH JULY"
+    },
+    "benefitBanner": "BASIC SALARY + DAILY OVERTIME UP TO 4 HOURS",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "EMPLOYER_PROJECT",
+    "emphasis": {
+      "country": true,
+      "employer": true,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1784142915980",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1784142915980",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 90,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: agency identity slightly dominant at top and bottom but acceptable under STRUCTURED_PROFESSIONAL archetype; email address background shape could be more integrated visually; Agency identity appears only in footer, not repeated at top, compliant with constitution; Text hierarchy is strong with a clear and compelling candidate-facing hook emphasizing the project and country; Typography is clear, professional, and well spaced with good contrast against backgrounds; Contact CTA is prominent with phone and email distinguished visually; QR code is well integrated in the footer with verification details, not a sticker; No clipped or truncated text detected; No significant dead canvas; structured layout uses space efficiently; Agency identity appears only in footer, not repeated at top - good adherence.; No background imagery present, appropriate for STRUCTURED_PROFESSIONAL archetype.",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_DETERMINISTIC",
+      "finalScore": null,
+      "iterations": 1,
+      "blockReason": "Source fidelity gate failed: Placeholder text leaked into the composition: \"N/A\"",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 89,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 89). Defects: excessive dead canvas above the interview section leading to poor canvas utilization; agency identity occupies a small font size and is not visually integrated well with the footer; lack of a strong candidate-facing hook smaller than expected for mobile viewing; the top section uses a minimal color contrast that is slightly weak for quick scanning; unjustified dead canvas below interview dates section; contact CTA could be more prominent; No candidate-facing hook line near the top apart from the project name which is good but could be stronger with specific role highlight; Position/experience text is uniform weight, could emphasize roles more for faster scanning; The agency identity is only in the footer which is correct and efficient; The QR code integration looks well designed-in and clear",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 89,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 89). Defects: agency identity unnecessarily repeated across both top and bottom of the advertisement; slightly unjustified dead canvas in top margin area; Agency name/logo repeated both at top and bottom wasting premium candidate attention canvas; Contact CTA could be slightly larger for easier mobile visibility; Agency name/logo at top and full trust footer present, but this is a DTP_NEWSPAPER archetype so repeated trust elements are acceptable; Some minor dead canvas on sides but within acceptable limits for neat newspaper style",
+      "usedRealAiImage": false
+    }
+  ]
+}

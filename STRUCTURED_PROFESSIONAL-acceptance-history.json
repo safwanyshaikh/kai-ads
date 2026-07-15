@@ -1,0 +1,133 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 90,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: agency identity slightly dominant at top and bottom but acceptable under STRUCTURED_PROFESSIONAL archetype; email address background shape could be more integrated visually; Agency identity appears only in footer, not repeated at top, compliant with constitution; Text hierarchy is strong with a clear and compelling candidate-facing hook emphasizing the project and country; Typography is clear, professional, and well spaced with good contrast against backgrounds; Contact CTA is prominent with phone and email distinguished visually; QR code is well integrated in the footer with verification details, not a sticker; No clipped or truncated text detected; No significant dead canvas; structured layout uses space efficiently; Agency identity appears only in footer, not repeated at top - good adherence.; No background imagery present, appropriate for STRUCTURED_PROFESSIONAL archetype.",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 92,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "agency identity slightly dominant at top and bottom but acceptable under STRUCTURED_PROFESSIONAL archetype",
+          "email address background shape could be more integrated visually"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Consider integrating the email address background better for visual coherence"
+          },
+          {
+            "type": "OTHER",
+            "note": "Slightly reduce prominence of agency name at top to avoid redundancy with footer but not critical"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "ctaScale": 1.1
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity appears only in footer, not repeated at top, compliant with constitution",
+          "Text hierarchy is strong with a clear and compelling candidate-facing hook emphasizing the project and country",
+          "Typography is clear, professional, and well spaced with good contrast against backgrounds",
+          "Contact CTA is prominent with phone and email distinguished visually",
+          "QR code is well integrated in the footer with verification details, not a sticker",
+          "No clipped or truncated text detected",
+          "No significant dead canvas; structured layout uses space efficiently"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "ctaScale": 1.1
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity appears only in footer, not repeated at top - good adherence.",
+          "No background imagery present, appropriate for STRUCTURED_PROFESSIONAL archetype."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

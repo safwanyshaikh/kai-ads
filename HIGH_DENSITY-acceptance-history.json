@@ -1,0 +1,159 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 89,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 89). Defects: excessive dead canvas above the interview section leading to poor canvas utilization; agency identity occupies a small font size and is not visually integrated well with the footer; lack of a strong candidate-facing hook smaller than expected for mobile viewing; the top section uses a minimal color contrast that is slightly weak for quick scanning; unjustified dead canvas below interview dates section; contact CTA could be more prominent; No candidate-facing hook line near the top apart from the project name which is good but could be stronger with specific role highlight; Position/experience text is uniform weight, could emphasize roles more for faster scanning; The agency identity is only in the footer which is correct and efficient; The QR code integration looks well designed-in and clear",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 75,
+        "commercialQualityScore": 70,
+        "hierarchyScore": 75,
+        "readabilityScore": 85,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 65,
+        "ctaScore": 90,
+        "trustScore": 85,
+        "defects": [
+          "excessive dead canvas above the interview section leading to poor canvas utilization",
+          "agency identity occupies a small font size and is not visually integrated well with the footer",
+          "lack of a strong candidate-facing hook smaller than expected for mobile viewing",
+          "the top section uses a minimal color contrast that is slightly weak for quick scanning"
+        ],
+        "catastrophicDefects": [
+          "excessive dead canvas around the content leading to poor visual density and commercial competitiveness in a high density archetype"
+        ],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead zones above interview section and overall vertical spacing to better utilize canvas space in this high-density format"
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the project and country more prominent to create a stronger candidate hook at glance"
+          },
+          {
+            "type": "OTHER",
+            "note": "Integrate the agency identity better in the footer to improve trust visibility and professional balance"
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "unjustified dead canvas below interview dates section",
+          "contact CTA could be more prominent"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce unjustified white space below the interview dates to better use the canvas."
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make the contact phone number and email more visually prominent for easier candidate action."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.2999999999999998,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "No candidate-facing hook line near the top apart from the project name which is good but could be stronger with specific role highlight",
+          "Position/experience text is uniform weight, could emphasize roles more for faster scanning",
+          "The agency identity is only in the footer which is correct and efficient",
+          "The QR code integration looks well designed-in and clear"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Enhance emphasis on candidate-facing roles or opportunity to improve immediate attention to job positions"
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing between job listings for better visual clarity and scanning speed"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

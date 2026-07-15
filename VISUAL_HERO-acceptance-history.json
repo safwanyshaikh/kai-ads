@@ -1,0 +1,29 @@
+{
+  "status": "BLOCKED_DETERMINISTIC",
+  "finalScore": null,
+  "blockReason": "Source fidelity gate failed: Placeholder text leaked into the composition: \"N/A\"",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": false,
+          "failures": [
+            "Placeholder text leaked into the composition: \"N/A\""
+          ]
+        },
+        "technicalRender": {
+          "passed": false,
+          "failures": []
+        },
+        "qr": {
+          "passed": false,
+          "failures": []
+        }
+      },
+      "visualQa": null
+    }
+  ]
+}

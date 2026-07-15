@@ -1,0 +1,138 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 89,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 89). Defects: agency identity unnecessarily repeated across both top and bottom of the advertisement; slightly unjustified dead canvas in top margin area; Agency name/logo repeated both at top and bottom wasting premium candidate attention canvas; Contact CTA could be slightly larger for easier mobile visibility; Agency name/logo at top and full trust footer present, but this is a DTP_NEWSPAPER archetype so repeated trust elements are acceptable; Some minor dead canvas on sides but within acceptable limits for neat newspaper style",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "agency identity unnecessarily repeated across both top and bottom of the advertisement",
+          "slightly unjustified dead canvas in top margin area"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the agency name 'AL YOUSUF ENTERPRISES LLP' from the top header to avoid repetition with the footer, freeing premium candidate attention canvas for the candidate hook."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce top margin slightly to better utilize canvas and reduce dead space without compromising layout integrity."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 92,
+        "ctaScore": 88,
+        "trustScore": 90,
+        "defects": [
+          "Agency name/logo repeated both at top and bottom wasting premium candidate attention canvas",
+          "Contact CTA could be slightly larger for easier mobile visibility"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Enlarge contact phone and email slightly for improved prominence and ease of finding on mobile screens."
+          },
+          {
+            "type": "OTHER",
+            "note": "Consider removing or minimizing agency name/logo at top to avoid wasting valuable headline canvas since this is a DTP_NEWSPAPER archetype."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency name/logo at top and full trust footer present, but this is a DTP_NEWSPAPER archetype so repeated trust elements are acceptable",
+          "Some minor dead canvas on sides but within acceptable limits for neat newspaper style"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
