@@ -7,9 +7,39 @@ const log = createLogger("image-compositor");
 
 export type ExportFormat = "png" | "jpg" | "pdf";
 
-/** Rasterizes the composed SVG (background + text + QR + badge, all in one layer set) into a real PNG buffer. */
+/**
+ * Rasterizes the composed SVG into a real PNG buffer.
+ *
+ * AI-first Visual Hero SVGs embed GPT's full advertisement as a large
+ * base64 data URI (~1-3 MB). librsvg (sharp's SVG backend) can fail on
+ * these oversized inline images. When detected, this function extracts
+ * the base64 image, rasterizes the overlay SVG separately with a
+ * transparent background, and composites them with sharp.
+ */
 export async function rasterizeSvg(svg: string, widthPx: number, heightPx: number): Promise<Buffer> {
   try {
+    const aiFirstMatch = svg.match(
+      /<image\s[^>]*href="(data:image\/png;base64,[^"]+)"[^>]*preserveAspectRatio="xMidYMid slice"[^>]*\/>/,
+    );
+
+    if (aiFirstMatch) {
+      const dataUri = aiFirstMatch[1];
+      const base64Data = dataUri.replace(/^data:image\/png;base64,/, "");
+      const bgBuffer = Buffer.from(base64Data, "base64");
+
+      const overlaySvg = svg.replace(aiFirstMatch[0], "");
+      const overlayBuffer = await sharp(Buffer.from(overlaySvg), { density: 144 })
+        .resize(widthPx, heightPx, { fit: "fill" })
+        .png()
+        .toBuffer();
+
+      return await sharp(bgBuffer)
+        .resize(widthPx, heightPx, { fit: "cover" })
+        .composite([{ input: overlayBuffer, blend: "over" }])
+        .png()
+        .toBuffer();
+    }
+
     return await sharp(Buffer.from(svg), { density: 144 })
       .resize(widthPx, heightPx, { fit: "fill" })
       .png()

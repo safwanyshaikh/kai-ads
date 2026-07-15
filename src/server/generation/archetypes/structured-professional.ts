@@ -49,23 +49,13 @@ export function renderStructuredProfessional(input: CompositionInput): string {
 
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="#f7f9fb" />`];
 
-  // --- Navy identity band ---
+  // --- Navy identity band (no agency logo — trust architecture places it
+  // exclusively in the footer to avoid duplication) ---
   const bandH = px(132);
   parts.push(`<rect x="0" y="0" width="${W}" height="${bandH}" fill="${navy}" />
   <rect x="0" y="${bandH}" width="${W}" height="${px(7)}" fill="${gold}" />`);
-  const logoSize = px(84);
-  let idX = pad;
-  if (plan.agencyLogoDataUri) {
-    const chipW = logoSize + px(18);
-    const chipY = Math.round((bandH - logoSize - px(14)) / 2);
-    parts.push(
-      `<rect x="${pad}" y="${chipY}" width="${chipW}" height="${logoSize + px(14)}" rx="${px(10)}" fill="#ffffff" />
-  <image x="${pad + px(9)}" y="${chipY + px(7)}" width="${logoSize}" height="${logoSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
-    );
-    idX = pad + chipW + px(20);
-  }
   parts.push(
-    `<text x="${idX}" y="${bandH / 2 + fpx(8)}" font-family="${font}" font-size="${fpx(22)}" font-weight="700" letter-spacing="3" fill="#c9d5e4">OVERSEAS RECRUITMENT</text>`,
+    `<text x="${pad}" y="${bandH / 2 + fpx(8)}" font-family="${font}" font-size="${fpx(22)}" font-weight="700" letter-spacing="3" fill="#c9d5e4">OVERSEAS RECRUITMENT</text>`,
   );
 
   // --- Candidate hook (reclaimed from removed trust roundel) ---
