@@ -172,21 +172,25 @@ describe("composeAdvertisement — Truth Brain fidelity (real Bilfinger source)"
   });
 });
 
-describe("buildImageBrief — creative-director canvas brief (GPT designs the canvas, KAI guarantees the text)", () => {
-  it("asks for the MAIN visual advertisement canvas, not a decorative background or stock photo", () => {
+describe("buildImageBrief — GPT as creative advertisement designer", () => {
+  it("asks GPT to generate a COMPLETE, FINISHED advertisement, not a background", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("creative director");
-    expect(brief).toContain("MAIN VISUAL ADVERTISEMENT CANVAS");
-    expect(brief).toContain("not a stock photo");
+    expect(brief).toContain("COMPLETE, FINISHED");
+    expect(brief).toContain("not a background");
+    expect(brief).toContain("art director");
   });
-  it("describes the industry/country environment, the trades, and the text-safe zone architecture", () => {
+  it("includes all grounded source facts for GPT to design into the composition", () => {
     const brief = buildImageBrief(bilfingerFacts);
     expect(brief).toContain("Oil & Gas");
     expect(brief).toContain("Saudi Arabia");
-    expect(brief).toContain("Welders — TIG & Multi");
-    expect(brief).toContain("TEXT-SAFE ZONE ARCHITECTURE");
-    expect(brief).toContain("dominant headline zone");
-    expect(brief).toContain("trust strip and verification QR");
+    expect(brief).toContain("Bilfinger");
+    for (const p of bilfingerFacts.positions) {
+      expect(brief).toContain(p.title);
+    }
+    expect(brief).toContain("9324995767");
+    expect(brief).toContain("jobs@alyousufent.com");
+    expect(brief).toContain(bilfingerFacts.agencyName);
+    expect(brief).toContain("RA 9986");
   });
   it("is dynamically constructed from the constitution's decisions and the Agency Visual DNA", () => {
     const withDna = buildImageBrief(bilfingerFacts, {
@@ -195,26 +199,19 @@ describe("buildImageBrief — creative-director canvas brief (GPT designs the ca
     });
     expect(withDna).toContain("#7c9f53");
     expect(withDna).toContain("square");
-    // Sparse content changes the density guidance — the brief is a live
-    // decision, not a static template.
     const sparse = buildImageBrief({ ...bilfingerFacts, positions: [bilfingerFacts.positions[0]], benefits: [], interview: [], footer: null, employer: null });
     expect(sparse).toContain("sparse");
     expect(buildImageBrief(bilfingerFacts)).not.toContain("sparse");
   });
-  it("explicitly prohibits text, logos, brands and signage inside the image", () => {
+  it("prohibits fabrication of unsupported claims", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("no logos");
-    expect(brief).toContain("no visible brand names");
-    expect(brief).toContain("no readable text");
+    expect(brief).toContain("Do not fabricate");
+    expect(brief).toContain("Every word must trace to the source facts");
   });
-  it("communicates the truthful hook as overlay context only — never as something to depict", () => {
+  it("tells GPT to leave space for QR precision overlay", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    // The hook is quoted and explicitly marked as overlaid-later text.
-    expect(brief).toContain("must NOT render it or any other text");
-    // Outside that single quoted overlay hook, the employer's name never
-    // appears — GPT is never asked to DEPICT the employer.
-    const withoutQuotedHook = brief.replace(/"[^"]*"/g, "");
-    expect(withoutQuotedHook.toLowerCase()).not.toContain("bilfinger");
+    expect(brief).toContain("QR overlay");
+    expect(brief).toContain("QR code");
   });
 });
 
@@ -395,4 +392,104 @@ describe("KAI verification QR decodes from every archetype's final rasterized ad
       expect(decoded).toBe(url);
     });
   }
+});
+
+describe("AI-first Visual Hero — GPT as creative designer, KAI as precision overlay", () => {
+  const TINY_PNG_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+  function renderAiFirst(overrides: Partial<AdvertisementFacts> = {}): string {
+    return composeAdvertisement({
+      facts: { ...bilfingerFacts, ...overrides },
+      plan: {
+        archetype: "VISUAL_HERO",
+        platformFormat: getPlatformFormat("instagram_post"),
+        accentColor: "#0d4f8b",
+        qrDataUri: "data:image/png;base64,iVBORw0KGgo=",
+        backgroundImageDataUri: TINY_PNG_DATA_URI,
+        agencyLogoDataUri: null,
+      },
+    });
+  }
+
+  it("AI-first mode uses GPT image as the full canvas, not as a background under SVG template", () => {
+    const svg = renderAiFirst();
+    // The GPT-generated image should be the full-bleed canvas
+    expect(svg).toContain('preserveAspectRatio="xMidYMid slice"');
+    // Should NOT contain the full deterministic template elements
+    // (positions card, benefit banner, interview ribbon, contact bar)
+    expect(svg).not.toContain("POSITIONS");
+    expect(svg).not.toContain("heroTopWash");
+    expect(svg).not.toContain("heroBottomWash");
+  });
+
+  it("AI-first mode DOES include precision overlay: agency name, RA, scan-to-verify, QR", () => {
+    const svg = renderAiFirst();
+    expect(svg.toLowerCase()).toContain(bilfingerFacts.agencyName.toLowerCase());
+    expect(svg).toContain("SCAN TO VERIFY");
+    expect(svg).toContain("RA 9986");
+    expect(svg).toContain("MEA REGISTERED AGENCY");
+    expect(svg).toContain(bilfingerFacts.fullRegistrationNumber!);
+  });
+
+  it("AI-first mode overlay is minimal — fewer SVG text elements than full deterministic mode", () => {
+    const aiFirstSvg = renderAiFirst();
+    const fallbackSvg = render("VISUAL_HERO");
+    const countTexts = (s: string) => (s.match(/<text /g) ?? []).length;
+    expect(countTexts(aiFirstSvg)).toBeLessThan(countTexts(fallbackSvg));
+  });
+
+  it("fallback mode (no AI image) produces full deterministic composition with all content", () => {
+    const svg = render("VISUAL_HERO");
+    expect(svg).not.toContain('preserveAspectRatio="xMidYMid slice"');
+    // Full template with all sections
+    for (const p of bilfingerFacts.positions) {
+      expect(svg).toContain(p.title.replace(/&/g, "&amp;"));
+    }
+    expect(svg).toContain("9324995767");
+    expect(svg).toContain("jobs@alyousufent.com");
+  });
+});
+
+describe("GPT creative brief — requests complete advertisement, not a background", () => {
+  it("the brief includes all source facts for GPT to design into the composition", () => {
+    const brief = buildImageBrief(bilfingerFacts);
+    expect(brief).toContain("COMPLETE, FINISHED");
+    expect(brief).toContain("not a background");
+    expect(brief).toContain("Saudi Arabia");
+    expect(brief).toContain("Oil & Gas");
+    expect(brief).toContain("Bilfinger");
+    for (const p of bilfingerFacts.positions) {
+      expect(brief).toContain(p.title);
+    }
+    expect(brief).toContain("9324995767");
+    expect(brief).toContain("jobs@alyousufent.com");
+    expect(brief).toContain(bilfingerFacts.agencyName);
+    expect(brief).toContain("RA 9986");
+    expect(brief).toContain("Baroda");
+    expect(brief).toContain("Basic salary + daily up to 4 hours OT");
+  });
+
+  it("the brief tells GPT to leave space for QR overlay but does NOT ask for empty text-safe zones", () => {
+    const brief = buildImageBrief(bilfingerFacts);
+    expect(brief).toContain("QR overlay");
+    expect(brief).not.toContain("text-safe zone");
+    expect(brief).not.toContain("headline zone for very large stacked type");
+  });
+
+  it("the brief prohibits fabrication of unsupported claims", () => {
+    const brief = buildImageBrief(bilfingerFacts);
+    expect(brief).toContain("Do not fabricate");
+    expect(brief).toContain("Every word must trace to the source facts");
+  });
+
+  it("the brief dynamically adapts density guidance", () => {
+    const sparseBrief = buildImageBrief({
+      ...bilfingerFacts,
+      positions: [{ title: "Welders" }],
+      benefits: [],
+      interview: [],
+      footer: null,
+    });
+    expect(sparseBrief).toContain("sparse");
+  });
 });

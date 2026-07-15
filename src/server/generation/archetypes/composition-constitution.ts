@@ -264,39 +264,55 @@ export class CompositionConstitutionViolation extends Error {
  * exists whenever the source provides contact details (§10). Subjective
  * laws (mobile scale, dead canvas, benchmark hierarchy) are enforced by
  * Brain D's mandatory rejection conditions on the rasterized output.
+ *
+ * AI-FIRST MODE: when the SVG contains a full-bleed GPT-generated
+ * advertisement image, content facts (hook, country, contact, positions)
+ * are rendered INSIDE the raster image by GPT — they exist in the image
+ * but NOT as SVG <text> elements. Only the precision overlay elements
+ * (agency name, RA, scan caption, QR) are SVG text. The gate checks
+ * only what the precision overlay guarantees; Brain D validates the
+ * rest from the rasterized output.
  */
 export function enforceCompositionConstitution(
   svg: string,
   facts: AdvertisementFacts,
   directives: CompositionDirectives,
 ): void {
-  // Embedded-font <style> base64 can coincidentally contain any letter
-  // sequence, so it is stripped before checking recruiter-facing content.
   const canvas = svg.replace(/<style>[\s\S]*?<\/style>/g, "").toLowerCase();
   const failures: string[] = [];
   const requireText = (law: string, value: string | null | undefined) => {
     if (!value) return;
     if (canvas.includes(escapeXml(value).toLowerCase())) return;
-    // Engines legitimately wrap long strings across <text> lines, so fall
-    // back to word-level presence (same policy as the Gate A fidelity check).
     const words = value.split(/\s+/).filter((w) => w.length > 1);
     if (words.length > 1 && words.every((w) => canvas.includes(escapeXml(w).toLowerCase()))) return;
     failures.push(`${law}: "${value}" not rendered`);
   };
 
-  requireText("§5 dominant hook", coreHeaderText(facts.header, facts.country));
+  // Detect AI-first mode: a full-bleed <image> with a data URI means GPT
+  // generated the main advertisement composition. Content facts are inside
+  // the raster — only precision overlay elements are checkable as SVG text.
+  const isAiFirst = svg.includes('href="data:image/png;base64,') && svg.includes('preserveAspectRatio="xMidYMid slice"');
+
+  if (!isAiFirst) {
+    // Full deterministic mode: all content is SVG text, check everything
+    requireText("§5 dominant hook", coreHeaderText(facts.header, facts.country));
+    requireText("§10 contact CTA — phone", facts.contact.phone);
+    requireText("§10 contact CTA — email", facts.contact.email);
+    requireText("§6 destination country", facts.country);
+  }
+  // In AI-first mode, hook/country/contact/positions are rendered by GPT
+  // inside the raster image — Brain D validates them from the final PNG.
+  // The precision overlay guarantees only trust/verification elements.
+
+  // Trust architecture is ALWAYS guaranteed by KAI's precision overlay
   requireText("§24 footer trust — agency identity", facts.agencyName);
   if (facts.raLicenseId) requireText("§24 footer trust — RA license", `RA ${facts.raLicenseId}`);
   if (!canvas.includes("scan to verify")) {
     failures.push("§24 footer trust: KAI verification caption missing");
   }
   if (directives.footerVariant === "PRINT_SMALL_PRINT") {
-    // The print grammar prints the FULL official registration verbatim.
     requireText("§24 footer trust — full registration (print variant)", facts.fullRegistrationNumber);
   }
-  requireText("§10 contact CTA — phone", facts.contact.phone);
-  requireText("§10 contact CTA — email", facts.contact.email);
-  requireText("§6 destination country", facts.country);
 
   if (failures.length > 0) {
     throw new CompositionConstitutionViolation(failures);

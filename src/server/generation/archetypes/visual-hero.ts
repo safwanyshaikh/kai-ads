@@ -16,23 +16,125 @@ import {
 } from "./composition-shared";
 
 /**
- * ARCHETYPE 1 — VISUAL HERO (benchmark poster grammar).
+ * ARCHETYPE 1 — VISUAL HERO.
  *
- * Rebuilt against the strongest supplied market references: a full-bleed
- * industrial photograph with a light wash over the upper zone carrying
- * a HUGE stacked two-color hook (first-second read), an angled interview
- * ribbon with highlighted dates, a navy contact bar with a gold email
- * pill, a full-width benefit banner, a banded positions card, and a
- * single integrated trust footer with agency identity, registration,
- * and the KAI verification panel.
+ * Two rendering modes:
  *
- * TRUST ARCHITECTURE (Phase 5): agency name, logo, RA number, and MEA
- * registration appear ONCE in the integrated trust footer — never
- * duplicated across top and bottom. The top of the canvas is premium
- * candidate-attention territory for the hook + destination + candidate
- * hook, not agency identity repetition.
+ * AI-FIRST MODE (when GPT-generated advertisement canvas is available):
+ * GPT is the primary advertisement designer — it generates the complete
+ * commercial composition including text, layout, hierarchy, and imagery.
+ * KAI overlays ONLY precision-critical elements that GPT cannot guarantee:
+ * - Exact agency logo (real asset, not AI-rendered)
+ * - KAI verification QR with scan-to-verify caption
+ * - Exact RA/RC registration identity
+ * This overlay is minimal and positioned to preserve GPT's composition.
+ *
+ * FALLBACK MODE (when no AI image is available):
+ * Full deterministic SVG composition with gradient background — the
+ * complete poster grammar: hook, ribbon, contact bar, positions card,
+ * benefit banner, trust footer.
  */
 export function renderVisualHero(input: CompositionInput): string {
+  const { plan } = input;
+
+  if (plan.backgroundImageDataUri) {
+    return renderAiFirstVisualHero(input);
+  }
+  return renderFallbackVisualHero(input);
+}
+
+/**
+ * AI-FIRST: GPT generated the complete advertisement. KAI overlays
+ * only the precision-critical elements that require exact fidelity.
+ */
+function renderAiFirstVisualHero(input: CompositionInput): string {
+  const { facts, plan } = input;
+  const fmt = plan.platformFormat;
+  const { px, fpx } = makeScalers(fmt);
+  const font = KAI_SANS_FONT_FAMILY;
+  const W = fmt.widthPx;
+  const H = fmt.heightPx;
+  const pad = px(48);
+
+  const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
+
+  const parts: string[] = [];
+
+  // GPT's complete advertisement composition as the full canvas
+  parts.push(
+    `<image x="0" y="0" width="${W}" height="${H}" href="${plan.backgroundImageDataUri}" preserveAspectRatio="xMidYMid slice" />`,
+  );
+
+  // --- PRECISION OVERLAY: agency logo (exact asset, bottom-left) ---
+  const overlayH = px(100);
+  const overlayY = H - overlayH;
+
+  // Semi-transparent dark strip for overlay readability — minimal, only
+  // as tall as the precision elements need
+  parts.push(
+    `<rect x="0" y="${overlayY}" width="${W}" height="${overlayH}" fill="#0e2240" fill-opacity="0.85" />`,
+  );
+
+  let trustTextX = pad;
+  const logoSize = px(52);
+  if (plan.agencyLogoDataUri) {
+    const logoY = overlayY + Math.round((overlayH - logoSize) / 2);
+    parts.push(
+      `<rect x="${pad}" y="${logoY - px(4)}" width="${logoSize + px(8)}" height="${logoSize + px(8)}" rx="${px(6)}" fill="#ffffff" />`,
+      `<image x="${pad + px(4)}" y="${logoY}" width="${logoSize}" height="${logoSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
+    );
+    trustTextX = pad + logoSize + px(22);
+  }
+
+  // --- PRECISION OVERLAY: KAI verification QR + scan caption ---
+  const qrH = px(Math.round(80 * qrPanelScale));
+  const panelProbe = verificationPanel({
+    x: 0,
+    y: overlayY + Math.round((overlayH - qrH) / 2),
+    height: qrH,
+    qrDataUri: plan.qrDataUri,
+    raLicenseId: facts.raLicenseId,
+    fontFamily: font,
+    captionColor: "#ffffff",
+    accentColor: "#15683a",
+  });
+  const panelX = W - pad - panelProbe.width;
+  parts.push(
+    verificationPanel({
+      x: panelX,
+      y: overlayY + Math.round((overlayH - qrH) / 2),
+      height: qrH,
+      qrDataUri: plan.qrDataUri,
+      raLicenseId: facts.raLicenseId,
+      fontFamily: font,
+      captionColor: "#ffffff",
+      accentColor: "#15683a",
+    }).svg,
+  );
+
+  // --- PRECISION OVERLAY: exact agency name + registration ---
+  const stripTextW = panelX - trustTextX - px(20);
+  parts.push(
+    `<text x="${trustTextX}" y="${overlayY + overlayH / 2 - fpx(2)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, stripTextW, fpx(20), fpx(11))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>`,
+  );
+  if (facts.fullRegistrationNumber) {
+    parts.push(
+      `<text x="${trustTextX}" y="${overlayY + overlayH / 2 + fpx(18)}" font-family="${font}" font-size="${fitFontSize(`Regd. No. ${facts.fullRegistrationNumber}`, stripTextW, fpx(14), fpx(8))}" fill="#c6d2e0">Regd. No. ${escapeXml(facts.fullRegistrationNumber)}</text>`,
+    );
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  ${buildEmbeddedFontStyleBlock()}
+  ${parts.join("\n  ")}
+</svg>`;
+}
+
+/**
+ * FALLBACK: no AI image available. Full deterministic poster composition
+ * with industry-themed gradient background. This is the complete
+ * advertisement rendered entirely by KAI's SVG engine.
+ */
+function renderFallbackVisualHero(input: CompositionInput): string {
   const { facts, plan } = input;
   const fmt = plan.platformFormat;
   const { px, fpx, isLandscape } = makeScalers(fmt);
@@ -51,12 +153,11 @@ export function renderVisualHero(input: CompositionInput): string {
   const ctaScale = clampTuning(plan.tuning?.ctaScale);
   const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
   const bannerSpacing = clampTuning(plan.tuning?.bannerSpacing);
+
   const scrimTopOpacity = clampOpacity(plan.tuning?.scrimOpacity, 0.62);
   const scrimBottomOpacity = clampOpacity(plan.tuning?.scrimOpacity, 0.9);
 
-  const background = plan.backgroundImageDataUri
-    ? `<image x="0" y="0" width="${W}" height="${H}" href="${plan.backgroundImageDataUri}" preserveAspectRatio="xMidYMid slice" />`
-    : buildFallbackBackgroundSvgFragment({ widthPx: W, heightPx: H, industry: facts.industry });
+  const background = buildFallbackBackgroundSvgFragment({ widthPx: W, heightPx: H, industry: facts.industry });
 
   const scrims = `<defs>
     <linearGradient id="heroTopWash" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -75,9 +176,7 @@ export function renderVisualHero(input: CompositionInput): string {
 
   const parts: string[] = [];
 
-  // --- Candidate hook in reclaimed top-canvas (Phase 5) ---
-  // Instead of repeating agency identity at the top, use this premium
-  // space for a source-grounded candidate-facing hook line.
+  // --- Candidate hook in reclaimed top-canvas ---
   let y = pad + px(16);
   const candidateHook = plan.directives?.candidateHook;
   if (candidateHook) {
@@ -91,7 +190,7 @@ export function renderVisualHero(input: CompositionInput): string {
     y += px(20);
   }
 
-  // --- HUGE stacked hook (first-second read) ---
+  // --- HUGE stacked hook ---
   const hookLines = plan.copy?.hookLines?.length
     ? plan.copy.hookLines
     : facts.country && !facts.header.toLowerCase().includes(facts.country.toLowerCase())
@@ -110,7 +209,7 @@ export function renderVisualHero(input: CompositionInput): string {
     y += px(8);
   });
 
-  // Employer / industry underline chip (three-second read)
+  // Employer / industry subline
   const subline = `${facts.industry.toUpperCase()}${facts.employer ? "  ·  " + facts.employer.toUpperCase() : ""}`;
   const sublineSize = fitFontSize(subline, W - pad * 2, fpx(24), fpx(13));
   y += px(30);
@@ -144,7 +243,7 @@ export function renderVisualHero(input: CompositionInput): string {
     );
   }
 
-  // --- Navy contact bar: big phone + gold email pill ---
+  // --- Navy contact bar ---
   const contactY = ribbonY + (ribbon ? ribbonH + px(10) : 0);
   const contactH = px(Math.round(96 * ctaScale));
   const phone = facts.contact.phone ?? facts.contact.whatsapp;
@@ -173,7 +272,7 @@ export function renderVisualHero(input: CompositionInput): string {
     parts.push(pill.svg);
   }
 
-  // --- Benefit banner (grounded compensation) ---
+  // --- Benefit banner ---
   let bandY = contactY + contactH + px(10);
   const bannerText =
     plan.copy?.benefitBanner ??
@@ -188,7 +287,7 @@ export function renderVisualHero(input: CompositionInput): string {
     bandY += bannerH + px(Math.round(14 * spacingScale * bannerSpacing));
   }
 
-  // --- Positions card (banded rows) ---
+  // --- Positions card ---
   const bottomStripH = px(120);
   const cardX = pad;
   const cardW = W - pad * 2;
@@ -226,14 +325,11 @@ export function renderVisualHero(input: CompositionInput): string {
     afterCard += noteH;
   }
 
-  // --- Single integrated trust footer (Phase 5) ---
-  // Agency logo + name + registration + QR verification — all in one
-  // integrated band. No repetition from the top of the canvas.
+  // --- Trust footer ---
   const stripY = H - bottomStripH;
   parts.push(`<rect x="0" y="${stripY}" width="${W}" height="${bottomStripH}" fill="${navy}" />
   <rect x="0" y="${stripY}" width="${W}" height="${px(6)}" fill="${gold}" />`);
 
-  // Logo in the trust footer (its only appearance)
   let trustTextX = pad;
   const logoFooterSize = px(52);
   if (plan.agencyLogoDataUri) {

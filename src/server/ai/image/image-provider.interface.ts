@@ -6,7 +6,7 @@
  */
 
 export interface ImageGenerationInput {
-  /** A text description of the desired background/decorative image — never includes exact recruitment facts (see ADR-006: images are decoration, not a source of truth for text). */
+  /** Creative brief for the GPT image model — for Visual Hero, this is a complete advertisement composition brief including all grounded source facts. GPT is the creative designer; KAI overlays precision-critical elements (logo, QR, registration) afterwards. */
   prompt: string;
   widthPx: number;
   heightPx: number;

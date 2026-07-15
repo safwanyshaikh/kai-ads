@@ -32,8 +32,9 @@ function nearestSupportedSize(widthPx: number, heightPx: number): SupportedImage
  * only; no route or component surfaces "OpenAI" or the model name to an
  * agency user (see getIntegrationStatus / env.ts).
  *
- * Per ADR-006, this is used ONLY for decorative/background imagery for
- * the Visual style — never asked to render exact recruitment text.
+ * For Visual Hero: GPT is the primary advertisement designer — it
+ * generates the complete commercial advertisement composition. KAI
+ * overlays only precision-critical elements (exact logo, QR, registration).
  */
 export class KaiCreativeEngineProvider implements ImageGenerationProvider {
   readonly name = "openai";

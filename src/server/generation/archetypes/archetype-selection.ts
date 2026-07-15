@@ -150,49 +150,85 @@ export interface ImageBriefContext {
 
 /**
  * Creative Brain — creative-director brief for the KAI Creative Engine
- * (gpt-image-1). GPT is asked to design the MAIN visual advertisement
- * canvas — composition, hierarchy, zone architecture, lighting, energy —
- * not a decorative stock background. Dynamically constructed from the
- * grounded facts, the Brain B hook, the Constitution's directives
- * (density class, information priority) and the Agency Visual DNA.
+ * (gpt-image-1). GPT is the primary advertisement designer: it generates
+ * the COMPLETE commercial advertisement composition — layout, typography
+ * hierarchy, imagery, text, visual storytelling, and full canvas design.
  *
- * Text-precision law (ADR-006, Composition Constitution): the truthful
- * hook is communicated as OVERLAY CONTEXT only — quoted, and explicitly
- * forbidden from being rendered. The brief prohibits ALL text, logos,
- * signage, and brand names inside the image; every fact, the real logo,
- * and the real verification QR are guaranteed deterministically on top,
- * inside the text-safe zones this brief instructs GPT to design in.
+ * KAI overlays only precision-critical elements afterwards: the exact
+ * agency logo (real asset), the KAI verification QR, exact contact
+ * details, and exact registration identity. GPT's text rendering may
+ * have imperfections — KAI's deterministic precision layer guarantees
+ * the elements where factual exactness is non-negotiable.
+ *
+ * The brief dynamically includes ALL grounded source facts so GPT can
+ * design them into the composition. It does NOT ask for a background
+ * or an image with empty zones — it asks for the finished advertisement.
  */
 export function buildImageBrief(facts: AdvertisementFacts, context: ImageBriefContext = {}): string {
   const directives =
     context.directives ?? buildCompositionDirectives(facts, { archetype: "VISUAL_HERO", copy: context.copy });
-  const trades = facts.positions
-    .slice(0, 3)
-    .map((p) => p.title)
-    .join(", ");
-  const densityGuidance =
-    directives.contentDensityClass === "SPARSE"
-      ? "Content is sparse, so the imagery and graphic energy must carry MORE of the canvas — bolder, closer, more dramatic."
-      : directives.contentDensityClass === "HIGH"
-        ? "Content is dense, so keep the composition's zones calmer and cleaner to leave room for structured overlays."
-        : "Balance imagery drama with clean zones for the structured overlays.";
   const palette = context.dna
-    ? ` BRAND PALETTE — the agency's Visual DNA; echo these subtly in lighting and graphic tones, never as flat fills over the whole frame: primary ${context.dna.primaryColor}, secondary ${context.dna.secondaryColor}, accent ${context.dna.accentColor}.`
+    ? ` BRAND PALETTE — agency Visual DNA: primary ${context.dna.primaryColor}, secondary ${context.dna.secondaryColor}, accent ${context.dna.accentColor}. Use these to create strong professional identity throughout the design.`
     : "";
   const format = context.aspectRatio
-    ? ` The canvas is a ${context.aspectRatio >= 1.2 ? "landscape" : context.aspectRatio <= 0.85 ? "portrait" : "square"} social-media format.`
+    ? ` Canvas format: ${context.aspectRatio >= 1.2 ? "landscape" : context.aspectRatio <= 0.85 ? "portrait" : "square"} for social-media circulation (WhatsApp, Facebook, Instagram, LinkedIn).`
     : "";
+
+  const positionLines = facts.positions.map((p) => {
+    let line = p.title;
+    if (p.experience) line += ` — ${p.experience}`;
+    if (p.count) line += ` (${p.count} Nos)`;
+    return line;
+  });
+  const positionBlock = positionLines.length <= 20
+    ? positionLines.join("\n")
+    : positionLines.slice(0, 20).join("\n") + `\n... and ${positionLines.length - 20} more positions`;
+
+  const interviewBlock = facts.interview.length > 0
+    ? facts.interview.map((e) => `${e.date}${e.location ? ` — ${e.location}` : ""}`).join("; ")
+    : null;
+
+  const benefitBlock = facts.benefits.length > 0
+    ? facts.benefits.map((b) => b.label + (b.detail ? `: ${b.detail}` : "")).join("; ")
+    : null;
+
+  const densityGuidance =
+    directives.contentDensityClass === "SPARSE"
+      ? "Content is sparse — use dramatic imagery, bold typography, and graphic energy. Fill the canvas with visual power. Let the hook and destination dominate."
+      : directives.contentDensityClass === "HIGH"
+        ? "Content is dense — organize positions into clear categorized columns or sections. Use professional, structured typography. Every position must be readable."
+        : "Balance compelling imagery with structured content sections. Use professional poster composition.";
+
   return (
-    `You are a world-class overseas-recruitment advertising creative director and visual designer. ` +
-    `Design the MAIN VISUAL ADVERTISEMENT CANVAS for a premium overseas recruitment advertisement — a complete, art-directed advertising composition, not a stock photo and not a plain background.${format} ` +
-    `AUDIENCE AND OPPORTUNITY (grounded facts only): skilled candidates${trades ? ` in trades such as ${trades}` : ""} considering overseas work; hiring destination ${facts.country}; industry ${facts.industry}. ` +
-    `The advertisement's dominant truthful hook — which will be overlaid afterwards in exact typography by the platform, so you must NOT render it or any other text — is: "${directives.dominantHook}". Let its subject and energy drive the scene. ` +
-    `COMMERCIAL REQUIREMENTS: full-bleed cinematic ${facts.industry} environment with dramatic depth, premium lighting, and a sense of scale and opportunity; professional Gulf overseas-recruitment poster grammar; scroll-stopping within one second on a mobile feed and comprehensible within three; mobile-first contrast; full canvas utilisation with no dead, flat, or purposeless areas. ${densityGuidance} ` +
-    `TEXT-SAFE ZONE ARCHITECTURE (exact text, the real agency logo, and the real verification QR are overlaid deterministically afterwards — design these zones INTO the composition): ` +
-    `top ~40-45% of the frame: a bright, clean, high-contrast, uncluttered zone (open sky or light backdrop) as the dominant headline zone for very large stacked type; ` +
-    `around the vertical midpoint: a strong horizontal energy band where a diagonal announcement ribbon will sit; ` +
-    `lower third: a darker, grounded zone with rich structural detail over which positions, benefits, and contact panels remain readable; ` +
-    `bottom ~10%: a calm dark zone for the agency trust strip and verification QR.${palette} ` +
-    `ABSOLUTE PROHIBITIONS (truth law): render no readable text, letters, numerals, or typography of any kind anywhere in the image; no logos, no watermarks, no signage, no visible brand names; no close-up identifiable faces; never depict money, salaries, documents, or any factual claim — every fact is guaranteed by the platform's deterministic overlay.`
+    `You are a world-class overseas-recruitment advertising art director. Design and generate a COMPLETE, FINISHED, professionally produced recruitment advertisement.${format}` +
+    ` This is the actual advertisement that a recruitment agency will publish — not a background, not a template, not a mockup.` +
+    `\n\nDOMINANT HEADLINE (the single largest, most attention-stopping text on the canvas): "${directives.dominantHook}"` +
+    `\n\nHIRING DESTINATION (must be immediately visible at headline-adjacent scale): ${facts.country}` +
+    `\nINDUSTRY: ${facts.industry}` +
+    (facts.employer ? `\nEMPLOYER / PROJECT: ${facts.employer}` : "") +
+    `\n\nPOSITIONS (all must appear and be readable):\n${positionBlock}` +
+    (interviewBlock ? `\n\nINTERVIEW: ${interviewBlock}` : "") +
+    (benefitBlock ? `\n\nBENEFITS / COMPENSATION: ${benefitBlock}` : "") +
+    (facts.footer ? `\n\nIMPORTANT NOTE: ${facts.footer}` : "") +
+    `\n\nCONTACT (must be prominent — a candidate who wants to act must never hunt for it):` +
+    (facts.contact.phone ? `\nPhone: ${facts.contact.phone}` : "") +
+    (facts.contact.email ? `\nEmail: ${facts.contact.email}` : "") +
+    (facts.contact.whatsapp ? `\nWhatsApp: ${facts.contact.whatsapp}` : "") +
+    `\n\nAGENCY: ${facts.agencyName}` +
+    (facts.raLicenseId ? ` — RA ${facts.raLicenseId}` : "") +
+    (facts.fullRegistrationNumber ? `\nRegistration: ${facts.fullRegistrationNumber}` : "") +
+    `${palette}` +
+    `\n\nCOMMERCIAL DESIGN REQUIREMENTS:` +
+    `\n- Professional Gulf overseas-recruitment poster/social-media advertisement grammar` +
+    `\n- Scroll-stopping within one second on a mobile phone feed` +
+    `\n- Candidate can understand the opportunity within three seconds` +
+    `\n- ${densityGuidance}` +
+    `\n- Strong visual storytelling: compelling ${facts.industry} environment imagery that tells the work-environment story` +
+    `\n- Professional typography hierarchy: hook ≫ destination ≫ positions/details ≫ trust elements` +
+    `\n- Full canvas utilization — no dead zones, no blank areas` +
+    `\n- Contact details must be prominent with strong CTA treatment` +
+    `\n- Agency identity in trust position (footer area), not dominating the top headline zone` +
+    `\n\nIMPORTANT TEXT NOTE: Render ALL text clearly and readably. The platform will overlay the exact agency logo and a verification QR code in the bottom area afterwards — leave a small area (~100px) in the bottom-right corner for this QR overlay. All other text should be rendered by you as part of the complete advertisement design.` +
+    `\n\nPROHIBITIONS: Do not fabricate any salary, vacancy count, urgency, benefit, or claim not listed above. Do not show close-up identifiable faces. Do not add any fact not provided. Every word must trace to the source facts above.`
   );
 }
