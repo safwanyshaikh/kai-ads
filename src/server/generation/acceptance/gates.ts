@@ -17,9 +17,11 @@ export interface GateResult {
 }
 
 function stripNonContent(svg: string): string {
-  // Embedded-font base64 can coincidentally contain any substring —
-  // gates are about recruiter-facing content.
-  return svg.replace(/<style>[\s\S]*?<\/style>/g, "");
+  // Embedded-font and image base64 can coincidentally contain any
+  // substring — gates are about recruiter-facing content.
+  return svg
+    .replace(/<style>[\s\S]*?<\/style>/g, "")
+    .replace(/href="data:[^"]*"/g, "");
 }
 
 function escapeForSvgMatch(value: string): string {

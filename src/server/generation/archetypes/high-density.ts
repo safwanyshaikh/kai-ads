@@ -52,15 +52,21 @@ export function renderHighDensity(input: CompositionInput): string {
   const ctaScale = clampTuning(plan.tuning?.ctaScale);
   const qrPanelScale = clampTuning(plan.tuning?.qrPanelScale, 0.9, 1.2);
   const sectionGapScale = clampTuning(plan.tuning?.sectionGapScale);
-  const headlineText = (plan.copy?.primaryHeadline ?? facts.header).toUpperCase();
-  const headline = fitWrappedText(headlineText, W - pad * 2, Math.round(fpx(62) * headlineScale), fpx(22), 2);
-  for (const line of headline.lines) {
-    parts.push(
-      `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headline.fontSize}" font-weight="700" fill="${ink}">${escapeXml(line)}</text>`,
-    );
-    y += Math.round(headline.fontSize * 1.1);
+  const hookLines = plan.copy?.hookLines?.length
+    ? plan.copy.hookLines
+    : facts.country && !facts.header.toLowerCase().includes(facts.country.toLowerCase())
+      ? [facts.header.toUpperCase(), `IN ${facts.country.toUpperCase()}`]
+      : [(plan.copy?.primaryHeadline ?? facts.header).toUpperCase()];
+  for (const line of hookLines) {
+    const headline = fitWrappedText(line, W - pad * 2, Math.round(fpx(62) * headlineScale), fpx(22), 2);
+    for (const l of headline.lines) {
+      parts.push(
+        `<text x="${pad}" y="${y}" font-family="${font}" font-size="${headline.fontSize}" font-weight="700" fill="${ink}">${escapeXml(l)}</text>`,
+      );
+      y += Math.round(headline.fontSize * 1.1);
+    }
   }
-  const subline = `${facts.country.toUpperCase()} · ${facts.industry}${facts.employer ? " · " + facts.employer : ""}`;
+  const subline = `${facts.industry}${facts.employer ? " · " + facts.employer : ""}`;
   parts.push(
     `<text x="${pad}" y="${y}" font-family="${font}" font-size="${fitFontSize(subline, W - pad * 2, fpx(22), fpx(12))}" font-weight="600" fill="${accent}">${escapeXml(subline)}</text>`,
   );
