@@ -172,25 +172,25 @@ describe("composeAdvertisement — Truth Brain fidelity (real Bilfinger source)"
   });
 });
 
-describe("buildImageBrief — GPT as creative advertisement designer", () => {
-  it("asks GPT to generate a COMPLETE, FINISHED advertisement, not a background", () => {
+describe("buildImageBrief — GPT as text-free creative canvas designer (hybrid architecture)", () => {
+  it("asks GPT to generate a premium visual canvas, not render factual text", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("COMPLETE, FINISHED");
-    expect(brief).toContain("not a background");
-    expect(brief).toContain("art director");
+    expect(brief).toContain("ART DIRECTION");
+    expect(brief).toContain("NO readable text");
+    expect(brief).toContain("NO letters");
+    expect(brief).toContain("NO numbers");
+    expect(brief).toContain("text-safe zones");
   });
-  it("includes all grounded source facts for GPT to design into the composition", () => {
+  it("provides thematic context but does NOT pass factual strings for rendering", () => {
     const brief = buildImageBrief(bilfingerFacts);
     expect(brief).toContain("Oil & Gas");
     expect(brief).toContain("Saudi Arabia");
     expect(brief).toContain("Bilfinger");
-    for (const p of bilfingerFacts.positions) {
-      expect(brief).toContain(p.title);
-    }
-    expect(brief).toContain("9324995767");
-    expect(brief).toContain("jobs@alyousufent.com");
-    expect(brief).toContain(bilfingerFacts.agencyName);
-    expect(brief).toContain("RA 9986");
+    // Factual details must NOT appear — GPT must not attempt to render them
+    expect(brief).not.toContain("9324995767");
+    expect(brief).not.toContain("jobs@alyousufent.com");
+    expect(brief).not.toContain("Welders");
+    expect(brief).not.toContain("RA 9986");
   });
   it("is dynamically constructed from the constitution's decisions and the Agency Visual DNA", () => {
     const withDna = buildImageBrief(bilfingerFacts, {
@@ -200,18 +200,20 @@ describe("buildImageBrief — GPT as creative advertisement designer", () => {
     expect(withDna).toContain("#7c9f53");
     expect(withDna).toContain("square");
     const sparse = buildImageBrief({ ...bilfingerFacts, positions: [bilfingerFacts.positions[0]], benefits: [], interview: [], footer: null, employer: null });
-    expect(sparse).toContain("sparse");
-    expect(buildImageBrief(bilfingerFacts)).not.toContain("sparse");
+    expect(sparse.toLowerCase()).toContain("sparse");
+    expect(buildImageBrief(bilfingerFacts).toLowerCase()).not.toContain("sparse");
   });
-  it("prohibits fabrication of unsupported claims", () => {
+  it("prohibits rendering text, logos, QR codes, and pseudo-text", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("Do not fabricate");
-    expect(brief).toContain("Every word must trace to the source facts");
+    expect(brief).toContain("Do NOT render any text");
+    expect(brief).toContain("Do NOT render any logos");
+    expect(brief).toContain("purely visual");
   });
-  it("tells GPT to leave space for QR precision overlay", () => {
+  it("instructs composition zones for deterministic overlay", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("QR overlay");
-    expect(brief).toContain("QR code");
+    expect(brief).toContain("UPPER ZONE");
+    expect(brief).toContain("MIDDLE ZONE");
+    expect(brief).toContain("LOWER ZONE");
   });
 });
 
@@ -411,15 +413,15 @@ describe("AI-first Visual Hero — GPT as creative designer, KAI as precision ov
     });
   }
 
-  it("AI-first mode uses GPT image as the full canvas, not as a background under SVG template", () => {
+  it("AI-first hybrid mode uses GPT image as full canvas with deterministic factual overlay", () => {
     const svg = renderAiFirst();
-    // The GPT-generated image should be the full-bleed canvas
     expect(svg).toContain('preserveAspectRatio="xMidYMid slice"');
-    // Should NOT contain the full deterministic template elements
-    // (positions card, benefit banner, interview ribbon, contact bar)
-    expect(svg).not.toContain("POSITIONS");
-    expect(svg).not.toContain("heroTopWash");
-    expect(svg).not.toContain("heroBottomWash");
+    // Hybrid architecture: ALL factual content rendered deterministically on top
+    for (const p of bilfingerFacts.positions) {
+      expect(svg).toContain(p.title.replace(/&/g, "&amp;"));
+    }
+    expect(svg).toContain("9324995767");
+    expect(svg).toContain("jobs@alyousufent.com");
   });
 
   it("AI-first mode DOES include precision overlay: agency name, RA, scan-to-verify, QR", () => {
@@ -431,11 +433,10 @@ describe("AI-first Visual Hero — GPT as creative designer, KAI as precision ov
     expect(svg).toContain(bilfingerFacts.fullRegistrationNumber!);
   });
 
-  it("AI-first mode overlay is minimal — fewer SVG text elements than full deterministic mode", () => {
+  it("AI-first hybrid overlay renders all factual content as SVG text elements", () => {
     const aiFirstSvg = renderAiFirst();
-    const fallbackSvg = render("VISUAL_HERO");
     const countTexts = (s: string) => (s.match(/<text /g) ?? []).length;
-    expect(countTexts(aiFirstSvg)).toBeLessThan(countTexts(fallbackSvg));
+    expect(countTexts(aiFirstSvg)).toBeGreaterThan(10);
   });
 
   it("fallback mode (no AI image) produces full deterministic composition with all content", () => {
@@ -450,36 +451,37 @@ describe("AI-first Visual Hero — GPT as creative designer, KAI as precision ov
   });
 });
 
-describe("GPT creative brief — requests complete advertisement, not a background", () => {
-  it("the brief includes all source facts for GPT to design into the composition", () => {
+describe("GPT creative brief — requests text-free creative canvas (hybrid architecture)", () => {
+  it("the brief provides thematic context but excludes factual recruitment strings", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("COMPLETE, FINISHED");
-    expect(brief).toContain("not a background");
     expect(brief).toContain("Saudi Arabia");
     expect(brief).toContain("Oil & Gas");
     expect(brief).toContain("Bilfinger");
+    // Factual strings must NOT appear — GPT renders no text
+    expect(brief).not.toContain("9324995767");
+    expect(brief).not.toContain("jobs@alyousufent.com");
+    expect(brief).not.toContain("RA 9986");
+    expect(brief).not.toContain(bilfingerFacts.agencyName);
     for (const p of bilfingerFacts.positions) {
-      expect(brief).toContain(p.title);
+      expect(brief).not.toContain(p.title);
     }
-    expect(brief).toContain("9324995767");
-    expect(brief).toContain("jobs@alyousufent.com");
-    expect(brief).toContain(bilfingerFacts.agencyName);
-    expect(brief).toContain("RA 9986");
-    expect(brief).toContain("Baroda");
-    expect(brief).toContain("Basic salary + daily up to 4 hours OT");
   });
 
-  it("the brief tells GPT to leave space for QR overlay but does NOT ask for empty text-safe zones", () => {
+  it("the brief instructs text-safe composition zones for deterministic overlay", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("QR overlay");
-    expect(brief).not.toContain("text-safe zone");
-    expect(brief).not.toContain("headline zone for very large stacked type");
+    expect(brief).toContain("text-safe");
+    expect(brief).toContain("UPPER ZONE");
+    expect(brief).toContain("MIDDLE ZONE");
+    expect(brief).toContain("LOWER ZONE");
   });
 
-  it("the brief prohibits fabrication of unsupported claims", () => {
+  it("the brief explicitly prohibits all readable text and pseudo-text", () => {
     const brief = buildImageBrief(bilfingerFacts);
-    expect(brief).toContain("Do not fabricate");
-    expect(brief).toContain("Every word must trace to the source facts");
+    expect(brief).toContain("NO readable text");
+    expect(brief).toContain("NO letters");
+    expect(brief).toContain("NO logos");
+    expect(brief).toContain("NO QR codes");
+    expect(brief).toContain("pseudo-text");
   });
 
   it("the brief dynamically adapts density guidance", () => {
@@ -490,6 +492,6 @@ describe("GPT creative brief — requests complete advertisement, not a backgrou
       interview: [],
       footer: null,
     });
-    expect(sparseBrief).toContain("sparse");
+    expect(sparseBrief).toContain("SPARSE");
   });
 });

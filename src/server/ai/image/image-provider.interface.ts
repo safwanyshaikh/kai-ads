@@ -6,7 +6,7 @@
  */
 
 export interface ImageGenerationInput {
-  /** Creative brief for the GPT image model — for Visual Hero, this is a complete advertisement composition brief including all grounded source facts. GPT is the creative designer; KAI overlays precision-critical elements (logo, QR, registration) afterwards. */
+  /** Creative brief for the GPT image model — for Visual Hero, this requests a premium TEXT-FREE creative visual canvas. GPT generates imagery, atmosphere, and visual composition; KAI deterministically renders ALL factual typography on top. GPT must not render any readable text, numbers, logos, or factual copy. */
   prompt: string;
   widthPx: number;
   heightPx: number;

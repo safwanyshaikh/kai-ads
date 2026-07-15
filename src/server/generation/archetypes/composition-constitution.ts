@@ -288,21 +288,13 @@ export function enforceCompositionConstitution(
     failures.push(`${law}: "${value}" not rendered`);
   };
 
-  // Detect AI-first mode: a full-bleed <image> with a data URI means GPT
-  // generated the main advertisement composition. Content facts are inside
-  // the raster — only precision overlay elements are checkable as SVG text.
-  const isAiFirst = svg.includes('href="data:image/png;base64,') && svg.includes('preserveAspectRatio="xMidYMid slice"');
-
-  if (!isAiFirst) {
-    // Full deterministic mode: all content is SVG text, check everything
-    requireText("§5 dominant hook", coreHeaderText(facts.header, facts.country));
-    requireText("§10 contact CTA — phone", facts.contact.phone);
-    requireText("§10 contact CTA — email", facts.contact.email);
-    requireText("§6 destination country", facts.country);
-  }
-  // In AI-first mode, hook/country/contact/positions are rendered by GPT
-  // inside the raster image — Brain D validates them from the final PNG.
-  // The precision overlay guarantees only trust/verification elements.
+  // Hybrid architecture: even when a GPT-generated text-free canvas is
+  // present, ALL factual content is rendered as deterministic SVG text
+  // by KAI's composition engine. Check everything unconditionally.
+  requireText("§5 dominant hook", coreHeaderText(facts.header, facts.country));
+  requireText("§10 contact CTA — phone", facts.contact.phone);
+  requireText("§10 contact CTA — email", facts.contact.email);
+  requireText("§6 destination country", facts.country);
 
   // Trust architecture is ALWAYS guaranteed by KAI's precision overlay
   requireText("§24 footer trust — agency identity", facts.agencyName);

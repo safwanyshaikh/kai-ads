@@ -38,36 +38,28 @@ function escapeForSvgMatch(value: string): string {
  * the composed SVG, and no placeholder text may appear. This is the
  * Truth Brain's deterministic backstop at the composition layer.
  *
- * AI-FIRST MODE: when the SVG contains a full-bleed GPT-generated
- * advertisement image, content facts are rendered INSIDE the raster
- * by GPT — they exist in the image but NOT as SVG text. Only the
- * precision overlay elements (agency name, RA, scan caption, QR) are
- * SVG text. The gate checks only what the precision overlay guarantees;
- * Brain D validates the rest from the rasterized output.
+ * HYBRID ARCHITECTURE: even when a GPT-generated text-free canvas is
+ * present, ALL factual content is rendered as deterministic SVG text
+ * by KAI. The gate checks everything unconditionally — there is no
+ * AI-first exemption because GPT never renders factual text.
  */
 export function runSourceFidelityGate(facts: AdvertisementFacts, svg: string): GateResult {
   const content = stripNonContent(svg);
   const failures: string[] = [];
 
-  const isAiFirst = svg.includes('href="data:image/png;base64,') && svg.includes('preserveAspectRatio="xMidYMid slice"');
-
-  const mustContain: { label: string; value: string }[] = isAiFirst
-    ? [
-        { label: "agencyName", value: facts.agencyName },
-      ]
-    : [
-        { label: "header", value: coreHeaderText(facts.header, facts.country) },
-        { label: "country", value: facts.country },
-        ...facts.positions.map((p, i) => ({ label: `position[${i}]`, value: p.title })),
-        ...facts.benefits.map((b, i) => ({ label: `benefit[${i}]`, value: b.label })),
-        ...facts.interview.flatMap((e, i) =>
-          [e.location, e.date].filter((v): v is string => Boolean(v)).map((v) => ({ label: `interview[${i}]`, value: v })),
-        ),
-        ...[facts.contact.phone, facts.contact.email, facts.contact.whatsapp]
-          .filter((v): v is string => Boolean(v))
-          .map((v) => ({ label: "contact", value: v })),
-        { label: "agencyName", value: facts.agencyName },
-      ];
+  const mustContain: { label: string; value: string }[] = [
+    { label: "header", value: coreHeaderText(facts.header, facts.country) },
+    { label: "country", value: facts.country },
+    ...facts.positions.map((p, i) => ({ label: `position[${i}]`, value: p.title })),
+    ...facts.benefits.map((b, i) => ({ label: `benefit[${i}]`, value: b.label })),
+    ...facts.interview.flatMap((e, i) =>
+      [e.location, e.date].filter((v): v is string => Boolean(v)).map((v) => ({ label: `interview[${i}]`, value: v })),
+    ),
+    ...[facts.contact.phone, facts.contact.email, facts.contact.whatsapp]
+      .filter((v): v is string => Boolean(v))
+      .map((v) => ({ label: "contact", value: v })),
+    { label: "agencyName", value: facts.agencyName },
+  ];
 
   const contentLower = content.toLowerCase();
   for (const { label, value } of mustContain) {
