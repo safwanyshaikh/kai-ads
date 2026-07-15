@@ -1,0 +1,43 @@
+{
+  "status": "BLOCKED_DETERMINISTIC",
+  "finalScore": null,
+  "blockReason": "Source fidelity gate failed: Missing grounded header: \"Bilfinger Shutdown Project\"; Missing grounded country: \"Saudi Arabia\"; Missing grounded position[0]: \"Welders - TIG & Multi\"; Missing grounded position[1]: \"Instrument and Control Technician\"; Missing grounded position[2]: \"Rotating Equipment Technician\"; Missing grounded position[3]: \"Mechanical Technician\"; Missing grounded position[4]: \"Electrical Technician\"; Missing grounded benefit[0]: \"Basic salary\"; Missing grounded benefit[1]: \"Daily overtime up to 4 hours\"; Missing grounded interview[0]: \"Baroda\"; Missing grounded interview[0]: \"14th & 15th July\"; Missing grounded interview[1]: \"Mumbai\"; Missing grounded interview[1]: \"18th July\"; Missing grounded contact: \"9324995767\"; Missing grounded contact: \"jobs@alyousufent.com\"",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": false,
+          "failures": [
+            "Missing grounded header: \"Bilfinger Shutdown Project\"",
+            "Missing grounded country: \"Saudi Arabia\"",
+            "Missing grounded position[0]: \"Welders - TIG & Multi\"",
+            "Missing grounded position[1]: \"Instrument and Control Technician\"",
+            "Missing grounded position[2]: \"Rotating Equipment Technician\"",
+            "Missing grounded position[3]: \"Mechanical Technician\"",
+            "Missing grounded position[4]: \"Electrical Technician\"",
+            "Missing grounded benefit[0]: \"Basic salary\"",
+            "Missing grounded benefit[1]: \"Daily overtime up to 4 hours\"",
+            "Missing grounded interview[0]: \"Baroda\"",
+            "Missing grounded interview[0]: \"14th & 15th July\"",
+            "Missing grounded interview[1]: \"Mumbai\"",
+            "Missing grounded interview[1]: \"18th July\"",
+            "Missing grounded contact: \"9324995767\"",
+            "Missing grounded contact: \"jobs@alyousufent.com\""
+          ]
+        },
+        "technicalRender": {
+          "passed": false,
+          "failures": []
+        },
+        "qr": {
+          "passed": false,
+          "failures": []
+        }
+      },
+      "visualQa": null
+    }
+  ]
+}

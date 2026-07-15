@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-15T18:56:28.321Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "00ffefa2d359f72e0d546a35b1c1dfc58741f4c7",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "hookLines": [
+      "BILFINGER SHUTDOWN PROJECT",
+      "IN SAUDI ARABIA"
+    ],
+    "interviewRibbon": {
+      "line1": "CLIENT INTERVIEWS IN BARODA & MUMBAI",
+      "line2": "ON 14TH & 15TH JULY · 18TH JULY"
+    },
+    "benefitBanner": "BASIC SALARY + DAILY OVERTIME UP TO 4 HOURS",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "EMPLOYER_PROJECT",
+    "emphasis": {
+      "country": true,
+      "employer": true,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1784141728756",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1784141728756",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 2 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 90,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: Agency name and registration number appear only in the footer, not repeated at the top, which is good but the top 'OVERSEAS RECRUITMENT' label wastes small canvas space without adding strong candidate hook; Color contrast for the smaller olive text 'YOUR OIL & GAS CAREER IN SAUDI ARABIA' could be improved for better visibility; Agency identity appears clearly in the footer only, not repeated in top, good trust footer integration; No candidate-facing headline clipping or truncation detected; No unjustified dead canvas, but some space under open positions might be used more efficiently; Agency identity appears only in footer, which follows constitution; Good candidate-first hook with project and destination dominates top as headline; Headline text fully visible with no clipping; No background imagery as expected for STRUCTURED_PROFESSIONAL archetype; Clear visual hierarchy with prominent hot candidate-oriented headline and subheader; Clear separation and emphasis of contact CTA, easy to find and read; Good contrast and readability throughout, no color combinations impair text visibility; Some small dead space below open positions list could be better utilized; Footer contains agency name, registration, MEA badge and QR code in one unified trust band; Minor visual imbalance with heavy text areas on top and middle but overall acceptable",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_DETERMINISTIC",
+      "finalScore": null,
+      "iterations": 1,
+      "blockReason": "Source fidelity gate failed: Missing grounded header: \"Bilfinger Shutdown Project\"; Missing grounded country: \"Saudi Arabia\"; Missing grounded position[0]: \"Welders - TIG & Multi\"; Missing grounded position[1]: \"Instrument and Control Technician\"; Missing grounded position[2]: \"Rotating Equipment Technician\"; Missing grounded position[3]: \"Mechanical Technician\"; Missing grounded position[4]: \"Electrical Technician\"; Missing grounded benefit[0]: \"Basic salary\"; Missing grounded benefit[1]: \"Daily overtime up to 4 hours\"; Missing grounded interview[0]: \"Baroda\"; Missing grounded interview[0]: \"14th & 15th July\"; Missing grounded interview[1]: \"Mumbai\"; Missing grounded interview[1]: \"18th July\"; Missing grounded contact: \"9324995767\"; Missing grounded contact: \"jobs@alyousufent.com\"",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 88,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 88). Defects: Agency identity is repeated at the top and also in the trust footer, wasting premium candidate-attention canvas; Agency identity repeated at top and footer wasting premium candidate-attention space; Agency identity repeated at top and bottom wasting premium candidate attention canvas",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 92,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: Agency name and logo shown both at top and footer wasting candidate attention canvas; Slightly cramped spacing in the job list area; Agency name is repeated both at the top in large font and again in the footer, wasting premium candidate-attention space.; There is some dead canvas space below the contact information and above the footer that could be better utilized to tighten the layout.; Agency identity 'Al Yousuf Enterprises LLP' unnecessarily repeated across both top and bottom of the advertisement wasting premium candidate-attention canvas",
+      "usedRealAiImage": false
+    }
+  ]
+}

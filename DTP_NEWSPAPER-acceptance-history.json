@@ -1,0 +1,145 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 92,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: Agency name and logo shown both at top and footer wasting candidate attention canvas; Slightly cramped spacing in the job list area; Agency name is repeated both at the top in large font and again in the footer, wasting premium candidate-attention space.; There is some dead canvas space below the contact information and above the footer that could be better utilized to tighten the layout.; Agency identity 'Al Yousuf Enterprises LLP' unnecessarily repeated across both top and bottom of the advertisement wasting premium candidate-attention canvas",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 95,
+        "defects": [
+          "Agency name and logo shown both at top and footer wasting candidate attention canvas",
+          "Slightly cramped spacing in the job list area"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing between job listings to reduce cramped appearance."
+          },
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the agency name/logo at the top, as it is repeated in the footer, to free premium candidate canvas area."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 95,
+        "trustScore": 92,
+        "defects": [
+          "Agency name is repeated both at the top in large font and again in the footer, wasting premium candidate-attention space.",
+          "There is some dead canvas space below the contact information and above the footer that could be better utilized to tighten the layout."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead canvas below contact line to tighten the overall layout and improve canvas utilization."
+          },
+          {
+            "type": "OTHER",
+            "note": "Remove the agency name from the top or reduce its prominence and rely on the footer to display agency identity only to avoid repeated agency identity."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 89,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 75,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity 'Al Yousuf Enterprises LLP' unnecessarily repeated across both top and bottom of the advertisement wasting premium candidate-attention canvas"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the agency identity from the top, consolidate all trust and identity elements in the footer only to avoid wasting premium candidate-attention canvas"
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make the contact phone and email visually slightly larger or bolder to enhance prominence, especially for mobile viewing"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

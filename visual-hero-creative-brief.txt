@@ -1,0 +1,42 @@
+You are a world-class overseas-recruitment advertising art director. Design and generate a COMPLETE, FINISHED, professionally produced recruitment advertisement. Canvas format: square for social-media circulation (WhatsApp, Facebook, Instagram, LinkedIn). This is the actual advertisement that a recruitment agency will publish — not a background, not a template, not a mockup.
+
+DOMINANT HEADLINE (the single largest, most attention-stopping text on the canvas): "BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA"
+
+HIRING DESTINATION (must be immediately visible at headline-adjacent scale): Saudi Arabia
+INDUSTRY: Oil & Gas
+EMPLOYER / PROJECT: Bilfinger
+
+POSITIONS (all must appear and be readable):
+Welders - TIG & Multi — Shutdown project experience is mandatory
+Instrument and Control Technician — Shutdown project experience is mandatory
+Rotating Equipment Technician — Shutdown project experience is mandatory
+Mechanical Technician — Shutdown project experience is mandatory
+Electrical Technician — Shutdown project experience is mandatory
+
+INTERVIEW: 14th & 15th July — Baroda; 18th July — Mumbai
+
+BENEFITS / COMPENSATION: Basic salary; Daily overtime up to 4 hours
+
+IMPORTANT NOTE: All applicants must have experience in shutdown projects
+
+CONTACT (must be prominent — a candidate who wants to act must never hunt for it):
+Phone: 9324995767
+Email: jobs@alyousufent.com
+
+AGENCY: Al Yousuf Enterprises LLP — RA 9986
+Registration: RC-B1487/MUM/PART/1000+/9986/2022 BRAND PALETTE — agency Visual DNA: primary #7c9f53, secondary #5d9bb9, accent #c0392b. Use these to create strong professional identity throughout the design.
+
+COMMERCIAL DESIGN REQUIREMENTS:
+- Professional Gulf overseas-recruitment poster/social-media advertisement grammar
+- Scroll-stopping within one second on a mobile phone feed
+- Candidate can understand the opportunity within three seconds
+- Balance compelling imagery with structured content sections. Use professional poster composition.
+- Strong visual storytelling: compelling Oil & Gas environment imagery that tells the work-environment story
+- Professional typography hierarchy: hook ≫ destination ≫ positions/details ≫ trust elements
+- Full canvas utilization — no dead zones, no blank areas
+- Contact details must be prominent with strong CTA treatment
+- Agency identity in trust position (footer area), not dominating the top headline zone
+
+IMPORTANT TEXT NOTE: Render ALL text clearly and readably. The platform will overlay the exact agency logo and a verification QR code in the bottom area afterwards — leave a small area (~100px) in the bottom-right corner for this QR overlay. All other text should be rendered by you as part of the complete advertisement design.
+
+PROHIBITIONS: Do not fabricate any salary, vacancy count, urgency, benefit, or claim not listed above. Do not show close-up identifiable faces. Do not add any fact not provided. Every word must trace to the source facts above.
