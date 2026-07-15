@@ -1,0 +1,134 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 92,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: Agency identity appears both top-left and in footer, which wastes premium candidate attention canvas.; Agency identity unnecessarily repeated across both top and bottom of the advertisement (wasting premium canvas); Agency identity repeated in top logo and bottom footer, which uses valuable prime candidate canvas",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 93,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 94,
+        "defects": [
+          "Agency identity appears both top-left and in footer, which wastes premium candidate attention canvas."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove the top-left agency logo and name to avoid redundant agency identity presence; keep only footer verification for trust compliance."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "qrPanelScale": 1.08
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 92,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 92,
+        "trustScore": 88,
+        "defects": [
+          "Agency identity unnecessarily repeated across both top and bottom of the advertisement (wasting premium canvas)"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove agency logo and name from the top banner since it is already present in the footer to optimize candidate-first hierarchy and better use of premium canvas."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "qrPanelScale": 1.08,
+        "bannerSpacing": 1.1
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "Agency identity repeated in top logo and bottom footer, which uses valuable prime candidate canvas"
+        ],
+        "catastrophicDefects": [
+          "Agency identity unnecessarily repeated across both top and bottom of the advertisement (wasting premium canvas)"
+        ],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove or relocate the agency logo at the top to the trust footer only, avoiding identity repetition and wasting candidate-attention space."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    }
+  ]
+}
