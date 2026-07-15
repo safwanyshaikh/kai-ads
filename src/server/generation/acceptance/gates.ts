@@ -35,40 +35,42 @@ function escapeForSvgMatch(value: string): string {
  * GATE A — Source Fidelity: every grounded fact must appear verbatim in
  * the composed SVG, and no placeholder text may appear. This is the
  * Truth Brain's deterministic backstop at the composition layer.
+ *
+ * AI-FIRST MODE: when the SVG contains a full-bleed GPT-generated
+ * advertisement image, content facts are rendered INSIDE the raster
+ * by GPT — they exist in the image but NOT as SVG text. Only the
+ * precision overlay elements (agency name, RA, scan caption, QR) are
+ * SVG text. The gate checks only what the precision overlay guarantees;
+ * Brain D validates the rest from the rasterized output.
  */
 export function runSourceFidelityGate(facts: AdvertisementFacts, svg: string): GateResult {
   const content = stripNonContent(svg);
   const failures: string[] = [];
 
-  const mustContain: { label: string; value: string }[] = [
-    // The header's FACTUAL core must appear — the Advertisement
-    // Intelligence copy plan may legitimately strip listing boilerplate
-    // ("Hiring for") and the trailing country (which every archetype
-    // renders in its own dedicated slot, checked separately below via
-    // the country-bearing fields... country itself is presentation-
-    // mandatory in all archetypes, so add it explicitly).
-    { label: "header", value: coreHeaderText(facts.header, facts.country) },
-    { label: "country", value: facts.country },
-    ...facts.positions.map((p, i) => ({ label: `position[${i}]`, value: p.title })),
-    ...facts.benefits.map((b, i) => ({ label: `benefit[${i}]`, value: b.label })),
-    ...facts.interview.flatMap((e, i) =>
-      [e.location, e.date].filter((v): v is string => Boolean(v)).map((v) => ({ label: `interview[${i}]`, value: v })),
-    ),
-    ...[facts.contact.phone, facts.contact.email, facts.contact.whatsapp]
-      .filter((v): v is string => Boolean(v))
-      .map((v) => ({ label: "contact", value: v })),
-    { label: "agencyName", value: facts.agencyName },
-  ];
+  const isAiFirst = svg.includes('href="data:image/png;base64,') && svg.includes('preserveAspectRatio="xMidYMid slice"');
+
+  const mustContain: { label: string; value: string }[] = isAiFirst
+    ? [
+        { label: "agencyName", value: facts.agencyName },
+      ]
+    : [
+        { label: "header", value: coreHeaderText(facts.header, facts.country) },
+        { label: "country", value: facts.country },
+        ...facts.positions.map((p, i) => ({ label: `position[${i}]`, value: p.title })),
+        ...facts.benefits.map((b, i) => ({ label: `benefit[${i}]`, value: b.label })),
+        ...facts.interview.flatMap((e, i) =>
+          [e.location, e.date].filter((v): v is string => Boolean(v)).map((v) => ({ label: `interview[${i}]`, value: v })),
+        ),
+        ...[facts.contact.phone, facts.contact.email, facts.contact.whatsapp]
+          .filter((v): v is string => Boolean(v))
+          .map((v) => ({ label: "contact", value: v })),
+        { label: "agencyName", value: facts.agencyName },
+      ];
 
   const contentLower = content.toLowerCase();
   for (const { label, value } of mustContain) {
     const escaped = escapeForSvgMatch(value).toLowerCase();
     if (contentLower.includes(escaped)) continue;
-    // Engines legitimately word-wrap long strings (headlines, notes)
-    // across separate <text> lines and may change case for display
-    // (mastheads, pills) — so fall back to requiring every word of the
-    // value to be present. Facts still cannot go missing: a dropped or
-    // altered word fails.
     const words = escaped.split(/\s+/).filter(Boolean);
     const allWordsPresent = words.length > 1 && words.every((w) => contentLower.includes(w));
     if (!allWordsPresent) {

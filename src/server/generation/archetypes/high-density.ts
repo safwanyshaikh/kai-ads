@@ -41,21 +41,10 @@ export function renderHighDensity(input: CompositionInput): string {
 
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="#ffffff" />`];
 
-  // --- Slim identity strip ---
-  const stripH = px(96);
+  // --- Slim accent strip (no agency identity — trust architecture places
+  // it exclusively in the footer to avoid duplication) ---
+  const stripH = px(52);
   parts.push(`<rect x="0" y="0" width="${W}" height="${stripH}" fill="${accent}" />`);
-  const logoSize = px(60);
-  let stripX = pad;
-  if (plan.agencyLogoDataUri) {
-    parts.push(
-      `<rect x="${pad}" y="${Math.round((stripH - logoSize - px(10)) / 2)}" width="${logoSize + px(10)}" height="${logoSize + px(10)}" rx="${px(8)}" fill="#ffffff" />
-  <image x="${pad + px(5)}" y="${Math.round((stripH - logoSize) / 2)}" width="${logoSize}" height="${logoSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
-    );
-    stripX = pad + logoSize + px(34);
-  }
-  parts.push(
-    `<text x="${stripX}" y="${stripH / 2 + fpx(8)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, W - stripX - pad, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>`,
-  );
 
   // --- Headline band ---
   let y = stripH + px(52);
@@ -230,6 +219,11 @@ export function renderHighDensity(input: CompositionInput): string {
       `<text x="${pad + px(40)}" y="${barY + barH / 2 + fpx(24)}" font-family="${font}" font-size="${size}" fill="#cfd8e0">${escapeXml(secondary)}</text>`,
     );
   }
+  // Agency identity in footer (single trust zone per Constitution)
+  const agencyNameSize = fitFontSize(facts.agencyName, ctaW, fpx(16), fpx(9));
+  parts.push(
+    `<text x="${pad}" y="${barY + barH - fpx(14)}" font-family="${font}" font-size="${agencyNameSize}" font-weight="700" fill="#8a99a8">${escapeXml(facts.agencyName)}</text>`,
+  );
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   ${buildEmbeddedFontStyleBlock()}
