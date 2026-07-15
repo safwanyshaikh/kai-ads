@@ -18,17 +18,11 @@ export type ExportFormat = "png" | "jpg" | "pdf";
  */
 export async function rasterizeSvg(svg: string, widthPx: number, heightPx: number): Promise<Buffer> {
   try {
-    const aiFirstMatch = svg.match(
-      /<image\s[^>]*href="(data:image\/png;base64,[^"]+)"[^>]*preserveAspectRatio="xMidYMid slice"[^>]*\/>/,
-    );
+    const extracted = extractAiFirstImage(svg);
 
-    if (aiFirstMatch) {
-      const dataUri = aiFirstMatch[1];
-      const base64Data = dataUri.replace(/^data:image\/png;base64,/, "");
-      const bgBuffer = Buffer.from(base64Data, "base64");
-
-      const overlaySvg = svg.replace(aiFirstMatch[0], "");
-      const overlayBuffer = await sharp(Buffer.from(overlaySvg), { density: 144 })
+    if (extracted) {
+      const bgBuffer = Buffer.from(extracted.base64, "base64");
+      const overlayBuffer = await sharp(Buffer.from(extracted.overlaySvg), { density: 144 })
         .resize(widthPx, heightPx, { fit: "fill" })
         .png()
         .toBuffer();
@@ -48,6 +42,30 @@ export async function rasterizeSvg(svg: string, widthPx: number, heightPx: numbe
     log.error({ err: error }, "SVG rasterization failed");
     throw new UnsupportedDocumentError("Could not render the advertisement image.");
   }
+}
+
+const AI_FIRST_MARKER = 'preserveAspectRatio="xMidYMid slice"';
+const DATA_URI_PREFIX = "data:image/png;base64,";
+
+function extractAiFirstImage(svg: string): { base64: string; overlaySvg: string } | null {
+  const markerIdx = svg.indexOf(AI_FIRST_MARKER);
+  if (markerIdx === -1) return null;
+
+  const hrefIdx = svg.lastIndexOf('href="' + DATA_URI_PREFIX, markerIdx);
+  if (hrefIdx === -1) return null;
+
+  const b64Start = hrefIdx + 'href="'.length + DATA_URI_PREFIX.length;
+  const b64End = svg.indexOf('"', b64Start);
+  if (b64End === -1) return null;
+
+  const tagStart = svg.lastIndexOf("<image", hrefIdx);
+  const tagEnd = svg.indexOf("/>", markerIdx);
+  if (tagStart === -1 || tagEnd === -1) return null;
+
+  const base64 = svg.slice(b64Start, b64End);
+  const overlaySvg = svg.slice(0, tagStart) + svg.slice(tagEnd + 2);
+
+  return { base64, overlaySvg };
 }
 
 /** Converts an already-rasterized PNG into the requested export format. Real conversion — no placeholder. */

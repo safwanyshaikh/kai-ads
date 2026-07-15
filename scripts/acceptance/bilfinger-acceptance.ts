@@ -212,8 +212,8 @@ async function main() {
       archetype === recommendation.recommendedArchetype ? "AUTO-RECOMMENDED" : "EXPLICITLY FORCED (acceptance matrix)",
     );
 
-    // Real image generation — Visual Hero only.
     let backgroundImageDataUri: string | null = null;
+    try {
     if (archetype === "VISUAL_HERO") {
       console.log("KAI Creative Engine: generating real background (model:", env.KAI_IMAGE_MODEL, ")...");
       const provider = getImageGenerationProvider();
@@ -274,10 +274,14 @@ async function main() {
     );
 
     writeFileSync(path.join(OUT, `${archetype}.png`), outcome.finalPng);
-    const jpg = await exportImage(outcome.finalPng, "jpg", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
-    const pdf = await exportImage(outcome.finalPng, "pdf", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
-    writeFileSync(path.join(OUT, `${archetype}.jpg`), jpg.buffer);
-    writeFileSync(path.join(OUT, `${archetype}.pdf`), pdf.buffer);
+    if (outcome.finalPng.length > 0) {
+      const jpg = await exportImage(outcome.finalPng, "jpg", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
+      const pdf = await exportImage(outcome.finalPng, "pdf", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
+      writeFileSync(path.join(OUT, `${archetype}.jpg`), jpg.buffer);
+      writeFileSync(path.join(OUT, `${archetype}.pdf`), pdf.buffer);
+    } else {
+      console.error(`  WARNING: ${archetype} produced empty PNG — skipping JPG/PDF export`);
+    }
     writeFileSync(
       path.join(OUT, `${archetype}-acceptance-history.json`),
       JSON.stringify({ status: outcome.status, finalScore: outcome.finalScore, blockReason: outcome.blockReason, iterations: outcome.iterations }, null, 2),
@@ -304,6 +308,20 @@ async function main() {
       blockReason: outcome.blockReason ?? null,
       usedRealAiImage: archetype === "VISUAL_HERO" && backgroundImageDataUri !== null,
     });
+  } catch (archetypeError) {
+    console.error(`  ARCHETYPE ${archetype} CRASHED:`, archetypeError instanceof Error ? archetypeError.message : archetypeError);
+    if (archetypeError instanceof Error) console.error(archetypeError.stack);
+    manifest.push({
+      archetype,
+      mode: archetype === recommendation.recommendedArchetype ? "recommended" : "forced",
+      suitabilityScore: recommendation.suitabilityScores[archetype],
+      status: "CRASHED",
+      finalScore: null,
+      iterations: 0,
+      blockReason: archetypeError instanceof Error ? archetypeError.message : String(archetypeError),
+      usedRealAiImage: archetype === "VISUAL_HERO" && backgroundImageDataUri !== null,
+    });
+  }
   }
 
   writeFileSync(
