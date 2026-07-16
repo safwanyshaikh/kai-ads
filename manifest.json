@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-16T02:23:32.250Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "db8326fcf42d7f5b85cc419c39b94faabd6570e6",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "hookLines": [
+      "BILFINGER SHUTDOWN PROJECT",
+      "IN SAUDI ARABIA"
+    ],
+    "interviewRibbon": {
+      "line1": "CLIENT INTERVIEWS IN BARODA & MUMBAI",
+      "line2": "ON 14TH JULY · 15TH JULY · 18TH JULY"
+    },
+    "benefitBanner": "BASIC SALARY + DAILY OVERTIME UP TO 4 HOURS",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "EMPLOYER_PROJECT",
+    "emphasis": {
+      "country": true,
+      "employer": true,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1784168537607",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1784168537607",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 89,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 89). Defects: Agency identity is placed at the top and again at the bottom footer which is a duplication defect for STRUCTURED_PROFESSIONAL archetype.; IMPROVE_SPACING; Agency identity appears only in the footer but could be slightly more prominent for trust; The email contact bubble's yellow contrasts well but is slightly small compared to the phone number; The banner for client interview dates uses a slanted background which may slightly reduce readability compared to fully horizontal bars",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 88,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 88). Defects: IMPROVE_CONTRAST: The smaller yellow text 'All applicants must have experience...' is low contrast on the background and hard to read.; IMPROVE_SPACING: Crowding in multi-line headline causes slight tension at top of text block.; OTHER: Red underline under 'OIL & GAS - BILFINGER' seems unnecessary and visually distracting, disrupting clean text presentation.; Agency identity appears both at the top (logo small but present near contact) and in the footer, which is redundant in VISUAL_HERO archetype.; The small red underline under 'IN SAUDI ARABIA' looks like a visual defect or accidental graphic that does not add value.; Agency identity is somewhat prominent near the bottom but not duplicated at the top, so no duplication defect.; Slightly dense text in the positions list could use improved spacing for better readability.",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 94,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 94). Defects: UNJUSTIFIED_DEAD_CANVAS: large empty/white area in the lower middle and upper area below the headline wasting premium candidate attention canvas; NO_CANDIDATE_FACING_HOOK: candidate hook not visually emphasized as the dominant headline; 'BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA' is present but visually same size as next text lines; IMPROVE_SPACING: tabular blocks and interview date buttons are visually cramped and lack balanced vertical spacing; IMPROVE_CTA: contact phone and email CTA are small and visually subordinate on small mobile screens, phone icon also too small; IMPROVE_CONTRAST: light green check marks on pale green background panel are low contrast and require stronger distinction; Dead canvas above the green top border appears unjustified on Instagram format; IMPROVE_SPACING",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 93,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 93). Defects: Agency identity is shown at the top and bottom which is unnecessary for Instagram post but allowed for DTP_NEWSPAPER archetype.; Agency identity is repeated prominently at the top and bottom, but allowed as this is a DTP_NEWSPAPER archetype; The advertisement is purely typographic with no imagery, which fits the DTP_NEWSPAPER archetype so imagery score is low but correct; Agency name/logo repeats at both top and bottom which is allowed for DTP_NEWSPAPER but general presence of the top header slightly wastes prime candidate attention real estate",
+      "usedRealAiImage": false
+    }
+  ]
+}

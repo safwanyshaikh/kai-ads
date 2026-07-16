@@ -1,0 +1,131 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 93,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 93). Defects: Agency identity is shown at the top and bottom which is unnecessary for Instagram post but allowed for DTP_NEWSPAPER archetype.; Agency identity is repeated prominently at the top and bottom, but allowed as this is a DTP_NEWSPAPER archetype; The advertisement is purely typographic with no imagery, which fits the DTP_NEWSPAPER archetype so imagery score is low but correct; Agency name/logo repeats at both top and bottom which is allowed for DTP_NEWSPAPER but general presence of the top header slightly wastes prime candidate attention real estate",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 93,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 95,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 95,
+        "ctaScore": 90,
+        "trustScore": 95,
+        "defects": [
+          "Agency identity is shown at the top and bottom which is unnecessary for Instagram post but allowed for DTP_NEWSPAPER archetype."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "The agency name at the top is acceptable for DTP_NEWSPAPER archetype but ensure it doesn't dominate visually over the job opportunity text."
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make the contact line with phone and email slightly larger or bolder to improve prominence as the main CTA."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 92,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 95,
+        "defects": [
+          "Agency identity is repeated prominently at the top and bottom, but allowed as this is a DTP_NEWSPAPER archetype",
+          "The advertisement is purely typographic with no imagery, which fits the DTP_NEWSPAPER archetype so imagery score is low but correct"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 90,
+        "defects": [
+          "Agency name/logo repeats at both top and bottom which is allowed for DTP_NEWSPAPER but general presence of the top header slightly wastes prime candidate attention real estate"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Consider reducing top agency branding emphasis to free up space and enhance candidate hook visibility, although acceptable for DTP_NEWSPAPER archetype."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 94,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 94). Defects: UNJUSTIFIED_DEAD_CANVAS: large empty/white area in the lower middle and upper area below the headline wasting premium candidate attention canvas; NO_CANDIDATE_FACING_HOOK: candidate hook not visually emphasized as the dominant headline; 'BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA' is present but visually same size as next text lines; IMPROVE_SPACING: tabular blocks and interview date buttons are visually cramped and lack balanced vertical spacing; IMPROVE_CTA: contact phone and email CTA are small and visually subordinate on small mobile screens, phone icon also too small; IMPROVE_CONTRAST: light green check marks on pale green background panel are low contrast and require stronger distinction; Dead canvas above the green top border appears unjustified on Instagram format; IMPROVE_SPACING",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 74,
+        "commercialQualityScore": 78,
+        "hierarchyScore": 70,
+        "readabilityScore": 85,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 65,
+        "ctaScore": 80,
+        "trustScore": 85,
+        "defects": [
+          "UNJUSTIFIED_DEAD_CANVAS: large empty/white area in the lower middle and upper area below the headline wasting premium candidate attention canvas",
+          "NO_CANDIDATE_FACING_HOOK: candidate hook not visually emphasized as the dominant headline; 'BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA' is present but visually same size as next text lines",
+          "IMPROVE_SPACING: tabular blocks and interview date buttons are visually cramped and lack balanced vertical spacing",
+          "IMPROVE_CTA: contact phone and email CTA are small and visually subordinate on small mobile screens, phone icon also too small",
+          "IMPROVE_CONTRAST: light green check marks on pale green background panel are low contrast and require stronger distinction"
+        ],
+        "catastrophicDefects": [
+          "MORE_THAN_20_PERCENT_DEAD_CANVAS"
+        ],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase vertical spacing around interview date buttons and between job rows for better clarity and less crowding."
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make contact phone and email larger and more prominent with bigger icon to improve mobile visibility."
+          },
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Use stronger contrast for check marks and highlight panel to improve readability."
+          },
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Emphasize the candidate-facing hook 'BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA' as the primary dominant headline."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead canvas by redistributing text blocks or adding design elements to fill empty space strategically."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15,
+        "ctaScale": 1.12,
+        "scrimOpacity": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 94,
+        "commercialQualityScore": 95,
+        "hierarchyScore": 92,
+        "readabilityScore": 96,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 93,
+        "ctaScore": 96,
+        "trustScore": 95,
+        "defects": [
+          "Dead canvas above the green top border appears unjustified on Instagram format"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce the unjustified dead canvas area at the top green border to better utilize the square Instagram canvas."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.2999999999999998,
+        "ctaScale": 1.12,
+        "scrimOpacity": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "IMPROVE_SPACING"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase padding between the salary/benefits highlight box and the interview section to reduce crowding and improve visual separation."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
