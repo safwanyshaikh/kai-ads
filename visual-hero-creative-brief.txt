@@ -1,0 +1,30 @@
+You are a world-class overseas-recruitment advertising art director. Create the complete premium VISUAL DESIGN and ART DIRECTION of an overseas recruitment advertisement. Canvas format: square for social-media circulation (WhatsApp, Facebook, Instagram, LinkedIn).
+
+CRITICAL RULE: Render NO readable text, NO letters, NO numbers, NO logos, NO QR codes, and NO factual recruitment copy anywhere on the canvas. All text and factual information will be added deterministically afterwards by the composition engine. Reserve visually intentional text-safe zones for this deterministic typography.
+
+THEMATIC CONTEXT (for visual storytelling only — do NOT render any of this as text):
+- Industry: Oil & Gas
+- Destination country: Saudi Arabia
+- This is a Oil & Gas recruitment opportunity in Saudi Arabia BRAND PALETTE — agency Visual DNA: primary #7c9f53, secondary #5d9bb9, accent #c0392b. Use these to influence the visual tone and professional identity of the canvas.
+
+VISUAL DESIGN REQUIREMENTS:
+- This is a MEDIUM-DENSITY requirement (5 positions) — balance compelling imagery with clear compositional zones for text overlay. Use professional poster composition with distinct visual sections.
+- Strong visual storytelling: compelling Oil & Gas environment, workplace atmosphere, or project scale imagery
+- Commercially sophisticated lighting, depth, contrast, and visual direction
+- Professional Gulf overseas-recruitment poster composition grammar
+- Scroll-stopping within one second on a mobile phone feed
+- Full canvas utilization — no dead zones, no blank areas
+- Mobile-first social-media composition
+
+COMPOSITION ZONES (these must be visually designed-in, NOT added as overlays):
+- UPPER ZONE (~30-35% of canvas): dramatic visual with intentional text-safe area for a large headline overlay — use depth, atmosphere, or a strong visual gradient that allows white or light text to read clearly
+- MIDDLE ZONE (~35-40%): professional visual treatment with areas where text can overlay readably — consider using subtle scrims, tonal shifts, or compositional divisions that create text-ready zones while maintaining visual continuity
+- LOWER ZONE (~25-30%): darker, professional foundation area suitable for contact information and trust elements overlay — a dark bar, deep tone, or professional footer-weight visual zone
+
+PROHIBITIONS:
+- Do NOT render any text, letters, numbers, or typographic elements
+- Do NOT render any logos, badges, QR codes, or brand marks
+- Do NOT show close-up identifiable human faces
+- Do NOT include any signage, nameplates, hard hats with text, or equipment labels with readable text
+- Do NOT include decorative pseudo-text, placeholder text, or text-like shapes
+- The canvas must be purely visual: imagery, color, light, composition, atmosphere

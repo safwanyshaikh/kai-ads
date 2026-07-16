@@ -1,0 +1,148 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 91,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 91). Defects: IMPROVE_CONTRAST; IMPROVE_SPACING; The yellow text 'All applicants must have experience in shutdown projects' is hard to read due to low contrast against the background.; Some text in the positions list is slightly crowded, causing a slight readability impact.; IMPROVE_CONTRAST: The small subheading 'OIL & GAS' below the main headline is difficult to read due to insufficient contrast against the bright sky background.; OTHER: The yellow text line 'All applicants must have experience in shutdown projects' is too small and blends into the background, making it hard to read.",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 86,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 85,
+        "imageryScore": 90,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 85,
+        "defects": [
+          "IMPROVE_CONTRAST",
+          "IMPROVE_SPACING"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "The small yellow text 'All applicants must have experience in shutdown projects' is hard to read against the background and should have stronger contrast or a better background panel."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "The 'OIL & GAS' text is very close to the larger headline above it, creating some crowding and reducing clarity; increase spacing or reposition to improve readability."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15,
+        "scrimOpacity": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 86,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 87,
+        "readabilityScore": 88,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 85,
+        "defects": [
+          "The yellow text 'All applicants must have experience in shutdown projects' is hard to read due to low contrast against the background.",
+          "Some text in the positions list is slightly crowded, causing a slight readability impact."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Increase contrast for the yellow text 'All applicants must have experience in shutdown projects' to improve readability."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Improve line spacing in the positions list to reduce crowding and enhance readability."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.2999999999999998,
+        "scrimOpacity": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 92,
+        "readabilityScore": 90,
+        "imageryScore": 88,
+        "canvasUtilizationScore": 95,
+        "ctaScore": 95,
+        "trustScore": 90,
+        "defects": [
+          "IMPROVE_CONTRAST: The small subheading 'OIL & GAS' below the main headline is difficult to read due to insufficient contrast against the bright sky background.",
+          "OTHER: The yellow text line 'All applicants must have experience in shutdown projects' is too small and blends into the background, making it hard to read."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Increase contrast or use a stronger scrim behind the 'OIL & GAS' text for better readability."
+          },
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Make the yellow 'All applicants must have experience in shutdown projects' text larger or place it on a solid background to improve visibility."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

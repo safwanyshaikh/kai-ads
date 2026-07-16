@@ -1,0 +1,125 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 92,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: No agency name/logo repetition defect observed; Text overlay contrast is sufficient; Agency identity appears both at top and footer, but acceptable for STRUCTURED_PROFESSIONAL archetype on Instagram.; IMPROVE_CONTRAST",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "No agency name/logo repetition defect observed",
+          "Text overlay contrast is sufficient"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "Agency identity appears both at top and footer, but acceptable for STRUCTURED_PROFESSIONAL archetype on Instagram."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Increase color contrast for the top 'OVERSEAS RECRUITMENT' text against the dark blue background for better readability."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "scrimOpacity": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "IMPROVE_CONTRAST"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "The yellow text on light blue background (dates) and other colored texts should have stronger contrast for better readability."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

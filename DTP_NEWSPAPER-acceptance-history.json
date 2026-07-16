@@ -1,0 +1,134 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 90,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: AGENCY_IDENTITY_REPEATED_AT_TOP_AND_BOTTOM; IMPROVE_SPACING; Agency identity repeated at top and footer wasting premium canvas; Text lines in job requirements box are too tightly spaced",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 87,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 88,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "AGENCY_IDENTITY_REPEATED_AT_TOP_AND_BOTTOM"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "The agency name and logo appear prominently at the top and also in the footer, which is a duplication defect under the Constitution for non-DTP_NEWSPAPER formats. However, here the archetype is DTP_NEWSPAPER where top masthead usage is correct, so no penalty."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 95,
+        "defects": [
+          "IMPROVE_SPACING"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "There is some crowding of text lines and box edges, particularly in the list of job roles, which could be improved for better readability and cleaner appearance."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity repeated at top and footer wasting premium canvas",
+          "Text lines in job requirements box are too tightly spaced"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase line spacing in the job requirements list for better readability and reduced crowding."
+          },
+          {
+            "type": "OTHER",
+            "note": "Remove or minimize agency identity prominence at top since it also appears in footer to avoid wasting candidate attention canvas."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

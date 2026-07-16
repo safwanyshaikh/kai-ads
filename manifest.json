@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-16T06:14:28.581Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "db8326fcf42d7f5b85cc419c39b94faabd6570e6",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "hookLines": [
+      "BILFINGER SHUTDOWN PROJECT",
+      "IN SAUDI ARABIA"
+    ],
+    "interviewRibbon": {
+      "line1": "CLIENT INTERVIEWS IN BARODA & MUMBAI",
+      "line2": "ON 14TH JULY · 15TH JULY · 18TH JULY"
+    },
+    "benefitBanner": "BASIC SALARY + DAILY OVERTIME UP TO 4 HOURS",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "COMPENSATION",
+    "emphasis": {
+      "country": true,
+      "employer": false,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1784182386566",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1784182386566",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 92,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 92). Defects: No agency name/logo repetition defect observed; Text overlay contrast is sufficient; Agency identity appears both at top and footer, but acceptable for STRUCTURED_PROFESSIONAL archetype on Instagram.; IMPROVE_CONTRAST",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 91,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 91). Defects: IMPROVE_CONTRAST; IMPROVE_SPACING; The yellow text 'All applicants must have experience in shutdown projects' is hard to read due to low contrast against the background.; Some text in the positions list is slightly crowded, causing a slight readability impact.; IMPROVE_CONTRAST: The small subheading 'OIL & GAS' below the main headline is difficult to read due to insufficient contrast against the bright sky background.; OTHER: The yellow text line 'All applicants must have experience in shutdown projects' is too small and blends into the background, making it hard to read.",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 91,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 91). Defects: No candidate-facing hook emphasis: headline font size is good but lacks visual emphasis relative to body text for mobile scrolls.; Contact info area could be visually separated more to stand out better from the informational block above.; Bottom informational block feels a bit cramped; some spacing improvement around interview date buttons and salary/benefits box would improve clarity.; Agency identity repeated at the bottom but not at the top, which is correct for HIGH_DENSITY archetype.; No imagery present, appropriate for HIGH_DENSITY archetype.; No imagery present due to archetype HIGH_DENSITY, so imagery score low but not defect",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 90,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: AGENCY_IDENTITY_REPEATED_AT_TOP_AND_BOTTOM; IMPROVE_SPACING; Agency identity repeated at top and footer wasting premium canvas; Text lines in job requirements box are too tightly spaced",
+      "usedRealAiImage": false
+    }
+  ]
+}

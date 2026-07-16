@@ -1,0 +1,146 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 91,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 91). Defects: No candidate-facing hook emphasis: headline font size is good but lacks visual emphasis relative to body text for mobile scrolls.; Contact info area could be visually separated more to stand out better from the informational block above.; Bottom informational block feels a bit cramped; some spacing improvement around interview date buttons and salary/benefits box would improve clarity.; Agency identity repeated at the bottom but not at the top, which is correct for HIGH_DENSITY archetype.; No imagery present, appropriate for HIGH_DENSITY archetype.; No imagery present due to archetype HIGH_DENSITY, so imagery score low but not defect",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 85,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 87,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "No candidate-facing hook emphasis: headline font size is good but lacks visual emphasis relative to body text for mobile scrolls.",
+          "Contact info area could be visually separated more to stand out better from the informational block above.",
+          "Bottom informational block feels a bit cramped; some spacing improvement around interview date buttons and salary/benefits box would improve clarity."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "INCREASE_HEADLINE_EMPHASIS",
+            "note": "Make the main headline visually more prominent and candidate-attractive, for example larger font size or heavier weight, to ensure strong immediate candidate hook."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more vertical space between sections, especially around the interview date buttons and the salary/benefits callout to reduce crowding and improve readability."
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Enhance contact info block’s visual distinction, maybe by adding a subtle border or background shade, to make contact details easier to find at a glance."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.15,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 86,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 85,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity repeated at the bottom but not at the top, which is correct for HIGH_DENSITY archetype.",
+          "No imagery present, appropriate for HIGH_DENSITY archetype."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Slightly increase spacing between interview date boxes to improve visual separation and clarity."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "headlineScale": 1.12,
+        "spacingScale": 1.2999999999999998,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 91,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 90,
+        "defects": [
+          "No imagery present due to archetype HIGH_DENSITY, so imagery score low but not defect"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase vertical spacing below the 'Basic salary' and 'Daily overtime' note to separate it better from the interview date section."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
