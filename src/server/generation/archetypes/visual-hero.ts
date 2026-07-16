@@ -131,7 +131,7 @@ function renderAiFirstVisualHero(input: CompositionInput): string {
 
   // --- MIDDLE ZONE: positions card + benefits (semi-transparent) ---
   const midY = Math.round(H * 0.38 * spacingScale);
-  const bottomStripH = px(120);
+  const bottomStripH = px(160);
   const availMidH = H - midY - bottomStripH - px(30);
 
   // Positions card — compact, semi-transparent
