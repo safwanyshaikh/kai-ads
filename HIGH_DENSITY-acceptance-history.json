@@ -1,0 +1,136 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 88,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 88). Defects: Dead canvas in middle and upper right parts; small empty spaces reduce utilization; IMPROVE_SPACING; Agency identity appears both top left (small) and bottom footer, causing minor redundancy; Small dead space below interview dates reduces canvas utilization",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 90,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Dead canvas in middle and upper right parts; small empty spaces reduce utilization"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce dead space in the middle and upper right areas to improve canvas utilization and balance."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 87,
+        "readabilityScore": 90,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 92,
+        "trustScore": 90,
+        "defects": [
+          "IMPROVE_SPACING"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more vertical padding between the interview date boxes and above the contact section to reduce crowding and improve balance."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.2999999999999998
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 88,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 87,
+        "readabilityScore": 90,
+        "imageryScore": 85,
+        "canvasUtilizationScore": 89,
+        "ctaScore": 90,
+        "trustScore": 88,
+        "defects": [
+          "Agency identity appears both top left (small) and bottom footer, causing minor redundancy",
+          "Small dead space below interview dates reduces canvas utilization"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce unused white space below interview dates to improve canvas utilization."
+          },
+          {
+            "type": "OTHER",
+            "note": "Remove agency name top left or reduce prominence to footer only to avoid trust identity repetition."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 90,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: IMPROVE_CTA; The 'OPEN POSITIONS' box background is a little plain, could improve contrast or separation for better hierarchy.; Agency identity and verification information appear only in the footer, which is good, but top bar 'OVERSEAS RECRUITMENT' is very subtle and may be overlooked as a trust element rather than a headline. However, it is not a major defect.",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 92,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 93,
+        "defects": [
+          "IMPROVE_CTA"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Phone number and email CTA could be slightly larger or more visually distinct for better immediate recognition especially on mobile devices."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 92,
+        "hierarchyScore": 88,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 93,
+        "trustScore": 92,
+        "defects": [
+          "The 'OPEN POSITIONS' box background is a little plain, could improve contrast or separation for better hierarchy."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Enhance visual separation of the 'OPEN POSITIONS' section for stronger hierarchy and easier scanning."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 90,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Agency identity and verification information appear only in the footer, which is good, but top bar 'OVERSEAS RECRUITMENT' is very subtle and may be overlooked as a trust element rather than a headline. However, it is not a major defect."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Consider emphasizing the 'OVERSEAS RECRUITMENT' top bar or repositioning it to improve candidate-focused hierarchy, so it does not get visually missed."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}

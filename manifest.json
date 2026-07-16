@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-07-16T01:40:36.378Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "8102bea12f56f79b2ce891e36064743990d206a2",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "vision": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "commercialThreshold": 95,
+  "qrCanonicalDomainOk": true,
+  "visualDna": {
+    "primaryColor": "#7c9f53",
+    "secondaryColor": "#5d9bb9",
+    "accentColor": "#c0392b",
+    "hasLogo": true
+  },
+  "adCopyPlan": {
+    "primaryHeadline": "Bilfinger Shutdown Project",
+    "hookLines": [
+      "BILFINGER SHUTDOWN PROJECT",
+      "IN SAUDI ARABIA"
+    ],
+    "interviewRibbon": {
+      "line1": "CLIENT INTERVIEWS IN BARODA & MUMBAI",
+      "line2": "ON 14TH JULY · 15TH JULY · 18TH JULY"
+    },
+    "benefitBanner": "BASIC SALARY + DAILY OVERTIME UP TO 4 HOURS",
+    "secondaryHeadline": "Client interviews in Baroda & Mumbai",
+    "strongestSellingPoint": "EMPLOYER_PROJECT",
+    "emphasis": {
+      "country": true,
+      "employer": true,
+      "interview": true,
+      "benefit": true
+    }
+  },
+  "advertisementId": "ad-bilfinger-1784165968013",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1784165968013",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "recommendation": {
+    "recommendedArchetype": "STRUCTURED_PROFESSIONAL",
+    "suitabilityScores": {
+      "VISUAL_HERO": 76,
+      "STRUCTURED_PROFESSIONAL": 98,
+      "HIGH_DENSITY": 30,
+      "DTP_NEWSPAPER": 68
+    },
+    "reasons": [
+      "Recommended STRUCTURED_PROFESSIONAL for 5 position(s), ~5 headcount, 2 benefit(s), 3 interview event(s).",
+      "High-Density scored low: 5 positions / ~5 headcount does not justify a vacancy table."
+    ]
+  },
+  "results": [
+    {
+      "archetype": "STRUCTURED_PROFESSIONAL",
+      "mode": "recommended",
+      "suitabilityScore": 98,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 90,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 90). Defects: IMPROVE_CTA; The 'OPEN POSITIONS' box background is a little plain, could improve contrast or separation for better hierarchy.; Agency identity and verification information appear only in the footer, which is good, but top bar 'OVERSEAS RECRUITMENT' is very subtle and may be overlooked as a trust element rather than a headline. However, it is not a major defect.",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "VISUAL_HERO",
+      "mode": "forced",
+      "suitabilityScore": 76,
+      "status": "BLOCKED_DETERMINISTIC",
+      "finalScore": null,
+      "iterations": 1,
+      "blockReason": "QR verification gate failed: QR did not decode to the KAI verification URL (got nothing)",
+      "usedRealAiImage": true
+    },
+    {
+      "archetype": "HIGH_DENSITY",
+      "mode": "forced",
+      "suitabilityScore": 30,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 88,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 88). Defects: Dead canvas in middle and upper right parts; small empty spaces reduce utilization; IMPROVE_SPACING; Agency identity appears both top left (small) and bottom footer, causing minor redundancy; Small dead space below interview dates reduces canvas utilization",
+      "usedRealAiImage": false
+    },
+    {
+      "archetype": "DTP_NEWSPAPER",
+      "mode": "forced",
+      "suitabilityScore": 68,
+      "status": "BLOCKED_VISUAL_QA",
+      "finalScore": 93,
+      "iterations": 3,
+      "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 93). Defects: Agency name/logo repeated at top and footer which is not a defect for DTP_NEWSPAPER archetype but leads to some canvas use inefficiency.; Agency identity appears prominently at the top and also in the footer, which could risk slight redundancy, but this is acceptable in DTP_NEWSPAPER archetype.; Agency identity is dominant at top but also fully present in bottom trust footer, this is redundant for non-DTP_NEWSPAPER archetypes; however here it is DTP_NEWSPAPER so no defect; Slightly small signature contact email and phone for Instagram mobile but still legible",
+      "usedRealAiImage": false
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "informationPriority": [
+    "DOMINANT_HOOK",
+    "DESTINATION_COUNTRY",
+    "COMPENSATION",
+    "INTERVIEW_EVENTS",
+    "POSITIONS",
+    "CONTACT_CTA",
+    "AGENCY_TRUST"
+  ],
+  "dominantHook": "BILFINGER SHUTDOWN PROJECT IN SAUDI ARABIA",
+  "contentDensityClass": "MEDIUM",
+  "typographyScale": 1,
+  "footerVariant": "TRUST_STRIP",
+  "trustArchitecture": {
+    "primaryTrustZone": "FOOTER",
+    "repeatedElements": [
+      {
+        "element": "AGENCY_NAME",
+        "repetitionJustification": null
+      },
+      {
+        "element": "AGENCY_LOGO",
+        "repetitionJustification": null
+      },
+      {
+        "element": "RA_NUMBER",
+        "repetitionJustification": null
+      },
+      {
+        "element": "MEA_BADGE",
+        "repetitionJustification": null
+      },
+      {
+        "element": "REGISTRATION_NUMBER",
+        "repetitionJustification": null
+      },
+      {
+        "element": "VERIFICATION_MESSAGING",
+        "repetitionJustification": null
+      }
+    ],
+    "reclaimedCanvasPercent": 10,
+    "reclaimedCanvasAllocation": [
+      "CANDIDATE_HOOK",
+      "DESTINATION_EMPHASIS",
+      "INTERVIEW_PROMINENCE",
+      "BENEFIT_PROMINENCE"
+    ]
+  },
+  "candidateHook": {
+    "text": "YOUR OIL & GAS CAREER IN SAUDI ARABIA",
+    "candidateHookType": "DESTINATION_CAREER",
+    "candidateHookSourceEvidence": [
+      "country: Saudi Arabia",
+      "industry: Oil & Gas",
+      "employer: Bilfinger"
+    ],
+    "candidateHookConfidence": "HIGH"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 93,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 93). Defects: Agency name/logo repeated at top and footer which is not a defect for DTP_NEWSPAPER archetype but leads to some canvas use inefficiency.; Agency identity appears prominently at the top and also in the footer, which could risk slight redundancy, but this is acceptable in DTP_NEWSPAPER archetype.; Agency identity is dominant at top but also fully present in bottom trust footer, this is redundant for non-DTP_NEWSPAPER archetypes; however here it is DTP_NEWSPAPER so no defect; Slightly small signature contact email and phone for Instagram mobile but still legible",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 93,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 93,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "Agency name/logo repeated at top and footer which is not a defect for DTP_NEWSPAPER archetype but leads to some canvas use inefficiency."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing above contact info and interview dates for better visual balance and uncluttered feel."
+          },
+          {
+            "type": "IMPROVE_CTA",
+            "note": "Make the contact phone number and email slightly larger or bolder to enhance immediate findability as CTA."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {
+        "spacingScale": 1.15,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 90,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 92,
+        "readabilityScore": 95,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 91,
+        "trustScore": 92,
+        "defects": [
+          "Agency identity appears prominently at the top and also in the footer, which could risk slight redundancy, but this is acceptable in DTP_NEWSPAPER archetype."
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15,
+        "ctaScale": 1.12
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 92,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 95,
+        "readabilityScore": 93,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 95,
+        "trustScore": 95,
+        "defects": [
+          "Agency identity is dominant at top but also fully present in bottom trust footer, this is redundant for non-DTP_NEWSPAPER archetypes; however here it is DTP_NEWSPAPER so no defect",
+          "Slightly small signature contact email and phone for Instagram mobile but still legible"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add slight breathing room around the contact line to ensure better separation and prominence on mobile"
+          },
+          {
+            "type": "OTHER",
+            "note": "Consider slightly increasing the font size or weight of the contact email and phone for mobile readability"
+          }
+        ],
+        "verdict": "PASS"
+      }
+    }
+  ]
+}
