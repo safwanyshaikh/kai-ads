@@ -22,8 +22,8 @@ export async function rasterizeSvg(svg: string, widthPx: number, heightPx: numbe
 
     if (extracted) {
       const bgBuffer = Buffer.from(extracted.base64, "base64");
-      const overlayBuffer = await sharp(Buffer.from(extracted.overlaySvg), { density: 144 })
-        .resize(widthPx, heightPx, { fit: "fill" })
+      const overlayBuffer = await sharp(Buffer.from(extracted.overlaySvg), { density: 96 })
+        .resize(widthPx, heightPx, { fit: "fill", kernel: sharp.kernel.lanczos3 })
         .png()
         .toBuffer();
 

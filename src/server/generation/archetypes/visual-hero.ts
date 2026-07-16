@@ -131,7 +131,7 @@ function renderAiFirstVisualHero(input: CompositionInput): string {
 
   // --- MIDDLE ZONE: positions card + benefits (semi-transparent) ---
   const midY = Math.round(H * 0.38 * spacingScale);
-  const bottomStripH = px(160);
+  const bottomStripH = px(200);
   const availMidH = H - midY - bottomStripH - px(30);
 
   // Positions card — compact, semi-transparent
@@ -250,7 +250,7 @@ function renderAiFirstVisualHero(input: CompositionInput): string {
 
   // Trust footer: logo + agency name + QR panel
   let trustTextX = pad;
-  const trustY = stripY + contactH + px(14);
+  const trustY = stripY + contactH + px(8);
   const logoSize = px(44);
   if (plan.agencyLogoDataUri) {
     const logoY = trustY + px(2);
@@ -261,7 +261,7 @@ function renderAiFirstVisualHero(input: CompositionInput): string {
     trustTextX = pad + logoSize + px(16);
   }
 
-  const qrH = px(Math.round(78 * qrPanelScale));
+  const qrH = px(Math.round(120 * qrPanelScale));
   const panelProbe = verificationPanel({
     x: 0,
     y: trustY,
