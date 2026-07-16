@@ -1,0 +1,145 @@
+{
+  "status": "BLOCKED_VISUAL_QA",
+  "finalScore": 89,
+  "blockReason": "Visual QA stayed below 95/100 after 3 iterations (best score: 89). Defects: Agency identity unnecessarily repeated across top and bottom of the advertisement (top agency branding not needed); Unjustified dead canvas large at bottom half; Position / experience block background contrast low causing reduced emphasis on important content; IMPROVE_SPACING; IMPROVE_SPACING; OTHER",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 87,
+        "commercialQualityScore": 88,
+        "hierarchyScore": 85,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 90,
+        "ctaScore": 92,
+        "trustScore": 88,
+        "defects": [
+          "Agency identity unnecessarily repeated across top and bottom of the advertisement (top agency branding not needed)"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "OTHER",
+            "note": "Remove the redundant agency name/branding from the top to save premium candidate attention canvas for the candidate hook and opportunity details."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 2,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 89,
+        "commercialQualityScore": 90,
+        "hierarchyScore": 88,
+        "readabilityScore": 92,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 85,
+        "ctaScore": 90,
+        "trustScore": 90,
+        "defects": [
+          "Unjustified dead canvas large at bottom half",
+          "Position / experience block background contrast low causing reduced emphasis on important content"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Reduce the disproportionate dead canvas below the interview section to better balance the layout and improve canvas utilization."
+          },
+          {
+            "type": "IMPROVE_CONTRAST",
+            "note": "Increase contrast or add subtle background highlight behind the POSITION / EXPERIENCE text block to enhance visual hierarchy and candidate attention."
+          }
+        ],
+        "verdict": "PASS"
+      }
+    },
+    {
+      "iteration": 3,
+      "tuning": {
+        "spacingScale": 1.15,
+        "scrimOpacity": 1.15
+      },
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": true,
+          "failures": []
+        }
+      },
+      "visualQa": {
+        "overallScore": 83,
+        "commercialQualityScore": 85,
+        "hierarchyScore": 80,
+        "readabilityScore": 85,
+        "imageryScore": 0,
+        "canvasUtilizationScore": 70,
+        "ctaScore": 85,
+        "trustScore": 90,
+        "defects": [
+          "IMPROVE_SPACING",
+          "IMPROVE_SPACING",
+          "OTHER"
+        ],
+        "catastrophicDefects": [],
+        "requiredCorrections": [
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Add more vertical spacing below the INTERVIEW section date buttons to reduce crowding and improve separation from the contact footer."
+          },
+          {
+            "type": "IMPROVE_SPACING",
+            "note": "Increase spacing above the bottom dark footer band to avoid crowding between informational content and the footer area."
+          },
+          {
+            "type": "OTHER",
+            "note": "Consider introducing a stronger candidate hook differentiation between the main headline and the subheadline for clearer hierarchy. The current 'Oil & Gas · Bilfinger' line is too subtle and blends with the headline."
+          }
+        ],
+        "verdict": "REGENERATE"
+      }
+    }
+  ]
+}

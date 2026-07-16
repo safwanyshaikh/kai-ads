@@ -1,0 +1,29 @@
+{
+  "status": "BLOCKED_DETERMINISTIC",
+  "finalScore": null,
+  "blockReason": "QR verification gate failed: QR did not decode to the KAI verification URL (got nothing)",
+  "iterations": [
+    {
+      "iteration": 1,
+      "tuning": {},
+      "regeneratedImage": false,
+      "gates": {
+        "sourceFidelity": {
+          "passed": true,
+          "failures": []
+        },
+        "technicalRender": {
+          "passed": true,
+          "failures": []
+        },
+        "qr": {
+          "passed": false,
+          "failures": [
+            "QR did not decode to the KAI verification URL (got nothing)"
+          ]
+        }
+      },
+      "visualQa": null
+    }
+  ]
+}
