@@ -2,40 +2,12 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { magicLink } from "better-auth/plugins";
 import { db } from "@/lib/db";
-import { getEnv, getIntegrationStatus, resolveAuthUrls } from "@/lib/env";
+import { getEnv, getIntegrationStatus, resolveAuthHostConfig } from "@/lib/env";
 import { emailService } from "@/server/services/email.service";
 import { assertBusinessEmail } from "@/server/services/email-validation.service";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("auth");
-
-/**
- * Sprint 006 Bug 001: trusts the exact origin a request itself arrived on,
- * in addition to the statically-resolved deployment origins (env.ts:
- * resolveAuthUrls). This is what makes origin validation resilient on
- * Vercel Preview regardless of whether Vercel's system env vars
- * (VERCEL_URL etc.) are actually exposed to the runtime — a project-level
- * toggle this app cannot see or control, so a disabled/misconfigured
- * toggle can no longer reproduce "Invalid origin".
- *
- * Not a security loosening: trusting "the origin equal to the Host header
- * this request was routed to" is exactly same-origin validation — a
- * genuine cross-site request still arrives with Host set to OUR domain
- * and Origin set to the attacker's, which still will not match.
- */
-export function deriveTrustedOrigins(
-  staticTrustedOrigins: string[],
-  request: Request | undefined,
-  isProduction: boolean,
-): string[] {
-  const origins = new Set(staticTrustedOrigins);
-  const host = request?.headers.get("x-forwarded-host") ?? request?.headers.get("host");
-  if (host) {
-    const protocol = request?.headers.get("x-forwarded-proto") ?? (isProduction ? "https" : "http");
-    origins.add(`${protocol}://${host}`);
-  }
-  return [...origins];
-}
 
 /**
  * Better Auth server instance.
@@ -60,32 +32,33 @@ export function deriveTrustedOrigins(
 function buildAuth() {
   const env = getEnv();
   const integrations = getIntegrationStatus(env);
-  // Sprint 006 Bug 001: baseUrl/trustedOrigins are derived per-deployment
-  // (local dev, every Vercel Preview, and Production) — see
-  // resolveAuthUrls() in env.ts for why a static pair broke Preview.
-  const { baseUrl, trustedOrigins: staticTrustedOrigins } = resolveAuthUrls(env);
+  // Sprint 006 Bug 002: allowedHosts/fallback — see resolveAuthHostConfig()
+  // in env.ts for the full incident writeup. `baseURL` below is Better
+  // Auth's native DYNAMIC config: it resolves the actual base URL PER
+  // REQUEST from that request's own Host header, validated against
+  // allowedHosts — never from a fixed env var. trustedOrigins is
+  // intentionally NOT set separately: Better Auth derives it from this
+  // same allowedHosts list automatically.
+  const { allowedHosts, fallback } = resolveAuthHostConfig(env);
 
-  // FIX-008 (HTTPS): refuse to boot in production with a non-HTTPS auth URL.
-  // Better Auth issues Secure cookies in production (see advanced.useSecureCookies
-  // below); those cookies are silently dropped by browsers over plain HTTP,
-  // which would look like "login doesn't work" rather than a clear config error.
-  if (env.NODE_ENV === "production" && !baseUrl.startsWith("https://")) {
+  // FIX-008 (HTTPS): refuse to boot in production with a non-HTTPS fallback
+  // URL. Better Auth issues Secure cookies in production (see
+  // advanced.useSecureCookies below); those cookies are silently dropped by
+  // browsers over plain HTTP, which would look like "login doesn't work"
+  // rather than a clear config error. The fallback is only ever used with
+  // no request context (build-time), but must still be a valid https URL.
+  if (env.NODE_ENV === "production" && !fallback.startsWith("https://")) {
     throw new Error(
-      `Resolved Better Auth base URL must use https:// in production (got "${baseUrl}"). ` +
-        "Secure cookies will not be sent over plain HTTP. Set BETTER_AUTH_URL explicitly " +
-        "if this deployment has no VERCEL_URL/VERCEL_PROJECT_PRODUCTION_URL available.",
+      `Resolved Better Auth fallback URL must use https:// in production (got "${fallback}"). ` +
+        "Secure cookies will not be sent over plain HTTP.",
     );
   }
 
   const instance = betterAuth({
-  baseURL: baseUrl,
+  baseURL: { allowedHosts, fallback },
   secret: env.BETTER_AUTH_SECRET,
 
   database: prismaAdapter(db, { provider: "postgresql" }),
-
-  // FIX-008 / Sprint 006 Bug 001: see deriveTrustedOrigins() above.
-  trustedOrigins: (request?: Request) =>
-    deriveTrustedOrigins(staticTrustedOrigins, request, env.NODE_ENV === "production"),
 
   user: {
     additionalFields: {

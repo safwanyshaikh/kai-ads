@@ -187,75 +187,90 @@ export function getFeatureFlags(env: Env = getEnv()) {
   };
 }
 
-export interface ResolvedAuthUrls {
-  /** The origin Better Auth treats as itself — baseURL and OAuth callback construction. */
-  baseUrl: string;
-  /** Every origin a browser request may legitimately arrive from for this deployment. */
-  trustedOrigins: string[];
+export interface AuthHostConfig {
+  /** Host patterns (no protocol), fed directly to Better Auth's dynamic
+   *  `baseURL.allowedHosts`. Supports `*` wildcards. Better Auth derives
+   *  BOTH the per-request base URL AND the full trustedOrigins list from
+   *  this one list — see resolveDynamicBaseURL / getTrustedOrigins in
+   *  better-auth's own source. */
+  allowedHosts: string[];
+  /** Used ONLY when no request context exists (e.g. static generation at
+   *  build time) — never served to real traffic, so it being imprecise
+   *  has no user-facing effect. */
+  fallback: string;
+}
+
+/** Covers every Preview + Production host Vercel assigns to this project,
+ *  independent of whether Vercel's system env vars are exposed to the
+ *  runtime (a project-level toggle this app cannot see or control).
+ *  Safe as a wildcard: Vercel's own platform routing — not this allowlist
+ *  — decides whether a request with a given Host even reaches this
+ *  deployment, so an external request can never spoof its way past it. */
+const KAI_ADS_VERCEL_HOST_WILDCARD = "kai-ads-*.vercel.app";
+
+function hostOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Sprint 006 Bug 001: Better Auth's `trustedOrigins` was a static
- * `[APP_URL, BETTER_AUTH_URL]` pair. Every Vercel Preview deployment gets
- * its own unique, unpredictable domain, so only whichever single URL
- * happened to be pinned in Vercel project settings ever passed Better
- * Auth's origin check — every other Preview deployment failed sign-in
- * with "Invalid origin".
+ * Sprint 006 Bug 002: BETTER_AUTH_URL / APP_URL were used as THE
+ * authoritative base URL / trusted-origin pair. A stale placeholder value
+ * left in Vercel project settings ("https://api.example.com") therefore
+ * silently became the URL used for every magic link and every Google
+ * OAuth callback, on every environment — breaking sign-in with
+ * "Invalid origin", broken magic-link URLs, and
+ * "Error 400: redirect_uri_mismatch" on Google.
  *
- * Vercel injects deployment-specific system env vars at build and runtime
- * (`VERCEL_ENV`, `VERCEL_URL`, `VERCEL_BRANCH_URL`,
- * `VERCEL_PROJECT_PRODUCTION_URL`); this derives the correct base URL and
- * the full set of trusted origins from them, on every deployment,
- * automatically — no per-preview manual configuration.
+ * Fix: never treat a manually-entered env var as THE url again. Instead,
+ * build an allowlist of valid HOSTS (Vercel-supplied, always-current
+ * values, plus a wildcard covering every deployment of this project) and
+ * hand it to Better Auth's native dynamic `baseURL` config, which derives
+ * the actual base URL — and, from it, every trusted origin — from the
+ * REQUEST that is actually being served, every single time. A stray env
+ * var can now, at worst, become one more harmless, never-matched entry in
+ * an allowlist; it can never again become the value every deployment uses.
  *
- * `baseUrl` prefers `VERCEL_BRANCH_URL` over `VERCEL_URL` on Preview: the
- * branch alias is stable across every push to a branch, so it is the one
- * Preview URL that can actually be pre-registered as a Google OAuth
- * redirect URI. `VERCEL_URL` changes on every single deployment and can
- * never be pre-registered with an OAuth provider.
- *
- * An explicit `BETTER_AUTH_URL` always wins (e.g. a custom production
- * domain Vercel doesn't already know about, or any non-Vercel host).
+ * An explicit BETTER_AUTH_URL/APP_URL is still honored as one additional
+ * allowed host, but ONLY in Production (a legitimate custom-domain
+ * escape hatch) — Preview must never depend on a manually entered URL.
  */
-const LOCALHOST_ORIGIN_PATTERN = /^https?:\/\/localhost(:\d+)?$/;
+export function resolveAuthHostConfig(env: Env = getEnv()): AuthHostConfig {
+  const hosts = new Set<string>();
 
-export function resolveAuthUrls(env: Env = getEnv()): ResolvedAuthUrls {
-  const origins = new Set<string>();
+  if (env.NODE_ENV !== "production") hosts.add("localhost:3000");
 
-  if (env.APP_URL) origins.add(env.APP_URL);
+  if (env.VERCEL_URL) hosts.add(env.VERCEL_URL);
+  if (env.VERCEL_BRANCH_URL) hosts.add(env.VERCEL_BRANCH_URL);
+  if (env.VERCEL_PROJECT_PRODUCTION_URL) hosts.add(env.VERCEL_PROJECT_PRODUCTION_URL);
+  hosts.add(KAI_ADS_VERCEL_HOST_WILDCARD);
 
-  const vercelUrl = env.VERCEL_URL ? `https://${env.VERCEL_URL}` : null;
-  const branchUrl = env.VERCEL_BRANCH_URL ? `https://${env.VERCEL_BRANCH_URL}` : null;
-  const prodUrl = env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : null;
-  for (const origin of [vercelUrl, branchUrl, prodUrl]) {
-    if (origin) origins.add(origin);
+  const isProductionDeployment =
+    env.VERCEL_ENV === "production" || (!env.VERCEL_ENV && env.NODE_ENV === "production");
+  if (isProductionDeployment) {
+    // Guard against APP_URL's dev-only default ("http://localhost:3000")
+    // leaking into the production allowlist when no real override is set.
+    const explicitHost =
+      hostOf(env.BETTER_AUTH_URL) ??
+      (env.APP_URL && env.APP_URL !== "http://localhost:3000" ? hostOf(env.APP_URL) : null);
+    if (explicitHost) hosts.add(explicitHost);
   }
 
-  const baseUrl =
+  // Vercel-derived values first, so on Vercel the fallback never touches a
+  // stale manually-entered value even in the one context where it would
+  // be harmless anyway (no real request present).
+  const fallback =
+    (env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : null) ??
+    (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : null) ??
     env.BETTER_AUTH_URL ??
-    (env.VERCEL_ENV === "production" ? prodUrl : null) ??
-    (env.VERCEL_ENV === "preview" ? (branchUrl ?? vercelUrl) : null) ??
-    vercelUrl ??
     env.APP_URL ??
     "http://localhost:3000";
 
-  origins.add(baseUrl);
-
-  // Invariant, not an incidental default: localhost is never a trusted
-  // origin in production, regardless of where it entered the set (e.g.
-  // APP_URL left at its localhost default because a Vercel deployment,
-  // correctly, never needed to override it).
-  if (env.NODE_ENV === "production") {
-    for (const origin of origins) {
-      if (LOCALHOST_ORIGIN_PATTERN.test(origin)) origins.delete(origin);
-    }
-  } else {
-    origins.add("http://localhost:3000");
-  }
-
-  return { baseUrl, trustedOrigins: [...origins] };
+  return { allowedHosts: [...hosts], fallback };
 }
 
 export function getPersonalEmailDomains(env: Env = getEnv()): Set<string> {

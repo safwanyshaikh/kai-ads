@@ -1,14 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { resolveAuthUrls, type Env } from "@/lib/env";
-import { deriveTrustedOrigins } from "@/lib/auth";
+import { resolveAuthHostConfig, type Env } from "@/lib/env";
 
 /**
- * Sprint 006 Bug 001: Better Auth's trustedOrigins was a static
- * [APP_URL, BETTER_AUTH_URL] pair, so every Vercel Preview deployment
- * (each gets its own unique domain) failed sign-in with "Invalid origin".
- * These tests verify resolveAuthUrls() correctly derives the base URL and
- * trusted origins for every deployment context: local dev, every Vercel
- * Preview deployment, and Production.
+ * Sprint 006 Bug 001 + Bug 002: Better Auth's baseURL/trustedOrigins used
+ * to be derived from static env vars (APP_URL/BETTER_AUTH_URL). Every
+ * Vercel Preview deployment gets its own unique domain, so only whichever
+ * single URL happened to be pinned in Vercel project settings ever passed
+ * validation — every other Preview deployment failed with "Invalid
+ * origin", and a stale placeholder value ("https://api.example.com") left
+ * in Vercel project settings silently became the URL used for every
+ * magic link and Google OAuth callback on every environment.
+ *
+ * The fix hands Better Auth a dynamic `baseURL: { allowedHosts, fallback }`
+ * config (see src/lib/auth.ts) so the base URL — and, from it, every
+ * trusted origin — is derived from the ACTUAL REQUEST being served, every
+ * time, validated against this allowlist. These tests verify the
+ * allowlist itself is correct for every deployment context.
  */
 
 const BASE_ENV: Env = {
@@ -58,16 +65,16 @@ const BASE_ENV: Env = {
   LOG_LEVEL: "info",
 };
 
-describe("resolveAuthUrls — localhost (local dev)", () => {
-  it("uses APP_URL as baseUrl and trusts localhost when no Vercel context exists", () => {
-    const { baseUrl, trustedOrigins } = resolveAuthUrls(BASE_ENV);
-    expect(baseUrl).toBe("http://localhost:3000");
-    expect(trustedOrigins).toContain("http://localhost:3000");
+describe("resolveAuthHostConfig — localhost (local dev)", () => {
+  it("allows localhost:3000 and never depends on any manually-set URL", () => {
+    const { allowedHosts, fallback } = resolveAuthHostConfig(BASE_ENV);
+    expect(allowedHosts).toContain("localhost:3000");
+    expect(fallback).toBe("http://localhost:3000");
   });
 });
 
-describe("resolveAuthUrls — Vercel Preview deployments", () => {
-  it("prefers the stable VERCEL_BRANCH_URL as baseUrl (registrable OAuth redirect URI)", () => {
+describe("resolveAuthHostConfig — Vercel Preview deployments", () => {
+  it("allows every Preview deployment's own VERCEL_URL and the stable VERCEL_BRANCH_URL", () => {
     const env: Env = {
       ...BASE_ENV,
       NODE_ENV: "production",
@@ -75,59 +82,64 @@ describe("resolveAuthUrls — Vercel Preview deployments", () => {
       VERCEL_URL: "kai-ads-abc123-team.vercel.app",
       VERCEL_BRANCH_URL: "kai-ads-git-feature-branch-team.vercel.app",
     };
-    const { baseUrl, trustedOrigins } = resolveAuthUrls(env);
-    expect(baseUrl).toBe("https://kai-ads-git-feature-branch-team.vercel.app");
-    expect(trustedOrigins).toContain("https://kai-ads-git-feature-branch-team.vercel.app");
-    expect(trustedOrigins).toContain("https://kai-ads-abc123-team.vercel.app");
+    const { allowedHosts } = resolveAuthHostConfig(env);
+    expect(allowedHosts).toContain("kai-ads-abc123-team.vercel.app");
+    expect(allowedHosts).toContain("kai-ads-git-feature-branch-team.vercel.app");
   });
 
-  it("falls back to the per-deployment VERCEL_URL when no branch URL is available", () => {
+  it("never depends on a manually entered URL for Preview — BETTER_AUTH_URL is ignored even if set", () => {
     const env: Env = {
       ...BASE_ENV,
       NODE_ENV: "production",
       VERCEL_ENV: "preview",
       VERCEL_URL: "kai-ads-abc123-team.vercel.app",
+      BETTER_AUTH_URL: "https://api.example.com", // the exact incident value
     };
-    const { baseUrl, trustedOrigins } = resolveAuthUrls(env);
-    expect(baseUrl).toBe("https://kai-ads-abc123-team.vercel.app");
-    expect(trustedOrigins).toContain("https://kai-ads-abc123-team.vercel.app");
+    const { allowedHosts } = resolveAuthHostConfig(env);
+    expect(allowedHosts).not.toContain("api.example.com");
   });
 
-  it("every distinct preview deployment's own VERCEL_URL is independently trusted (the original bug)", () => {
-    const previewA = resolveAuthUrls({
+  it("carries a project-scoped wildcard so every Preview deployment matches even if VERCEL_* vars are unavailable at runtime", () => {
+    const { allowedHosts } = resolveAuthHostConfig({
+      ...BASE_ENV,
+      NODE_ENV: "production",
+      VERCEL_ENV: "preview",
+    });
+    expect(allowedHosts).toContain("kai-ads-*.vercel.app");
+  });
+
+  it("every distinct preview deployment's own host is independently allowed (the original Bug 001)", () => {
+    const previewA = resolveAuthHostConfig({
       ...BASE_ENV,
       NODE_ENV: "production",
       VERCEL_ENV: "preview",
       VERCEL_URL: "kai-ads-deployment-a.vercel.app",
     });
-    const previewB = resolveAuthUrls({
+    const previewB = resolveAuthHostConfig({
       ...BASE_ENV,
       NODE_ENV: "production",
       VERCEL_ENV: "preview",
       VERCEL_URL: "kai-ads-deployment-b.vercel.app",
     });
-    expect(previewA.trustedOrigins).toContain("https://kai-ads-deployment-a.vercel.app");
-    expect(previewB.trustedOrigins).toContain("https://kai-ads-deployment-b.vercel.app");
-    // Neither deployment's trusted origins depend on a shared static pin.
-    expect(previewA.baseUrl).not.toBe(previewB.baseUrl);
+    expect(previewA.allowedHosts).toContain("kai-ads-deployment-a.vercel.app");
+    expect(previewB.allowedHosts).toContain("kai-ads-deployment-b.vercel.app");
   });
 });
 
-describe("resolveAuthUrls — Production domain", () => {
-  it("uses VERCEL_PROJECT_PRODUCTION_URL as baseUrl when no explicit override is set", () => {
+describe("resolveAuthHostConfig — Production domain", () => {
+  it("allows VERCEL_PROJECT_PRODUCTION_URL", () => {
     const env: Env = {
       ...BASE_ENV,
       NODE_ENV: "production",
       VERCEL_ENV: "production",
-      VERCEL_URL: "kai-ads.vercel.app",
       VERCEL_PROJECT_PRODUCTION_URL: "ads.kai.example.com",
     };
-    const { baseUrl, trustedOrigins } = resolveAuthUrls(env);
-    expect(baseUrl).toBe("https://ads.kai.example.com");
-    expect(trustedOrigins).toContain("https://ads.kai.example.com");
+    const { allowedHosts, fallback } = resolveAuthHostConfig(env);
+    expect(allowedHosts).toContain("ads.kai.example.com");
+    expect(fallback).toBe("https://ads.kai.example.com");
   });
 
-  it("an explicit BETTER_AUTH_URL always wins over any Vercel-derived URL", () => {
+  it("an explicit BETTER_AUTH_URL is honored as an ADDITIONAL allowed host in Production only (custom-domain escape hatch)", () => {
     const env: Env = {
       ...BASE_ENV,
       NODE_ENV: "production",
@@ -135,90 +147,63 @@ describe("resolveAuthUrls — Production domain", () => {
       BETTER_AUTH_URL: "https://custom-domain.example.com",
       VERCEL_PROJECT_PRODUCTION_URL: "kai-ads.vercel.app",
     };
-    const { baseUrl, trustedOrigins } = resolveAuthUrls(env);
-    expect(baseUrl).toBe("https://custom-domain.example.com");
-    expect(trustedOrigins).toContain("https://custom-domain.example.com");
+    const { allowedHosts } = resolveAuthHostConfig(env);
+    expect(allowedHosts).toContain("custom-domain.example.com");
+    expect(allowedHosts).toContain("kai-ads.vercel.app");
   });
 
-  it("does not trust localhost in a production deployment", () => {
+  it("a stale/placeholder BETTER_AUTH_URL only ever becomes ONE MORE unreachable allowlist entry, never the served URL", () => {
+    const env: Env = {
+      ...BASE_ENV,
+      NODE_ENV: "production",
+      VERCEL_ENV: "production",
+      BETTER_AUTH_URL: "https://api.example.com",
+      VERCEL_PROJECT_PRODUCTION_URL: "ads.kai.example.com",
+    };
+    const { allowedHosts, fallback } = resolveAuthHostConfig(env);
+    // The placeholder is present in the allowlist (harmless — no real
+    // request will ever arrive with this Host), but the fallback and the
+    // real production host both correctly point at the genuine domain.
+    expect(allowedHosts).toContain("api.example.com");
+    expect(allowedHosts).toContain("ads.kai.example.com");
+    expect(fallback).toBe("https://ads.kai.example.com");
+  });
+
+  it("does not allow localhost in a production deployment", () => {
     const env: Env = {
       ...BASE_ENV,
       NODE_ENV: "production",
       VERCEL_ENV: "production",
       VERCEL_PROJECT_PRODUCTION_URL: "ads.kai.example.com",
     };
-    const { trustedOrigins } = resolveAuthUrls(env);
-    expect(trustedOrigins).not.toContain("http://localhost:3000");
+    const { allowedHosts } = resolveAuthHostConfig(env);
+    expect(allowedHosts).not.toContain("localhost:3000");
   });
-});
 
-describe("resolveAuthUrls — resolved URLs are always https on Vercel", () => {
-  it("every Vercel-derived origin (preview and production) is https, satisfying the secure-cookie requirement", () => {
-    const preview = resolveAuthUrls({
-      ...BASE_ENV,
-      NODE_ENV: "production",
-      VERCEL_ENV: "preview",
-      VERCEL_URL: "kai-ads-abc.vercel.app",
-    });
-    expect(preview.baseUrl.startsWith("https://")).toBe(true);
-
-    const production = resolveAuthUrls({
+  it("does not leak APP_URL's dev-only localhost default into the production allowlist", () => {
+    const env: Env = {
       ...BASE_ENV,
       NODE_ENV: "production",
       VERCEL_ENV: "production",
       VERCEL_PROJECT_PRODUCTION_URL: "ads.kai.example.com",
-    });
-    expect(production.baseUrl.startsWith("https://")).toBe(true);
+      // APP_URL left at its schema default ("http://localhost:3000") —
+      // exactly what a real Vercel deployment looks like if nobody set it.
+    };
+    const { allowedHosts } = resolveAuthHostConfig(env);
+    expect(allowedHosts).not.toContain("localhost:3000");
   });
 });
 
-describe("deriveTrustedOrigins — request-based fallback (resilient to missing VERCEL_* env vars)", () => {
-  it("trusts the request's own Host header even when it matches nothing in the static list", () => {
-    const request = new Request("https://kai-ads-unpredictable-hash.vercel.app/api/auth/sign-in", {
-      headers: { host: "kai-ads-unpredictable-hash.vercel.app" },
-    });
-    const origins = deriveTrustedOrigins(["https://ads.kai.example.com"], request, true);
-    expect(origins).toContain("https://kai-ads-unpredictable-hash.vercel.app");
-  });
-
-  it("prefers x-forwarded-host over host (Vercel's edge proxy sets x-forwarded-host)", () => {
-    const request = new Request("https://internal.local/api/auth/sign-in", {
-      headers: {
-        host: "internal.local",
-        "x-forwarded-host": "kai-ads-preview.vercel.app",
-        "x-forwarded-proto": "https",
-      },
-    });
-    const origins = deriveTrustedOrigins([], request, true);
-    expect(origins).toContain("https://kai-ads-preview.vercel.app");
-    expect(origins).not.toContain("https://internal.local");
-  });
-
-  it("uses http protocol in non-production when x-forwarded-proto is absent", () => {
-    const request = new Request("http://localhost:3000/api/auth/sign-in", {
-      headers: { host: "localhost:3000" },
-    });
-    const origins = deriveTrustedOrigins([], request, false);
-    expect(origins).toContain("http://localhost:3000");
-  });
-
-  it("still returns the static origins when no request is available", () => {
-    const origins = deriveTrustedOrigins(["https://ads.kai.example.com"], undefined, true);
-    expect(origins).toEqual(["https://ads.kai.example.com"]);
-  });
-
-  it("does not let a spoofed Origin header substitute for the real Host (same-origin semantics preserved)", () => {
-    // A genuine cross-site request arrives with Host set to OUR domain
-    // (that's where it was routed) and a browser-set Origin header the
-    // attacker controls — but Origin is checked separately by Better
-    // Auth's origin-check middleware against this function's return
-    // value; this function only ever derives trust from Host, never from
-    // the (attacker-influenced) Origin/Referer headers.
-    const request = new Request("https://kai-ads-real.vercel.app/api/auth/sign-in", {
-      headers: { host: "kai-ads-real.vercel.app", origin: "https://evil.example.com" },
-    });
-    const origins = deriveTrustedOrigins([], request, true);
-    expect(origins).toContain("https://kai-ads-real.vercel.app");
-    expect(origins).not.toContain("https://evil.example.com");
+describe("resolveAuthHostConfig — fallback is always well-formed https on Vercel", () => {
+  it("prefers Vercel-derived values for fallback over any manually-set env var", () => {
+    const env: Env = {
+      ...BASE_ENV,
+      NODE_ENV: "production",
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_PRODUCTION_URL: "ads.kai.example.com",
+      BETTER_AUTH_URL: "https://api.example.com",
+    };
+    const { fallback } = resolveAuthHostConfig(env);
+    expect(fallback).toBe("https://ads.kai.example.com");
   });
 });
