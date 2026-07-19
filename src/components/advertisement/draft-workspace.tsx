@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -8,15 +8,13 @@ import {
   AdvertisementContentForm,
   EMPTY_ADVERTISEMENT_CONTENT,
 } from "@/components/advertisement/advertisement-content-form";
-import { StyleSelector } from "@/components/advertisement/style-selector";
-import { AdvertisementPreview } from "@/components/advertisement/advertisement-preview";
 import { API_ROUTES, APP_ROUTES } from "@/lib/constants";
 import { postJson } from "@/lib/api-client";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 import { extractionResultSchema } from "@/server/ai/extraction-result.schema";
-import { extractionResultToFormValues } from "@/lib/extraction-to-form";
+import { planAutoPublish } from "@/lib/auto-publish";
 
-type Step = "extracting" | "review" | "style" | "preview";
+type Step = "extracting" | "generating" | "manual";
 
 interface DraftWorkspaceProps {
   draftId: string;
@@ -26,96 +24,133 @@ interface DraftWorkspaceProps {
 }
 
 /**
- * Screens: AI Extraction Review -> Style Selection -> Preview -> Save.
- * Consolidated into one page since all four steps edit a single Draft
- * resource — each step still persists to its own API endpoint so the
- * work isn't lost, matching "Everything editable" and giving Advertisement
- * Draft a real backing record rather than client-only wizard state.
+ * Sprint 006 workflow replacement — there is NO Review form step anymore.
+ *
+ *   Paste Requirement → AI Extraction → Truth Brain → Creative Director
+ *   → Generate Advertisement → Advertisement Canvas.
+ *
+ * The AI populates everything; this component's whole job is to drive
+ * that pipeline automatically (extract → save reviewed data verbatim →
+ * create the advertisement → kick off generation) and land the user on
+ * the Advertisement Canvas, where every block is edited in place.
+ *
+ * The manual form survives ONLY as the exception path: when extraction
+ * fails outright, or finds too few grounded facts to create a valid
+ * advertisement (Truth Brain forbids inventing the missing ones), the
+ * recruiter is asked for exactly what's missing. That is a failure
+ * fallback, not a step in the normal flow.
  */
 export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus }: DraftWorkspaceProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(
-    initialStatus === "UPLOADED" && hasRawText ? "extracting" : "review",
+    initialStatus === "UPLOADED" && (hasRawText || sourceType !== "PASTE_TEXT") ? "extracting" : "manual",
   );
-  const [extractionMessage, setExtractionMessage] = useState<string | null>(null);
-  const [reviewedData, setReviewedData] = useState<CreateAdvertisementInput>(
+  const [pipelineMessage, setPipelineMessage] = useState("Analyzing the requirement…");
+  const [fallbackReason, setFallbackReason] = useState<string | null>(null);
+  const [manualDefaults, setManualDefaults] = useState<CreateAdvertisementInput>(
     EMPTY_ADVERTISEMENT_CONTENT,
   );
-  const [style, setStyle] = useState<"VISUAL" | "TYPOGRAPHY" | "NEWSPAPER">("VISUAL");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const started = useRef(false);
 
   useEffect(() => {
-    if (step !== "extracting") return;
+    if (step !== "extracting" || started.current) return;
+    started.current = true;
 
     (async () => {
-      const result = await postJson<{
+      // 1. AI Extraction (KAI Intelligence Engine).
+      const extract = await postJson<{
         status: string;
         extractionError?: string;
         extractedData?: unknown;
       }>(API_ROUTES.advertisementDraftExtract(draftId));
 
-      if (result.ok && result.data?.status === "EXTRACTION_FAILED") {
-        setExtractionMessage(
-          result.data.extractionError ??
-            "AI extraction is not available yet — enter the advertisement details manually.",
+      if (!extract.ok || extract.data?.status !== "EXTRACTED") {
+        setFallbackReason(
+          extract.data?.extractionError ??
+            extract.message ??
+            "AI extraction is not available — enter the advertisement details manually.",
         );
-      } else if (result.ok && result.data?.status === "EXTRACTED") {
-        // Sprint 006 Bug 004: this is the wiring that was missing entirely
-        // — a successful extraction never reached the review form before.
-        const parsed = extractionResultSchema.safeParse(result.data.extractedData);
-        if (parsed.success) {
-          setReviewedData((current) => ({
-            ...current,
-            ...extractionResultToFormValues(parsed.data),
-          }));
-        } else {
-          setExtractionMessage(
-            "AI extraction completed but returned an unexpected shape — enter the advertisement details manually.",
-          );
-        }
-      } else if (!result.ok) {
-        setExtractionMessage(result.message ?? "AI extraction is not available yet.");
+        setStep("manual");
+        return;
       }
-      setStep("review");
+
+      const parsed = extractionResultSchema.safeParse(extract.data.extractedData);
+      if (!parsed.success) {
+        setFallbackReason("AI extraction returned an unexpected shape — enter the details manually.");
+        setStep("manual");
+        return;
+      }
+
+      // 2. Decide: enough grounded facts for a real advertisement?
+      const plan = planAutoPublish(parsed.data);
+      if (plan.mode === "manual") {
+        setFallbackReason(plan.reason);
+        setManualDefaults({ ...EMPTY_ADVERTISEMENT_CONTENT, ...plan.partial });
+        setStep("manual");
+        return;
+      }
+
+      // 3. Persist the AI's result as the reviewed data (verbatim — the
+      //    user edits exceptions later, on the canvas) and create the
+      //    advertisement record.
+      setStep("generating");
+      setPipelineMessage("Composing your advertisement…");
+
+      const review = await postJson(API_ROUTES.advertisementDraftReview(draftId), {
+        reviewedData: plan.input,
+      });
+      if (!review.ok) {
+        setError(review.message ?? "Could not save the extracted details");
+        setStep("manual");
+        setManualDefaults({ ...EMPTY_ADVERTISEMENT_CONTENT, ...plan.input });
+        return;
+      }
+
+      const saved = await postJson<{ id: string }>(API_ROUTES.advertisementDraftSave(draftId));
+      if (!saved.ok || !saved.data?.id) {
+        setError(saved.message ?? "Could not create the advertisement");
+        setStep("manual");
+        setManualDefaults({ ...EMPTY_ADVERTISEMENT_CONTENT, ...plan.input });
+        return;
+      }
+
+      // 4. Generate immediately (Truth Brain → Creative Director →
+      //    composition → acceptance loop all run server-side inside this
+      //    call). A generation failure is NOT fatal to the workflow —
+      //    the canvas page has the full generation panel to retry.
+      setPipelineMessage("Generating the advertisement design…");
+      await postJson(API_ROUTES.advertisementGenerate(saved.data.id), {
+        platformFormat: "generic_portrait",
+      });
+
+      // 5. Land on the Advertisement Canvas.
+      router.push(APP_ROUTES.advertisementDetail(saved.data.id));
     })();
-  }, [step, draftId]);
+  }, [step, draftId, router]);
 
-  async function handleReviewSubmit(values: CreateAdvertisementInput) {
-    setError(null);
-    const result = await postJson(API_ROUTES.advertisementDraftReview(draftId), {
-      reviewedData: values,
-    });
-    if (!result.ok) {
-      setError(result.message ?? "Could not save your review");
-      return;
-    }
-    setReviewedData(values);
-    setStyle(values.style ?? "VISUAL");
-    setStep("style");
-  }
-
-  async function handleStyleContinue() {
-    setError(null);
-    const result = await postJson(API_ROUTES.advertisementDraftStyle(draftId), { style });
-    if (!result.ok) {
-      setError(result.message ?? "Could not save the selected style");
-      return;
-    }
-    setStep("preview");
-  }
-
-  async function handleSave() {
+  async function handleManualSubmit(values: CreateAdvertisementInput) {
     setError(null);
     setSaving(true);
-    const result = await postJson<{ id: string }>(API_ROUTES.advertisementDraftSave(draftId));
-    setSaving(false);
-
-    if (!result.ok) {
-      setError(result.message ?? "Could not save this advertisement");
+    const review = await postJson(API_ROUTES.advertisementDraftReview(draftId), {
+      reviewedData: values,
+    });
+    if (!review.ok) {
+      setSaving(false);
+      setError(review.message ?? "Could not save the details");
       return;
     }
-    router.push(APP_ROUTES.advertisementDetail(result.data!.id));
+    const saved = await postJson<{ id: string }>(API_ROUTES.advertisementDraftSave(draftId));
+    if (!saved.ok || !saved.data?.id) {
+      setSaving(false);
+      setError(saved.message ?? "Could not create the advertisement");
+      return;
+    }
+    await postJson(API_ROUTES.advertisementGenerate(saved.data.id), {
+      platformFormat: "generic_portrait",
+    });
+    router.push(APP_ROUTES.advertisementDetail(saved.data.id));
   }
 
   async function handleDiscard() {
@@ -123,29 +158,14 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
     router.push(APP_ROUTES.advertisements);
   }
 
-  const steps: { key: Step; label: string }[] = [
-    { key: "review", label: "1. Review" },
-    { key: "style", label: "2. Style" },
-    { key: "preview", label: "3. Preview & Save" },
-  ];
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-sm">
-        {steps.map((s) => (
-          <span
-            key={s.key}
-            className={
-              step === s.key
-                ? "font-semibold text-foreground"
-                : "text-muted-foreground"
-            }
-          >
-            {s.label}
-          </span>
-        ))}
+      <div className="flex items-center text-sm">
+        <span className="font-semibold">
+          {step === "manual" ? "Complete the missing details" : "Creating your advertisement"}
+        </span>
         <span className="ml-auto">
-          <Button type="button" variant="ghost" size="sm" onClick={handleDiscard}>
+          <Button type="button" variant="ghost" size="sm" onClick={handleDiscard} disabled={saving}>
             Discard
           </Button>
         </span>
@@ -158,55 +178,28 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
         </Alert>
       )}
 
-      {step === "extracting" && (
+      {(step === "extracting" || step === "generating") && (
         <Alert>
-          <AlertTitle>Running AI Extraction Review…</AlertTitle>
-          <AlertDescription>
-            Analyzing the {sourceType === "PASTE_TEXT" ? "pasted text" : "uploaded file"} for
-            positions, industry, country, and interview details.
-          </AlertDescription>
+          <AlertTitle>
+            {step === "extracting" ? "Running AI Extraction…" : "Building your advertisement…"}
+          </AlertTitle>
+          <AlertDescription>{pipelineMessage}</AlertDescription>
         </Alert>
       )}
 
-      {step === "review" && (
+      {step === "manual" && (
         <div className="space-y-4">
-          {extractionMessage && (
+          {fallbackReason && (
             <Alert>
-              <AlertTitle>AI Extraction Review</AlertTitle>
-              <AlertDescription>{extractionMessage}</AlertDescription>
+              <AlertTitle>A few details are needed</AlertTitle>
+              <AlertDescription>{fallbackReason}</AlertDescription>
             </Alert>
           )}
           <AdvertisementContentForm
-            defaultValues={reviewedData}
-            onSubmit={handleReviewSubmit}
-            submitLabel="Continue to Style Selection"
+            defaultValues={manualDefaults}
+            onSubmit={handleManualSubmit}
+            submitLabel={saving ? "Creating…" : "Create Advertisement"}
           />
-        </div>
-      )}
-
-      {step === "style" && (
-        <div className="space-y-6">
-          <StyleSelector value={style} onChange={setStyle} />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setStep("review")}>
-              Back
-            </Button>
-            <Button onClick={handleStyleContinue}>Continue to Preview</Button>
-          </div>
-        </div>
-      )}
-
-      {step === "preview" && (
-        <div className="space-y-6">
-          <AdvertisementPreview data={{ ...reviewedData, style }} />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setStep("style")}>
-              Back
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving…" : "Save Advertisement"}
-            </Button>
-          </div>
         </div>
       )}
     </div>

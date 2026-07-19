@@ -7,9 +7,8 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AdvertisementStatusBadge } from "@/components/advertisement/advertisement-status-badge";
 import { AdvertisementDetailActions } from "@/components/advertisement/advertisement-detail-actions";
-import { AdvertisementPreview } from "@/components/advertisement/advertisement-preview";
+import { AdvertisementCanvas } from "@/components/advertisement/advertisement-canvas";
 import { GenerationPanel } from "@/components/advertisement/generation-panel";
-import { SectionEditor } from "@/components/advertisement/section-editor";
 import { APP_ROUTES } from "@/lib/constants";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 
@@ -71,7 +70,13 @@ export default async function AdvertisementDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <AdvertisementPreview data={previewData} />
+          {/* Sprint 006 workflow replacement: the advertisement IS the editor —
+              every block is edited by clicking it on the canvas. */}
+          <AdvertisementCanvas
+            advertisementId={advertisement.id}
+            data={previewData}
+            canEdit={can(user, "advertisement:edit") && !advertisement.deletedAt}
+          />
           {can(user, "advertisement:generate") && (
             <GenerationPanel
               advertisementId={advertisement.id}
@@ -80,9 +85,6 @@ export default async function AdvertisementDetailPage({
               trustStatus={advertisement.trustStatus}
               trustWarnings={(advertisement.trustWarnings as string[] | null) ?? []}
             />
-          )}
-          {can(user, "advertisement:edit") && (
-            <SectionEditor advertisementId={advertisement.id} header={advertisement.header} footer={advertisement.footer} />
           )}
         </div>
 
