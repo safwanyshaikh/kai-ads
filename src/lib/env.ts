@@ -200,13 +200,26 @@ export interface AuthHostConfig {
   fallback: string;
 }
 
-/** Covers every Preview + Production host Vercel assigns to this project,
- *  independent of whether Vercel's system env vars are exposed to the
- *  runtime (a project-level toggle this app cannot see or control).
- *  Safe as a wildcard: Vercel's own platform routing — not this allowlist
- *  — decides whether a request with a given Host even reaches this
- *  deployment, so an external request can never spoof its way past it. */
-const KAI_ADS_VERCEL_HOST_WILDCARD = "kai-ads-*.vercel.app";
+/**
+ * Sprint 006 Bug 003: covers every `*.vercel.app` host — Preview or
+ * Production, for THIS project specifically, since Vercel's own platform
+ * routing (not this allowlist) is what decides whether a request with a
+ * given Host ever reaches this deployment; an external request can never
+ * spoof its way past that.
+ *
+ * Deliberately UNSCOPED (not e.g. "kai-ads-*.vercel.app"): Better Auth's
+ * dynamic `baseURL` falls back to `fallback` not only when a request has
+ * no discoverable Host, but ALSO whenever a request's real Host fails to
+ * match every `allowedHosts` pattern — see `resolveDynamicBaseURL` in
+ * better-auth's own source. A project-name-scoped wildcard is a guess
+ * about this project's actual Vercel-assigned domain naming; if that
+ * guess is wrong for even one real request, THAT SPECIFIC REQUEST falls
+ * through to `fallback`, which chains down to `BETTER_AUTH_URL` if set —
+ * reproducing the exact "https://api.example.com" incident live, for
+ * real traffic, not just at build time. Matching the whole
+ * `*.vercel.app` suffix removes the guess entirely.
+ */
+const VERCEL_HOST_WILDCARD = "*.vercel.app";
 
 function hostOf(url: string | undefined): string | null {
   if (!url) return null;
@@ -247,7 +260,7 @@ export function resolveAuthHostConfig(env: Env = getEnv()): AuthHostConfig {
   if (env.VERCEL_URL) hosts.add(env.VERCEL_URL);
   if (env.VERCEL_BRANCH_URL) hosts.add(env.VERCEL_BRANCH_URL);
   if (env.VERCEL_PROJECT_PRODUCTION_URL) hosts.add(env.VERCEL_PROJECT_PRODUCTION_URL);
-  hosts.add(KAI_ADS_VERCEL_HOST_WILDCARD);
+  hosts.add(VERCEL_HOST_WILDCARD);
 
   const isProductionDeployment =
     env.VERCEL_ENV === "production" || (!env.VERCEL_ENV && env.NODE_ENV === "production");

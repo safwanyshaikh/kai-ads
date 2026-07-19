@@ -99,13 +99,24 @@ describe("resolveAuthHostConfig — Vercel Preview deployments", () => {
     expect(allowedHosts).not.toContain("api.example.com");
   });
 
-  it("carries a project-scoped wildcard so every Preview deployment matches even if VERCEL_* vars are unavailable at runtime", () => {
+  it("carries an unscoped *.vercel.app wildcard so every Preview deployment matches regardless of this project's actual Vercel naming (Bug 003)", () => {
     const { allowedHosts } = resolveAuthHostConfig({
       ...BASE_ENV,
       NODE_ENV: "production",
       VERCEL_ENV: "preview",
     });
-    expect(allowedHosts).toContain("kai-ads-*.vercel.app");
+    expect(allowedHosts).toContain("*.vercel.app");
+  });
+
+  it("matches a Vercel host with ANY project/team naming — not just an assumed prefix (Bug 003 regression)", () => {
+    const { allowedHosts } = resolveAuthHostConfig({
+      ...BASE_ENV,
+      NODE_ENV: "production",
+      VERCEL_ENV: "preview",
+    });
+    const wildcard = allowedHosts.find((h) => h.includes("*"))!;
+    const pattern = new RegExp(`^${wildcard.replace(/\./g, "\\.").replace(/\*/g, ".*")}$`);
+    expect(pattern.test("completely-different-project-name-team.vercel.app")).toBe(true);
   });
 
   it("every distinct preview deployment's own host is independently allowed (the original Bug 001)", () => {
