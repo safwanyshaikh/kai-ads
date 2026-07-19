@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { deepStripInvalidChars } from "@/lib/sanitize-text";
 
 /**
  * Advertisement Schema (Sprint 002 brief). Each block is validated
@@ -57,7 +58,12 @@ const themeSchema = z.record(z.string(), z.unknown()).optional();
 export const advertisementStyleSchema = z.enum(["VISUAL", "TYPOGRAPHY", "NEWSPAPER"]);
 const advertisementStatusSchema = z.enum(["DRAFT", "REVIEW", "APPROVED", "ARCHIVED"]);
 
-export const createAdvertisementSchema = z.object({
+/**
+ * The plain object shape — kept untransformed so updateAdvertisementSchema
+ * below can still call .omit()/.partial() on it (those methods exist on
+ * ZodObject, not on the ZodEffects a .transform() produces).
+ */
+const advertisementContentShape = z.object({
   header: z.string().trim().min(1, "Header is required").max(200),
   industry: z.string().trim().min(1, "Industry is required").max(120),
   country: z.string().trim().min(1, "Country is required").max(120),
@@ -71,14 +77,25 @@ export const createAdvertisementSchema = z.object({
   style: advertisementStyleSchema.default("VISUAL"),
   sourceDraftId: z.string().min(1).optional(),
 });
+
+/**
+ * Sprint 006 Bug 006: the whole parsed object is sanitized in one place —
+ * every string leaf (header, position titles, benefit labels, contact
+ * fields, footer, free-form theme values) is stripped of characters
+ * Postgres's text/jsonb columns cannot store (NUL and other C0 control
+ * characters), whether it came from a recruiter typing/pasting directly
+ * on the Advertisement Canvas or from the AI auto-publish pipeline.
+ */
+export const createAdvertisementSchema = advertisementContentShape.transform(deepStripInvalidChars);
 export type CreateAdvertisementInput = z.infer<typeof createAdvertisementSchema>;
 
-export const updateAdvertisementSchema = createAdvertisementSchema
+export const updateAdvertisementSchema = advertisementContentShape
   .omit({ sourceDraftId: true })
   .partial()
   .extend({
     changeSummary: z.string().trim().max(300).optional(),
-  });
+  })
+  .transform(deepStripInvalidChars);
 export type UpdateAdvertisementInput = z.infer<typeof updateAdvertisementSchema>;
 
 export const advertisementStatusTransitionSchema = z.object({

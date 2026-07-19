@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createAdvertisementSchema,
+  updateAdvertisementSchema,
   positionSchema,
   advertisementSearchQuerySchema,
 } from "@/lib/validations/advertisement";
@@ -74,5 +75,43 @@ describe("advertisementSearchQuerySchema", () => {
   it("coerces string booleans from query params", () => {
     const result = advertisementSearchQuerySchema.parse({ includeDeleted: "true" });
     expect(result.includeDeleted).toBe(true);
+  });
+});
+
+// Sprint 006 Bug 006: header/positions/benefits/etc. are jsonb-or-text
+// Postgres columns that hard-reject a NUL codepoint — a value a recruiter
+// could type or paste directly into an Advertisement Canvas block, or
+// that the AI auto-publish pipeline echoes from the source text. Every
+// string leaf across the whole object is now sanitized as part of schema
+// parsing, for both create and update.
+describe("createAdvertisementSchema / updateAdvertisementSchema — NUL-byte sanitization", () => {
+  const NUL = String.fromCharCode(0x00);
+
+  it("strips a NUL byte from the header on create", () => {
+    const result = createAdvertisementSchema.parse({
+      header: `Electrical Technician${NUL}`,
+      industry: "Oil & Gas",
+      country: "Saudi Arabia",
+      positions: [{ title: "Electrical Technician", count: 20 }],
+    });
+    expect(result.header).toBe("Electrical Technician");
+  });
+
+  it("strips a NUL byte nested inside a position title on create", () => {
+    const result = createAdvertisementSchema.parse({
+      header: "Requirement",
+      industry: "Oil & Gas",
+      country: "Saudi Arabia",
+      positions: [{ title: `CP Tester${NUL}`, count: 5 }],
+    });
+    expect(result.positions[0].title).toBe("CP Tester");
+  });
+
+  it("strips a NUL byte on a partial update (the canvas block-edit path)", () => {
+    const result = updateAdvertisementSchema.parse({
+      footer: `REG. LICENSE NO.${NUL} B-1487/MUM/PART/1000+/9986/2022`,
+    });
+    expect(result.footer).not.toContain(NUL);
+    expect(result.footer).toContain("B-1487/MUM/PART/1000+/9986/2022");
   });
 });

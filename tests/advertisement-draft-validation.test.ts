@@ -51,4 +51,19 @@ describe("createDraftSchema", () => {
       expect(result.success).toBe(true);
     },
   );
+
+  // Sprint 006 Bug 006: a rich-text email paste (Outlook/Word -> browser
+  // textarea) carried a literal NUL byte into rawText, which crashed the
+  // very first database write with Postgres error 22P05 ("unsupported
+  // Unicode escape sequence"). rawText is now sanitized at this exact
+  // validation boundary.
+  it("strips a NUL byte from pasted text so it never reaches the database", () => {
+    const withNul = `Dear All,${String.fromCharCode(0x00)}\n\nGreetings from Mohamed Alarji Contracting Company!`;
+    const result = createDraftSchema.safeParse({ sourceType: "PASTE_TEXT", rawText: withNul });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.rawText).not.toContain(String.fromCharCode(0x00));
+      expect(result.data.rawText).toContain("Mohamed Alarji Contracting Company");
+    }
+  });
 });

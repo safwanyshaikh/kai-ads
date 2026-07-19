@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { advertisementStyleSchema } from "./advertisement";
+import { stripInvalidPostgresChars } from "@/lib/sanitize-text";
 
 const draftSourceTypeSchema = z.enum([
   "PASTE_TEXT",
@@ -18,7 +19,11 @@ const draftSourceTypeSchema = z.enum([
 export const createDraftSchema = z
   .object({
     sourceType: draftSourceTypeSchema,
-    rawText: z.string().trim().max(20000).optional(),
+    // Sprint 006 Bug 006: sanitized here, at the validation boundary, so
+    // every caller of this schema automatically gets text Postgres can
+    // actually store — a pasted email (rich-text paste from Outlook/Word)
+    // is the realistic source of a stray NUL/control character.
+    rawText: z.string().trim().max(20000).transform(stripInvalidPostgresChars).optional(),
     sourceFileUrl: z.string().max(2000).optional(),
   })
   .superRefine((data, ctx) => {

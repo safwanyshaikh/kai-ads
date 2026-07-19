@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { deepStripInvalidChars } from "@/lib/sanitize-text";
 import { advertisementDraftRepository } from "@/server/repositories/advertisement-draft.repository";
 import { advertisementService } from "@/server/services/advertisement.service";
 import { auditLogService } from "@/server/services/audit-log.service";
@@ -102,7 +103,14 @@ export const advertisementDraftService = {
 
       return advertisementDraftRepository.update(id, {
         status: "EXTRACTED",
-        extractedData: outcome.result as unknown as Prisma.InputJsonValue,
+        // Sprint 006 Bug 006: extractedData is a jsonb column, and
+        // Postgres hard-rejects a NUL codepoint anywhere inside a jsonb
+        // value ("unsupported Unicode escape sequence ... 22P05"). GPT
+        // echoes several fields back from the source text verbatim
+        // (originalSourceText, position titles, etc.), so any control
+        // character in the pasted/extracted input can reach here — strip
+        // it before the write, not after the write fails.
+        extractedData: deepStripInvalidChars(outcome.result) as unknown as Prisma.InputJsonValue,
         extractionError: null,
       });
     } catch (error) {
@@ -140,8 +148,12 @@ export const advertisementDraftService = {
   async review(id: string, agencyId: string, actorId: string, reviewedData: Record<string, unknown>) {
     await advertisementDraftService.getById(id, agencyId);
 
+    // Sprint 006 Bug 006: reviewedData is a jsonb column too — the same
+    // NUL-byte hard-rejection applies whether the data came from the
+    // auto-publish pipeline (echoing the AI extraction) or a recruiter
+    // typing/pasting directly into the manual fallback form.
     const updated = await advertisementDraftRepository.update(id, {
-      reviewedData: reviewedData as unknown as Prisma.InputJsonValue,
+      reviewedData: deepStripInvalidChars(reviewedData) as unknown as Prisma.InputJsonValue,
       status: "REVIEWED",
     });
 

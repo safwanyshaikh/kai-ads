@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { deepStripInvalidChars } from "@/lib/sanitize-text";
 import { db } from "@/lib/db";
 import { advertisementRepository } from "@/server/repositories/advertisement.repository";
 import { agencyRepository } from "@/server/repositories/agency.repository";
@@ -491,7 +492,11 @@ export const advertisementGenerationService = {
         400,
       );
     }
-    const newFieldValue = newSectionData[field as string];
+    // Sprint 006 Bug 006: this field can be a plain text column (header,
+    // footer) or a jsonb column (positions, benefits, ...) — Postgres
+    // rejects a NUL codepoint in either, so sanitize before the write
+    // regardless of which kind this section's field is.
+    const newFieldValue = deepStripInvalidChars(newSectionData[field as string]);
 
     const nextVersion = advertisement.currentVersion + 1;
     const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {

@@ -2,6 +2,7 @@ import mammoth from "mammoth";
 import { UnsupportedDocumentError } from "./openai/errors";
 import { createLogger } from "@/lib/logger";
 import { getEnv } from "@/lib/env";
+import { stripInvalidPostgresChars } from "@/lib/sanitize-text";
 
 const log = createLogger("document-processing");
 
@@ -159,10 +160,13 @@ export async function processDocument(file: {
 
   switch (file.mimeType) {
     case "application/pdf":
-      return { kind: "text", text: await extractPdfText(file.data) };
+      // Sprint 006 Bug 006: malformed PDF text streams are a classic
+      // source of a stray NUL byte, which Postgres cannot store —
+      // stripped here so it never reaches extractedData downstream.
+      return { kind: "text", text: stripInvalidPostgresChars(await extractPdfText(file.data)) };
 
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-      return { kind: "text", text: await extractDocxText(file.data) };
+      return { kind: "text", text: stripInvalidPostgresChars(await extractDocxText(file.data)) };
 
     case "image/png":
     case "image/jpeg":
