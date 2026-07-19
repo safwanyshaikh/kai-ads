@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { magicLink } from "better-auth/plugins";
 import { db } from "@/lib/db";
-import { getEnv, getIntegrationStatus } from "@/lib/env";
+import { getEnv, getIntegrationStatus, resolveAuthUrls } from "@/lib/env";
 import { emailService } from "@/server/services/email.service";
 import { assertBusinessEmail } from "@/server/services/email-validation.service";
 import { createLogger } from "@/lib/logger";
@@ -32,27 +32,33 @@ const log = createLogger("auth");
 function buildAuth() {
   const env = getEnv();
   const integrations = getIntegrationStatus(env);
+  // Sprint 006 Bug 001: baseUrl/trustedOrigins are derived per-deployment
+  // (local dev, every Vercel Preview, and Production) — see
+  // resolveAuthUrls() in env.ts for why a static pair broke Preview.
+  const { baseUrl, trustedOrigins } = resolveAuthUrls(env);
 
   // FIX-008 (HTTPS): refuse to boot in production with a non-HTTPS auth URL.
   // Better Auth issues Secure cookies in production (see advanced.useSecureCookies
   // below); those cookies are silently dropped by browsers over plain HTTP,
   // which would look like "login doesn't work" rather than a clear config error.
-  if (env.NODE_ENV === "production" && !env.BETTER_AUTH_URL.startsWith("https://")) {
+  if (env.NODE_ENV === "production" && !baseUrl.startsWith("https://")) {
     throw new Error(
-      `BETTER_AUTH_URL must use https:// in production (got "${env.BETTER_AUTH_URL}"). ` +
-        "Secure cookies will not be sent over plain HTTP.",
+      `Resolved Better Auth base URL must use https:// in production (got "${baseUrl}"). ` +
+        "Secure cookies will not be sent over plain HTTP. Set BETTER_AUTH_URL explicitly " +
+        "if this deployment has no VERCEL_URL/VERCEL_PROJECT_PRODUCTION_URL available.",
     );
   }
 
   const instance = betterAuth({
-  baseURL: env.BETTER_AUTH_URL,
+  baseURL: baseUrl,
   secret: env.BETTER_AUTH_SECRET,
 
   database: prismaAdapter(db, { provider: "postgresql" }),
 
-  // FIX-008: origin/redirect validation is scoped to APP_URL /
-  // BETTER_AUTH_URL explicitly rather than left to library inference.
-  trustedOrigins: [env.APP_URL, env.BETTER_AUTH_URL],
+  // FIX-008 / Sprint 006 Bug 001: origin/redirect validation is scoped
+  // explicitly to the resolved deployment origins rather than left to
+  // library inference — see resolveAuthUrls() in env.ts.
+  trustedOrigins,
 
   user: {
     additionalFields: {
