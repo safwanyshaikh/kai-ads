@@ -13,6 +13,8 @@ import { AdvertisementPreview } from "@/components/advertisement/advertisement-p
 import { API_ROUTES, APP_ROUTES } from "@/lib/constants";
 import { postJson } from "@/lib/api-client";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
+import { extractionResultSchema } from "@/server/ai/extraction-result.schema";
+import { extractionResultToFormValues } from "@/lib/extraction-to-form";
 
 type Step = "extracting" | "review" | "style" | "preview";
 
@@ -47,14 +49,31 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
     if (step !== "extracting") return;
 
     (async () => {
-      const result = await postJson<{ status: string; extractionError?: string }>(
-        API_ROUTES.advertisementDraftExtract(draftId),
-      );
+      const result = await postJson<{
+        status: string;
+        extractionError?: string;
+        extractedData?: unknown;
+      }>(API_ROUTES.advertisementDraftExtract(draftId));
+
       if (result.ok && result.data?.status === "EXTRACTION_FAILED") {
         setExtractionMessage(
           result.data.extractionError ??
             "AI extraction is not available yet — enter the advertisement details manually.",
         );
+      } else if (result.ok && result.data?.status === "EXTRACTED") {
+        // Sprint 006 Bug 004: this is the wiring that was missing entirely
+        // — a successful extraction never reached the review form before.
+        const parsed = extractionResultSchema.safeParse(result.data.extractedData);
+        if (parsed.success) {
+          setReviewedData((current) => ({
+            ...current,
+            ...extractionResultToFormValues(parsed.data),
+          }));
+        } else {
+          setExtractionMessage(
+            "AI extraction completed but returned an unexpected shape — enter the advertisement details manually.",
+          );
+        }
       } else if (!result.ok) {
         setExtractionMessage(result.message ?? "AI extraction is not available yet.");
       }
