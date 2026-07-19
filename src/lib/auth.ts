@@ -10,6 +10,34 @@ import { createLogger } from "@/lib/logger";
 const log = createLogger("auth");
 
 /**
+ * Sprint 006 Bug 001: trusts the exact origin a request itself arrived on,
+ * in addition to the statically-resolved deployment origins (env.ts:
+ * resolveAuthUrls). This is what makes origin validation resilient on
+ * Vercel Preview regardless of whether Vercel's system env vars
+ * (VERCEL_URL etc.) are actually exposed to the runtime — a project-level
+ * toggle this app cannot see or control, so a disabled/misconfigured
+ * toggle can no longer reproduce "Invalid origin".
+ *
+ * Not a security loosening: trusting "the origin equal to the Host header
+ * this request was routed to" is exactly same-origin validation — a
+ * genuine cross-site request still arrives with Host set to OUR domain
+ * and Origin set to the attacker's, which still will not match.
+ */
+export function deriveTrustedOrigins(
+  staticTrustedOrigins: string[],
+  request: Request | undefined,
+  isProduction: boolean,
+): string[] {
+  const origins = new Set(staticTrustedOrigins);
+  const host = request?.headers.get("x-forwarded-host") ?? request?.headers.get("host");
+  if (host) {
+    const protocol = request?.headers.get("x-forwarded-proto") ?? (isProduction ? "https" : "http");
+    origins.add(`${protocol}://${host}`);
+  }
+  return [...origins];
+}
+
+/**
  * Better Auth server instance.
  *
  * Multi-tenant note: Better Auth only owns identity (User/Session/Account/
@@ -35,7 +63,7 @@ function buildAuth() {
   // Sprint 006 Bug 001: baseUrl/trustedOrigins are derived per-deployment
   // (local dev, every Vercel Preview, and Production) — see
   // resolveAuthUrls() in env.ts for why a static pair broke Preview.
-  const { baseUrl, trustedOrigins } = resolveAuthUrls(env);
+  const { baseUrl, trustedOrigins: staticTrustedOrigins } = resolveAuthUrls(env);
 
   // FIX-008 (HTTPS): refuse to boot in production with a non-HTTPS auth URL.
   // Better Auth issues Secure cookies in production (see advanced.useSecureCookies
@@ -55,10 +83,9 @@ function buildAuth() {
 
   database: prismaAdapter(db, { provider: "postgresql" }),
 
-  // FIX-008 / Sprint 006 Bug 001: origin/redirect validation is scoped
-  // explicitly to the resolved deployment origins rather than left to
-  // library inference — see resolveAuthUrls() in env.ts.
-  trustedOrigins,
+  // FIX-008 / Sprint 006 Bug 001: see deriveTrustedOrigins() above.
+  trustedOrigins: (request?: Request) =>
+    deriveTrustedOrigins(staticTrustedOrigins, request, env.NODE_ENV === "production"),
 
   user: {
     additionalFields: {

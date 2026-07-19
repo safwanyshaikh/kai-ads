@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveAuthUrls, type Env } from "@/lib/env";
+import { deriveTrustedOrigins } from "@/lib/auth";
 
 /**
  * Sprint 006 Bug 001: Better Auth's trustedOrigins was a static
@@ -168,5 +169,56 @@ describe("resolveAuthUrls — resolved URLs are always https on Vercel", () => {
       VERCEL_PROJECT_PRODUCTION_URL: "ads.kai.example.com",
     });
     expect(production.baseUrl.startsWith("https://")).toBe(true);
+  });
+});
+
+describe("deriveTrustedOrigins — request-based fallback (resilient to missing VERCEL_* env vars)", () => {
+  it("trusts the request's own Host header even when it matches nothing in the static list", () => {
+    const request = new Request("https://kai-ads-unpredictable-hash.vercel.app/api/auth/sign-in", {
+      headers: { host: "kai-ads-unpredictable-hash.vercel.app" },
+    });
+    const origins = deriveTrustedOrigins(["https://ads.kai.example.com"], request, true);
+    expect(origins).toContain("https://kai-ads-unpredictable-hash.vercel.app");
+  });
+
+  it("prefers x-forwarded-host over host (Vercel's edge proxy sets x-forwarded-host)", () => {
+    const request = new Request("https://internal.local/api/auth/sign-in", {
+      headers: {
+        host: "internal.local",
+        "x-forwarded-host": "kai-ads-preview.vercel.app",
+        "x-forwarded-proto": "https",
+      },
+    });
+    const origins = deriveTrustedOrigins([], request, true);
+    expect(origins).toContain("https://kai-ads-preview.vercel.app");
+    expect(origins).not.toContain("https://internal.local");
+  });
+
+  it("uses http protocol in non-production when x-forwarded-proto is absent", () => {
+    const request = new Request("http://localhost:3000/api/auth/sign-in", {
+      headers: { host: "localhost:3000" },
+    });
+    const origins = deriveTrustedOrigins([], request, false);
+    expect(origins).toContain("http://localhost:3000");
+  });
+
+  it("still returns the static origins when no request is available", () => {
+    const origins = deriveTrustedOrigins(["https://ads.kai.example.com"], undefined, true);
+    expect(origins).toEqual(["https://ads.kai.example.com"]);
+  });
+
+  it("does not let a spoofed Origin header substitute for the real Host (same-origin semantics preserved)", () => {
+    // A genuine cross-site request arrives with Host set to OUR domain
+    // (that's where it was routed) and a browser-set Origin header the
+    // attacker controls — but Origin is checked separately by Better
+    // Auth's origin-check middleware against this function's return
+    // value; this function only ever derives trust from Host, never from
+    // the (attacker-influenced) Origin/Referer headers.
+    const request = new Request("https://kai-ads-real.vercel.app/api/auth/sign-in", {
+      headers: { host: "kai-ads-real.vercel.app", origin: "https://evil.example.com" },
+    });
+    const origins = deriveTrustedOrigins([], request, true);
+    expect(origins).toContain("https://kai-ads-real.vercel.app");
+    expect(origins).not.toContain("https://evil.example.com");
   });
 });
