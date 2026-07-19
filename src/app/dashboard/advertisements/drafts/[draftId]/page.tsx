@@ -9,7 +9,7 @@ import { APP_ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Create Advertisement" };
 
-/** AI Extraction Review -> Style Selection -> Preview -> Save (Sprint 002). */
+/** Sprint 006 workflow: AI Extraction -> auto-create -> auto-generate -> Advertisement Canvas. No review form. */
 export default async function AdvertisementDraftPage({
   params,
 }: {
@@ -31,7 +31,9 @@ export default async function AdvertisementDraftPage({
     <DashboardShell user={user}>
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight">Create Advertisement</h1>
-        <p className="text-muted-foreground">Review, choose a style, and save.</p>
+        <p className="text-muted-foreground">
+          KAI is reading the requirement and building the advertisement for you.
+        </p>
       </div>
       <DraftWorkspace
         draftId={draft.id}
