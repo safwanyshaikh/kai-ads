@@ -104,6 +104,18 @@ const envSchema = z.object({
   AI_KILL_SWITCH: z.coerce.boolean().default(false),
   AI_DAILY_BUDGET_USD: z.coerce.number().positive().default(50),
 
+  // Feature flag — route the GPT background prompt through the new
+  // Creative-Brain-driven generator instead of legacy buildImageBrief().
+  // Default OFF: production is byte-for-byte identical until explicitly
+  // enabled. See src/server/generation/background-brief/.
+  CREATIVE_BRAIN_BACKGROUND_BRIEF: z.coerce.boolean().default(false),
+
+  // Feature flag — Sprint 006 Creative Director Brain (deterministic
+  // intelligence layer). Default OFF: the brain is built and tested but NOT
+  // wired into the production pipeline. See
+  // src/server/generation/creative-director/.
+  CREATIVE_DIRECTOR_BRAIN: z.coerce.boolean().default(false),
+
   // Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
@@ -148,6 +160,14 @@ export function getIntegrationStatus(env: Env = getEnv()) {
     email: env.EMAIL_PROVIDER !== "none",
     storage: env.STORAGE_PROVIDER !== "none",
     openai: Boolean(env.OPENAI_API_KEY),
+  };
+}
+
+/** Feature flags (default-off toggles that do not gate an integration). */
+export function getFeatureFlags(env: Env = getEnv()) {
+  return {
+    creativeBrainBackgroundBrief: env.CREATIVE_BRAIN_BACKGROUND_BRIEF,
+    creativeDirectorBrain: env.CREATIVE_DIRECTOR_BRAIN,
   };
 }
 

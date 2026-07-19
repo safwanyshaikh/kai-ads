@@ -21,6 +21,12 @@ import {
   selectArchetype,
   styleForArchetype,
 } from "@/server/generation/archetypes";
+import {
+  generateGptBackgroundBrief,
+  toCreativeBrainDecisions,
+} from "@/server/generation/background-brief";
+import { buildCreativeDirectorBrief } from "@/server/generation/creative-director/pipeline-adapter";
+import { getFeatureFlags } from "@/lib/env";
 import { runAcceptanceLoop } from "@/server/generation/acceptance/acceptance-loop";
 import { getVisualQaProvider } from "@/server/ai/visual-qa";
 import sharp from "sharp";
@@ -164,6 +170,33 @@ export const advertisementGenerationService = {
       aspectRatio: platformFormat.widthPx / platformFormat.heightPx,
     };
 
+    // Background prompt source, flag-gated. BOTH flags default OFF → legacy
+    // buildImageBrief() verbatim, so production is byte-for-byte identical.
+    // Precedence: CREATIVE_DIRECTOR_BRAIN (Sprint 006) → CREATIVE_BRAIN_
+    // BACKGROUND_BRIEF → legacy. Each higher path only reroutes the brief
+    // string; the renderer/QR/overlay are untouched.
+    const flags = getFeatureFlags();
+    const buildBackgroundBrief = (): string => {
+      if (flags.creativeDirectorBrain) {
+        return buildCreativeDirectorBrief(facts, {
+          dna,
+          aspectRatio: briefContext.aspectRatio,
+        }).prompt;
+      }
+      if (flags.creativeBrainBackgroundBrief) {
+        return generateGptBackgroundBrief(
+          toCreativeBrainDecisions({
+            facts,
+            copy,
+            directives: briefContext.directives,
+            dna,
+            aspectRatio: briefContext.aspectRatio,
+          }),
+        ).prompt;
+      }
+      return buildImageBrief(facts, briefContext);
+    };
+
     let backgroundImageDataUri: string | null = null;
     let usedAiBackground = false;
     const imageStartedAt = Date.now();
@@ -172,7 +205,7 @@ export const advertisementGenerationService = {
       const provider = getImageGenerationProvider();
       try {
         const { output, usage } = await provider.generate({
-          prompt: buildImageBrief(facts, briefContext),
+          prompt: buildBackgroundBrief(),
           widthPx: platformFormat.widthPx,
           heightPx: platformFormat.heightPx,
           quality: "medium",
@@ -283,7 +316,7 @@ export const advertisementGenerationService = {
             try {
               const provider = getImageGenerationProvider();
               const { output } = await provider.generate({
-                prompt: `${buildImageBrief(facts, briefContext)} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
+                prompt: `${buildBackgroundBrief()} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
                 widthPx: platformFormat.widthPx,
                 heightPx: platformFormat.heightPx,
                 quality: "medium",
