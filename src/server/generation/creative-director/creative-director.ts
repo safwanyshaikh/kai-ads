@@ -35,13 +35,14 @@ export function runCreativeDirector(input: CreativeInput): CreativeDirection {
   const project = push(projectIntelligence(input));
   const urgency = push(urgencyIntelligence(input));
 
-  // ── psychology ──
-  const psychology = push(candidatePsychology({ input, country, salary, employer, urgency }));
+  // ── psychology ── Decision Flow Stage 1 (lock the hero) runs before
+  // Stage 2/3 (derive hook/emotion FROM that hero) — see psychology.ts.
   const opportunity = push(opportunityRanking({ country, salary, industry, project, employer, urgency }));
+  const psychology = push(candidatePsychology({ input, country, industry, project, employer, urgency, opportunity }));
 
   // ── visual ──
   const vs = push(visualStory({ input, project, urgency }));
-  const hero = push(heroStrategy(vs.story));
+  const hero = push(heroStrategy(vs.story, vs.personality));
   const background = push(backgroundStrategy(industry));
   const colour = push(colourStrategy({ country, input }));
 
@@ -49,15 +50,17 @@ export function runCreativeDirector(input: CreativeInput): CreativeDirection {
   const typography = push(typographyStrategy());
   const layout = push(layoutStrategy(input));
   const cta = push(ctaStrategy({ urgency, input }));
-  const trust = push(trustStrategy(input));
+  const trust = push(trustStrategy({ input, employer, country }));
   const mobile = push(mobileStrategy(input));
 
-  // ── quality (last) ──
+  // ── quality (last) ── truthValidation is the Brain's own catastrophic-
+  // defect gate (Playbook §22) and must run BEFORE commercialScoring so
+  // a truth failure can force the score's gate to REJECT outright.
+  const truth = push(truthValidation({ input, currency, opportunity, employer, salary }));
   const commercialScore = push(commercialScoring({
-    currency, salary, urgency, opportunity, employer,
+    currency, salary, urgency, opportunity, employer, truth,
     positionsCount: input.positions.length, hasAgencyPalette: Boolean(input.agencyPalette),
   }));
-  const truth = push(truthValidation({ input, currency, opportunity, employer, salary }));
 
   const direction: CreativeDirection = {
     country, currency, employer, industry, salary, benefits, project, urgency,

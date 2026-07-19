@@ -70,15 +70,47 @@ export const INDUSTRIES: IndustryFact[] = [
   { keys: /(power|renewable|solar|energy)/i, attractiveness: 80, environment: "a renewable-energy site, solar/turbine field at dawn", defaultStory: "FACTORY" },
 ];
 
+const GENERIC_INDUSTRY_FALLBACK: IndustryFact = {
+  keys: /.*/, attractiveness: 65,
+  environment: "a professional industrial facility with strong presence",
+  defaultStory: "WORKER_HERO",
+};
+
 export function resolveIndustry(raw: string): IndustryFact {
-  return (
-    INDUSTRIES.find((i) => i.keys.test(raw || "")) ?? {
-      keys: /.*/, attractiveness: 65,
-      environment: "a professional industrial facility with strong presence",
-      defaultStory: "WORKER_HERO",
-    }
-  );
+  return INDUSTRIES.find((i) => i.keys.test(raw || "")) ?? GENERIC_INDUSTRY_FALLBACK;
 }
+
+/**
+ * Playbook §17 ("Industry-specific visual language"): a specific,
+ * industry-accurate environment wins whenever classification confidence
+ * is high; the generic fallback is "a safety net, not a default
+ * preference." Engines cite this to be honest in their trace about
+ * whether they matched a real industry or fell back.
+ */
+export function industryHasConfidentMatch(raw: string): boolean {
+  return INDUSTRIES.some((i) => i.keys.test(raw || ""));
+}
+
+/**
+ * Playbook §8 ("Colour psychology") + Failure Library FL-009/FL-010: "one
+ * grading commitment per ad — mixing warm and cool casts in the same
+ * frame reads as unresolved." Each destination's LOCKED premium colour
+ * (§18) gets one internally-consistent dark tone — warm colours pair with
+ * a warm dark tone, cool colours with a cool dark tone — so the engine
+ * itself can never generate a warm/cool clash (the exact defect the V12
+ * green-cast failure was). Keyed by the exact `premiumColour` strings in
+ * COUNTRIES above (data, not a guess), with a neutral fallback for any
+ * future country added without a matching entry here.
+ */
+export const COLOUR_DARK_TONE: Record<string, string> = {
+  "Desert Gold": "#2B1B0E", // warm umber/bronze — never the cool navy a "gold" mood should not carry
+  "Blue + Gold": "#0C2E63", // cool navy — correct here: the mood NAME itself commits to blue
+  "Deep Blue": "#0C2E63",
+  "Burgundy": "#6E1023",
+  "Red + White": "#5C0A0A", // deep red — was previously falling through to generic charcoal
+  "Forest + Gold": "#123D28",
+};
+export const COLOUR_DARK_TONE_FALLBACK = "#1c1c1e";
 
 /**
  * Employer brand strength — recognition classification (not tenant data).
