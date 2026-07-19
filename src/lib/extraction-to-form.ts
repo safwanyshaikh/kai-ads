@@ -84,7 +84,12 @@ function deriveHeader(params: {
 }): string {
   const { employer, country, industry, projectType } = params;
   const subject = employer ?? projectType ?? industry;
-  if (subject && country) return `${subject} — ${country}`;
+  // Don't repeat the country when the subject already names it
+  // (e.g. employer "Halliburton Saudi Arabia" must not become
+  // "Halliburton Saudi Arabia — Saudi Arabia").
+  const subjectNamesCountry =
+    subject != null && country != null && subject.toLowerCase().includes(country.toLowerCase());
+  if (subject && country && !subjectNamesCountry) return `${subject} — ${country}`;
   if (subject) return subject;
   if (country) return `Recruitment — ${country}`;
   return "";

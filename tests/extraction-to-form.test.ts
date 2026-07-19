@@ -104,4 +104,14 @@ describe("extractionResultToFormValues — the missing Review-screen wiring", ()
     });
     expect(values.header).toBe("Construction — UAE");
   });
+
+  it("does not repeat the country when the employer name already contains it", () => {
+    const values = extractionResultToFormValues({
+      ...emptyExtractionResult(""),
+      employer: { value: "Halliburton Saudi Arabia", confidence: "HIGH" },
+      country: { value: "Saudi Arabia", confidence: "HIGH" },
+      industry: { value: "Oil & Gas", confidence: "HIGH" },
+    });
+    expect(values.header).toBe("Halliburton Saudi Arabia");
+  });
 });

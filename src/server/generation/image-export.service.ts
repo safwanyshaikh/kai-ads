@@ -1,3 +1,4 @@
+import "./font-config"; // side effect: FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
 import { PDFDocument } from "pdf-lib";
 import { UnsupportedDocumentError } from "@/server/ai/openai/errors";

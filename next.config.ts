@@ -31,10 +31,14 @@ const nextConfig: NextConfig = {
   // on the serverless host. Next's file tracer can miss a dynamically
   // constructed fs path, so the font files are listed explicitly here to
   // guarantee they're included in the deployed function bundle.
+  // Sprint 006 Bug 005: fonts.conf ships alongside the .ttf files —
+  // librsvg only discovers fonts through fontconfig (FONTCONFIG_FILE is
+  // set in src/server/generation/font-config.ts), so the whole fonts
+  // directory must reach the deployed function bundle.
   outputFileTracingIncludes: {
-    "/api/advertisements/[id]/generate": ["./src/server/generation/fonts/*.ttf"],
-    "/api/advertisements/[id]/export": ["./src/server/generation/fonts/*.ttf"],
-    "/api/advertisements/[id]/section": ["./src/server/generation/fonts/*.ttf"],
+    "/api/advertisements/[id]/generate": ["./src/server/generation/fonts/*"],
+    "/api/advertisements/[id]/export": ["./src/server/generation/fonts/*"],
+    "/api/advertisements/[id]/section": ["./src/server/generation/fonts/*"],
   },
 };
 

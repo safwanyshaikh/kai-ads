@@ -26,7 +26,7 @@ import {
   toCreativeBrainDecisions,
 } from "@/server/generation/background-brief";
 import { buildCreativeDirectorBrief } from "@/server/generation/creative-director/pipeline-adapter";
-import { getFeatureFlags } from "@/lib/env";
+import { getEnv, getFeatureFlags } from "@/lib/env";
 import { runAcceptanceLoop } from "@/server/generation/acceptance/acceptance-loop";
 import { getVisualQaProvider } from "@/server/ai/visual-qa";
 import sharp from "sharp";
@@ -208,7 +208,7 @@ export const advertisementGenerationService = {
           prompt: buildBackgroundBrief(),
           widthPx: platformFormat.widthPx,
           heightPx: platformFormat.heightPx,
-          quality: "medium",
+          quality: getEnv().KAI_IMAGE_QUALITY,
         });
         backgroundImageDataUri = `data:${output.mimeType};base64,${output.imageBase64}`;
         usedAiBackground = true;
@@ -319,7 +319,7 @@ export const advertisementGenerationService = {
                 prompt: `${buildBackgroundBrief()} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
                 widthPx: platformFormat.widthPx,
                 heightPx: platformFormat.heightPx,
-                quality: "medium",
+                quality: getEnv().KAI_IMAGE_QUALITY,
               });
               return `data:${output.mimeType};base64,${output.imageBase64}`;
             } catch (error) {

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import "./font-config"; // side effect: FONTCONFIG_FILE must be set before any rasterization
 
 /**
  * Self-contained font data for the SVG renderer (FIX-010).

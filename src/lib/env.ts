@@ -103,13 +103,20 @@ const envSchema = z.object({
   // but the app still starts. Model names are never hardcoded anywhere
   // else in the codebase — every AI call resolves them from here.
   OPENAI_API_KEY: z.string().optional(),
-  KAI_TEXT_MODEL: z.string().default("gpt-4.1-mini"),
-  KAI_VISION_MODEL: z.string().default("gpt-4.1-mini"),
+  // Sprint 006: defaults raised from gpt-4.1-mini — extraction quality
+  // drives every downstream stage (Truth Brain, Creative Director,
+  // composition), and the mini model demonstrably collapsed a 19-line
+  // division list into one "Various Positions" entry. Still overridable
+  // per deployment via env.
+  KAI_TEXT_MODEL: z.string().default("gpt-4.1"),
+  KAI_VISION_MODEL: z.string().default("gpt-4.1"),
 
   // KAI Creative Engine (Sprint 004) — image generation. Same optional/
   // feature-gated pattern as the text engine above.
   KAI_IMAGE_MODEL: z.string().default("gpt-image-1"),
-  KAI_IMAGE_QUALITY: z.enum(["low", "medium", "high"]).default("medium"),
+  // Sprint 006: "high" by default — the background is the single most
+  // visible quality lever on a Visual ad. Overridable via env.
+  KAI_IMAGE_QUALITY: z.enum(["low", "medium", "high"]).default("high"),
   KAI_IMAGE_SIZE: z.string().default("1024x1024"),
 
   // Public domain the unified verification QR badge points at
