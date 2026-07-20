@@ -44,4 +44,16 @@ describe("rbac", () => {
       ),
     ).toThrow(ForbiddenError);
   });
+
+  it("KAI_SUPER_ADMIN can manage generation quota", () => {
+    expect(roleHasPermission("KAI_SUPER_ADMIN", "agency:manage_quota")).toBe(true);
+  });
+
+  it("AGENCY_ADMIN cannot manage generation quota", () => {
+    expect(roleHasPermission("AGENCY_ADMIN", "agency:manage_quota")).toBe(false);
+  });
+
+  it("AGENCY_USER cannot manage generation quota", () => {
+    expect(roleHasPermission("AGENCY_USER", "agency:manage_quota")).toBe(false);
+  });
 });

@@ -9,6 +9,8 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AgencyVerificationActions } from "@/components/agency/agency-verification-actions";
+import { AgencyQuotaGrant } from "@/components/agency/agency-quota-grant";
+import { can } from "@/lib/rbac";
 import { APP_ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Agency Verification" };
@@ -70,8 +72,9 @@ export default async function AgencyVerificationsPage() {
                 </div>
                 <Badge variant={STATUS_VARIANT[status] ?? "outline"}>{status.replace(/_/g, " ")}</Badge>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <AgencyVerificationActions agencyId={agency.id} status={verification?.status ?? null} />
+                {can(user, "agency:manage_quota") && <AgencyQuotaGrant agencyId={agency.id} />}
               </CardContent>
             </Card>
           );

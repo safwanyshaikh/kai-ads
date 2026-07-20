@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { registerAgencySchema } from "@/lib/validations/agency";
+import { registerAgencySchema, grantGenerationQuotaSchema } from "@/lib/validations/agency";
 
 const validInput = {
   name: "Al Noor Overseas Recruitment",
@@ -44,5 +44,36 @@ describe("registerAgencySchema", () => {
   it("allows an optional secondary logo to be omitted", () => {
     const result = registerAgencySchema.safeParse(validInput);
     expect(result.success).toBe(true);
+  });
+});
+
+describe("grantGenerationQuotaSchema", () => {
+  it("accepts a positive whole-number grant", () => {
+    const result = grantGenerationQuotaSchema.safeParse({ agencyId: "a1", amount: 100 });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.amount).toBe(100);
+  });
+
+  it("coerces a numeric string amount (form input)", () => {
+    const result = grantGenerationQuotaSchema.safeParse({ agencyId: "a1", amount: "100" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.amount).toBe(100);
+  });
+
+  it("rejects zero or negative amounts — this can only add generations, never revoke them", () => {
+    expect(grantGenerationQuotaSchema.safeParse({ agencyId: "a1", amount: 0 }).success).toBe(false);
+    expect(grantGenerationQuotaSchema.safeParse({ agencyId: "a1", amount: -5 }).success).toBe(false);
+  });
+
+  it("rejects a non-integer amount", () => {
+    expect(grantGenerationQuotaSchema.safeParse({ agencyId: "a1", amount: 2.5 }).success).toBe(false);
+  });
+
+  it("rejects an absurdly large amount", () => {
+    expect(grantGenerationQuotaSchema.safeParse({ agencyId: "a1", amount: 10_000_000 }).success).toBe(false);
+  });
+
+  it("requires an agencyId", () => {
+    expect(grantGenerationQuotaSchema.safeParse({ amount: 10 }).success).toBe(false);
   });
 });

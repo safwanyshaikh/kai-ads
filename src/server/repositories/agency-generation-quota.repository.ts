@@ -21,4 +21,13 @@ export const agencyGenerationQuotaRepository = {
       data: { sectionRegenerationCount: { increment: 1 } },
     });
   },
+
+  /** Adds to (never replaces) an agency's total quota — see generationQuotaService.grantAdditionalQuota. */
+  async incrementTotalQuota(agencyId: string, amount: number): Promise<AgencyGenerationQuota> {
+    await this.findOrCreate(agencyId);
+    return db.agencyGenerationQuota.update({
+      where: { agencyId },
+      data: { totalQuota: { increment: amount } },
+    });
+  },
 };

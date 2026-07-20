@@ -65,3 +65,10 @@ export const activateAgencySchema = z.object({
   agencyId: z.string().min(1),
   reason: z.string().max(500).optional(),
 });
+
+export const grantGenerationQuotaSchema = z.object({
+  agencyId: z.string().min(1),
+  amount: z.coerce.number().int().min(1).max(100000),
+  reason: z.string().max(500).optional(),
+});
+export type GrantGenerationQuotaInput = z.infer<typeof grantGenerationQuotaSchema>;

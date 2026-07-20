@@ -1,4 +1,6 @@
 import { agencyGenerationQuotaRepository } from "@/server/repositories/agency-generation-quota.repository";
+import { auditLogService } from "@/server/services/audit-log.service";
+import { AUDIT_ACTIONS } from "@/lib/constants";
 import { getEnv } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
@@ -66,5 +68,36 @@ export const generationQuotaService = {
 
   async recordSectionRegeneration(agencyId: string): Promise<void> {
     await agencyGenerationQuotaRepository.incrementSectionRegenerations(agencyId);
+  },
+
+  /**
+   * KAI Super Admin only (see agency:manage_quota permission) — adds to an
+   * agency's total quota, e.g. to extend a testing/pilot agency past the
+   * bootstrap trial limit. Always additive, never resets usage already
+   * counted, and always a positive whole number — this can only grant
+   * more generations, never revoke ones already used.
+   */
+  async grantAdditionalQuota(
+    agencyId: string,
+    amount: number,
+    actorId: string,
+    reason?: string,
+  ): Promise<{ totalQuota: number }> {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new AppError("Quota grant amount must be a positive whole number.", 400);
+    }
+    const quota = await agencyGenerationQuotaRepository.incrementTotalQuota(agencyId, amount);
+
+    await auditLogService.record({
+      action: AUDIT_ACTIONS.agencyGenerationQuotaGranted,
+      entity: "Agency",
+      entityId: agencyId,
+      agencyId,
+      actorId,
+      metadata: { amount, newTotalQuota: quota.totalQuota, reason },
+    });
+
+    log.info({ agencyId, amount, newTotalQuota: quota.totalQuota }, "Generation quota granted");
+    return { totalQuota: quota.totalQuota };
   },
 };

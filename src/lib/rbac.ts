@@ -15,6 +15,7 @@ export type Permission =
   | "agency:view_all"
   | "agency:manage_own"
   | "agency:verify"
+  | "agency:manage_quota"
   | "join_request:review"
   | "join_request:create"
   | "dashboard:view"
@@ -34,6 +35,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "agency:activate",
     "agency:view_all",
     "agency:verify",
+    "agency:manage_quota",
     "dashboard:view",
   ],
   AGENCY_ADMIN: [

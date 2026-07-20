@@ -25,6 +25,7 @@ export const API_ROUTES = {
   agencyReject: (id: string) => `/api/agencies/${id}/reject`,
   agencySuspend: (id: string) => `/api/agencies/${id}/suspend`,
   agencyActivate: (id: string) => `/api/agencies/${id}/activate`,
+  agencyQuota: (id: string) => `/api/agencies/${id}/quota`,
   joinRequests: "/api/join-requests",
   joinRequestApprove: (id: string) => `/api/join-requests/${id}/approve`,
   joinRequestReject: (id: string) => `/api/join-requests/${id}/reject`,
@@ -92,6 +93,7 @@ export const AUDIT_ACTIONS = {
   agencyVerificationReverificationRequired: "agency_verification.reverification_required",
   advertisementGenerated: "advertisement.generated",
   advertisementSectionRegenerated: "advertisement.section_regenerated",
+  agencyGenerationQuotaGranted: "agency.generation_quota_granted",
 } as const;
 
 export const RATE_LIMITS = {
