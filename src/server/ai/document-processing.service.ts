@@ -188,11 +188,21 @@ export async function processDocument(file: {
  * Paste Requirement (plain text, no file at all), crashing
  * POST /api/advertisement-drafts in production because @napi-rs/canvas's
  * native binary isn't resolvable in Vercel's serverless function bundle.
+ *
+ * The `pdf-dommatrix-polyfill` side-effect import MUST run before
+ * `pdf-parse` is ever imported: pdfjs-dist's bundled canvas module runs
+ * `new DOMMatrix()` at top level, at IMPORT TIME — before this function's
+ * own try/catch is even entered — so without the polyfill already in
+ * place, `await import("pdf-parse")` itself throws a raw, uncaught
+ * "DOMMatrix is not defined" that bypasses the friendly error handling
+ * below entirely. See pdf-dommatrix-polyfill.ts for the full trace.
  */
 async function extractPdfText(data: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data });
+  let parser: InstanceType<Awaited<typeof import("pdf-parse")>["PDFParse"]> | undefined;
   try {
+    await import("./pdf-dommatrix-polyfill");
+    const { PDFParse } = await import("pdf-parse");
+    parser = new PDFParse({ data });
     const result = await parser.getText();
     const text = result.text?.trim();
     if (!text) {
@@ -208,7 +218,7 @@ async function extractPdfText(data: Buffer): Promise<string> {
       "This PDF could not be read. It may be corrupt, password-protected, or in an unsupported format.",
     );
   } finally {
-    await parser.destroy();
+    await parser?.destroy();
   }
 }
 
