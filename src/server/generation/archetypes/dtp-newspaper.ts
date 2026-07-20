@@ -127,9 +127,10 @@ export function renderDtpNewspaper(input: CompositionInput): string {
       const ry = y + px(8) + i * rowH;
       const title = p.experience ? `${p.title} — ${p.experience}` : p.title;
       const withCount = p.count ? `${title}   (${p.count} Nos)` : title;
-      const size = fitFontSize(withCount, contentW - px(40), fpx(30), fpx(14));
+      const withSalary = p.salary ? `${withCount}   ·   ${p.salary}` : withCount;
+      const size = fitFontSize(withSalary, contentW - px(40), fpx(30), fpx(14));
       frags.push(
-        `<text x="${colCenterX}" y="${ry + rowH / 2 + size * 0.36}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${ink}">${escapeXml(withCount)}</text>`,
+        `<text x="${colCenterX}" y="${ry + rowH / 2 + size * 0.36}" text-anchor="middle" font-family="${font}" font-size="${size}" font-weight="700" fill="${ink}">${escapeXml(withSalary)}</text>`,
       );
       if (i < facts.positions.length - 1) {
         frags.push(

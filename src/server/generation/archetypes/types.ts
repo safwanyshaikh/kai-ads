@@ -22,7 +22,7 @@ export interface AdvertisementFacts {
   industry: string;
   country: string;
   employer?: string | null;
-  positions: { title: string; count?: number; experience?: string }[];
+  positions: { title: string; count?: number; experience?: string; salary?: string | null }[];
   benefits: { label: string; detail?: string }[];
   interview: InterviewEvent[];
   contact: { name?: string; phone?: string; email?: string; whatsapp?: string };

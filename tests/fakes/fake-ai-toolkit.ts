@@ -39,6 +39,7 @@ export function buildFakeExtractionResult(
         experience: { value: "5 years", confidence: "HIGH" },
         qualification: { value: "ITI Welding", confidence: "MEDIUM" },
         ageLimit: { value: "up to 45", confidence: "MEDIUM" },
+        salaryTiers: [],
         possibleDuplicateOfIndex: null,
       },
       {
@@ -50,6 +51,7 @@ export function buildFakeExtractionResult(
         experience: { value: "3 years", confidence: "MEDIUM" },
         qualification: { value: null, confidence: "LOW" },
         ageLimit: { value: null, confidence: "LOW" },
+        salaryTiers: [],
         possibleDuplicateOfIndex: null,
       },
     ],

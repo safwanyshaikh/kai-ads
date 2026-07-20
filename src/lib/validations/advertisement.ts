@@ -11,6 +11,8 @@ export const positionSchema = z.object({
   title: z.string().trim().min(1, "Position title is required").max(120),
   count: z.coerce.number().int().min(1).max(10000).optional(),
   experience: z.string().trim().max(200).optional(),
+  /** Grounded, source-verbatim salary text for this position — a flat figure or a summarized tiered pay scale. Never fabricated. */
+  salary: z.string().trim().max(300).optional(),
   ageRange: z.string().trim().max(50).optional(),
   language: z.string().trim().max(120).optional(),
   qualifications: z.array(z.string().trim().max(200)).max(20).optional(),

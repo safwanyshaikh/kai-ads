@@ -495,3 +495,30 @@ describe("GPT creative brief — requests text-free creative canvas (hybrid arch
     expect(sparseBrief).toContain("SPARSE");
   });
 });
+
+// Sprint 007 Bug: a graduated pay scale collapsed onto ONE grounded
+// position.salary string (see extraction-to-form.test.ts for the
+// upstream formatting) must actually reach the rendered advertisement —
+// every archetype that shows positions must render it, truthfully and
+// without inventing a number of its own.
+describe("composeAdvertisement — renders a position's grounded salary text (Sprint 007 Bug)", () => {
+  const withTieredSalary = {
+    positions: [
+      {
+        title: "RCM Instrument Engineer",
+        count: 2,
+        salary: "8 yrs to < 9 yrs: SAR 10,000 · 9 yrs to < 10 yrs: SAR 11,000",
+      },
+    ],
+  };
+
+  for (const archetype of ALL_ARCHETYPES) {
+    it(`${archetype}: shows the position's grounded salary text exactly once, not duplicated per band`, () => {
+      const svg = render(archetype, withTieredSalary);
+      const occurrences = svg.split("RCM Instrument Engineer").length - 1;
+      expect(occurrences).toBe(1);
+      expect(svg).toContain("SAR 10,000");
+      expect(svg).toContain("SAR 11,000");
+    });
+  }
+});

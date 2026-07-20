@@ -36,7 +36,7 @@ export function factsToCreativeInput(
     industry: facts.industry,
     country: facts.country,
     header: facts.header ?? null,
-    positions: facts.positions.map((p) => ({ title: p.title, count: p.count })),
+    positions: facts.positions.map((p) => ({ title: p.title, count: p.count, salary: p.salary })),
     benefits: facts.benefits.map((b) => ({ label: b.label, detail: b.detail })),
     interview: facts.interview.map((i) => ({ date: i.date, location: i.location })),
     agencyName: facts.agencyName,

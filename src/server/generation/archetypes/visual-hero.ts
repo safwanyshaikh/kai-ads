@@ -152,7 +152,8 @@ function renderAiFirstVisualHero(input: CompositionInput): string {
   );
   facts.positions.forEach((p, i) => {
     const ry = cardY + headerRowH + i * rowH;
-    const label = p.experience ? `${p.title} — ${p.experience}` : p.title;
+    const labelWithExp = p.experience ? `${p.title} — ${p.experience}` : p.title;
+    const label = p.salary ? `${labelWithExp}  ·  ${p.salary}` : labelWithExp;
     const size = fitFontSize(label, cardW - px(100), fpx(26), fpx(13));
     parts.push(
       `<rect x="${cardX + px(2)}" y="${ry}" width="${cardW - px(4)}" height="${rowH}" fill="${i % 2 === 0 ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)"}" />` +
@@ -478,7 +479,7 @@ function renderFallbackVisualHero(input: CompositionInput): string {
   );
   facts.positions.forEach((p, i) => {
     const ry = bandY + headerRowH + i * rowH;
-    const label = p.count ? `${p.title}` : p.title;
+    const label = p.salary ? `${p.title}  ·  ${p.salary}` : p.title;
     const size = fitFontSize(label, cardW - px(120), fpx(30), fpx(15));
     parts.push(
       `<rect x="${cardX}" y="${ry}" width="${cardW}" height="${rowH}" fill="${i % 2 === 0 ? "#eef2f7" : "#ffffff"}" />

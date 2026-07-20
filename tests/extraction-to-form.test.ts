@@ -24,6 +24,7 @@ const HALLIBURTON: ExtractionResult = {
       experience: { value: null, confidence: "LOW" },
       qualification: { value: null, confidence: "LOW" },
       ageLimit: { value: null, confidence: "LOW" },
+      salaryTiers: [],
       possibleDuplicateOfIndex: null,
     },
     {
@@ -35,6 +36,7 @@ const HALLIBURTON: ExtractionResult = {
       experience: { value: null, confidence: "LOW" },
       qualification: { value: null, confidence: "LOW" },
       ageLimit: { value: null, confidence: "LOW" },
+      salaryTiers: [],
       possibleDuplicateOfIndex: null,
     },
   ],
@@ -113,5 +115,96 @@ describe("extractionResultToFormValues — the missing Review-screen wiring", ()
       industry: { value: "Oil & Gas", confidence: "HIGH" },
     });
     expect(values.header).toBe("Halliburton Saudi Arabia");
+  });
+});
+
+/**
+ * Sprint 007 Bug: a graduated pay scale (one position, several
+ * experience-based salary bands) has no single number to map to —
+ * previously the extraction step split it into duplicate position
+ * entries (the same title repeated once per band, headcount duplicated
+ * on each) with no salary ever reaching the advertisement at all.
+ * formatPositionSalary (exercised here via extractionResultToFormValues)
+ * folds every band into one grounded, source-verbatim display string on
+ * the single position entry instead.
+ */
+describe("extractionResultToFormValues — graduated pay scale (Sprint 007 Bug)", () => {
+  it("formats a tiered salary scale onto ONE position entry, not one entry per band", () => {
+    const extraction: ExtractionResult = {
+      ...emptyExtractionResult(""),
+      country: { value: "Saudi Arabia", confidence: "HIGH" },
+      positions: [
+        {
+          title: "RCM Instrument Engineer",
+          tradeSummary: "Reliability-centered maintenance instrument engineering.",
+          quantity: { value: 2, confidence: "HIGH" },
+          salaryAmount: { value: null, confidence: "LOW" },
+          salaryCurrency: { value: null, confidence: "LOW" },
+          experience: { value: null, confidence: "LOW" },
+          qualification: { value: null, confidence: "LOW" },
+          ageLimit: { value: null, confidence: "LOW" },
+          salaryTiers: [
+            { experience: "8 yrs to < 9 yrs", salary: "SAR 10,000" },
+            { experience: "9 yrs to < 10 yrs", salary: "SAR 11,000" },
+            { experience: "10 yrs to < 11 yrs", salary: "SAR 12,000" },
+            { experience: "11 yrs & above", salary: "SAR 13,000" },
+          ],
+          possibleDuplicateOfIndex: null,
+        },
+      ],
+    };
+
+    const values = extractionResultToFormValues(extraction);
+    expect(values.positions).toHaveLength(1);
+    expect(values.positions?.[0].count).toBe(2);
+    expect(values.positions?.[0].salary).toBe(
+      "8 yrs to < 9 yrs: SAR 10,000 · 9 yrs to < 10 yrs: SAR 11,000 · 10 yrs to < 11 yrs: SAR 12,000 · 11 yrs & above: SAR 13,000",
+    );
+  });
+
+  it("formats a flat salaryAmount+currency when there is no tiered scale", () => {
+    const extraction: ExtractionResult = {
+      ...emptyExtractionResult(""),
+      positions: [
+        {
+          title: "Welder",
+          tradeSummary: "Structural welding for oil and gas fabrication.",
+          quantity: { value: 5, confidence: "HIGH" },
+          salaryAmount: { value: 2500, confidence: "HIGH" },
+          salaryCurrency: { value: "SAR", confidence: "HIGH" },
+          experience: { value: null, confidence: "LOW" },
+          qualification: { value: null, confidence: "LOW" },
+          ageLimit: { value: null, confidence: "LOW" },
+          salaryTiers: [],
+          possibleDuplicateOfIndex: null,
+        },
+      ],
+    };
+
+    const values = extractionResultToFormValues(extraction);
+    expect(values.positions?.[0].salary).toBe("SAR 2,500");
+  });
+
+  it("leaves salary undefined, never fabricated, when neither a flat salary nor a tiered scale is present", () => {
+    const extraction: ExtractionResult = {
+      ...emptyExtractionResult(""),
+      positions: [
+        {
+          title: "Rigger",
+          tradeSummary: "Rigging and lifting operations for construction sites.",
+          quantity: { value: 3, confidence: "HIGH" },
+          salaryAmount: { value: null, confidence: "LOW" },
+          salaryCurrency: { value: null, confidence: "LOW" },
+          experience: { value: null, confidence: "LOW" },
+          qualification: { value: null, confidence: "LOW" },
+          ageLimit: { value: null, confidence: "LOW" },
+          salaryTiers: [],
+          possibleDuplicateOfIndex: null,
+        },
+      ],
+    };
+
+    const values = extractionResultToFormValues(extraction);
+    expect(values.positions?.[0].salary).toBeUndefined();
   });
 });

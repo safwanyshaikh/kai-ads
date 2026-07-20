@@ -177,11 +177,12 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   );
   facts.positions.forEach((p, i) => {
     const ry = bandY + headerRowH + i * rowH;
-    const size = fitFontSize(p.title, cardW - px(140), fpx(30), fpx(15));
+    const titleWithSalary = p.salary ? `${p.title}  —  ${p.salary}` : p.title;
+    const size = fitFontSize(titleWithSalary, cardW - px(140), fpx(30), fpx(13));
     parts.push(
       `<rect x="${cardX + px(2)}" y="${ry}" width="${cardW - px(4)}" height="${rowH}" fill="${i % 2 === 0 ? "#eef2f7" : "#ffffff"}" />
   <text x="${cardX + px(22)}" y="${ry + rowH / 2 + fpx(10)}" font-family="${font}" font-size="${fpx(26)}" font-weight="700" fill="${brand}">${String(i + 1).padStart(2, "0")}</text>
-  <text x="${cardX + px(72)}" y="${ry + rowH / 2 + size * 0.36}" font-family="${font}" font-size="${size}" font-weight="700" fill="${navy}">${escapeXml(p.title)}</text>
+  <text x="${cardX + px(72)}" y="${ry + rowH / 2 + size * 0.36}" font-family="${font}" font-size="${size}" font-weight="700" fill="${navy}">${escapeXml(titleWithSalary)}</text>
   ${p.count ? `<text x="${cardX + cardW - px(22)}" y="${ry + rowH / 2 + fpx(9)}" text-anchor="end" font-family="${font}" font-size="${fpx(26)}" font-weight="700" fill="${brand2}">${p.count} Nos</text>` : ""}`,
     );
   });

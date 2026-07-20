@@ -117,7 +117,8 @@ export function renderHighDensity(input: CompositionInput): string {
     const colPositions = facts.positions.slice(c * rowsPerCol, (c + 1) * rowsPerCol);
     colPositions.forEach((p, i) => {
       const ry = y + headerRowH + i * rowH;
-      const title = p.experience ? `${p.title} — ${p.experience}` : p.title;
+      const titleWithExp = p.experience ? `${p.title} — ${p.experience}` : p.title;
+      const title = p.salary ? `${titleWithExp}  ·  ${p.salary}` : titleWithExp;
       const size = fitFontSize(title, tableW - px(32) - countColW, fpx(26), fpx(12));
       parts.push(
         `<rect x="${tx}" y="${ry}" width="${tableW}" height="${rowH}" fill="${i % 2 === 0 ? "#f2f5f8" : "#ffffff"}" />

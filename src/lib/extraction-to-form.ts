@@ -1,4 +1,4 @@
-import type { ExtractionResult } from "@/server/ai/extraction-result.schema";
+import type { ExtractedPosition, ExtractionResult } from "@/server/ai/extraction-result.schema";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 
 /**
@@ -52,6 +52,7 @@ export function extractionResultToFormValues(
       experience: position.experience.value ?? undefined,
       ageRange: position.ageLimit.value ?? undefined,
       qualifications: position.qualification.value ? [position.qualification.value] : undefined,
+      salary: formatPositionSalary(position),
     }));
   }
   if (extracted.benefits.value) {
@@ -67,6 +68,25 @@ export function extractionResultToFormValues(
   }
 
   return values;
+}
+
+/**
+ * Sprint 007 Bug: a graduated pay scale (the same position paying a
+ * different salary at each experience band) has nowhere to go as a
+ * single value — collapsing it into one figure would either fabricate a
+ * number or silently drop real, source-grounded data. Formats every
+ * band verbatim into one grounded display string instead of letting the
+ * extraction step split it into duplicate position entries.
+ */
+function formatPositionSalary(position: ExtractedPosition): string | undefined {
+  if (position.salaryTiers.length > 0) {
+    return position.salaryTiers.map((tier) => `${tier.experience}: ${tier.salary}`).join(" · ");
+  }
+  if (position.salaryAmount.value != null) {
+    const currency = position.salaryCurrency.value;
+    return currency ? `${currency} ${position.salaryAmount.value.toLocaleString()}` : `${position.salaryAmount.value}`;
+  }
+  return undefined;
 }
 
 /**

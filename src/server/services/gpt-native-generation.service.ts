@@ -76,7 +76,7 @@ export const gptNativeGenerationService = {
     const verification = await agencyVerificationRepository.findByAgencyId(agencyId);
     const platformFormat = getPlatformFormat(input.platformFormat);
 
-    const positions = advertisement.positions as unknown as { title: string; count?: number; experience?: string }[];
+    const positions = advertisement.positions as unknown as { title: string; count?: number; experience?: string; salary?: string | null }[];
     const benefits = advertisement.benefits as unknown as { label: string; detail?: string }[];
     const interview = normalizeInterviewEvents(advertisement.interview);
     const contact = advertisement.contact as unknown as {

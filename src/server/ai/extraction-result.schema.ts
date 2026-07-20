@@ -34,6 +34,14 @@ const contactValueSchema = z.object({
   whatsapp: z.string().nullable(),
 });
 
+export const salaryTierSchema = z.object({
+  /** e.g. "8 yrs to < 9 yrs" — verbatim from the source's experience band, not a duration in years. */
+  experience: z.string(),
+  /** e.g. "SAR 10,000" — verbatim from the source's salary-for-that-band, not just a number. */
+  salary: z.string(),
+});
+export type SalaryTierExtraction = z.infer<typeof salaryTierSchema>;
+
 export const extractedPositionSchema = z.object({
   title: z.string(),
   /** Trade Summary Rule: exactly one technically-precise sentence, never a copied job description. */
@@ -42,6 +50,15 @@ export const extractedPositionSchema = z.object({
   salaryAmount: confidentField(z.number().positive()),
   salaryCurrency: confidentField(z.string()),
   experience: confidentField(z.string()),
+  /**
+   * A graduated pay scale — the SAME position paying different salaries
+   * at different experience bands (e.g. "8-9 yrs: SAR 10,000", "9-10 yrs:
+   * SAR 11,000", ...). This is ONE position with a tiered salary table,
+   * NEVER multiple position entries — see the Position Intelligence rule
+   * in prompts.ts. Empty array when the source gives a single flat
+   * salary (use salaryAmount/salaryCurrency instead) or no salary at all.
+   */
+  salaryTiers: z.array(salaryTierSchema),
   qualification: confidentField(z.string()),
   ageLimit: confidentField(z.string()),
   /**

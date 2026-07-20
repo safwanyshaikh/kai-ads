@@ -103,6 +103,7 @@ async function reassembleFromRequiredInterfaces(
       quantity: { value: p.count ?? null, confidence: "MEDIUM" },
       salaryAmount: emptyField,
       salaryCurrency: emptyField,
+      salaryTiers: [],
       experience: { value: p.experience ?? null, confidence: "MEDIUM" },
       qualification: { value: p.qualifications?.[0] ?? null, confidence: "MEDIUM" },
       ageLimit: { value: p.ageRange ?? null, confidence: "MEDIUM" },

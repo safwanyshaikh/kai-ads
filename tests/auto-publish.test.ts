@@ -22,6 +22,7 @@ function position(title: string, quantity: number | null): ExtractionResult["pos
     experience: emptyField,
     qualification: emptyField,
     ageLimit: emptyField,
+    salaryTiers: [],
     possibleDuplicateOfIndex: null,
   };
 }

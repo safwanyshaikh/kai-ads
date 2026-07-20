@@ -28,6 +28,7 @@ describe("extractedPositionSchema — Position Intelligence", () => {
     experience: { value: null, confidence: "LOW" },
     qualification: { value: null, confidence: "LOW" },
     ageLimit: { value: null, confidence: "LOW" },
+    salaryTiers: [],
     possibleDuplicateOfIndex: null,
   };
 
@@ -55,6 +56,31 @@ describe("extractedPositionSchema — Position Intelligence", () => {
     const result = extractedPositionSchema.safeParse({ ...basePosition, tradeSummary: undefined });
     expect(result.success).toBe(false);
   });
+
+  // Sprint 007 Bug: a graduated pay scale (the same position paying a
+  // different salary at each experience band) previously had nowhere to
+  // go on a single position entry, forcing the model to split it into
+  // duplicate position entries with the full headcount repeated on each
+  // — salaryTiers gives it a real home on ONE entry instead.
+  it("accepts a graduated pay scale as salaryTiers on a single position", () => {
+    const result = extractedPositionSchema.safeParse({
+      ...basePosition,
+      salaryTiers: [
+        { experience: "8 yrs to < 9 yrs", salary: "SAR 10,000" },
+        { experience: "9 yrs to < 10 yrs", salary: "SAR 11,000" },
+        { experience: "10 yrs to < 11 yrs", salary: "SAR 12,000" },
+        { experience: "11 yrs & above", salary: "SAR 13,000" },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.salaryTiers).toHaveLength(4);
+  });
+
+  it("defaults to an empty salaryTiers array for a flat, untiered salary", () => {
+    const result = extractedPositionSchema.safeParse(basePosition);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.salaryTiers).toEqual([]);
+  });
 });
 
 describe("extractionResultSchema — Multiple Positions", () => {
@@ -68,6 +94,7 @@ describe("extractionResultSchema — Multiple Positions", () => {
       experience: { value: null, confidence: "LOW" as const },
       qualification: { value: null, confidence: "LOW" as const },
       ageLimit: { value: null, confidence: "LOW" as const },
+      salaryTiers: [],
       possibleDuplicateOfIndex: null,
     }));
 
