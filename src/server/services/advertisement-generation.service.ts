@@ -38,6 +38,7 @@ import { getThemeAccentColor, isValidThemeKey } from "@/server/generation/theme-
 import { deriveCompactRegistrationNumber } from "@/lib/registration-number";
 import { getPlatformFormat, isValidPlatformFormatKey } from "@/lib/platform-formats";
 import { getImageGenerationProvider, ImageProviderNotImplementedError } from "@/server/ai/image";
+import { gptNativeGenerationService } from "@/server/services/gpt-native-generation.service";
 import { AUDIT_ACTIONS } from "@/lib/constants";
 import { AppError, ConflictError, NotFoundError } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
@@ -61,6 +62,14 @@ export const advertisementGenerationService = {
   ) {
     if (!isValidPlatformFormatKey(input.platformFormat)) {
       throw new AppError(`Unknown platform format "${input.platformFormat}".`, 400);
+    }
+
+    // Sprint 007: GPT-Native Advertisement Architecture. Default OFF —
+    // delegates entirely to a separate service so the legacy path below
+    // (composeAdvertisement, the acceptance loop, buildImageBrief, etc.)
+    // is never touched when this flag is off.
+    if (getFeatureFlags().gptNativeAdGeneration) {
+      return gptNativeGenerationService.generate(advertisementId, agencyId, actorId, input);
     }
 
     await generationQuotaService.assertGenerationAllowed(agencyId);

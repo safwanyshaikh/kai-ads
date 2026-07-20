@@ -139,6 +139,17 @@ const envSchema = z.object({
   // src/server/generation/creative-director/.
   CREATIVE_DIRECTOR_BRAIN: z.coerce.boolean().default(false),
 
+  // Feature flag — Sprint 007 GPT-Native Advertisement Architecture. When
+  // ON, GPT Image generates the COMPLETE publication-ready advertisement
+  // (typography, layout, composition, colour, hierarchy, spacing) from one
+  // master prompt built off the (unchanged) Creative Director Brain output;
+  // the renderer no longer rebuilds the ad and only composites the KAI
+  // Trust Layer (QR, agency verification, registration, metadata) on top.
+  // Default OFF: the legacy composeAdvertisement() pipeline is untouched
+  // and byte-identical when this flag is off. See
+  // src/server/generation/gpt-native/.
+  GPT_NATIVE_AD_GENERATION: z.coerce.boolean().default(false),
+
   // Logging
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
@@ -191,6 +202,7 @@ export function getFeatureFlags(env: Env = getEnv()) {
   return {
     creativeBrainBackgroundBrief: env.CREATIVE_BRAIN_BACKGROUND_BRIEF,
     creativeDirectorBrain: env.CREATIVE_DIRECTOR_BRAIN,
+    gptNativeAdGeneration: env.GPT_NATIVE_AD_GENERATION,
   };
 }
 

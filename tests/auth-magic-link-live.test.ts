@@ -61,6 +61,7 @@ function fullEnv(overrides: Partial<Env>): Env {
     AI_DAILY_BUDGET_USD: 50,
     CREATIVE_BRAIN_BACKGROUND_BRIEF: false,
     CREATIVE_DIRECTOR_BRAIN: false,
+    GPT_NATIVE_AD_GENERATION: false,
     LOG_LEVEL: "info",
     ...overrides,
   };
