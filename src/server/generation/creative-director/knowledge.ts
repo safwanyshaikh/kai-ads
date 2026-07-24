@@ -68,12 +68,25 @@ export const INDUSTRIES: IndustryFact[] = [
   { keys: /(aviation|airport|airline)/i, attractiveness: 84, environment: "a modern airport terminal, aircraft on the apron", defaultStory: "AIRPORT" },
   { keys: /(manufactur|factory|fmcg|plant)/i, attractiveness: 70, environment: "a modern manufacturing facility, clean production lines", defaultStory: "FACTORY" },
   { keys: /(power|renewable|solar|energy)/i, attractiveness: 80, environment: "a renewable-energy site, solar/turbine field at dawn", defaultStory: "FACTORY" },
+  // Sprint 008 certification (evidence: retail-sparse rendered an oil
+  // refinery for a fashion boutique because Retail/Corporate/Logistics
+  // had no row and fell to the industrial fallback). These non-industrial
+  // sectors now get scenes that match the actual world of the work.
+  // defaultStory stays within the existing VisualStory union so the legacy
+  // STORY_MAP (pipeline-adapter) keeps a valid key.
+  { keys: /(logist|warehouse|freight|courier|fulfil|supply chain|port operations)/i, attractiveness: 72, environment: "a modern logistics distribution centre, high racking, forklifts and delivery vehicles", defaultStory: "FACTORY" },
+  { keys: /(retail|store|shop|mall|fashion|boutique|supermarket|hypermarket)/i, attractiveness: 68, environment: "a bright, premium modern retail interior with polished displays and warm lighting", defaultStory: "TEAM" },
+  { keys: /(engineering|epc|consultanc)/i, attractiveness: 80, environment: "a professional engineering and project environment, technical, precise and modern", defaultStory: "WORKER_HERO" },
+  { keys: /(corporate|office|admin|clerical|banking|insurance|accounting|business services)/i, attractiveness: 72, environment: "a modern corporate office interior, glass, natural light and a professional atmosphere", defaultStory: "TEAM" },
 ];
 
+// Neutral, role-appropriate default (NOT industrial) for any industry that
+// matches no row above — an unmatched sector must never be forced into an
+// oil/heavy-industry scene it has nothing to do with.
 const GENERIC_INDUSTRY_FALLBACK: IndustryFact = {
   keys: /.*/, attractiveness: 65,
-  environment: "a professional industrial facility with strong presence",
-  defaultStory: "WORKER_HERO",
+  environment: "a clean, modern professional workplace environment appropriate to the advertised roles",
+  defaultStory: "TEAM",
 };
 
 export function resolveIndustry(raw: string): IndustryFact {

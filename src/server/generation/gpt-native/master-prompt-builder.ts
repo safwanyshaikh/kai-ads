@@ -198,10 +198,18 @@ Agency name: ${facts.agencyName}
 === RESERVED TRUST ZONE — DO NOT DRAW ANYTHING HERE ===
 Leave the bottom-right ${TRUST_ZONE.widthPct}% width x ${TRUST_ZONE.heightPct}% height of the canvas visually clean (a simple, uncluttered continuation of the background — no text, no shapes, no icons, no border). The publisher will place a verification QR code, the agency's registration details, and a trust seal into that exact zone after you return the image. Do NOT draw any QR code, barcode, "verified" badge, checkmark seal, or any trust/certification graphic anywhere on the canvas.
 
+=== FACTUAL FIDELITY — THE ADVERTISEMENT IS ONLY VALID IF EVERY FACT IS RENDERED EXACTLY ===
+- Render the contact email and phone number EXACTLY, character for character, as written above. Never substitute a different address, never shorten a domain, never invent contact details. If the email is "jobs@alyousufent.com" it must read "jobs@alyousufent.com" — not "apply@..." or any other address.
+- Render each position's number of openings when one is given: show the count exactly (e.g. "Electrical Technician — 20 openings"), never drop it.
+- Render every salary figure exactly as written, keeping the given digit grouping and currency (e.g. "SAR 3,200" stays "SAR 3,200" — never "SAR 3.200", never "$3,200", never rounded).
+- Render the country name exactly as written; do not expand or translate it (if it says "UAE", show "UAE").
+- Do not invent, add, or alter any headline, salary, benefit, date, or contact detail. Every number and word on the advertisement must come from the facts above.
+
 === HARD RULES ===
 - Do not fabricate salary, vacancy counts, urgency, or benefits beyond what is listed above.
 - Do not draw a QR code, logo, or any trust/verification badge anywhere.
 - Do not place content inside the reserved trust zone.
+- The imagery MUST match the advertised industry and roles — never show heavy industry, oil, or a refinery for an office, retail, hospitality, healthcare, or corporate role.
 - Spell every word exactly as given — this is a real commercial advertisement, not a mockup.
 - The result must look like a premium, professionally designed commercial recruitment advertisement — not a document, not a form, not a slide.`;
 }
