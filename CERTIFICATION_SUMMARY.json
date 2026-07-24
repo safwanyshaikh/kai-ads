@@ -1,0 +1,388 @@
+{
+  "generatedAt": "2026-07-24T10:17:33.481Z",
+  "totalRequested": 30,
+  "totalGenerated": 30,
+  "totalScored": 30,
+  "passBar": 9.5,
+  "passed": 0,
+  "rejected": 30,
+  "averageOverall": 7.6,
+  "highest": 8,
+  "lowest": 6.2,
+  "commonDefects": [
+    {
+      "defect": "Visual QA score 67/100 is below the 85 publishable bar",
+      "count": 3
+    },
+    {
+      "defect": "Visual QA score 81/100 is below the 85 publishable bar",
+      "count": 3
+    },
+    {
+      "defect": "Missing fact: Country: Qatar",
+      "count": 3
+    },
+    {
+      "defect": "Missing fact: Country: UAE",
+      "count": 3
+    },
+    {
+      "defect": "Visual QA score 78/100 is below the 85 publishable bar",
+      "count": 2
+    },
+    {
+      "defect": "Missing fact: Agency: Al-Yousuf Enterprises LLP",
+      "count": 2
+    },
+    {
+      "defect": "Visual QA score 77/100 is below the 85 publishable bar",
+      "count": 2
+    },
+    {
+      "defect": "Visual QA score 68/100 is below the 85 publishable bar",
+      "count": 2
+    },
+    {
+      "defect": "Visual QA score 76/100 is below the 85 publishable bar",
+      "count": 2
+    },
+    {
+      "defect": "Visual QA score 80/100 is below the 85 publishable bar",
+      "count": 2
+    },
+    {
+      "defect": "Spelling/fidelity: Position: Welder TIG 6G (12) — SAR 2,500 (image shows: \"Welde",
+      "count": 1
+    },
+    {
+      "defect": "Spelling/fidelity: Position: Instrument Technician (8) (image shows: \"Instrument",
+      "count": 1
+    },
+    {
+      "defect": "Spelling/fidelity: Position: Rotating Equipment Technician (6) (image shows: \"Ro",
+      "count": 1
+    },
+    {
+      "defect": "Spelling/fidelity: Position: Mechanical Technician (10) (image shows: \"Mechanica",
+      "count": 1
+    },
+    {
+      "defect": "Spelling/fidelity: Position: Electrical Technician (9) (image shows: \"Electrical",
+      "count": 1
+    }
+  ],
+  "perIndustry": {
+    "Oil & Gas": {
+      "count": 3,
+      "avg": 7.5
+    },
+    "Construction": {
+      "count": 3,
+      "avg": 7.9
+    },
+    "Shipyard": {
+      "count": 3,
+      "avg": 7.5
+    },
+    "Hospitality": {
+      "count": 3,
+      "avg": 7.57
+    },
+    "Healthcare": {
+      "count": 3,
+      "avg": 7.87
+    },
+    "Retail": {
+      "count": 3,
+      "avg": 7.2
+    },
+    "Logistics": {
+      "count": 3,
+      "avg": 7.8
+    },
+    "Manufacturing": {
+      "count": 3,
+      "avg": 8
+    },
+    "Engineering": {
+      "count": 3,
+      "avg": 7.6
+    },
+    "Corporate": {
+      "count": 3,
+      "avg": 7.1
+    }
+  },
+  "reports": [
+    {
+      "id": "oilgas-medium",
+      "industry": "Oil & Gas",
+      "density": "medium",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 62414
+    },
+    {
+      "id": "oilgas-sparse",
+      "industry": "Oil & Gas",
+      "density": "sparse",
+      "branded": false,
+      "overall": 7.8,
+      "passed": false,
+      "latencyMs": 63712
+    },
+    {
+      "id": "oilgas-dense",
+      "industry": "Oil & Gas",
+      "density": "dense",
+      "branded": true,
+      "overall": 6.7,
+      "passed": false,
+      "latencyMs": 65670
+    },
+    {
+      "id": "construction-sparse",
+      "industry": "Construction",
+      "density": "sparse",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 65058
+    },
+    {
+      "id": "construction-medium",
+      "industry": "Construction",
+      "density": "medium",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 66020
+    },
+    {
+      "id": "construction-dense",
+      "industry": "Construction",
+      "density": "dense",
+      "branded": false,
+      "overall": 7.7,
+      "passed": false,
+      "latencyMs": 69683
+    },
+    {
+      "id": "shipyard-sparse",
+      "industry": "Shipyard",
+      "density": "sparse",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 61881
+    },
+    {
+      "id": "shipyard-dense",
+      "industry": "Shipyard",
+      "density": "dense",
+      "branded": true,
+      "overall": 6.8,
+      "passed": false,
+      "latencyMs": 68004
+    },
+    {
+      "id": "shipyard-medium",
+      "industry": "Shipyard",
+      "density": "medium",
+      "branded": false,
+      "overall": 7.7,
+      "passed": false,
+      "latencyMs": 74587
+    },
+    {
+      "id": "hospitality-sparse",
+      "industry": "Hospitality",
+      "density": "sparse",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 66457
+    },
+    {
+      "id": "hospitality-medium",
+      "industry": "Hospitality",
+      "density": "medium",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 59459
+    },
+    {
+      "id": "hospitality-dense",
+      "industry": "Hospitality",
+      "density": "dense",
+      "branded": false,
+      "overall": 6.7,
+      "passed": false,
+      "latencyMs": 69462
+    },
+    {
+      "id": "healthcare-sparse",
+      "industry": "Healthcare",
+      "density": "sparse",
+      "branded": false,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 63207
+    },
+    {
+      "id": "healthcare-medium",
+      "industry": "Healthcare",
+      "density": "medium",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 59810
+    },
+    {
+      "id": "healthcare-dense",
+      "industry": "Healthcare",
+      "density": "dense",
+      "branded": true,
+      "overall": 7.6,
+      "passed": false,
+      "latencyMs": 64973
+    },
+    {
+      "id": "retail-sparse",
+      "industry": "Retail",
+      "density": "sparse",
+      "branded": true,
+      "overall": 6.2,
+      "passed": false,
+      "latencyMs": 59475
+    },
+    {
+      "id": "retail-medium",
+      "industry": "Retail",
+      "density": "medium",
+      "branded": false,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 65512
+    },
+    {
+      "id": "retail-dense",
+      "industry": "Retail",
+      "density": "dense",
+      "branded": true,
+      "overall": 7.4,
+      "passed": false,
+      "latencyMs": 73342
+    },
+    {
+      "id": "logistics-sparse",
+      "industry": "Logistics",
+      "density": "sparse",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 64799
+    },
+    {
+      "id": "logistics-medium",
+      "industry": "Logistics",
+      "density": "medium",
+      "branded": true,
+      "overall": 7.6,
+      "passed": false,
+      "latencyMs": 77109
+    },
+    {
+      "id": "logistics-dense",
+      "industry": "Logistics",
+      "density": "dense",
+      "branded": false,
+      "overall": 7.8,
+      "passed": false,
+      "latencyMs": 65456
+    },
+    {
+      "id": "manufacturing-sparse",
+      "industry": "Manufacturing",
+      "density": "sparse",
+      "branded": false,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 59457
+    },
+    {
+      "id": "manufacturing-medium",
+      "industry": "Manufacturing",
+      "density": "medium",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 58034
+    },
+    {
+      "id": "manufacturing-dense",
+      "industry": "Manufacturing",
+      "density": "dense",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 66061
+    },
+    {
+      "id": "engineering-sparse",
+      "industry": "Engineering",
+      "density": "sparse",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 69815
+    },
+    {
+      "id": "engineering-medium",
+      "industry": "Engineering",
+      "density": "medium",
+      "branded": false,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 59893
+    },
+    {
+      "id": "engineering-dense",
+      "industry": "Engineering",
+      "density": "dense",
+      "branded": true,
+      "overall": 6.8,
+      "passed": false,
+      "latencyMs": 70547
+    },
+    {
+      "id": "corporate-sparse",
+      "industry": "Corporate",
+      "density": "sparse",
+      "branded": true,
+      "overall": 8,
+      "passed": false,
+      "latencyMs": 67078
+    },
+    {
+      "id": "corporate-medium",
+      "industry": "Corporate",
+      "density": "medium",
+      "branded": true,
+      "overall": 6.7,
+      "passed": false,
+      "latencyMs": 73379
+    },
+    {
+      "id": "corporate-dense",
+      "industry": "Corporate",
+      "density": "dense",
+      "branded": false,
+      "overall": 6.6,
+      "passed": false,
+      "latencyMs": 62448
+    }
+  ]
+}

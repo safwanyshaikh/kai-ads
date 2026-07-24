@@ -1,0 +1,108 @@
+{
+  "id": "retail-sparse",
+  "industry": "Retail",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "82b17433066d2e8c1c3c598c5a184fa8feb835767cb0cef36caef7728b6bf15a",
+  "scores": {
+    "photography": 5.5,
+    "typography": 6.8,
+    "hierarchy": 6,
+    "commercialAppeal": 6.5,
+    "recruitmentEffectiveness": 6.2,
+    "trust": 6,
+    "luxuryMagazineQuality": 6.5,
+    "brandConsistency": 6.2,
+    "visualStorytelling": 5.5,
+    "readability": 6.8,
+    "mobileReadability": 6.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.2
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: 'Luxury Boutique Manager — Dubai Mall' is missing; instead, the amount and field are displayed.",
+    "Spelling/fidelity: Country: 'UAE' expected, but rendered as 'UNITED ARAB EMIRATES'.",
+    "Spelling/fidelity: Position: 'Luxury retaii 8+ years – AED 14,000' appears instead of 'Boutique Manager (1) — AED 14,000', and 'retaii' is a misspelling of 'retail'.",
+    "Spelling/fidelity: Email: 'apply@ase.com' shown instead of 'jobs@alyousufent.com'.",
+    "Missing fact: Phone: 9324995767",
+    "Visual QA (catastrophic): Imagery-theme mismatch: industrial refinery photo for a fashion house/boutique manager role will confuse both clients and candidates—this is a critical misdirection violating candidate-first principles.",
+    "Visual QA (catastrophic): QR code and white panel poorly integrated, encroaching into key information space—breaking clean professional composition.",
+    "Visual QA (catastrophic): No credible candidate-facing hook for the actual advertised opportunity; billboard headline ($5,000/MONTH, RETAIL) draws in candidates irrelevant to boutique/fashion, then the role is buried in a subtext.",
+    "Visual QA (catastrophic): Key content (role, employer, benefits) is easily missed due to competing, irrelevant visual message.",
+    "Visual QA score 62/100 is below the 85 publishable bar",
+    "Visual QA: Imagery is highly incongruent: background is of an industrial oil/gas plant but the role is ‘Boutique Manager / Premium Fashion House’. This causes major candidate relevance confusion.",
+    "Visual QA: Headline references 'RETAIL' with an oil and gas visual, compounding confusion.",
+    "Visual QA: The hook ($5,000/MONTH | UNITED ARAB EMIRATES • RETAIL) is visually clear but misleading to the role imagery/context.",
+    "Visual QA: Benefit text ('Commission', 'Brand allowance') poorly spaced, and the QR code overlaps the content.",
+    "Visual QA: Email/contact CTA is present but not sufficiently bold or dominant relative to the salary headline."
+  ],
+  "catastrophicDefects": [
+    "Imagery-theme mismatch: industrial refinery photo for a fashion house/boutique manager role will confuse both clients and candidates—this is a critical misdirection violating candidate-first principles.",
+    "QR code and white panel poorly integrated, encroaching into key information space—breaking clean professional composition.",
+    "No credible candidate-facing hook for the actual advertised opportunity; billboard headline ($5,000/MONTH, RETAIL) draws in candidates irrelevant to boutique/fashion, then the role is buried in a subtext.",
+    "Key content (role, employer, benefits) is easily missed due to competing, irrelevant visual message."
+  ],
+  "latencyMs": 59475,
+  "fullVisualQa": {
+    "overallScore": 62,
+    "commercialQualityScore": 65,
+    "hierarchyScore": 60,
+    "readabilityScore": 68,
+    "imageryScore": 55,
+    "canvasUtilizationScore": 60,
+    "ctaScore": 70,
+    "trustScore": 60,
+    "defects": [
+      "Imagery is highly incongruent: background is of an industrial oil/gas plant but the role is ‘Boutique Manager / Premium Fashion House’. This causes major candidate relevance confusion.",
+      "Headline references 'RETAIL' with an oil and gas visual, compounding confusion.",
+      "The hook ($5,000/MONTH | UNITED ARAB EMIRATES • RETAIL) is visually clear but misleading to the role imagery/context.",
+      "Benefit text ('Commission', 'Brand allowance') poorly spaced, and the QR code overlaps the content.",
+      "Email/contact CTA is present but not sufficiently bold or dominant relative to the salary headline.",
+      "Some text (e.g. QR area, email) lacks strong contrast and is hard to read against the colored overlay.",
+      "Agency/trust footer is present but visually weak and not distinct from main job canvas.",
+      "Typo: 'retaii' instead of 'retail' in position detail.",
+      "Some information is repeated (job salary shown twice, once in hook and once in detail) without purposeful hierarchy.",
+      "Large area at the bottom right is wasted by the over-large QR code and empty white space (canvas under-utilization)."
+    ],
+    "catastrophicDefects": [
+      "Imagery-theme mismatch: industrial refinery photo for a fashion house/boutique manager role will confuse both clients and candidates—this is a critical misdirection violating candidate-first principles.",
+      "QR code and white panel poorly integrated, encroaching into key information space—breaking clean professional composition.",
+      "No credible candidate-facing hook for the actual advertised opportunity; billboard headline ($5,000/MONTH, RETAIL) draws in candidates irrelevant to boutique/fashion, then the role is buried in a subtext.",
+      "Key content (role, employer, benefits) is easily missed due to competing, irrelevant visual message."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "REGENERATE_IMAGE",
+        "note": "Image must be replaced with content relevant to 'Premium Fashion House / Boutique Manager', not heavy industry/refinery."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Role and employer must be immediately apparent as the primary opportunity—not just a bold salary headline."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Resolve overlaps (QR) and clarify benefits and footer area structure."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Improve legibility, especially for CTA and footer content over colored or white panels."
+      }
+    ],
+    "verdict": "BLOCKED"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: 'Luxury Boutique Manager — Dubai Mall' is missing; instead, the amount and field are displayed.",
+      "Country: 'UAE' expected, but rendered as 'UNITED ARAB EMIRATES'.",
+      "Position: 'Luxury retaii 8+ years – AED 14,000' appears instead of 'Boutique Manager (1) — AED 14,000', and 'retaii' is a misspelling of 'retail'.",
+      "Email: 'apply@ase.com' shown instead of 'jobs@alyousufent.com'."
+    ],
+    "missingCriticalFacts": [
+      "Phone: 9324995767"
+    ],
+    "legibilityIssues": []
+  }
+}

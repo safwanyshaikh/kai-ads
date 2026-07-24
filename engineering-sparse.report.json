@@ -1,0 +1,94 @@
+{
+  "id": "engineering-sparse",
+  "industry": "Engineering",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "5537316684b02f432a4ec2349648ef9d7d24cd54b658a9991496c876590a61d1",
+  "scores": {
+    "photography": 8.3,
+    "typography": 8,
+    "hierarchy": 8.2,
+    "commercialAppeal": 8,
+    "recruitmentEffectiveness": 8,
+    "trust": 8.8,
+    "luxuryMagazineQuality": 8,
+    "brandConsistency": 8,
+    "visualStorytelling": 8.3,
+    "readability": 8,
+    "mobileReadability": 8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Expected: 'Lead Structural Engineer (1) — QAR 22,000'; Image: 'Lead Structural Engineer (1 opening) Chartered, metro/rail – QAR 22,000'",
+    "Spelling/fidelity: Expected: 'Benefit: Family sponsorship'; Image: 'Family sponsorschip'",
+    "Missing fact: Country: Qatar",
+    "Visual QA (catastrophic): QR code placement creates an unjustified dead canvas in the bottom right corner, occupying more than necessary, disrupting layout.",
+    "Visual QA (catastrophic): No dominant candidate-facing hook at the very top—the 'Earning QAR 22,000' statement is very strong but focuses more on salary than opportunity or project/country hook.",
+    "Visual QA score 80/100 is below the 85 publishable bar",
+    "Visual QA: Large block of premium canvas is underutilized by deep maroon slabs at top and bottom, compressing visual impact.",
+    "Visual QA: Contact CTA (phone + email) is readable but could be more visually prominent.",
+    "Visual QA: Visual dead zone appears in the lower right due to a large white QR block, overpowering functional ad composition.",
+    "Visual QA: Job/project hook is clear, but the section headers/text compete; top earning may overpower the project/country identity.",
+    "Visual QA: Integration of background photo is good but lacks full-bleed or dynamic interaction with textual bands."
+  ],
+  "catastrophicDefects": [
+    "QR code placement creates an unjustified dead canvas in the bottom right corner, occupying more than necessary, disrupting layout.",
+    "No dominant candidate-facing hook at the very top—the 'Earning QAR 22,000' statement is very strong but focuses more on salary than opportunity or project/country hook."
+  ],
+  "latencyMs": 69815,
+  "fullVisualQa": {
+    "overallScore": 80,
+    "commercialQualityScore": 80,
+    "hierarchyScore": 82,
+    "readabilityScore": 80,
+    "imageryScore": 83,
+    "canvasUtilizationScore": 72,
+    "ctaScore": 77,
+    "trustScore": 88,
+    "defects": [
+      "Large block of premium canvas is underutilized by deep maroon slabs at top and bottom, compressing visual impact.",
+      "Contact CTA (phone + email) is readable but could be more visually prominent.",
+      "Visual dead zone appears in the lower right due to a large white QR block, overpowering functional ad composition.",
+      "Job/project hook is clear, but the section headers/text compete; top earning may overpower the project/country identity.",
+      "Integration of background photo is good but lacks full-bleed or dynamic interaction with textual bands.",
+      "Split trust footer (blue on maroon) is clear but heavy and visually separate from ad flow."
+    ],
+    "catastrophicDefects": [
+      "QR code placement creates an unjustified dead canvas in the bottom right corner, occupying more than necessary, disrupting layout.",
+      "No dominant candidate-facing hook at the very top—the 'Earning QAR 22,000' statement is very strong but focuses more on salary than opportunity or project/country hook."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce size of QR code and white block to integrate smoothly without overpowering lower right canvas; let final CTA remain prominent but less visually intrusive."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Rebalance so 'Doha Metro Project — Lead Structural Engineer — Qatar' (project+country+role) is supreme and immediate, not overshadowed by salary or blocky segmentation."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Visually amplify phone/email contact info; ensure it commands its own section or emphasis band."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce depth of top and bottom maroon slabs to allow more vertical breathing room for content and the visual."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Expected: 'Lead Structural Engineer (1) — QAR 22,000'; Image: 'Lead Structural Engineer (1 opening) Chartered, metro/rail – QAR 22,000'",
+      "Expected: 'Benefit: Family sponsorship'; Image: 'Family sponsorschip'"
+    ],
+    "missingCriticalFacts": [
+      "Country: Qatar"
+    ],
+    "legibilityIssues": []
+  }
+}

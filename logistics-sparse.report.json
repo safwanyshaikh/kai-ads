@@ -1,0 +1,86 @@
+{
+  "id": "logistics-sparse",
+  "industry": "Logistics",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "1136cc0f69e1668ec327a449e3a2058192e1b5caf3af29fb2105a787a3a573b4",
+  "scores": {
+    "photography": 8.5,
+    "typography": 7.5,
+    "hierarchy": 8,
+    "commercialAppeal": 8,
+    "recruitmentEffectiveness": 8,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 8,
+    "brandConsistency": 8,
+    "visualStorytelling": 8.5,
+    "readability": 7.5,
+    "mobileReadability": 7.5,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: 'Fleet Operatoions Manager — Jeddah' (image) vs 'Fleet Operations Manager — Jeddah' (expected)",
+    "Spelling/fidelity: Email: 'emailjobs@alyousufent.com' (image) vs 'jobs@alyousufent.com' (expected)",
+    "Missing fact: Position: Fleet Operations Manager (1) — SAR 16,000",
+    "Legibility: Benefit: 'Performance bonus' is partially obscured and not fully legible due to overlay",
+    "Visual QA score 80/100 is below the 85 publishable bar",
+    "Visual QA: Typo in position text ('Operatoin's instead of 'Operations') harms credibility.",
+    "Visual QA: Contact CTA (phone/email) is crowded, lacking visual contrast, and could be more prominent.",
+    "Visual QA: Too much dead/unused space at the top and near the QR block (white dead zone).",
+    "Visual QA: Information layout near the bottom is crowded; spacing between elements could be improved.",
+    "Visual QA: ‘Industry: legdah’ appears as a probable error ('legdah'), decreasing professionalism."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 64799,
+  "fullVisualQa": {
+    "overallScore": 80,
+    "commercialQualityScore": 80,
+    "hierarchyScore": 80,
+    "readabilityScore": 75,
+    "imageryScore": 85,
+    "canvasUtilizationScore": 70,
+    "ctaScore": 70,
+    "trustScore": 85,
+    "defects": [
+      "Typo in position text ('Operatoin's instead of 'Operations') harms credibility.",
+      "Contact CTA (phone/email) is crowded, lacking visual contrast, and could be more prominent.",
+      "Too much dead/unused space at the top and near the QR block (white dead zone).",
+      "Information layout near the bottom is crowded; spacing between elements could be improved.",
+      "‘Industry: legdah’ appears as a probable error ('legdah'), decreasing professionalism.",
+      "QR code block's white box dominates a large part of the call-to-action zone, creating a disruptive dead canvas.",
+      "Main job/country hook is strong, but the agency name is more visible than strictly needed in the bottom band."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce crowding in the contact/benefits area; re-balance panel and QR placement to avoid large dead zones and increase clarity."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the prominence and clarity of the contact CTA. Currently, it is busy and hard to scan quickly."
+      },
+      {
+        "type": "OTHER",
+        "note": "Correct typographic errors (‘Operatoins’, ‘legdah’)."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: 'Fleet Operatoions Manager — Jeddah' (image) vs 'Fleet Operations Manager — Jeddah' (expected)",
+      "Email: 'emailjobs@alyousufent.com' (image) vs 'jobs@alyousufent.com' (expected)"
+    ],
+    "missingCriticalFacts": [
+      "Position: Fleet Operations Manager (1) — SAR 16,000"
+    ],
+    "legibilityIssues": [
+      "Benefit: 'Performance bonus' is partially obscured and not fully legible due to overlay"
+    ]
+  }
+}

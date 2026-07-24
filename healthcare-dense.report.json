@@ -1,0 +1,112 @@
+{
+  "id": "healthcare-dense",
+  "industry": "Healthcare",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "480c327ff3c12175cbd864cbf6007335abd7eacddb9f5fd18f103371b5188616",
+  "scores": {
+    "photography": 8.1,
+    "typography": 7.8,
+    "hierarchy": 7.2,
+    "commercialAppeal": 7.7,
+    "recruitmentEffectiveness": 7.6,
+    "trust": 8,
+    "luxuryMagazineQuality": 7.7,
+    "brandConsistency": 7.6,
+    "visualStorytelling": 8.1,
+    "readability": 7.8,
+    "mobileReadability": 7.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.6
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Clinical Pharmacist (image shows 'Clinical Pharmacist (6 openings)' and 'Consultant Pharmcist'; expected only 'Clinical Pharmacist (6)' and not 'Consultant Pharmcist'; also, 'Pharmacist' is misspelled as 'Pharmcist')",
+    "Spelling/fidelity: Position: Dental Assistant (image shows 'Dental Assistant (6 openings)', which is a minor reformatting but still accurate)",
+    "Spelling/fidelity: Interview: Rolling at Online (image shows 'Ralling at Online', misspelling 'Rolling')",
+    "Missing fact: Position: Medical Coder (2) (not present)",
+    "Missing fact: Position: Hospital Porter (4) (not present)",
+    "Visual QA (catastrophic): No strong, candidate-facing hook headline—dominant text is generic and does not reframe the opportunity",
+    "Visual QA (catastrophic): Visual hierarchy materially weaker than strong professional Gulf overseas recruitment ads; opportunity details are secondary to bland header",
+    "Visual QA (catastrophic): Key recruitment information (project, country, main hiring focus) does not dominate",
+    "Visual QA score 76/100 is below the 85 publishable bar",
+    "Visual QA: Headline is not candidate-facing ('UNITED ARAB EMIRATES HEALTHCARE' is generic, not a compelling hook about job opportunity and location)",
+    "Visual QA: Candidate-facing hook is weak and lacks urgency or specificity—dominant text should focus on 'HOSPITAL GROUP EXPANSION - UAE ALL DEPARTMENTS' or similar",
+    "Visual QA: Role/country do not dominate the visual hierarchy; too much space spent on generic descriptors",
+    "Visual QA: Canvas utilization is suboptimal—large area to the right with empty space behind the model, list feels crowded left",
+    "Visual QA: Text over imagery is readable but a more robust scrim could improve contrast in some areas"
+  ],
+  "catastrophicDefects": [
+    "No strong, candidate-facing hook headline—dominant text is generic and does not reframe the opportunity",
+    "Visual hierarchy materially weaker than strong professional Gulf overseas recruitment ads; opportunity details are secondary to bland header",
+    "Key recruitment information (project, country, main hiring focus) does not dominate"
+  ],
+  "latencyMs": 64973,
+  "fullVisualQa": {
+    "overallScore": 76,
+    "commercialQualityScore": 77,
+    "hierarchyScore": 72,
+    "readabilityScore": 78,
+    "imageryScore": 81,
+    "canvasUtilizationScore": 70,
+    "ctaScore": 75,
+    "trustScore": 80,
+    "defects": [
+      "Headline is not candidate-facing ('UNITED ARAB EMIRATES HEALTHCARE' is generic, not a compelling hook about job opportunity and location)",
+      "Candidate-facing hook is weak and lacks urgency or specificity—dominant text should focus on 'HOSPITAL GROUP EXPANSION - UAE ALL DEPARTMENTS' or similar",
+      "Role/country do not dominate the visual hierarchy; too much space spent on generic descriptors",
+      "Canvas utilization is suboptimal—large area to the right with empty space behind the model, list feels crowded left",
+      "Text over imagery is readable but a more robust scrim could improve contrast in some areas",
+      "Information such as 'Ralling at Online' is unclear and contains a spelling/lexical error ('Interview: Ralling at Online')",
+      "Contact CTA is present but not highly prominent; contact methods should have more emphasis or stronger callout",
+      "QR code placement feels sticker-like rather than fully integrated into the design",
+      "No immediate, bold salary or benefits hook to pull in candidates in the first-second attention test"
+    ],
+    "catastrophicDefects": [
+      "No strong, candidate-facing hook headline—dominant text is generic and does not reframe the opportunity",
+      "Visual hierarchy materially weaker than strong professional Gulf overseas recruitment ads; opportunity details are secondary to bland header",
+      "Key recruitment information (project, country, main hiring focus) does not dominate"
+    ],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Make the largest, most prominent text a compelling candidate-facing hook (e.g., 'UAE HOSPITAL GROUP EXPANSION — ALL DEPARTMENTS HIRING') with immediate clarity on the job/project and location."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Redistribute elements to better use the right side of the canvas—avoid large empty space; balance list and image areas so the text does not feel crowded."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Strengthen the visual prominence of the contact section—make phone/email larger, more urgent, or paired with a callout shape or bolder font."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Increase the opacity of the scrim or strengthen text contrast in areas where the background softens legibility."
+      },
+      {
+        "type": "OTHER",
+        "note": "Correct the spelling of 'Ralling at Online' to 'Online Interview' or another standard term."
+      },
+      {
+        "type": "OTHER",
+        "note": "Integrate the QR code more implicitly into the design, perhaps in the contact/CTA zone."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Clinical Pharmacist (image shows 'Clinical Pharmacist (6 openings)' and 'Consultant Pharmcist'; expected only 'Clinical Pharmacist (6)' and not 'Consultant Pharmcist'; also, 'Pharmacist' is misspelled as 'Pharmcist')",
+      "Position: Dental Assistant (image shows 'Dental Assistant (6 openings)', which is a minor reformatting but still accurate)",
+      "Interview: Rolling at Online (image shows 'Ralling at Online', misspelling 'Rolling')"
+    ],
+    "missingCriticalFacts": [
+      "Position: Medical Coder (2) (not present)",
+      "Position: Hospital Porter (4) (not present)"
+    ],
+    "legibilityIssues": []
+  }
+}

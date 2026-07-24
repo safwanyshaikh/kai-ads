@@ -1,0 +1,110 @@
+{
+  "id": "corporate-dense",
+  "industry": "Corporate",
+  "density": "dense",
+  "branded": false,
+  "imageSha256": "0a35ae3e5bfe50d3c3b3444e009f7df58a20dcfdb4447984afff7305459d4277",
+  "scores": {
+    "photography": 6.8,
+    "typography": 7,
+    "hierarchy": 6.2,
+    "commercialAppeal": 6.5,
+    "recruitmentEffectiveness": 6.6,
+    "trust": 7.8,
+    "luxuryMagazineQuality": 6.5,
+    "brandConsistency": null,
+    "visualStorytelling": 6.8,
+    "readability": 7,
+    "mobileReadability": 7,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.6
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Recruitment Officer (6) – image shows \"Recruitment Officer (8 openings)\"",
+    "Spelling/fidelity: Position: Data Entry Operator (6) – image is missing this entirely",
+    "Spelling/fidelity: Position: Document Controller (2) – image is missing this entirely",
+    "Spelling/fidelity: Position: Office Administrator (3) – image is missing this entirely",
+    "Missing fact: Country: Saudi Arabia – the country is implied in the header but not explicitly stated as a field",
+    "Missing fact: Position: Data Entry Operator (6)",
+    "Missing fact: Position: Document Controller (2)",
+    "Missing fact: Position: Office Administrator (3)",
+    "Visual QA (catastrophic): Headline focuses on generic 'SAUDI ARABIA CORPORATE' instead of a specific candidate-facing project/opportunity hook.",
+    "Visual QA (catastrophic): Over 20% of the canvas (lower right) is a dead space due to the oversized whiteout area for the QR code, which blocks underlying information.",
+    "Visual QA (catastrophic): Visual hierarchy is materially weaker than professional Gulf recruitment advertisements: the document looks closer to a report/corporate internal notice than a persuasive recruitment ad.",
+    "Visual QA (catastrophic): Background imagery (worksite/industrial) mismatches role content (office roles), weakening candidate relevance and visual hook.",
+    "Visual QA score 66/100 is below the 85 publishable bar",
+    "Visual QA: Lack of clear candidate-facing hook: 'Earning opportunity' does not specify the job/project context.",
+    "Visual QA: Visual hierarchy puts more emphasis on generic 'SAUDI ARABIA CORPORATE' rather than a project, employer, or clear role.",
+    "Visual QA: Imagery and color scheme do not match the stated office/clerical job focus (industrial setting vs. described office roles).",
+    "Visual QA: Overly large dead zone in lower right caused by oversized QR code whiteout box.",
+    "Visual QA: Bottom identity/trust band could be better integrated with less canvas wastage."
+  ],
+  "catastrophicDefects": [
+    "Headline focuses on generic 'SAUDI ARABIA CORPORATE' instead of a specific candidate-facing project/opportunity hook.",
+    "Over 20% of the canvas (lower right) is a dead space due to the oversized whiteout area for the QR code, which blocks underlying information.",
+    "Visual hierarchy is materially weaker than professional Gulf recruitment advertisements: the document looks closer to a report/corporate internal notice than a persuasive recruitment ad.",
+    "Background imagery (worksite/industrial) mismatches role content (office roles), weakening candidate relevance and visual hook."
+  ],
+  "latencyMs": 62448,
+  "fullVisualQa": {
+    "overallScore": 66,
+    "commercialQualityScore": 65,
+    "hierarchyScore": 62,
+    "readabilityScore": 70,
+    "imageryScore": 68,
+    "canvasUtilizationScore": 58,
+    "ctaScore": 68,
+    "trustScore": 78,
+    "defects": [
+      "Lack of clear candidate-facing hook: 'Earning opportunity' does not specify the job/project context.",
+      "Visual hierarchy puts more emphasis on generic 'SAUDI ARABIA CORPORATE' rather than a project, employer, or clear role.",
+      "Imagery and color scheme do not match the stated office/clerical job focus (industrial setting vs. described office roles).",
+      "Overly large dead zone in lower right caused by oversized QR code whiteout box.",
+      "Bottom identity/trust band could be better integrated with less canvas wastage.",
+      "Contact CTA is readable but could be made markedly more prominent or visually distinct."
+    ],
+    "catastrophicDefects": [
+      "Headline focuses on generic 'SAUDI ARABIA CORPORATE' instead of a specific candidate-facing project/opportunity hook.",
+      "Over 20% of the canvas (lower right) is a dead space due to the oversized whiteout area for the QR code, which blocks underlying information.",
+      "Visual hierarchy is materially weaker than professional Gulf recruitment advertisements: the document looks closer to a report/corporate internal notice than a persuasive recruitment ad.",
+      "Background imagery (worksite/industrial) mismatches role content (office roles), weakening candidate relevance and visual hook."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "REGENERATE_IMAGE",
+        "note": "Replace background with a scene relevant to office/shared service roles, not industrial frontline imagery."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Reframe headline to focus on a candidate-facing hook (e.g., '150 Office Roles for Leading Shared Services Centre — Saudi Arabia')."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce or integrate the QR code band to avoid a large, unjustified dead canvas area in the lower right."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Enhance visual prominence of contact details to stand out from body copy."
+      }
+    ],
+    "verdict": "BLOCKED"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Recruitment Officer (6) – image shows \"Recruitment Officer (8 openings)\"",
+      "Position: Data Entry Operator (6) – image is missing this entirely",
+      "Position: Document Controller (2) – image is missing this entirely",
+      "Position: Office Administrator (3) – image is missing this entirely"
+    ],
+    "missingCriticalFacts": [
+      "Country: Saudi Arabia – the country is implied in the header but not explicitly stated as a field",
+      "Position: Data Entry Operator (6)",
+      "Position: Document Controller (2)",
+      "Position: Office Administrator (3)"
+    ],
+    "legibilityIssues": []
+  }
+}

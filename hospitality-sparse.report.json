@@ -1,0 +1,67 @@
+{
+  "id": "hospitality-sparse",
+  "industry": "Hospitality",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "ec5485157101528ffd2bce5fac36c30bfbdc6b460df0cfe3dea4f23fabc199ec",
+  "scores": {
+    "photography": 8.8,
+    "typography": 8.7,
+    "hierarchy": 9.2,
+    "commercialAppeal": 8.8,
+    "recruitmentEffectiveness": 8.6,
+    "trust": 8.6,
+    "luxuryMagazineQuality": 8.8,
+    "brandConsistency": 8.6,
+    "visualStorytelling": 8.8,
+    "readability": 8.7,
+    "mobileReadability": 8.7,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Executive Chef (1) — AED 15,000 (image: Executive Chef (1 openings) AED 15,000)",
+    "Spelling/fidelity: Agency: Al-Yousuf Enterprises LLP (image: AL-YOUSUF ENTERPRISES LLP)",
+    "Missing fact: Country: UAE"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 66457,
+  "fullVisualQa": {
+    "overallScore": 86,
+    "commercialQualityScore": 88,
+    "hierarchyScore": 92,
+    "readabilityScore": 87,
+    "imageryScore": 88,
+    "canvasUtilizationScore": 82,
+    "ctaScore": 85,
+    "trustScore": 86,
+    "defects": [
+      "Lower right section uses a large white block for QR/CTA: borderline over-weighted vs. rest of ad, slightly deadens the lower canvas.",
+      "Contact phone number could be marginally more prominent.",
+      "Email address breaks onto a second line due to length; minor visual imbalance.",
+      "The 'Luxury Resort Group' label is rather small and could be more visually integrated or emphasized as a badge/ribbon.",
+      "There is minor unused navy blue background space both at the top and bottom, though not excessive."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Better utilize lower canvas: reduce the white QR block's dead space, rebalance the bottom section, and consider making phone/CTA even more visually bold for social/mobile views."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Executive Chef (1) — AED 15,000 (image: Executive Chef (1 openings) AED 15,000)",
+      "Agency: Al-Yousuf Enterprises LLP (image: AL-YOUSUF ENTERPRISES LLP)"
+    ],
+    "missingCriticalFacts": [
+      "Country: UAE"
+    ],
+    "legibilityIssues": []
+  }
+}

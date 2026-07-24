@@ -1,0 +1,72 @@
+{
+  "id": "construction-sparse",
+  "industry": "Construction",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "25ee7ecf35ec0ba8e4e0bfffc2b7fcf6b8ca131be83437a76150e0a98062c308",
+  "scores": {
+    "photography": 9,
+    "typography": 9.1,
+    "hierarchy": 9.3,
+    "commercialAppeal": 9.4,
+    "recruitmentEffectiveness": 9.1,
+    "trust": 9.1,
+    "luxuryMagazineQuality": 9.4,
+    "brandConsistency": 9.1,
+    "visualStorytelling": 9,
+    "readability": 9.1,
+    "mobileReadability": 9.1,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Project Manager — NEOM Giga Project (Image: 'EARNING SAR 25,000' and no mention of 'Project Manager — NEOM Giga Project' as a header. 'Construction Project Manager' appears as a position, not header.)",
+    "Spelling/fidelity: Country: Saudi Arabia (Image: 'SAUDI ARABIA · CONSTRUCTION' — combined with 'CONSTRUCTION' instead of 'Country: Saudi Arabia')",
+    "Spelling/fidelity: Position: Construction Project Manager (1) — SAR 25,000 (Image: 'Construction Project Manager PMP, 12+ years GCC SAR 25,000' — No '(1)', and additional requirements are listed)",
+    "Missing fact: Header: Project Manager — NEOM Giga Project (No such explicit header)",
+    "Missing fact: Country: Saudi Arabia (No explicit 'Country:' label)"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 65058,
+  "fullVisualQa": {
+    "overallScore": 91,
+    "commercialQualityScore": 94,
+    "hierarchyScore": 93,
+    "readabilityScore": 91,
+    "imageryScore": 90,
+    "canvasUtilizationScore": 90,
+    "ctaScore": 89,
+    "trustScore": 91,
+    "defects": [
+      "QR code panel slightly interrupts the visual harmony at the bottom right, making the trust/footer band a bit crowded.",
+      "Contact CTA could be slightly more prominent relative to other footer elements."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase size or contrast of phone/email CTA to draw more immediate attention within the footer."
+      },
+      {
+        "type": "OTHER",
+        "note": "Consider slightly improving integration of the QR code panel so it feels more designed-in rather than an overlay."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Project Manager — NEOM Giga Project (Image: 'EARNING SAR 25,000' and no mention of 'Project Manager — NEOM Giga Project' as a header. 'Construction Project Manager' appears as a position, not header.)",
+      "Country: Saudi Arabia (Image: 'SAUDI ARABIA · CONSTRUCTION' — combined with 'CONSTRUCTION' instead of 'Country: Saudi Arabia')",
+      "Position: Construction Project Manager (1) — SAR 25,000 (Image: 'Construction Project Manager PMP, 12+ years GCC SAR 25,000' — No '(1)', and additional requirements are listed)"
+    ],
+    "missingCriticalFacts": [
+      "Header: Project Manager — NEOM Giga Project (No such explicit header)",
+      "Country: Saudi Arabia (No explicit 'Country:' label)"
+    ],
+    "legibilityIssues": []
+  }
+}

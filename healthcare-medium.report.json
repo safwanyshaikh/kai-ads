@@ -1,0 +1,82 @@
+{
+  "id": "healthcare-medium",
+  "industry": "Healthcare",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "8cb68891d583819e0bd69bfe1100a9ecab559fa16cd760632cd3158adac51bd8",
+  "scores": {
+    "photography": 8.6,
+    "typography": 9.2,
+    "hierarchy": 9.2,
+    "commercialAppeal": 9,
+    "recruitmentEffectiveness": 8.8,
+    "trust": 9,
+    "luxuryMagazineQuality": 9,
+    "brandConsistency": 8.8,
+    "visualStorytelling": 8.6,
+    "readability": 9.2,
+    "mobileReadability": 9.2,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Staff Nurse ICU (20 openings) DHA/ProMt: SAR 5,500 (image: \"Staff Nurse ICU (20 openings) DHA/ProMt: SAR 5.500\")",
+    "Spelling/fidelity: Staff Nurse ER (15) — SAR 5,500 (image: \"Staff Nurse ER (15 openings) SAR 5.500\")",
+    "Spelling/fidelity: Lab Technologist (8) — SAR 4,800 (image: \"Lab Technologist (8 openings) SAR 4.800\")",
+    "Spelling/fidelity: Radiology Technician (6) — SAR 4,800 (image: \"Radiology Technician (6 openings) SAR 4.800\")",
+    "Spelling/fidelity: Pharmacist (5) — SAR 6,500 (image: \"Pharmacist (5 openings) SAR 6.500\")",
+    "Spelling/fidelity: Apply now (image: \"Apply now\" text is in orange but partially cut off by QR code, showing as \"Apply no...\")",
+    "Missing fact: Benefit: Malpractice cover",
+    "Legibility: The text 'Apply now' is partially obscured/cut-off by a white overlay and QR code and is not fully legible.",
+    "Legibility: The rest of the image text is legible."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 59810,
+  "fullVisualQa": {
+    "overallScore": 88,
+    "commercialQualityScore": 90,
+    "hierarchyScore": 92,
+    "readabilityScore": 92,
+    "imageryScore": 86,
+    "canvasUtilizationScore": 82,
+    "ctaScore": 85,
+    "trustScore": 90,
+    "defects": [
+      "The QR code overlaps a small segment of underlying content in the benefits strip; it should feel more designed/anchored into the footer instead of floating.",
+      "Contact CTA (phone/email) could be slightly larger or more visually emphasized for mobile consumption.",
+      "Some unused brown space in the bottom right due to the QR code area could be more efficiently integrated."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Give stronger visual separation and prominence to the phone/email contact CTA, and ensure the QR code is visually better integrated with the footer section."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce dead zone around the bottom right where the QR overlays part of the design, integrating all footer elements cohesively."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Staff Nurse ICU (20 openings) DHA/ProMt: SAR 5,500 (image: \"Staff Nurse ICU (20 openings) DHA/ProMt: SAR 5.500\")",
+      "Staff Nurse ER (15) — SAR 5,500 (image: \"Staff Nurse ER (15 openings) SAR 5.500\")",
+      "Lab Technologist (8) — SAR 4,800 (image: \"Lab Technologist (8 openings) SAR 4.800\")",
+      "Radiology Technician (6) — SAR 4,800 (image: \"Radiology Technician (6 openings) SAR 4.800\")",
+      "Pharmacist (5) — SAR 6,500 (image: \"Pharmacist (5 openings) SAR 6.500\")",
+      "Apply now (image: \"Apply now\" text is in orange but partially cut off by QR code, showing as \"Apply no...\")"
+    ],
+    "missingCriticalFacts": [
+      "Benefit: Malpractice cover"
+    ],
+    "legibilityIssues": [
+      "The text 'Apply now' is partially obscured/cut-off by a white overlay and QR code and is not fully legible.",
+      "The rest of the image text is legible."
+    ]
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "id": "retail-medium",
+  "industry": "Retail",
+  "density": "medium",
+  "branded": false,
+  "imageSha256": "4b97185d3a0f2f86c9923326751375ff347af2d9538f99db702f689f2da99095",
+  "scores": {
+    "photography": 8.8,
+    "typography": 8.1,
+    "hierarchy": 8.2,
+    "commercialAppeal": 7.8,
+    "recruitmentEffectiveness": 8.1,
+    "trust": 8.8,
+    "luxuryMagazineQuality": 7.8,
+    "brandConsistency": null,
+    "visualStorytelling": 8.8,
+    "readability": 8.1,
+    "mobileReadability": 8.1,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header should be 'Hypermarket Chain Expansion — Oman', image shows 'HYPERMARKET CHAIN EXPANSION -< LuLu Group'",
+    "Spelling/fidelity: Employer should be 'Lulu Group', image shows 'LuLu Group'",
+    "Spelling/fidelity: Position: 'Sales Associate (40) — OMR 160' appears as 'Sales Associate  OMR 160' (missing position count '(40) —')",
+    "Spelling/fidelity: Position: 'Cashier (20) — OMR 170' appears as 'Cashier  OMR 170' (missing position count '(20) —')",
+    "Spelling/fidelity: Position: 'Merchandiser (15) — OMR 180' appears as 'Merchandiser  OMR 180' (missing position count '(15) —')",
+    "Spelling/fidelity: Position: 'Butchery Assistant (10) — OMR 190' appears as 'Butchery Assistant  OMR 190' (missing position count '(10) —')",
+    "Spelling/fidelity: Interview: '26 July at Kochi' — text only says 'Interview details', not actual date or location",
+    "Missing fact: Header: '— Oman' is missing after 'Hypermarket Chain Expansion'",
+    "Missing fact: Position counts: (40), (20), (15), (10) are missing",
+    "Missing fact: Interview: '26 July at Kochi' is missing",
+    "Legibility: Some text in lower right (possibly word 'transport') and part of 'Butchery Assistant' pay obscured by QR code overlay, not fully readable",
+    "Visual QA (catastrophic): More than ~20% of the bottom canvas is blocked by a heavy white overlay, which cuts into both the job list and the CTA, creating layout confusion and unjustified dead space (catastrophic misuse of canvas on a recruitment advertisement).",
+    "Visual QA score 81/100 is below the 85 publishable bar",
+    "Visual QA: Lower quarter of the canvas (CTA and trust section) is covered by a large white card, creating a severe imbalance and unjustified dead space.",
+    "Visual QA: The QR code, phone, and email are somewhat crowded and not ideally placed for quick access or mobile viewing.",
+    "Visual QA: The salary figures under the job titles get too close to the white overlay, causing partial legibility issues.",
+    "Visual QA: No clear separation panel between critical contact/CTA section and role information (could cause readability reduction).",
+    "Visual QA: Agency/trust information is visible only once at the footer (correct), but the white card could be tighter and integrated better."
+  ],
+  "catastrophicDefects": [
+    "More than ~20% of the bottom canvas is blocked by a heavy white overlay, which cuts into both the job list and the CTA, creating layout confusion and unjustified dead space (catastrophic misuse of canvas on a recruitment advertisement)."
+  ],
+  "latencyMs": 65512,
+  "fullVisualQa": {
+    "overallScore": 81,
+    "commercialQualityScore": 78,
+    "hierarchyScore": 82,
+    "readabilityScore": 81,
+    "imageryScore": 88,
+    "canvasUtilizationScore": 70,
+    "ctaScore": 75,
+    "trustScore": 88,
+    "defects": [
+      "Lower quarter of the canvas (CTA and trust section) is covered by a large white card, creating a severe imbalance and unjustified dead space.",
+      "The QR code, phone, and email are somewhat crowded and not ideally placed for quick access or mobile viewing.",
+      "The salary figures under the job titles get too close to the white overlay, causing partial legibility issues.",
+      "No clear separation panel between critical contact/CTA section and role information (could cause readability reduction).",
+      "Agency/trust information is visible only once at the footer (correct), but the white card could be tighter and integrated better."
+    ],
+    "catastrophicDefects": [
+      "More than ~20% of the bottom canvas is blocked by a heavy white overlay, which cuts into both the job list and the CTA, creating layout confusion and unjustified dead space (catastrophic misuse of canvas on a recruitment advertisement)."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Redesign the bottom quarter to remove the heavy white block overlay and integrate the CTA/QR/trust into a compact, horizontally-structured footer, freeing up lost space and maximizing role list clarity and CTA visibility."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Make phone and email visually larger and easier to tap/read, ideally with iconography and more breathing room, distinct from job/salary details."
+      },
+      {
+        "type": "OTHER",
+        "note": "Ensure that salary lines are clearly readable and do not run into overlay elements."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header should be 'Hypermarket Chain Expansion — Oman', image shows 'HYPERMARKET CHAIN EXPANSION -< LuLu Group'",
+      "Employer should be 'Lulu Group', image shows 'LuLu Group'",
+      "Position: 'Sales Associate (40) — OMR 160' appears as 'Sales Associate  OMR 160' (missing position count '(40) —')",
+      "Position: 'Cashier (20) — OMR 170' appears as 'Cashier  OMR 170' (missing position count '(20) —')",
+      "Position: 'Merchandiser (15) — OMR 180' appears as 'Merchandiser  OMR 180' (missing position count '(15) —')",
+      "Position: 'Butchery Assistant (10) — OMR 190' appears as 'Butchery Assistant  OMR 190' (missing position count '(10) —')",
+      "Interview: '26 July at Kochi' — text only says 'Interview details', not actual date or location"
+    ],
+    "missingCriticalFacts": [
+      "Header: '— Oman' is missing after 'Hypermarket Chain Expansion'",
+      "Position counts: (40), (20), (15), (10) are missing",
+      "Interview: '26 July at Kochi' is missing"
+    ],
+    "legibilityIssues": [
+      "Some text in lower right (possibly word 'transport') and part of 'Butchery Assistant' pay obscured by QR code overlay, not fully readable"
+    ]
+  }
+}

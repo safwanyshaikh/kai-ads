@@ -1,0 +1,104 @@
+{
+  "id": "hospitality-dense",
+  "industry": "Hospitality",
+  "density": "dense",
+  "branded": false,
+  "imageSha256": "6c6a6104fd5d3dd1cb84a72f91dd6dad6a3db9af68dab03bf91416637248a925",
+  "scores": {
+    "photography": 7.5,
+    "typography": 6,
+    "hierarchy": 6.5,
+    "commercialAppeal": 7.2,
+    "recruitmentEffectiveness": 6.7,
+    "trust": 6.8,
+    "luxuryMagazineQuality": 7.2,
+    "brandConsistency": null,
+    "visualStorytelling": 7.5,
+    "readability": 6,
+    "mobileReadability": 6,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.7
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: Air Ticket (image) vs Flights (expected)",
+    "Spelling/fidelity: Benefit: Flights (image, but also as Air Ticket; Flights is duplicated in a list of benefits at the bottom)",
+    "Spelling/fidelity: Position role counts missing (e.g., Commis I (2); image only says Commis I, etc.)",
+    "Missing fact: Country: Saudi Arabia (the word 'SAUDI ARABIA' is present, but not specifically labeled as 'Country' – however, this is not critical)",
+    "Missing fact: Agency: Al-Yousuf Enterprises LLP (agency name not fully present; only appears in the email and not as a standalone field)",
+    "Visual QA (catastrophic): Missing agency/verification elements and trust information in the footer – no agency name, RA number, or MEA/regulatory badge, which are mandatory for a publishable Gulf recruitment advertisement",
+    "Visual QA score 67/100 is below the 85 publishable bar",
+    "Visual QA: No agency/verification trust footer – missing required agency identity, RA number, and verification/badges at the bottom",
+    "Visual QA: QR code integration is unbranded and looks sticker-like, not fully designed-in",
+    "Visual QA: No single unified candidate-facing hook—the top section is overly corporate ('Earning opportunity') and fails to deliver an urgent, destination-focused headline",
+    "Visual QA: Important roles list is crowded and visually blends into the background model rather than being carded or adequately separated for easy reading",
+    "Visual QA: Canvas utilization is inefficient: bottom right panel is heavy, but upper and lower left zones feel underused or faded"
+  ],
+  "catastrophicDefects": [
+    "Missing agency/verification elements and trust information in the footer – no agency name, RA number, or MEA/regulatory badge, which are mandatory for a publishable Gulf recruitment advertisement"
+  ],
+  "latencyMs": 69462,
+  "fullVisualQa": {
+    "overallScore": 67,
+    "commercialQualityScore": 72,
+    "hierarchyScore": 65,
+    "readabilityScore": 60,
+    "imageryScore": 75,
+    "canvasUtilizationScore": 60,
+    "ctaScore": 60,
+    "trustScore": 68,
+    "defects": [
+      "No agency/verification trust footer – missing required agency identity, RA number, and verification/badges at the bottom",
+      "QR code integration is unbranded and looks sticker-like, not fully designed-in",
+      "No single unified candidate-facing hook—the top section is overly corporate ('Earning opportunity') and fails to deliver an urgent, destination-focused headline",
+      "Important roles list is crowded and visually blends into the background model rather than being carded or adequately separated for easy reading",
+      "Canvas utilization is inefficient: bottom right panel is heavy, but upper and lower left zones feel underused or faded",
+      "The benefits line is duplicated at the top and in the details near the bottom",
+      "Contact/CTA is functional but lacks visibility and strong emphasis"
+    ],
+    "catastrophicDefects": [
+      "Missing agency/verification elements and trust information in the footer – no agency name, RA number, or MEA/regulatory badge, which are mandatory for a publishable Gulf recruitment advertisement"
+    ],
+    "requiredCorrections": [
+      {
+        "type": "OTHER",
+        "note": "Add a proper agency/trust/verification footer with agency name, RA number, MEA badge, and any required compliance marks."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the prominence and integration of the contact information (WhatsApp/phone/email) and ensure it stands out more clearly from background elements."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Organize the jobs/roles list into clearer, distinct cards or groupings to reduce visual overwhelm and improve legibility over the model's suit."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Improve text contrast particularly in areas crossing over busy or dark/bright image transitions."
+      },
+      {
+        "type": "OTHER",
+        "note": "Rework headline to focus on a candidate hook: something destination + project/sector (e.g., 'SAUDI ARABIA HOSPITALITY MEGA OPENING') as the anchor headline."
+      },
+      {
+        "type": "OTHER",
+        "note": "Integrate the QR code with branding and as part of the footer strip, not as an isolated white sticker."
+      }
+    ],
+    "verdict": "BLOCKED"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: Air Ticket (image) vs Flights (expected)",
+      "Benefit: Flights (image, but also as Air Ticket; Flights is duplicated in a list of benefits at the bottom)",
+      "Position role counts missing (e.g., Commis I (2); image only says Commis I, etc.)"
+    ],
+    "missingCriticalFacts": [
+      "Country: Saudi Arabia (the word 'SAUDI ARABIA' is present, but not specifically labeled as 'Country' – however, this is not critical)",
+      "Agency: Al-Yousuf Enterprises LLP (agency name not fully present; only appears in the email and not as a standalone field)"
+    ],
+    "legibilityIssues": []
+  }
+}

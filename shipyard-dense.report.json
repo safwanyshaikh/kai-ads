@@ -1,0 +1,127 @@
+{
+  "id": "shipyard-dense",
+  "industry": "Shipyard",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "c0e3c544d7f72f6c2ce71f62c80563fe68b8090e00036666dd7d552b75211d7c",
+  "scores": {
+    "photography": 7.7,
+    "typography": 6.5,
+    "hierarchy": 7,
+    "commercialAppeal": 7,
+    "recruitmentEffectiveness": 6.8,
+    "trust": 8,
+    "luxuryMagazineQuality": 7,
+    "brandConsistency": 6.8,
+    "visualStorytelling": 7.7,
+    "readability": 6.5,
+    "mobileReadability": 6.5,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Pipe Fitter (3 openings) vs Pipe Fitter (3)",
+    "Spelling/fidelity: 6G Welder (4 openings) vs 6G Welder (4)",
+    "Spelling/fidelity: 3G Welder (5 openings) vs 3G Welder (5)",
+    "Spelling/fidelity: Grinder (6 openings) vs Grinder (6)",
+    "Spelling/fidelity: Gas Cutter (6 o vs Gas Cutter (2)",
+    "Spelling/fidelity: Forklift Operator (5 o vs Forklift Operator (5)",
+    "Spelling/fidelity: Scaffolder (2 openings) vs Scaffolder (6)",
+    "Spelling/fidelity: Instrument Fitter (4 op vs Instrument Fitter (4)",
+    "Spelling/fidelity: Painter Airless (6 open) vs Painter Airless (6)",
+    "Spelling/fidelity: Blaster (2 open gs) vs Blaster (2)",
+    "Spelling/fidelity: Insulator (2 openings) vs Insulator (2)",
+    "Missing fact: Position: QC Welding Inspector (3)",
+    "Missing fact: Position: HSE Officer (4)",
+    "Legibility: Some positions on the right are partially obscured making the number of openings unreadable (e.g. Instrument Fitter, Painter Airless, Blaster).",
+    "Visual QA (catastrophic): Partially clipped role count text in job listings (e.g., 'Gas Cutter (6 o', 'Forklift Operator (5 o'), which is a layout and hierarchy-breaking defect.",
+    "Visual QA (catastrophic): Key role counts are not fully visible; truncation in important factual data.",
+    "Visual QA (catastrophic): QR code block overlays live content instead of being integrated into the footer or trust area.",
+    "Visual QA score 68/100 is below the 85 publishable bar",
+    "Visual QA: No clear, visually dominant candidate-facing hook with project+country (the largest element is 'QATAR SHIPYARD', but the opportunity/hook is weak and generic).",
+    "Visual QA: Canvas usage inefficient: large sections at the top and middle are used for simple background, with core information concentrated into dense lower region.",
+    "Visual QA: The layout puts most critical job/role information too deep and densely packed, making fast scanning hard on mobile.",
+    "Visual QA: Contact CTA is under-emphasized and visually compressed in a busy strip, not prominent or high-contrast.",
+    "Visual QA: QR code is placed on a white block that collides with text, intruding into content rather than feeling integrated or designed-in."
+  ],
+  "catastrophicDefects": [
+    "Partially clipped role count text in job listings (e.g., 'Gas Cutter (6 o', 'Forklift Operator (5 o'), which is a layout and hierarchy-breaking defect.",
+    "Key role counts are not fully visible; truncation in important factual data.",
+    "QR code block overlays live content instead of being integrated into the footer or trust area."
+  ],
+  "latencyMs": 68004,
+  "fullVisualQa": {
+    "overallScore": 68,
+    "commercialQualityScore": 70,
+    "hierarchyScore": 70,
+    "readabilityScore": 65,
+    "imageryScore": 77,
+    "canvasUtilizationScore": 60,
+    "ctaScore": 63,
+    "trustScore": 80,
+    "defects": [
+      "No clear, visually dominant candidate-facing hook with project+country (the largest element is 'QATAR SHIPYARD', but the opportunity/hook is weak and generic).",
+      "Canvas usage inefficient: large sections at the top and middle are used for simple background, with core information concentrated into dense lower region.",
+      "The layout puts most critical job/role information too deep and densely packed, making fast scanning hard on mobile.",
+      "Contact CTA is under-emphasized and visually compressed in a busy strip, not prominent or high-contrast.",
+      "QR code is placed on a white block that collides with text, intruding into content rather than feeling integrated or designed-in.",
+      "Opening counts are inconsistently formatted; there are typographic inconsistencies (e.g., 'Gas Cutter (6 o', 'Forklift Operator (5 o', clipped/unfinished words, and alignment issues).",
+      "There are partially clipped headlines for role counts (e.g., '6 o', '5 o', etc.), indicating layout and text box errors.",
+      "Too much information is crowded into a small area with little breathing room, leading to hierarchy confusion.",
+      "The agency trust bar is reasonably positioned but is quite visually strong, almost competing with the rest."
+    ],
+    "catastrophicDefects": [
+      "Partially clipped role count text in job listings (e.g., 'Gas Cutter (6 o', 'Forklift Operator (5 o'), which is a layout and hierarchy-breaking defect.",
+      "Key role counts are not fully visible; truncation in important factual data.",
+      "QR code block overlays live content instead of being integrated into the footer or trust area."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Redistribute layout to give breathing room to job listings and avoid compressing all information into a small lower segment."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Make the candidate-facing opportunity clear and dominant: combine project + country + benefit in the largest, most prominent text."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the prominence and separation of contact CTA and email for easy social/mobile scanning."
+      },
+      {
+        "type": "OTHER",
+        "note": "Correct all clipping/truncation of key job/role texts and role count numbers for complete and readable information."
+      },
+      {
+        "type": "OTHER",
+        "note": "Integrate the QR code into the footer/trust area without overlapping or blocking key job information."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Pipe Fitter (3 openings) vs Pipe Fitter (3)",
+      "6G Welder (4 openings) vs 6G Welder (4)",
+      "3G Welder (5 openings) vs 3G Welder (5)",
+      "Grinder (6 openings) vs Grinder (6)",
+      "Gas Cutter (6 o vs Gas Cutter (2)",
+      "Forklift Operator (5 o vs Forklift Operator (5)",
+      "Scaffolder (2 openings) vs Scaffolder (6)",
+      "Instrument Fitter (4 op vs Instrument Fitter (4)",
+      "Painter Airless (6 open) vs Painter Airless (6)",
+      "Blaster (2 open gs) vs Blaster (2)",
+      "Insulator (2 openings) vs Insulator (2)"
+    ],
+    "missingCriticalFacts": [
+      "Position: QC Welding Inspector (3)",
+      "Position: HSE Officer (4)"
+    ],
+    "legibilityIssues": [
+      "Some positions on the right are partially obscured making the number of openings unreadable (e.g. Instrument Fitter, Painter Airless, Blaster)."
+    ]
+  }
+}

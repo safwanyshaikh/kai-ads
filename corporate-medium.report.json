@@ -1,0 +1,106 @@
+{
+  "id": "corporate-medium",
+  "industry": "Corporate",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "e108c6e1662ff121062a27341b8f47658cd136f15fa70a350dd422eb7c58923f",
+  "scores": {
+    "photography": 8.8,
+    "typography": 7.8,
+    "hierarchy": 7.2,
+    "commercialAppeal": 7,
+    "recruitmentEffectiveness": 6.7,
+    "trust": 7,
+    "luxuryMagazineQuality": 7,
+    "brandConsistency": 6.7,
+    "visualStorytelling": 8.8,
+    "readability": 7.8,
+    "mobileReadability": 7.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.7
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Interview: 'Interview invievs oi Rolling basis' (image) vs 'Video interviews at Rolling basis' (expected)",
+    "Missing fact: Country: UAE",
+    "Visual QA (catastrophic): Severe typo/garbled wording in key callout ('Interview inviews oi Rolling basis') damages credibility—must be corrected before any publication.",
+    "Visual QA (catastrophic): No clear agency logo or visible RA number, required for trust and verification in Gulf recruitment ads.",
+    "Visual QA (catastrophic): QR code is sticker-like and not visually integrated—appears as an afterthought.",
+    "Visual QA (catastrophic): Bottom right has excessive dead white canvas around QR code (over ~20%), failing justified commercial use.",
+    "Visual QA score 67/100 is below the 85 publishable bar",
+    "Visual QA: Critical typographical errors in a prominent callout: 'Interview inviews oi Rolling basis' is garbled/unprofessional and severely impacts the ad's credibility.",
+    "Visual QA: Trust elements (agency name, registration) are relegated to a tiny line at the bottom with low prominence; no agency logo, RA number, or clear MEA/verification graphic.",
+    "Visual QA: QR code appears like a sticker—lack of thoughtful integration into the design.",
+    "Visual QA: The background imagery is relevant but slightly over-dominant, pushing key details toward the lower canvas and causing crowding.",
+    "Visual QA: Salaries and roles aren't visually chunked for fast scanning; better use of columns/panels or background scrims needed."
+  ],
+  "catastrophicDefects": [
+    "Severe typo/garbled wording in key callout ('Interview inviews oi Rolling basis') damages credibility—must be corrected before any publication.",
+    "No clear agency logo or visible RA number, required for trust and verification in Gulf recruitment ads.",
+    "QR code is sticker-like and not visually integrated—appears as an afterthought.",
+    "Bottom right has excessive dead white canvas around QR code (over ~20%), failing justified commercial use."
+  ],
+  "latencyMs": 73379,
+  "fullVisualQa": {
+    "overallScore": 67,
+    "commercialQualityScore": 70,
+    "hierarchyScore": 72,
+    "readabilityScore": 78,
+    "imageryScore": 88,
+    "canvasUtilizationScore": 65,
+    "ctaScore": 68,
+    "trustScore": 70,
+    "defects": [
+      "Critical typographical errors in a prominent callout: 'Interview inviews oi Rolling basis' is garbled/unprofessional and severely impacts the ad's credibility.",
+      "Trust elements (agency name, registration) are relegated to a tiny line at the bottom with low prominence; no agency logo, RA number, or clear MEA/verification graphic.",
+      "QR code appears like a sticker—lack of thoughtful integration into the design.",
+      "The background imagery is relevant but slightly over-dominant, pushing key details toward the lower canvas and causing crowding.",
+      "Salaries and roles aren't visually chunked for fast scanning; better use of columns/panels or background scrims needed.",
+      "No dedicated, visually distinct contact CTA band; contact info blends with footer text.",
+      "'Corpc' appears to be a typographical error ('Corp.' or company name should be clear).",
+      "Canvas utilization is weak at the bottom right (QR + large dead white block), resulting in wasted space.",
+      "Benefits section is diminished—could be more visually distinct to sell the opportunity.",
+      "No candidate-facing branding or trust badge accompanies the agency identity in the footer."
+    ],
+    "catastrophicDefects": [
+      "Severe typo/garbled wording in key callout ('Interview inviews oi Rolling basis') damages credibility—must be corrected before any publication.",
+      "No clear agency logo or visible RA number, required for trust and verification in Gulf recruitment ads.",
+      "QR code is sticker-like and not visually integrated—appears as an afterthought.",
+      "Bottom right has excessive dead white canvas around QR code (over ~20%), failing justified commercial use."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "OTHER",
+        "note": "Correct severe typographical and grammatical errors before publishing."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Make the contact information much more prominent and visually distinct."
+      },
+      {
+        "type": "OTHER",
+        "note": "Add agency logo, RA number, and trust/verification badge in the footer."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce dead space around QR or integrate it in a designed band/panel."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Improve role/salary/benefits section contrast with background for rapid readability."
+      }
+    ],
+    "verdict": "BLOCKED"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Interview: 'Interview invievs oi Rolling basis' (image) vs 'Video interviews at Rolling basis' (expected)"
+    ],
+    "missingCriticalFacts": [
+      "Country: UAE"
+    ],
+    "legibilityIssues": []
+  }
+}

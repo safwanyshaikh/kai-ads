@@ -1,0 +1,83 @@
+{
+  "id": "corporate-sparse",
+  "industry": "Corporate",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "34a6ea8c52c63e44c1df454af1ea7d991c7ccf7f906a0d69dae6b2b589a86d07",
+  "scores": {
+    "photography": 8.5,
+    "typography": 8.7,
+    "hierarchy": 8.1,
+    "commercialAppeal": 8.2,
+    "recruitmentEffectiveness": 8.3,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 8.2,
+    "brandConsistency": 8.3,
+    "visualStorytelling": 8.5,
+    "readability": 8.7,
+    "mobileReadability": 8.7,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Phone: Penail: 932499567 (should be 9324995767; 'Penail' is not expected, and the number is missing a '7')",
+    "Missing fact: Header: Group Finance Director — Dubai HQ",
+    "Missing fact: Country: UAE",
+    "Missing fact: Position: Group Finance Director (1) — AED 45,000",
+    "Missing fact: Agency: Al-Yousuf Enterprises LLP",
+    "Visual QA score 83/100 is below the 85 publishable bar",
+    "Visual QA: Contact CTA (phone/email) is relatively small, particularly with the QR code dominating the lower-right—a larger, bolder CTA would increase response.",
+    "Visual QA: The visual canvas is somewhat underutilized in the lower third with excessive dead space; this could be improved by balancing blocks or reducing block size.",
+    "Visual QA: The role/country information ('GROUP FINANCE DIRECTOR', 'UAE', etc.) are clear, but the real candidate hook is diluted—'Earning' is prominent but not role/destination; ideally, 'GROUP FINANCE DIRECTOR – UAE' should be the main largest headline.",
+    "Visual QA: Brand/agency trust line is correct in the footer, but the benefit/position details feel a little crowded below the main band."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 67078,
+  "fullVisualQa": {
+    "overallScore": 83,
+    "commercialQualityScore": 82,
+    "hierarchyScore": 81,
+    "readabilityScore": 87,
+    "imageryScore": 85,
+    "canvasUtilizationScore": 78,
+    "ctaScore": 78,
+    "trustScore": 85,
+    "defects": [
+      "Contact CTA (phone/email) is relatively small, particularly with the QR code dominating the lower-right—a larger, bolder CTA would increase response.",
+      "The visual canvas is somewhat underutilized in the lower third with excessive dead space; this could be improved by balancing blocks or reducing block size.",
+      "The role/country information ('GROUP FINANCE DIRECTOR', 'UAE', etc.) are clear, but the real candidate hook is diluted—'Earning' is prominent but not role/destination; ideally, 'GROUP FINANCE DIRECTOR – UAE' should be the main largest headline.",
+      "Brand/agency trust line is correct in the footer, but the benefit/position details feel a little crowded below the main band."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Reframe the headline so candidate-facing opportunity (role/destination) is the single largest text; $12,300 Earning is strong, but opportunity must lead."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the size/prominence of the contact information and possibly reposition the QR code for greater impact."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce or better utilize blank space in the lower section for a more balanced and compelling overall layout."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Phone: Penail: 932499567 (should be 9324995767; 'Penail' is not expected, and the number is missing a '7')"
+    ],
+    "missingCriticalFacts": [
+      "Header: Group Finance Director — Dubai HQ",
+      "Country: UAE",
+      "Position: Group Finance Director (1) — AED 45,000",
+      "Agency: Al-Yousuf Enterprises LLP"
+    ],
+    "legibilityIssues": []
+  }
+}

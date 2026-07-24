@@ -1,0 +1,106 @@
+{
+  "id": "logistics-medium",
+  "industry": "Logistics",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "d33b4f3cf1596fb0cd0788fd4d67cd76fe6b907ba6cded8c37ee7cbfdc4f16a2",
+  "scores": {
+    "photography": 7.5,
+    "typography": 8,
+    "hierarchy": 7,
+    "commercialAppeal": 7.5,
+    "recruitmentEffectiveness": 7.6,
+    "trust": 8.2,
+    "luxuryMagazineQuality": 7.5,
+    "brandConsistency": 7.6,
+    "visualStorytelling": 7.5,
+    "readability": 8,
+    "mobileReadability": 8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.6
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: OT + incentives is rendered as 'Overtime, Accommodation' (missing mention of 'incentives', and 'OT' is spelled as 'Overtime')",
+    "Missing fact: Interview: 27 July at Delhi (partially obscured and unreadable due to QR code placement)",
+    "Legibility: The second interview date/location ('27 July at Delhi') is mostly blocked by the QR code, making the details unreadable.",
+    "Visual QA (catastrophic): Large white QR code box causes a dead canvas area and breaks visual harmony.",
+    "Visual QA (catastrophic): Over 20% of the upper canvas is solid brown and feels dead/unintegrated, especially for a hybrid/visual-forward ad.",
+    "Visual QA (catastrophic): Immediate job/country hook is too generic ('Earning SAR 4,000') and fails the three-second test for clear job/country opportunity at a glance.",
+    "Visual QA score 76/100 is below the 85 publishable bar",
+    "Visual QA: The candidate-facing hook ('Earning SAR 4,000') uses the largest font, but does not specify a project or specific role, making the opportunity less clear at a glance.",
+    "Visual QA: The headline is clear and visible, but it is somewhat generic and lacks differentiation between earning potential and actual job roles/rates listed below.",
+    "Visual QA: Canvas utilization is only moderate; the entire top fifth is a solid brown block, which feels underutilized and heavy.",
+    "Visual QA: The job details box overlays the background in a heavy, opaque block, muting the imagery's impact for a format that should showcase a hybrid visual/text integration.",
+    "Visual QA: The call to action (phone and email) is present, but not visually dominant or particularly easy to extract at a glance on mobile – it blends in with other details."
+  ],
+  "catastrophicDefects": [
+    "Large white QR code box causes a dead canvas area and breaks visual harmony.",
+    "Over 20% of the upper canvas is solid brown and feels dead/unintegrated, especially for a hybrid/visual-forward ad.",
+    "Immediate job/country hook is too generic ('Earning SAR 4,000') and fails the three-second test for clear job/country opportunity at a glance."
+  ],
+  "latencyMs": 77109,
+  "fullVisualQa": {
+    "overallScore": 76,
+    "commercialQualityScore": 75,
+    "hierarchyScore": 70,
+    "readabilityScore": 80,
+    "imageryScore": 75,
+    "canvasUtilizationScore": 70,
+    "ctaScore": 68,
+    "trustScore": 82,
+    "defects": [
+      "The candidate-facing hook ('Earning SAR 4,000') uses the largest font, but does not specify a project or specific role, making the opportunity less clear at a glance.",
+      "The headline is clear and visible, but it is somewhat generic and lacks differentiation between earning potential and actual job roles/rates listed below.",
+      "Canvas utilization is only moderate; the entire top fifth is a solid brown block, which feels underutilized and heavy.",
+      "The job details box overlays the background in a heavy, opaque block, muting the imagery's impact for a format that should showcase a hybrid visual/text integration.",
+      "The call to action (phone and email) is present, but not visually dominant or particularly easy to extract at a glance on mobile – it blends in with other details.",
+      "There is a large white block in the bottom right corner (under the QR code) that creates a dead zone, disrupts the card harmony, and wastes canvas.",
+      "The QR code is awkwardly placed in a white sticker-like box, which looks unintegrated and disrupts visual flow.",
+      "Agency identity is correctly confined to the footer, but the trust/verification text is small and hard to spot quickly.",
+      "Some crowding in the yellow details box (text nearly touches the left margin and the interview/locations lines get cramped).",
+      "Overall, while serviceable, the design lacks the pop and professionalism (visual/text cohesion, CTA prominence, differentiated hierarchy) expected at the top tier for Gulf recruitment ads."
+    ],
+    "catastrophicDefects": [
+      "Large white QR code box causes a dead canvas area and breaks visual harmony.",
+      "Over 20% of the upper canvas is solid brown and feels dead/unintegrated, especially for a hybrid/visual-forward ad.",
+      "Immediate job/country hook is too generic ('Earning SAR 4,000') and fails the three-second test for clear job/country opportunity at a glance."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "REGENERATE_IMAGE",
+        "note": "Integrate the visual background more dynamically; avoid oversized monotone blocks and dead space, and prevent the white QR code zone from disrupting layout."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Use a truly candidate-first hook (combine project, location, and value, e.g. 'Saudi Arabia E-Commerce Fulfilment Centre – Logistics Jobs' as the main headline, not just 'Earning SAR 4,000')."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Visually separate and emphasize the contact CTA so it draws instant attention and is easy to tap/copy on mobile/social."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Address crowding in the details box and review canvas utilization – reduce solid dead space and give breathing room to text elements."
+      },
+      {
+        "type": "OTHER",
+        "note": "Design-in the QR code as a layer/card integrated with the footer or main panel, rather than a disparate white square."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: OT + incentives is rendered as 'Overtime, Accommodation' (missing mention of 'incentives', and 'OT' is spelled as 'Overtime')"
+    ],
+    "missingCriticalFacts": [
+      "Interview: 27 July at Delhi (partially obscured and unreadable due to QR code placement)"
+    ],
+    "legibilityIssues": [
+      "The second interview date/location ('27 July at Delhi') is mostly blocked by the QR code, making the details unreadable."
+    ]
+  }
+}

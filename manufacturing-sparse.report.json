@@ -1,0 +1,67 @@
+{
+  "id": "manufacturing-sparse",
+  "industry": "Manufacturing",
+  "density": "sparse",
+  "branded": false,
+  "imageSha256": "8662f524c96bcce9c1ae1ebbc3525787f463e141848c209e4f01b8ef00a8836f",
+  "scores": {
+    "photography": 9,
+    "typography": 8.9,
+    "hierarchy": 9.2,
+    "commercialAppeal": 9,
+    "recruitmentEffectiveness": 8.7,
+    "trust": 8.7,
+    "luxuryMagazineQuality": 9,
+    "brandConsistency": null,
+    "visualStorytelling": 9,
+    "readability": 8.9,
+    "mobileReadability": 8.9,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Employer: 'Alba Contractor' is missing; only 'Al-Yousuf Enterprises LLP' is present.",
+    "Missing fact: Employer: Alba Contractor"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 59457,
+  "fullVisualQa": {
+    "overallScore": 87,
+    "commercialQualityScore": 90,
+    "hierarchyScore": 92,
+    "readabilityScore": 89,
+    "imageryScore": 90,
+    "canvasUtilizationScore": 85,
+    "ctaScore": 85,
+    "trustScore": 87,
+    "defects": [
+      "Contact CTA is slightly underemphasized next to very large headline and benefit panels.",
+      "Footer layout is a bit crowded due to the large QR, minor impact on clarity.",
+      "Lower right trust/verification band could use more breathing space for optimal readability."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase emphasis on the contact phone/email CTA to balance better with the headline impact."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Provide slightly more space between footer trust elements for optimal clarity."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Employer: 'Alba Contractor' is missing; only 'Al-Yousuf Enterprises LLP' is present."
+    ],
+    "missingCriticalFacts": [
+      "Employer: Alba Contractor"
+    ],
+    "legibilityIssues": []
+  }
+}

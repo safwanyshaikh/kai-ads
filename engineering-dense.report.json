@@ -1,0 +1,108 @@
+{
+  "id": "engineering-dense",
+  "industry": "Engineering",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "28b119a579b42c5367e1604f60b1e7fc6a5b4437b50551ae02b3b1056f74c7d0",
+  "scores": {
+    "photography": 7.5,
+    "typography": 7.5,
+    "hierarchy": 7,
+    "commercialAppeal": 7.2,
+    "recruitmentEffectiveness": 6.8,
+    "trust": 5,
+    "luxuryMagazineQuality": 7.2,
+    "brandConsistency": 6.8,
+    "visualStorytelling": 7.5,
+    "readability": 7.5,
+    "mobileReadability": 7.5,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: 's KD salary + allowances' (image) vs 'KD salary + allowances' (expected)",
+    "Spelling/fidelity: Interview: 'Teonical panel: Online' (image) vs 'Technical panel at Online' (expected)",
+    "Spelling/fidelity: Commissioning Engineer (4) appears as 'Commissioning Eng. (4)' (abbreviated; expected full wording)",
+    "Spelling/fidelity: Agency: Al-Yousuf Enterprises LLP missing or illegible (partially cut off on image)",
+    "Missing fact: Country: Kuwait (only appears in large text as 'KUWAIT', not in the detailed lower section; if strict wording location required for country, it's missing from details)",
+    "Legibility: Some of the text in the lower right appears cut off or obscured, specifically lines related to agency and position counts.",
+    "Legibility: Part of the agency name 'Al-Yousuf Enterprises LLP' is cut off and only partially visible, making confirmation difficult.",
+    "Visual QA (catastrophic): Missing agency/verification footer (no dedicated trust band with clear agency, RA, MEA, verification elements)",
+    "Visual QA (catastrophic): Contact CTA not visually emphasized or easy to find at a glance (important for mobile/social and WhatsApp recruitment standards)",
+    "Visual QA (catastrophic): Significant lower-canvas dead zone created by white QR overlay, disrupting visual flow and balance; not a designed-in QR integration",
+    "Visual QA score 68/100 is below the 85 publishable bar",
+    "Visual QA: No explicit agency/trust/verification footer band – critical for professional recruitment ads; agency/MEA/RA info missing",
+    "Visual QA: Contact CTA is present but lacks emphasis (phone/email in body, not visually prominent or separated)",
+    "Visual QA: Vacant lower-right canvas block (QR code in weak white overlay, creates dead and distracting canvas segment)",
+    "Visual QA: Visual hierarchy slightly weak – $4,400 is large, but 'KUWAIT ENGINEERING' is not as candidate-facing as standard project+country hooks",
+    "Visual QA: Too much factual detail crammed into a busy list, hurting mobile-first readability"
+  ],
+  "catastrophicDefects": [
+    "Missing agency/verification footer (no dedicated trust band with clear agency, RA, MEA, verification elements)",
+    "Contact CTA not visually emphasized or easy to find at a glance (important for mobile/social and WhatsApp recruitment standards)",
+    "Significant lower-canvas dead zone created by white QR overlay, disrupting visual flow and balance; not a designed-in QR integration"
+  ],
+  "latencyMs": 70547,
+  "fullVisualQa": {
+    "overallScore": 68,
+    "commercialQualityScore": 72,
+    "hierarchyScore": 70,
+    "readabilityScore": 75,
+    "imageryScore": 75,
+    "canvasUtilizationScore": 65,
+    "ctaScore": 60,
+    "trustScore": 50,
+    "defects": [
+      "No explicit agency/trust/verification footer band – critical for professional recruitment ads; agency/MEA/RA info missing",
+      "Contact CTA is present but lacks emphasis (phone/email in body, not visually prominent or separated)",
+      "Vacant lower-right canvas block (QR code in weak white overlay, creates dead and distracting canvas segment)",
+      "Visual hierarchy slightly weak – $4,400 is large, but 'KUWAIT ENGINEERING' is not as candidate-facing as standard project+country hooks",
+      "Too much factual detail crammed into a busy list, hurting mobile-first readability",
+      "The role/country hook is less dominant than salary figure (should be a compelling candidate-facing headline, not just amount/country)",
+      "Some text (bottom right) is colliding with QR overlay, readability compromised",
+      "Agency identity is found only in an email (in body), not in a footer or verification bar"
+    ],
+    "catastrophicDefects": [
+      "Missing agency/verification footer (no dedicated trust band with clear agency, RA, MEA, verification elements)",
+      "Contact CTA not visually emphasized or easy to find at a glance (important for mobile/social and WhatsApp recruitment standards)",
+      "Significant lower-canvas dead zone created by white QR overlay, disrupting visual flow and balance; not a designed-in QR integration"
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Prominently display and visually emphasize the contact CTA (Phone/Email), ideally in its own contrasting bar or highlight, not only in small text among details."
+      },
+      {
+        "type": "OTHER",
+        "note": "Add a full-width verification/trust band at the bottom with clear agency identity, RA/regulation info, and employment verification marks."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce friction/interference at the bottom right: do not allow QR, contact info, and detail text to overlap or collide; integrate QR design into the information band."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Create a stronger candidate-facing hook (PROJECT + COUNTRY) as the main headline, not just salary/country; e.g. 'NATIONAL GRID PROJECT — KUWAIT ENGINEERING'."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: 's KD salary + allowances' (image) vs 'KD salary + allowances' (expected)",
+      "Interview: 'Teonical panel: Online' (image) vs 'Technical panel at Online' (expected)",
+      "Commissioning Engineer (4) appears as 'Commissioning Eng. (4)' (abbreviated; expected full wording)",
+      "Agency: Al-Yousuf Enterprises LLP missing or illegible (partially cut off on image)"
+    ],
+    "missingCriticalFacts": [
+      "Country: Kuwait (only appears in large text as 'KUWAIT', not in the detailed lower section; if strict wording location required for country, it's missing from details)"
+    ],
+    "legibilityIssues": [
+      "Some of the text in the lower right appears cut off or obscured, specifically lines related to agency and position counts.",
+      "Part of the agency name 'Al-Yousuf Enterprises LLP' is cut off and only partially visible, making confirmation difficult."
+    ]
+  }
+}

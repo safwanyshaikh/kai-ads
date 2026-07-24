@@ -1,0 +1,83 @@
+{
+  "id": "shipyard-sparse",
+  "industry": "Shipyard",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "d62068f6ec1ccc912ff2f0b9f7c6e93fddbd2d0d5916114c490df333eb34e323",
+  "scores": {
+    "photography": 9,
+    "typography": 8,
+    "hierarchy": 8,
+    "commercialAppeal": 8.7,
+    "recruitmentEffectiveness": 8.4,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 8.7,
+    "brandConsistency": 8.4,
+    "visualStorytelling": 9,
+    "readability": 8,
+    "mobileReadability": 8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Image shows 'MARINE CHIEF ENGINEER' prominently, but does not display full expected header 'Marine Chief Engineer — Bahrain Dry Docks'.",
+    "Spelling/fidelity: Country: Image shows 'Bahrain · Shipyard' instead of just 'Bahrain'.",
+    "Spelling/fidelity: Position: Image breaks into job title 'MARINE CHIEF ENGINEER' and '2 openings, Class 1 CoC', does not include the parenthetical '(2)' after the job title or the full phrase as expected.",
+    "Missing fact: Bahrain Dry Docks (as part of header)",
+    "Visual QA score 84/100 is below the 85 publishable bar",
+    "Visual QA: The headline hook 'Earning' is weak and does not clearly foreground the core opportunity/project/country. Compare to stronger/candidate-facing direct hooks.",
+    "Visual QA: The primary project/role/country line ('Bahrain · Shipyard') is not the most dominant element—salary and 'Earning' visually overpower. Candidate-focused hook should be larger and higher in the hierarchy.",
+    "Visual QA: Some empty/dead space in the lower right due to the large white QR block could be more visually integrated, improving overall balance.",
+    "Visual QA: Readability/contrast in the benefits section could be slightly improved—‘Benefits’ and yellow text partially merge with the background image.",
+    "Visual QA: Canvas use is sound but slightly overcrowded at the bottom third, while the color-block top eats some premium visual real estate without strong justification."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 61881,
+  "fullVisualQa": {
+    "overallScore": 84,
+    "commercialQualityScore": 87,
+    "hierarchyScore": 80,
+    "readabilityScore": 80,
+    "imageryScore": 90,
+    "canvasUtilizationScore": 78,
+    "ctaScore": 88,
+    "trustScore": 85,
+    "defects": [
+      "The headline hook 'Earning' is weak and does not clearly foreground the core opportunity/project/country. Compare to stronger/candidate-facing direct hooks.",
+      "The primary project/role/country line ('Bahrain · Shipyard') is not the most dominant element—salary and 'Earning' visually overpower. Candidate-focused hook should be larger and higher in the hierarchy.",
+      "Some empty/dead space in the lower right due to the large white QR block could be more visually integrated, improving overall balance.",
+      "Readability/contrast in the benefits section could be slightly improved—‘Benefits’ and yellow text partially merge with the background image.",
+      "Canvas use is sound but slightly overcrowded at the bottom third, while the color-block top eats some premium visual real estate without strong justification."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Strengthen candidate-facing hook: headline should be the clear, largest element, framing the opportunity (role, destination, project), not just the word 'Earning'."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "The yellow ‘Benefits’ text partly merges into the background imagery. Slightly darken the area behind benefits for optimal readability."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce the visual footprint of the white QR block or better integrate it with the lower section to avoid awkward dead space."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Image shows 'MARINE CHIEF ENGINEER' prominently, but does not display full expected header 'Marine Chief Engineer — Bahrain Dry Docks'.",
+      "Country: Image shows 'Bahrain · Shipyard' instead of just 'Bahrain'.",
+      "Position: Image breaks into job title 'MARINE CHIEF ENGINEER' and '2 openings, Class 1 CoC', does not include the parenthetical '(2)' after the job title or the full phrase as expected."
+    ],
+    "missingCriticalFacts": [
+      "Bahrain Dry Docks (as part of header)"
+    ],
+    "legibilityIssues": []
+  }
+}

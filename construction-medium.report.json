@@ -1,0 +1,90 @@
+{
+  "id": "construction-medium",
+  "industry": "Construction",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "4c65d9c0b549737a3f7e2af36bbaa6864615c002301b80a9f5569c2da8607b1f",
+  "scores": {
+    "photography": 8.4,
+    "typography": 7.8,
+    "hierarchy": 8.1,
+    "commercialAppeal": 8,
+    "recruitmentEffectiveness": 8.1,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 8,
+    "brandConsistency": 8.1,
+    "visualStorytelling": 8.4,
+    "readability": 7.8,
+    "mobileReadability": 7.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: Free food & accommodation — rendered as 'Free food & accomodation' (misspelled 'accommodation').",
+    "Spelling/fidelity: Phone: 9324995767 — partially obscured, rendered as '9324995767' but the color makes it fade and less readable.",
+    "Missing fact: Email: jobs@alyousufent.com (not present anywhere on the image)",
+    "Legibility: Phone: 9324995767 — white on light background, partially covered by a white shape, difficult to read.",
+    "Visual QA (catastrophic): Contact CTA (phone number) is partially obscured by the QR code, making critical contact information unreadable at a glance.",
+    "Visual QA score 81/100 is below the 85 publishable bar",
+    "Visual QA: Contact CTA is somewhat diminished; phone number is partially covered and hard to find at a glance due to QR overlay and muted placement.",
+    "Visual QA: QR code placement overlaps key information and appears as an afterthought, disrupting the clean contact flow.",
+    "Visual QA: Spacing and typographic hierarchy are slightly cluttered in the lower informational area, leading to visual busyness.",
+    "Visual QA: Amounts and job details buried mid-canvas—opportunity/job country line is present but could have more candidate-facing impact.",
+    "Visual QA: Canvas lower right (QR area) is wasted and blocks content rather than integrating information or visual flow."
+  ],
+  "catastrophicDefects": [
+    "Contact CTA (phone number) is partially obscured by the QR code, making critical contact information unreadable at a glance."
+  ],
+  "latencyMs": 66020,
+  "fullVisualQa": {
+    "overallScore": 81,
+    "commercialQualityScore": 80,
+    "hierarchyScore": 81,
+    "readabilityScore": 78,
+    "imageryScore": 84,
+    "canvasUtilizationScore": 77,
+    "ctaScore": 80,
+    "trustScore": 85,
+    "defects": [
+      "Contact CTA is somewhat diminished; phone number is partially covered and hard to find at a glance due to QR overlay and muted placement.",
+      "QR code placement overlaps key information and appears as an afterthought, disrupting the clean contact flow.",
+      "Spacing and typographic hierarchy are slightly cluttered in the lower informational area, leading to visual busyness.",
+      "Amounts and job details buried mid-canvas—opportunity/job country line is present but could have more candidate-facing impact.",
+      "Canvas lower right (QR area) is wasted and blocks content rather than integrating information or visual flow.",
+      "Benefits and overtime section too compressed—contrast with the job block above could be improved for readability and visual flow."
+    ],
+    "catastrophicDefects": [
+      "Contact CTA (phone number) is partially obscured by the QR code, making critical contact information unreadable at a glance."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Redesign CTA section: enlarge and distinctly place the contact number, separating it cleanly from the QR code, ensuring neither is obscured."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Adjust job/benefits/interview/verification sections for clearer separation and easier scan—reduce crowding."
+      },
+      {
+        "type": "OTHER",
+        "note": "Integrate QR code more meaningfully within the design, avoiding overlap with essential contact information."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: Free food & accommodation — rendered as 'Free food & accomodation' (misspelled 'accommodation').",
+      "Phone: 9324995767 — partially obscured, rendered as '9324995767' but the color makes it fade and less readable."
+    ],
+    "missingCriticalFacts": [
+      "Email: jobs@alyousufent.com (not present anywhere on the image)"
+    ],
+    "legibilityIssues": [
+      "Phone: 9324995767 — white on light background, partially covered by a white shape, difficult to read."
+    ]
+  }
+}

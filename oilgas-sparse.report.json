@@ -1,0 +1,88 @@
+{
+  "id": "oilgas-sparse",
+  "industry": "Oil & Gas",
+  "density": "sparse",
+  "branded": false,
+  "imageSha256": "297e11fd95cdf073a528fc03dddfe8777e7902acadf0750ed179242d550a42af",
+  "scores": {
+    "photography": 8.8,
+    "typography": 8,
+    "hierarchy": 7.4,
+    "commercialAppeal": 7.6,
+    "recruitmentEffectiveness": 7.8,
+    "trust": 8.4,
+    "luxuryMagazineQuality": 7.6,
+    "brandConsistency": null,
+    "visualStorytelling": 8.8,
+    "readability": 8,
+    "mobileReadability": 8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Image shows 'SENIOR DRILLING SUPERVISOR' (not as a header, lacks location '— Saudi Arabia').",
+    "Visual QA (catastrophic): No clear candidate-facing hook visible immediately (headline is company type, not the immediate job opportunity)",
+    "Visual QA (catastrophic): First-second attention fails: the headline draws attention to the agency/client, not the candidate project or role",
+    "Visual QA (catastrophic): Canvas utilization issue at lower right with large QR dead zone, impacting layout balance and distracting from trust/CTA",
+    "Visual QA score 78/100 is below the 85 publishable bar",
+    "Visual QA: Candidate-facing hook (project + destination) is weaker than optimal; 'ARAMCO CONTRACTOR' is dominant rather than the specific job opportunity",
+    "Visual QA: Agency name appears in the footer only – correct placement, but overall trust band feels understated relative to opportunity",
+    "Visual QA: Typography is generally clear, but top half is far more dominant than the key role and CTA text—hierarchy needs improvement",
+    "Visual QA: Dead canvas zone in the bottom right due to oversized QR box, crowding out footer trust and CTA info and creating imbalance",
+    "Visual QA: Main job title is large but still slightly overpowered by 'ARAMCO CONTRACTOR'; opportunity clarity could be stronger"
+  ],
+  "catastrophicDefects": [
+    "No clear candidate-facing hook visible immediately (headline is company type, not the immediate job opportunity)",
+    "First-second attention fails: the headline draws attention to the agency/client, not the candidate project or role",
+    "Canvas utilization issue at lower right with large QR dead zone, impacting layout balance and distracting from trust/CTA"
+  ],
+  "latencyMs": 63712,
+  "fullVisualQa": {
+    "overallScore": 78,
+    "commercialQualityScore": 76,
+    "hierarchyScore": 74,
+    "readabilityScore": 80,
+    "imageryScore": 88,
+    "canvasUtilizationScore": 65,
+    "ctaScore": 73,
+    "trustScore": 84,
+    "defects": [
+      "Candidate-facing hook (project + destination) is weaker than optimal; 'ARAMCO CONTRACTOR' is dominant rather than the specific job opportunity",
+      "Agency name appears in the footer only – correct placement, but overall trust band feels understated relative to opportunity",
+      "Typography is generally clear, but top half is far more dominant than the key role and CTA text—hierarchy needs improvement",
+      "Dead canvas zone in the bottom right due to oversized QR box, crowding out footer trust and CTA info and creating imbalance",
+      "Main job title is large but still slightly overpowered by 'ARAMCO CONTRACTOR'; opportunity clarity could be stronger",
+      "Contact/CTA details are crowded by QR and a little smaller than ideal for WhatsApp/mobile"
+    ],
+    "catastrophicDefects": [
+      "No clear candidate-facing hook visible immediately (headline is company type, not the immediate job opportunity)",
+      "First-second attention fails: the headline draws attention to the agency/client, not the candidate project or role",
+      "Canvas utilization issue at lower right with large QR dead zone, impacting layout balance and distracting from trust/CTA"
+    ],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Rebalance text hierarchy so the specific job opportunity (role and country) is the single largest and most prominent element, not 'ARAMCO CONTRACTOR'."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase CTA (contact phone/email) size and spacing – ensure it's immediately visible and dominant near the bottom."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce dead space caused by the large QR box and reposition to avoid crowding trust/CTA information."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Image shows 'SENIOR DRILLING SUPERVISOR' (not as a header, lacks location '— Saudi Arabia')."
+    ],
+    "missingCriticalFacts": [],
+    "legibilityIssues": []
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "id": "manufacturing-dense",
+  "industry": "Manufacturing",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "d9bf5edee7e174254cb31a933dee959b4c934938b067a37d80bd875df1f1993a",
+  "scores": {
+    "photography": 8.8,
+    "typography": 7.8,
+    "hierarchy": 8.2,
+    "commercialAppeal": 7.4,
+    "recruitmentEffectiveness": 8.1,
+    "trust": 8.6,
+    "luxuryMagazineQuality": 7.4,
+    "brandConsistency": 8.1,
+    "visualStorytelling": 8.8,
+    "readability": 7.8,
+    "mobileReadability": 7.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: \"Interv@w fact\" vs expected \"Interview: Walk-in 29 July at Hyderabad\"",
+    "Missing fact: Country: Oman",
+    "Missing fact: Position: Refrigeration Technician (2)",
+    "Missing fact: Position: Mechanical Fitter (4)",
+    "Missing fact: Position: Welder Fabricator (5)",
+    "Missing fact: Position: Store Assistant (6)",
+    "Missing fact: Position: Forklift Driver (6)",
+    "Missing fact: Position: Cleaner Industrial (3)",
+    "Missing fact: Phone: 9324995767 (number is present but not labeled as \"Phone\")",
+    "Missing fact: Email: jobs@alyousufent.com (email is present but partially covered and not fully legible)",
+    "Missing fact: Agency: Al-Yousuf Enterprises LLP (agency name is partially obstructed)",
+    "Missing fact: Interview: Walk-in 29 July at Hyderabad (interview date and location missing)",
+    "Legibility: Email: jobs@alyousufent.com is mostly covered by a white block and cannot be fully read.",
+    "Legibility: Agency: Al-Yousuf Enterprises LLP is partially cut off by design at lower right.",
+    "Legibility: Interview: Walk-in 29 July at Hyderabad is not fully visible (partially covered by QR code/white block).",
+    "Visual QA (catastrophic): Agency trust footer partially blocked/obscured by a QR and white background, making important verification information (agency name and some contact details) unreadable",
+    "Visual QA (catastrophic): Contact CTA not sufficiently prominent for immediate action",
+    "Visual QA score 81/100 is below the 85 publishable bar",
+    "Visual QA: Contact CTA is small and dominated by QR/whitespace, with the phone number not standing out and email partially obscured",
+    "Visual QA: Interview/contract summary lacks visual emphasis—a secondary yellow ribbon could improve hierarchy",
+    "Visual QA: Visually, a large white block on the trust/verification footer causes a disruptive dead zone on the lower right",
+    "Visual QA: Benefits and key facts section not distinct enough, blending into job roles list",
+    "Visual QA: Some text at the lower right is partially cut off/faint (agency name)"
+  ],
+  "catastrophicDefects": [
+    "Agency trust footer partially blocked/obscured by a QR and white background, making important verification information (agency name and some contact details) unreadable",
+    "Contact CTA not sufficiently prominent for immediate action"
+  ],
+  "latencyMs": 66061,
+  "fullVisualQa": {
+    "overallScore": 81,
+    "commercialQualityScore": 74,
+    "hierarchyScore": 82,
+    "readabilityScore": 78,
+    "imageryScore": 88,
+    "canvasUtilizationScore": 82,
+    "ctaScore": 74,
+    "trustScore": 86,
+    "defects": [
+      "Contact CTA is small and dominated by QR/whitespace, with the phone number not standing out and email partially obscured",
+      "Interview/contract summary lacks visual emphasis—a secondary yellow ribbon could improve hierarchy",
+      "Visually, a large white block on the trust/verification footer causes a disruptive dead zone on the lower right",
+      "Benefits and key facts section not distinct enough, blending into job roles list",
+      "Some text at the lower right is partially cut off/faint (agency name)",
+      "TOP HEADLINE COULD HAVE EVEN MORE DOMINANT SIZE for social scrolling"
+    ],
+    "catastrophicDefects": [
+      "Agency trust footer partially blocked/obscured by a QR and white background, making important verification information (agency name and some contact details) unreadable",
+      "Contact CTA not sufficiently prominent for immediate action"
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Redesign the contact/verification block for clean readability—ensure all CTA elements (phone, email, QR) are clearly legible and visually prioritized, avoiding blocks of white that obscure agency information."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Integrate the QR, agency name, license, and contact info more harmoniously into a single band; avoid crowding and cut-off text."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Elevate the candidate-facing top line or apply more contrast to headline for stronger initial hook power."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "\"Interv@w fact\" vs expected \"Interview: Walk-in 29 July at Hyderabad\""
+    ],
+    "missingCriticalFacts": [
+      "Country: Oman",
+      "Position: Refrigeration Technician (2)",
+      "Position: Mechanical Fitter (4)",
+      "Position: Welder Fabricator (5)",
+      "Position: Store Assistant (6)",
+      "Position: Forklift Driver (6)",
+      "Position: Cleaner Industrial (3)",
+      "Phone: 9324995767 (number is present but not labeled as \"Phone\")",
+      "Email: jobs@alyousufent.com (email is present but partially covered and not fully legible)",
+      "Agency: Al-Yousuf Enterprises LLP (agency name is partially obstructed)",
+      "Interview: Walk-in 29 July at Hyderabad (interview date and location missing)"
+    ],
+    "legibilityIssues": [
+      "Email: jobs@alyousufent.com is mostly covered by a white block and cannot be fully read.",
+      "Agency: Al-Yousuf Enterprises LLP is partially cut off by design at lower right.",
+      "Interview: Walk-in 29 July at Hyderabad is not fully visible (partially covered by QR code/white block)."
+    ]
+  }
+}

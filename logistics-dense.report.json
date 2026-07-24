@@ -1,0 +1,108 @@
+{
+  "id": "logistics-dense",
+  "industry": "Logistics",
+  "density": "dense",
+  "branded": false,
+  "imageSha256": "f536d5b1ec809595904f19017e6bb0b57037a0a963fa3248f22882b2a97db940",
+  "scores": {
+    "photography": 8,
+    "typography": 8.5,
+    "hierarchy": 7,
+    "commercialAppeal": 7.5,
+    "recruitmentEffectiveness": 7.8,
+    "trust": 8,
+    "luxuryMagazineQuality": 7.5,
+    "brandConsistency": null,
+    "visualStorytelling": 8,
+    "readability": 8.5,
+    "mobileReadability": 8.5,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Tally Clerk (4 openings) — image shows: Taily Clerk (4 openings)",
+    "Spelling/fidelity: Marine Fitter (3) — image shows: Marhine Fitter (3 openings)",
+    "Spelling/fidelity: Container Repair Welder (4) — image shows: Container Repair Werder (4 openings)",
+    "Spelling/fidelity: Reefer Technician (5) — image shows: Reefer Technician (3 openings)",
+    "Spelling/fidelity: Yard Planner (6) — image shows: Yard Planner (3 openings)",
+    "Spelling/fidelity: Office Boy (4) — image shows: Office Boy (4 openings)",
+    "Spelling/fidelity: Reach Stacker Operator (2) — image shows: Reach Stacker Operator (2 ope)",
+    "Missing fact: Position: Inventory Controller (5)",
+    "Missing fact: Position: Customs Documentation Clerk (6)",
+    "Legibility: Right side of the job list, some lines are obscured or cut-off, making complete job counts and words hard to confirm for: Reefer Technician, Yard Planner, Gate Clerk, Security Officer, Office Boy.",
+    "Visual QA (catastrophic): QR footer implementation visually breaks the lower canvas with a non-integrated white rectangle, causing severe dead space and disrupting information flow.",
+    "Visual QA (catastrophic): Lower right QR zone overlays and cuts off underlying text/job titles (\"openings\", \"op\", etc.)—key factual text is not fully readable.",
+    "Visual QA (catastrophic): The bottom band lacks a proper agency trust/verification footer—no visible agency logo, verification, or RA/registration/badge, which is required for Gulf standard.",
+    "Visual QA score 78/100 is below the 85 publishable bar",
+    "Visual QA: Canvas utilization is suboptimal: lower right corner blanked out by QR zone with no visual integration.",
+    "Visual QA: QR code and overlay appear as an abrupt white block, not integrated with the canvas or panel design.",
+    "Visual QA: The opportunity/country hook is prominent, but the job list and contact block are visually crowded.",
+    "Visual QA: The agency verification/footer info is not clearly visible; contact info present but verification band is missing.",
+    "Visual QA: Small text crowding under job listings; difficult at small mobile formats."
+  ],
+  "catastrophicDefects": [
+    "QR footer implementation visually breaks the lower canvas with a non-integrated white rectangle, causing severe dead space and disrupting information flow.",
+    "Lower right QR zone overlays and cuts off underlying text/job titles (\"openings\", \"op\", etc.)—key factual text is not fully readable.",
+    "The bottom band lacks a proper agency trust/verification footer—no visible agency logo, verification, or RA/registration/badge, which is required for Gulf standard."
+  ],
+  "latencyMs": 65456,
+  "fullVisualQa": {
+    "overallScore": 78,
+    "commercialQualityScore": 75,
+    "hierarchyScore": 70,
+    "readabilityScore": 85,
+    "imageryScore": 80,
+    "canvasUtilizationScore": 70,
+    "ctaScore": 80,
+    "trustScore": 80,
+    "defects": [
+      "Canvas utilization is suboptimal: lower right corner blanked out by QR zone with no visual integration.",
+      "QR code and overlay appear as an abrupt white block, not integrated with the canvas or panel design.",
+      "The opportunity/country hook is prominent, but the job list and contact block are visually crowded.",
+      "The agency verification/footer info is not clearly visible; contact info present but verification band is missing.",
+      "Small text crowding under job listings; difficult at small mobile formats.",
+      "Some job titles clipped/unfinished (\"ope\" for Operator; \"Werde\" instead of Worker or Welder), contributing to visual confusion even if it's factual."
+    ],
+    "catastrophicDefects": [
+      "QR footer implementation visually breaks the lower canvas with a non-integrated white rectangle, causing severe dead space and disrupting information flow.",
+      "Lower right QR zone overlays and cuts off underlying text/job titles (\"openings\", \"op\", etc.)—key factual text is not fully readable.",
+      "The bottom band lacks a proper agency trust/verification footer—no visible agency logo, verification, or RA/registration/badge, which is required for Gulf standard."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "REGENERATE_IMAGE",
+        "note": "QR block must be visually integrated (designed-in card, ribbon, or band, not white block); avoid overlaying/cutting off job content."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Redistribute listing and contact/benefit/cta sections to avoid crowding and ensure all job titles are fully visible."
+      },
+      {
+        "type": "OTHER",
+        "note": "Add a unified agency trust/verification footer to meet commercial Gulf recruitment standards."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Tally Clerk (4 openings) — image shows: Taily Clerk (4 openings)",
+      "Marine Fitter (3) — image shows: Marhine Fitter (3 openings)",
+      "Container Repair Welder (4) — image shows: Container Repair Werder (4 openings)",
+      "Reefer Technician (5) — image shows: Reefer Technician (3 openings)",
+      "Yard Planner (6) — image shows: Yard Planner (3 openings)",
+      "Office Boy (4) — image shows: Office Boy (4 openings)",
+      "Reach Stacker Operator (2) — image shows: Reach Stacker Operator (2 ope)"
+    ],
+    "missingCriticalFacts": [
+      "Position: Inventory Controller (5)",
+      "Position: Customs Documentation Clerk (6)"
+    ],
+    "legibilityIssues": [
+      "Right side of the job list, some lines are obscured or cut-off, making complete job counts and words hard to confirm for: Reefer Technician, Yard Planner, Gate Clerk, Security Officer, Office Boy."
+    ]
+  }
+}

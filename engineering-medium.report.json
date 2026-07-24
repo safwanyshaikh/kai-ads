@@ -1,0 +1,95 @@
+{
+  "id": "engineering-medium",
+  "industry": "Engineering",
+  "density": "medium",
+  "branded": false,
+  "imageSha256": "2165a1f8f2b1785210ac9909c2abb451471fc7e53605ad2c112be8a668dbb04e",
+  "scores": {
+    "photography": 9.3,
+    "typography": 7.8,
+    "hierarchy": 8.5,
+    "commercialAppeal": 8,
+    "recruitmentEffectiveness": 8.2,
+    "trust": 8,
+    "luxuryMagazineQuality": 8,
+    "brandConsistency": null,
+    "visualStorytelling": 9.3,
+    "readability": 7.8,
+    "mobileReadability": 7.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: 'EPC Contractor — Engineering Department' is rendered as 'EPG Contractor Engineering Department' (EPC vs EPG)",
+    "Spelling/fidelity: Benefit: 'Housing + transport allowance' is rendered as 'Accommodation + shortly' (wording and meaning do not match expected)",
+    "Spelling/fidelity: Interview: 'CV + technical online at Apply now' is split and partly rendered as 'CV + technical online' and text at 'Apply now' is obscured by QR code",
+    "Missing fact: Benefit: 'Housing + transport allowance' is not present as expected",
+    "Legibility: The portion of text at 'Apply now' is obscured by a QR code, making full verification of the 'Interview' fact impossible.",
+    "Visual QA (catastrophic): The QR code and associated text block obliterate part of the key information, and the 'Apply now' text is clipped/unreadable—this is a catastrophic readability/hierarchy error.",
+    "Visual QA (catastrophic): Contact CTA (apply/phone/email) is uncomfortably compressed and not immediately findable at mobile/screen glance compared to professional WhatsApp/FB/LinkedIn ads.",
+    "Visual QA score 82/100 is below the 85 publishable bar",
+    "Visual QA: QR code and 'Apply now' section overlay blocks a large portion of content, harms readability and appears sticker-like rather than designed-in.",
+    "Visual QA: Contact CTA ('Apply now', phone, email) is pushed into a crunched area and is comparatively hard to find—give it more prominence.",
+    "Visual QA: The text under the QR code ('Apply now') is clipped/overwritten with background, making it unreadable.",
+    "Visual QA: Footer trust/agency elements are present but lack clear demarcation; the company name is somewhat buried and the visual footer execution is weak.",
+    "Visual QA: Canvas utilization is suboptimal: excessive dead space at the top, and a large white block (QR code) in the corner disrupts the canvas balance."
+  ],
+  "catastrophicDefects": [
+    "The QR code and associated text block obliterate part of the key information, and the 'Apply now' text is clipped/unreadable—this is a catastrophic readability/hierarchy error.",
+    "Contact CTA (apply/phone/email) is uncomfortably compressed and not immediately findable at mobile/screen glance compared to professional WhatsApp/FB/LinkedIn ads."
+  ],
+  "latencyMs": 59893,
+  "fullVisualQa": {
+    "overallScore": 82,
+    "commercialQualityScore": 80,
+    "hierarchyScore": 85,
+    "readabilityScore": 78,
+    "imageryScore": 93,
+    "canvasUtilizationScore": 70,
+    "ctaScore": 70,
+    "trustScore": 80,
+    "defects": [
+      "QR code and 'Apply now' section overlay blocks a large portion of content, harms readability and appears sticker-like rather than designed-in.",
+      "Contact CTA ('Apply now', phone, email) is pushed into a crunched area and is comparatively hard to find—give it more prominence.",
+      "The text under the QR code ('Apply now') is clipped/overwritten with background, making it unreadable.",
+      "Footer trust/agency elements are present but lack clear demarcation; the company name is somewhat buried and the visual footer execution is weak.",
+      "Canvas utilization is suboptimal: excessive dead space at the top, and a large white block (QR code) in the corner disrupts the canvas balance.",
+      "'Earning SAR 8,000' is a strong top hook but some openings are higher/lower. While not a content rewrite problem, a more integrated top line (like 'ENGINEERING ROLES — SAUDI ARABIA | SAR 7,500-9,000') might enhance clarity."
+    ],
+    "catastrophicDefects": [
+      "The QR code and associated text block obliterate part of the key information, and the 'Apply now' text is clipped/unreadable—this is a catastrophic readability/hierarchy error.",
+      "Contact CTA (apply/phone/email) is uncomfortably compressed and not immediately findable at mobile/screen glance compared to professional WhatsApp/FB/LinkedIn ads."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Redesign QR code integration so it does not obstruct or overlap information and gives prominence to contact details/CTA—ensure all are instantly readable and feel embedded, not stickered."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce dead space at the top and rebalance content blocks to use canvas space more efficiently."
+      },
+      {
+        "type": "OTHER",
+        "note": "Footer trust panel should more clearly showcase agency/verification in a single connected band, not scattered or buried."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: 'EPC Contractor — Engineering Department' is rendered as 'EPG Contractor Engineering Department' (EPC vs EPG)",
+      "Benefit: 'Housing + transport allowance' is rendered as 'Accommodation + shortly' (wording and meaning do not match expected)",
+      "Interview: 'CV + technical online at Apply now' is split and partly rendered as 'CV + technical online' and text at 'Apply now' is obscured by QR code"
+    ],
+    "missingCriticalFacts": [
+      "Benefit: 'Housing + transport allowance' is not present as expected"
+    ],
+    "legibilityIssues": [
+      "The portion of text at 'Apply now' is obscured by a QR code, making full verification of the 'Interview' fact impossible."
+    ]
+  }
+}

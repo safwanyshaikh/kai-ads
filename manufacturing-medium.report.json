@@ -1,0 +1,66 @@
+{
+  "id": "manufacturing-medium",
+  "industry": "Manufacturing",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "00d7cced5d4013ac0a3a9bbcc5b238fabaa63d178196f81fc627b2d6a04d115f",
+  "scores": {
+    "photography": 9.5,
+    "typography": 9.3,
+    "hierarchy": 9.2,
+    "commercialAppeal": 9.2,
+    "recruitmentEffectiveness": 9.2,
+    "trust": 9.1,
+    "luxuryMagazineQuality": 9.2,
+    "brandConsistency": 9.2,
+    "visualStorytelling": 9.5,
+    "readability": 9.3,
+    "mobileReadability": 9.3,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Rolling Mill Operator (15) — SAR 3,200 (image shows \"Rolling Mill Operator SAR 3.200\" and omits the quantity (15))",
+    "Spelling/fidelity: Position: Furnace Operator (10) — SAR 3,400 (image shows \"Furnace Operator SAR 3.400\" and omits the quantity (10))",
+    "Spelling/fidelity: Position: Maintenance Fitter (12) — SAR 3,000 (image shows \"Maintenance Fitter SAR 3.000\" and omits the quantity (12))",
+    "Spelling/fidelity: Position: Electrician Industrial (10) — SAR 3,000 (image shows \"Electrician Industrial SAR 3.000\" and omits the quantity (10))",
+    "Spelling/fidelity: Position: Crane Operator EOT (8) — SAR 2,800 (image shows \"Crane Operator EOT SAR 2.800\" and omits the quantity (8))",
+    "Spelling/fidelity: Phone: 9324995767 (image shows \"Contact: 9324995767,\" with an added comma, but contact info is otherwise correct)",
+    "Spelling/fidelity: Email: jobs@alyousufent.com (image shows \"email: jobs@alyousufent.com\" and does not capitalize 'email')"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 58034,
+  "fullVisualQa": {
+    "overallScore": 92,
+    "commercialQualityScore": 92,
+    "hierarchyScore": 92,
+    "readabilityScore": 93,
+    "imageryScore": 95,
+    "canvasUtilizationScore": 90,
+    "ctaScore": 90,
+    "trustScore": 91,
+    "defects": [
+      "Interview/cta line could be slightly more prominent, but is already strong and visible.",
+      "Minor dead space in the lower-right (QR/agency panel), but not enough to significantly disrupt layout."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Rolling Mill Operator (15) — SAR 3,200 (image shows \"Rolling Mill Operator SAR 3.200\" and omits the quantity (15))",
+      "Position: Furnace Operator (10) — SAR 3,400 (image shows \"Furnace Operator SAR 3.400\" and omits the quantity (10))",
+      "Position: Maintenance Fitter (12) — SAR 3,000 (image shows \"Maintenance Fitter SAR 3.000\" and omits the quantity (12))",
+      "Position: Electrician Industrial (10) — SAR 3,000 (image shows \"Electrician Industrial SAR 3.000\" and omits the quantity (10))",
+      "Position: Crane Operator EOT (8) — SAR 2,800 (image shows \"Crane Operator EOT SAR 2.800\" and omits the quantity (8))",
+      "Phone: 9324995767 (image shows \"Contact: 9324995767,\" with an added comma, but contact info is otherwise correct)",
+      "Email: jobs@alyousufent.com (image shows \"email: jobs@alyousufent.com\" and does not capitalize 'email')"
+    ],
+    "missingCriticalFacts": [],
+    "legibilityIssues": []
+  }
+}

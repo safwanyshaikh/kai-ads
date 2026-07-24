@@ -1,0 +1,103 @@
+{
+  "id": "retail-dense",
+  "industry": "Retail",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "0ad0ec0f826a18f05b7be2b709e86e2d0a75bb4326ac6afdb2dd17ac3eeb1eeb",
+  "scores": {
+    "photography": 6.8,
+    "typography": 7.3,
+    "hierarchy": 6.2,
+    "commercialAppeal": 6.8,
+    "recruitmentEffectiveness": 7.4,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 6.8,
+    "brandConsistency": 7.4,
+    "visualStorytelling": 6.8,
+    "readability": 7.3,
+    "mobileReadability": 7.3,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.4
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: Transport - Image shows 'Transpo' (cut off, not full word 'Transport')",
+    "Spelling/fidelity: Position: Loss Prevention Officer (5) - Image shows 'Loss Prevention Officer (5 openings)' (extra word 'openings' appears, but numerical value is correct)",
+    "Spelling/fidelity: Position: Tailor (6) - Image shows 'Tailor (6 openings)' (extra word 'openings' appears, but numerical value is correct)",
+    "Spelling/fidelity: Position: Security Guard (6) - Image shows 'Security Guard (2 openings)' (expected 6, image shows 2)",
+    "Missing fact: Country: Qatar (Not shown as 'Country: Qatar', only 'Qatar · Retail' appears as headline, not as a field)",
+    "Legibility: The benefits line (Accommodation • Shared housing • Transpo...) is partially truncated on the right edge, making 'Transpo...' not fully legible, so full benefit cannot be confirmed.",
+    "Visual QA (catastrophic): No clear candidate-facing hook visible immediately; headline is generic and not project/destination compelling.",
+    "Visual QA (catastrophic): Key recruitment information (location, role, agency, opportunity) requires scanning rather than being instantly evident.",
+    "Visual QA score 74/100 is below the 85 publishable bar",
+    "Visual QA: No candidate-facing hook: the headline 'Qatar • Retail' is generic and does not strongly reframe the opportunity for candidates (no reference to project, employer, or hyper-compelling hook).",
+    "Visual QA: Visual hierarchy: the agency name/logo in the footer is proportionally large and competes with the headline for attention due to color block.",
+    "Visual QA: Headline text is prominent but lacks applicant impact; Earning opportunity is a secondary subhead, not a true hook.",
+    "Visual QA: Imagery: The stock photo is relevant but partially obscured, and the entire team fades into the background in a way that reduces energy; not a dynamic or hero-centric image.",
+    "Visual QA: Text overlays: The job list is readable but sits atop a darkened zone that visually deadens the center of the creative, flattening the composition."
+  ],
+  "catastrophicDefects": [
+    "No clear candidate-facing hook visible immediately; headline is generic and not project/destination compelling.",
+    "Key recruitment information (location, role, agency, opportunity) requires scanning rather than being instantly evident."
+  ],
+  "latencyMs": 73342,
+  "fullVisualQa": {
+    "overallScore": 74,
+    "commercialQualityScore": 68,
+    "hierarchyScore": 62,
+    "readabilityScore": 73,
+    "imageryScore": 68,
+    "canvasUtilizationScore": 80,
+    "ctaScore": 66,
+    "trustScore": 85,
+    "defects": [
+      "No candidate-facing hook: the headline 'Qatar • Retail' is generic and does not strongly reframe the opportunity for candidates (no reference to project, employer, or hyper-compelling hook).",
+      "Visual hierarchy: the agency name/logo in the footer is proportionally large and competes with the headline for attention due to color block.",
+      "Headline text is prominent but lacks applicant impact; Earning opportunity is a secondary subhead, not a true hook.",
+      "Imagery: The stock photo is relevant but partially obscured, and the entire team fades into the background in a way that reduces energy; not a dynamic or hero-centric image.",
+      "Text overlays: The job list is readable but sits atop a darkened zone that visually deadens the center of the creative, flattening the composition.",
+      "Canvas utilization: The lower part of the ad is dominated by the agency/verification/trust bar, which occupies a lot of visual real estate instead of supporting more candidate-centric content.",
+      "CTA: Walk-in/phone/email/QR are present but not highly emphasized, and the type size and color don't jump out, making rapid contact less probable.",
+      "Some minor crowding and blocks of text merge into the imagery, creating visual friction."
+    ],
+    "catastrophicDefects": [
+      "No clear candidate-facing hook visible immediately; headline is generic and not project/destination compelling.",
+      "Key recruitment information (location, role, agency, opportunity) requires scanning rather than being instantly evident."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Create a prominent, candidate-facing hook at the top — e.g., 'QATAR MEGA MALL PROJECT — 200+ Jobs' to instantly frame the opportunity."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Rebalance the text overlays and agency footer so that the job-list region is less cramped and agency/trust occupies less vertical space."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Enhance the contact CTA visually, with larger phone/email and better contrast for quick action."
+      },
+      {
+        "type": "REGENERATE_IMAGE",
+        "note": "Consider a more hero-style visual (proud candidate, retail dynamic, or imagery that excites and engages rather than a generic posed group) and ensure the image is not heavily deadened by dark overlays."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: Transport - Image shows 'Transpo' (cut off, not full word 'Transport')",
+      "Position: Loss Prevention Officer (5) - Image shows 'Loss Prevention Officer (5 openings)' (extra word 'openings' appears, but numerical value is correct)",
+      "Position: Tailor (6) - Image shows 'Tailor (6 openings)' (extra word 'openings' appears, but numerical value is correct)",
+      "Position: Security Guard (6) - Image shows 'Security Guard (2 openings)' (expected 6, image shows 2)"
+    ],
+    "missingCriticalFacts": [
+      "Country: Qatar (Not shown as 'Country: Qatar', only 'Qatar · Retail' appears as headline, not as a field)"
+    ],
+    "legibilityIssues": [
+      "The benefits line (Accommodation • Shared housing • Transpo...) is partially truncated on the right edge, making 'Transpo...' not fully legible, so full benefit cannot be confirmed."
+    ]
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "id": "shipyard-medium",
+  "industry": "Shipyard",
+  "density": "medium",
+  "branded": false,
+  "imageSha256": "0bde107e16927aca998dd50e3d31b87c7839148ef5938cc7681f7b1863edec8f",
+  "scores": {
+    "photography": 7.8,
+    "typography": 7.8,
+    "hierarchy": 8,
+    "commercialAppeal": 8,
+    "recruitmentEffectiveness": 7.7,
+    "trust": 7.9,
+    "luxuryMagazineQuality": 8,
+    "brandConsistency": null,
+    "visualStorytelling": 7.8,
+    "readability": 7.8,
+    "mobileReadability": 7.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.7
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: Accommodation + transport (rendered as \". Accommodation + tra\")",
+    "Spelling/fidelity: Interview: 20 July at Chennai (rendered as \"20 July at Chonnai\")",
+    "Missing fact: Position: Ship Fitter (25) — AED 1,800",
+    "Missing fact: Position: Marine Pipe Fitter (20) — AED 1,900",
+    "Missing fact: Position: Hull Welder 6G (30) — AED 2,200",
+    "Missing fact: Position: Blaster/Painter (15) — AED 1,600",
+    "Visual QA score 77/100 is below the 85 publishable bar",
+    "Visual QA: Contact CTA (phone/email) is relatively small and blends into other information rather than being highly prominent.",
+    "Visual QA: Canvas bottom right is blocked with a hard white box for the QR code rather than integrated—QR looks like a sticker, not designed-in.",
+    "Visual QA: Large white QR band blanks out part of the person's legs, creating an inelegant break in visual integration.",
+    "Visual QA: Bottom 'trust footer' is visually weak, lacks emphasis despite important agency details.",
+    "Visual QA: Spacing between text elements shows minor crowding, especially around 'Benefits' and 'Interviews'."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 74587,
+  "fullVisualQa": {
+    "overallScore": 77,
+    "commercialQualityScore": 80,
+    "hierarchyScore": 80,
+    "readabilityScore": 78,
+    "imageryScore": 78,
+    "canvasUtilizationScore": 70,
+    "ctaScore": 68,
+    "trustScore": 79,
+    "defects": [
+      "Contact CTA (phone/email) is relatively small and blends into other information rather than being highly prominent.",
+      "Canvas bottom right is blocked with a hard white box for the QR code rather than integrated—QR looks like a sticker, not designed-in.",
+      "Large white QR band blanks out part of the person's legs, creating an inelegant break in visual integration.",
+      "Bottom 'trust footer' is visually weak, lacks emphasis despite important agency details.",
+      "Spacing between text elements shows minor crowding, especially around 'Benefits' and 'Interviews'.",
+      "Not all text is perfectly balanced for rapid skimming; the role/country line is not the most dominant text—the wage is."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase contact information (phone/email) and ensure it stands out as a clear call-to-action. Consider a colored ribbon, enlarged text, or button treatment."
+      },
+      {
+        "type": "OTHER",
+        "note": "Integrate the QR code visually—avoid a hard-edged white box; blend it into the design with a soft panel, ribbon, or brand-colored scrim."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Increase spacing and separation between different information blocks, especially between benefits, interviews, and job details."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Make the candidate-facing hook (role/trade opportunity & destination) more visually dominant; currently 'Earning AED 2,200' overwhelms country/opportunity info."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: Accommodation + transport (rendered as \". Accommodation + tra\")",
+      "Interview: 20 July at Chennai (rendered as \"20 July at Chonnai\")"
+    ],
+    "missingCriticalFacts": [
+      "Position: Ship Fitter (25) — AED 1,800",
+      "Position: Marine Pipe Fitter (20) — AED 1,900",
+      "Position: Hull Welder 6G (30) — AED 2,200",
+      "Position: Blaster/Painter (15) — AED 1,600"
+    ],
+    "legibilityIssues": []
+  }
+}

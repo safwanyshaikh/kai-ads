@@ -1,0 +1,76 @@
+{
+  "id": "oilgas-medium",
+  "industry": "Oil & Gas",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "0953976071215af802df916e6da53c25230c37e146bfbb93f10a4515f68c54f5",
+  "scores": {
+    "photography": 9.1,
+    "typography": 9.1,
+    "hierarchy": 9.2,
+    "commercialAppeal": 8.8,
+    "recruitmentEffectiveness": 9,
+    "trust": 9,
+    "luxuryMagazineQuality": 8.8,
+    "brandConsistency": 9,
+    "visualStorytelling": 9.1,
+    "readability": 9.1,
+    "mobileReadability": 9.1,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Welder TIG 6G (12) — SAR 2,500 (image shows: \"Welder TIG 6G (12 openings)\", does not mention SAR 2,500 directly by the position, but salary is in large header text)",
+    "Spelling/fidelity: Position: Instrument Technician (8) (image shows: \"Instrument Technician (8 openings)\")",
+    "Spelling/fidelity: Position: Rotating Equipment Technician (6) (image shows: \"Rotating Equipment Technician (6 openings)\")",
+    "Spelling/fidelity: Position: Mechanical Technician (10) (image shows: \"Mechanical Technician (10 openings)\")",
+    "Spelling/fidelity: Position: Electrical Technician (9) (image shows: \"Electrical Technician (9 openings)\")",
+    "Spelling/fidelity: Interview: 14th & 15th July at Baroda (image shows: \"14th & 15th July at Baroda\" under 'INTERVIEWS DATES')",
+    "Spelling/fidelity: Interview: 18th July at Mumbai (image shows: \"18th July at Mumbai\" under 'INTERVIEWS DATES')",
+    "Missing fact: Employer: Bilfinger",
+    "Missing fact: Country: Saudi Arabia"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 62414,
+  "fullVisualQa": {
+    "overallScore": 90,
+    "commercialQualityScore": 88,
+    "hierarchyScore": 92,
+    "readabilityScore": 91,
+    "imageryScore": 91,
+    "canvasUtilizationScore": 87,
+    "ctaScore": 88,
+    "trustScore": 90,
+    "defects": [
+      "Slight crowding in the lower trust/footer section due to the QR code overlapping content area.",
+      "White overlay for QR code is somewhat abrupt and clips interview location/date info, breaking design flow."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Slight spacing issue where the QR code and white box overlap/interfere with text — rearrange lower section for a cleaner, less abrupt transition and protect textual information from being clipped."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Welder TIG 6G (12) — SAR 2,500 (image shows: \"Welder TIG 6G (12 openings)\", does not mention SAR 2,500 directly by the position, but salary is in large header text)",
+      "Position: Instrument Technician (8) (image shows: \"Instrument Technician (8 openings)\")",
+      "Position: Rotating Equipment Technician (6) (image shows: \"Rotating Equipment Technician (6 openings)\")",
+      "Position: Mechanical Technician (10) (image shows: \"Mechanical Technician (10 openings)\")",
+      "Position: Electrical Technician (9) (image shows: \"Electrical Technician (9 openings)\")",
+      "Interview: 14th & 15th July at Baroda (image shows: \"14th & 15th July at Baroda\" under 'INTERVIEWS DATES')",
+      "Interview: 18th July at Mumbai (image shows: \"18th July at Mumbai\" under 'INTERVIEWS DATES')"
+    ],
+    "missingCriticalFacts": [
+      "Employer: Bilfinger",
+      "Country: Saudi Arabia"
+    ],
+    "legibilityIssues": []
+  }
+}

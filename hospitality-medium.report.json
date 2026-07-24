@@ -1,0 +1,80 @@
+{
+  "id": "hospitality-medium",
+  "industry": "Hospitality",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "2d63bb1aa46cd54f728581e4e02b35c2959071e64b23502a77231160d928298d",
+  "scores": {
+    "photography": 8.5,
+    "typography": 8.8,
+    "hierarchy": 8.9,
+    "commercialAppeal": 8.8,
+    "recruitmentEffectiveness": 8.6,
+    "trust": 8.6,
+    "luxuryMagazineQuality": 8.8,
+    "brandConsistency": 8.6,
+    "visualStorytelling": 8.5,
+    "readability": 8.8,
+    "mobileReadability": 8.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Front Office Agent (10) — QAR 2,200: Shown as \"Front Office Agent 10 openings) QAR 2.200\" (uses a period \".\" instead of comma \",\" in salary)",
+    "Spelling/fidelity: Housekeeping Attendant (30) — QAR 1,600: Shown as \"Housekeeping Attendant (30 openings) QAR 1.600\" (uses a period \".\" instead of comma \",\" in salary)",
+    "Spelling/fidelity: Waiter/Waitress (25) — QAR 1,800: Shown as \"Waiter/Waitress 25 openings) QAR 1.800\" (uses a period \".\" instead of comma \",\" in salary)",
+    "Spelling/fidelity: Barista (8) — QAR 2,000: Shown as \"Barista 8 openings) QAR 2.000\" (uses a period \".\" instead of comma \",\" in salary)",
+    "Spelling/fidelity: Bell Attendant (6) — QAR 1,700: Shown as \"Bell Attendant 6 openings) QAR 1.700\" (uses a period \".\" instead of comma \",\" in salary)",
+    "Spelling/fidelity: Benefit: Shared accommodation: Shown only as \"ACCOMMODATION\", \"Shared\" is missing",
+    "Missing fact: Country: Qatar",
+    "Legibility: The right edge of the line \"ACCOMMODATION | DUTY MEALS | MEDICAL\" is partially obscured but the text is mostly legible."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 59459,
+  "fullVisualQa": {
+    "overallScore": 86,
+    "commercialQualityScore": 88,
+    "hierarchyScore": 89,
+    "readabilityScore": 88,
+    "imageryScore": 85,
+    "canvasUtilizationScore": 80,
+    "ctaScore": 83,
+    "trustScore": 86,
+    "defects": [
+      "Significant dead zone in the bottom-right corner where the QR code sits inside a large white box, creating an unbalanced area of unused canvas.",
+      "The contact CTA (phone/email) is present and moderately prominent, but could benefit from slightly stronger visual emphasis or dedicated spacing.",
+      "Interview details are clear, but slight crowding with the contact information—improving vertical spacing would aid clarity."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce the visual weight of the QR code container and better integrate the code to avoid a large, unjustified white block that creates a dead zone."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Slightly increase the prominence and visual separation of the contact information and interview details for immediate accessibility."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Front Office Agent (10) — QAR 2,200: Shown as \"Front Office Agent 10 openings) QAR 2.200\" (uses a period \".\" instead of comma \",\" in salary)",
+      "Housekeeping Attendant (30) — QAR 1,600: Shown as \"Housekeeping Attendant (30 openings) QAR 1.600\" (uses a period \".\" instead of comma \",\" in salary)",
+      "Waiter/Waitress (25) — QAR 1,800: Shown as \"Waiter/Waitress 25 openings) QAR 1.800\" (uses a period \".\" instead of comma \",\" in salary)",
+      "Barista (8) — QAR 2,000: Shown as \"Barista 8 openings) QAR 2.000\" (uses a period \".\" instead of comma \",\" in salary)",
+      "Bell Attendant (6) — QAR 1,700: Shown as \"Bell Attendant 6 openings) QAR 1.700\" (uses a period \".\" instead of comma \",\" in salary)",
+      "Benefit: Shared accommodation: Shown only as \"ACCOMMODATION\", \"Shared\" is missing"
+    ],
+    "missingCriticalFacts": [
+      "Country: Qatar"
+    ],
+    "legibilityIssues": [
+      "The right edge of the line \"ACCOMMODATION | DUTY MEALS | MEDICAL\" is partially obscured but the text is mostly legible."
+    ]
+  }
+}

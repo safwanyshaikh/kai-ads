@@ -1,0 +1,136 @@
+{
+  "id": "construction-dense",
+  "industry": "Construction",
+  "density": "dense",
+  "branded": false,
+  "imageSha256": "d716e0ceff886213aeee45e164f2de73c233301e90df0cedfee89cad5bae8c79",
+  "scores": {
+    "photography": 8.8,
+    "typography": 6.8,
+    "hierarchy": 8,
+    "commercialAppeal": 7.5,
+    "recruitmentEffectiveness": 7.7,
+    "trust": 8.3,
+    "luxuryMagazineQuality": 7.5,
+    "brandConsistency": null,
+    "visualStorytelling": 8.8,
+    "readability": 6.8,
+    "mobileReadability": 6.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.7
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: QC Inspector Civil (expected) vs. OC Inspector Civil (image)",
+    "Spelling/fidelity: Land Surveyor Assistant (4) (expected) vs. Land Surveyor Assistant (image)—number missing",
+    "Spelling/fidelity: Grader Operator (3) (expected) vs. Grader Operator (image)—number missing",
+    "Spelling/fidelity: Roller Operator (4) (expected) vs. Roller Operator (image)—number missing",
+    "Spelling/fidelity: Dump Truck Driver (5) (expected) vs. Dump Truck Driver (image)—number missing",
+    "Spelling/fidelity: Surveyor (6) (expected) vs. Surveyor (image)—number missing",
+    "Spelling/fidelity: Lab Technician (2) (expected) vs. Lab Technician (image)—number missing",
+    "Spelling/fidelity: Concrete Foreman (6) (expected) vs. Concrete Foreman (image)—number missing",
+    "Spelling/fidelity: Pipe Layer (2) (expected) vs. Pipe Layer (image)—number missing",
+    "Spelling/fidelity: Drainage Supervisor (3) (expected) vs. Drainage Supervisor (image)—number missing",
+    "Spelling/fidelity: Road Marking Technician (4) (expected) vs. Road Marking Technician (image)—number missing",
+    "Spelling/fidelity: Safety Officer NEBOSH (5) (expected) vs. Safety Officer NEBOSH (image)—number missing",
+    "Spelling/fidelity: First Aider (6) (expected) vs. First Aider (image)—number missing",
+    "Spelling/fidelity: Storekeeper (2) (expected) vs. Storekeeper (image)—number missing",
+    "Spelling/fidelity: Timekeeper (3) (expected) vs. Timakeeper (image)—spelled 'Timakeeper' on image and number missing",
+    "Spelling/fidelity: Camp Boss (4) (expected) vs. Camp Boss (image)—number missing",
+    "Spelling/fidelity: Cook (5) (expected) vs. Cook (image)—number missing",
+    "Spelling/fidelity: Cleaner (6) (expected) vs. Cleaner (image)—appears twice on image with number missing",
+    "Missing fact: Country: Qatar",
+    "Missing fact: Agency: Al-Yousuf Enterprises LLP",
+    "Visual QA (catastrophic): The contact CTA is hard to find due to low emphasis, crowding, and blending into the bottom band.",
+    "Visual QA (catastrophic): QR code interrupts information, sits poorly, and lacks contextual design—it looks like a pasted-on sticker, not a designed element.",
+    "Visual QA (catastrophic): Key recruitment information (vacancies/benefits/interview/contacts) requires careful reading and scanning; not instantly clear.",
+    "Visual QA score 77/100 is below the 85 publishable bar",
+    "Visual QA: Contact CTA (phone/email) is not prominent enough and crowded at the bottom.",
+    "Visual QA: Readability suffers from white text on a dark red background, especially in crowded information sections.",
+    "Visual QA: Canvas utilization is suboptimal, with the lower right blocked by a large, harsh rectangular QR sticker that disrupts balance.",
+    "Visual QA: Benefits and interview detail line blends into footer area without clear separation or emphasis.",
+    "Visual QA: The agency trust/license/verification data is present, but not highlighted or visually integrated—it appears as legal small print."
+  ],
+  "catastrophicDefects": [
+    "The contact CTA is hard to find due to low emphasis, crowding, and blending into the bottom band.",
+    "QR code interrupts information, sits poorly, and lacks contextual design—it looks like a pasted-on sticker, not a designed element.",
+    "Key recruitment information (vacancies/benefits/interview/contacts) requires careful reading and scanning; not instantly clear."
+  ],
+  "latencyMs": 69683,
+  "fullVisualQa": {
+    "overallScore": 77,
+    "commercialQualityScore": 75,
+    "hierarchyScore": 80,
+    "readabilityScore": 68,
+    "imageryScore": 88,
+    "canvasUtilizationScore": 72,
+    "ctaScore": 65,
+    "trustScore": 83,
+    "defects": [
+      "Contact CTA (phone/email) is not prominent enough and crowded at the bottom.",
+      "Readability suffers from white text on a dark red background, especially in crowded information sections.",
+      "Canvas utilization is suboptimal, with the lower right blocked by a large, harsh rectangular QR sticker that disrupts balance.",
+      "Benefits and interview detail line blends into footer area without clear separation or emphasis.",
+      "The agency trust/license/verification data is present, but not highlighted or visually integrated—it appears as legal small print.",
+      "No dedicated scrim or overlay for the job list and critical details—looks cramped and blends into background.",
+      "Two occurrences of 'First Aider' and 'Storekeeper' in job list (doubtful if intentional; visually creates duplication)."
+    ],
+    "catastrophicDefects": [
+      "The contact CTA is hard to find due to low emphasis, crowding, and blending into the bottom band.",
+      "QR code interrupts information, sits poorly, and lacks contextual design—it looks like a pasted-on sticker, not a designed element.",
+      "Key recruitment information (vacancies/benefits/interview/contacts) requires careful reading and scanning; not instantly clear."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the prominence, size, and separation of contact information (phone, email), and move it higher for immediate visibility."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Add more spacing between major content blocks—especially between roles, benefits, interview, CTA, and trust footer."
+      },
+      {
+        "type": "OTHER",
+        "note": "Integrate the QR code into the footer or sidebar with contextual labeling, so it feels like a deliberate design element instead of a sticker."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Although 'QATAR CONSTRUCTION' is large, the subtext about the opportunity/program/interview should also be more visually elevated."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Rework the contrast for white text against background in dense copy areas for easier legibility."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "QC Inspector Civil (expected) vs. OC Inspector Civil (image)",
+      "Land Surveyor Assistant (4) (expected) vs. Land Surveyor Assistant (image)—number missing",
+      "Grader Operator (3) (expected) vs. Grader Operator (image)—number missing",
+      "Roller Operator (4) (expected) vs. Roller Operator (image)—number missing",
+      "Dump Truck Driver (5) (expected) vs. Dump Truck Driver (image)—number missing",
+      "Surveyor (6) (expected) vs. Surveyor (image)—number missing",
+      "Lab Technician (2) (expected) vs. Lab Technician (image)—number missing",
+      "Concrete Foreman (6) (expected) vs. Concrete Foreman (image)—number missing",
+      "Pipe Layer (2) (expected) vs. Pipe Layer (image)—number missing",
+      "Drainage Supervisor (3) (expected) vs. Drainage Supervisor (image)—number missing",
+      "Road Marking Technician (4) (expected) vs. Road Marking Technician (image)—number missing",
+      "Safety Officer NEBOSH (5) (expected) vs. Safety Officer NEBOSH (image)—number missing",
+      "First Aider (6) (expected) vs. First Aider (image)—number missing",
+      "Storekeeper (2) (expected) vs. Storekeeper (image)—number missing",
+      "Timekeeper (3) (expected) vs. Timakeeper (image)—spelled 'Timakeeper' on image and number missing",
+      "Camp Boss (4) (expected) vs. Camp Boss (image)—number missing",
+      "Cook (5) (expected) vs. Cook (image)—number missing",
+      "Cleaner (6) (expected) vs. Cleaner (image)—appears twice on image with number missing"
+    ],
+    "missingCriticalFacts": [
+      "Country: Qatar",
+      "Agency: Al-Yousuf Enterprises LLP"
+    ],
+    "legibilityIssues": []
+  }
+}

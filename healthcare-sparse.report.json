@@ -1,0 +1,63 @@
+{
+  "id": "healthcare-sparse",
+  "industry": "Healthcare",
+  "density": "sparse",
+  "branded": false,
+  "imageSha256": "68f66a9931abf9cd329f476920c0553036044f05d2bf2a346eda827461d44cd5",
+  "scores": {
+    "photography": 8.5,
+    "typography": 9,
+    "hierarchy": 8.7,
+    "commercialAppeal": 8.8,
+    "recruitmentEffectiveness": 8.7,
+    "trust": 8.6,
+    "luxuryMagazineQuality": 8.8,
+    "brandConsistency": null,
+    "visualStorytelling": 8.5,
+    "readability": 9,
+    "mobileReadability": 9,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position salary: Rendered as 'KWD 3.200' instead of 'KWD 3,200'",
+    "Missing fact: Country: Kuwait (The word 'Kuwait' is present but not specifically in a fact field labeled 'Country')"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 63207,
+  "fullVisualQa": {
+    "overallScore": 87,
+    "commercialQualityScore": 88,
+    "hierarchyScore": 87,
+    "readabilityScore": 90,
+    "imageryScore": 85,
+    "canvasUtilizationScore": 86,
+    "ctaScore": 85,
+    "trustScore": 86,
+    "defects": [
+      "Slightly generic hospital imagery lacks unique identity but remains highly relevant.",
+      "Dual listing of contact email (main advert + trust footer band) is close to duplication, could be slightly more compact.",
+      "White panel for QR/contact at bottom right slightly interrupts flow—could be visually integrated more smoothly."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Better visually integrate QR/contact band at bottom without abrupt white block—use a smoother footer integration for enhanced visual flow."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position salary: Rendered as 'KWD 3.200' instead of 'KWD 3,200'"
+    ],
+    "missingCriticalFacts": [
+      "Country: Kuwait (The word 'Kuwait' is present but not specifically in a fact field labeled 'Country')"
+    ],
+    "legibilityIssues": []
+  }
+}

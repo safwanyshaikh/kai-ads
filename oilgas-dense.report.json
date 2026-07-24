@@ -1,0 +1,128 @@
+{
+  "id": "oilgas-dense",
+  "industry": "Oil & Gas",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "6116d78e8388632b435f1de7a39ff6f22b58d0f7cc28c84389d87d9c5056be91",
+  "scores": {
+    "photography": 6.7,
+    "typography": 7.5,
+    "hierarchy": 6.5,
+    "commercialAppeal": 6.5,
+    "recruitmentEffectiveness": 6.7,
+    "trust": 7,
+    "luxuryMagazineQuality": 6.5,
+    "brandConsistency": 6.7,
+    "visualStorytelling": 6.7,
+    "readability": 7.5,
+    "mobileReadability": 7.5,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.7
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Expected 'Halliburton Field Services — Mass Recruitment' but image shows only 'HALLIBURTON' at top and 'OIL & GAS' as a main header; 'Field Services — Mass Recruitment' is missing or not visible as header.",
+    "Spelling/fidelity: Position: Expected 'Scaffolders (3)' but image shows 'Craffolders'.",
+    "Spelling/fidelity: Position: 'Coiled Tubing (5)' vs image: Left column 'Coiled Tubing' (no number), right column 'Coiled Tubing 6 openings' (should be 5 openings per provided facts).",
+    "Spelling/fidelity: Position: 'Baroid Fluids (5)' vs image: 'Barold Fluids 5 openings' (spelling 'Barold' instead of 'Baroid').",
+    "Spelling/fidelity: Position: 'Production Solutions (6)' vs image: 'Production Solutions 5 openings' (should be 6 openings, not 5).",
+    "Spelling/fidelity: Position: 'Heavy Drivers (6)' vs image: 'Heavy Drivers' (no number; right column positions have numbers, left does not).",
+    "Spelling/fidelity: Position: 'Warehouse Keepers (5)' vs image: 'Warehouse Keepers 5 openings' but not listed in the left column.",
+    "Spelling/fidelity: Position: 'Riggers Level 3 (2)' vs image: Listed twice, left column 'Riggers Level 3', right column 'Riggers Level 3 2 openings'.",
+    "Spelling/fidelity: Position: 'Crane Operators (4)' vs image: Only in right column as 'Crane Operators 4 openings', not in left column.",
+    "Spelling/fidelity: Benefit: Image shows 'BENEFITS: Company transport, Medical insurance' but in low contrast and hard to read.",
+    "Missing fact: Header: 'Field Services — Mass Recruitment' not present as a visible header.",
+    "Missing fact: Employer: 'Halliburton' as employer line missing explicitly—it appears as a logo/header, not as an explicit employer line.",
+    "Missing fact: Country: 'Saudi Arabia' is visible but as part of 'SAUDI ARABIA • OIL & GAS'.",
+    "Legibility: The benefits section ('Company transport, Medical insurance') is present in a faint, low-contrast font over a light background, making it hard to read.",
+    "Legibility: The interview information ('Online screening at Shortlisted candidates') is also in very low contrast and hard to read.",
+    "Visual QA (catastrophic): No clear candidate-facing hook as the dominant headline (agency name is largest on canvas)",
+    "Visual QA (catastrophic): Key opportunity (project + country/sector) does not pass the three-second visual clarity test (project, role, location) — forced careful reading",
+    "Visual QA (catastrophic): Contact CTA is not prominent enough; easy to overlook, not competitive for social/mobile",
+    "Visual QA score 67/100 is below the 85 publishable bar",
+    "Visual QA: Agency name is the dominant headline, not a candidate-facing hook about the opportunity",
+    "Visual QA: Key recruitment details (about the project, country, roles) are less visually prominent than the agency/corporate brand",
+    "Visual QA: Contact CTA is not prominent or visually dominant; phone and email are at the bottom in small size",
+    "Visual QA: Verification/trust/agency identity info crowds the bottom band, but is not clearly separated in a footer or distinct trust block",
+    "Visual QA: QR code is present but looks like an afterthought sticker, not visually integrated or designed-in"
+  ],
+  "catastrophicDefects": [
+    "No clear candidate-facing hook as the dominant headline (agency name is largest on canvas)",
+    "Key opportunity (project + country/sector) does not pass the three-second visual clarity test (project, role, location) — forced careful reading",
+    "Contact CTA is not prominent enough; easy to overlook, not competitive for social/mobile"
+  ],
+  "latencyMs": 65670,
+  "fullVisualQa": {
+    "overallScore": 67,
+    "commercialQualityScore": 65,
+    "hierarchyScore": 65,
+    "readabilityScore": 75,
+    "imageryScore": 67,
+    "canvasUtilizationScore": 60,
+    "ctaScore": 60,
+    "trustScore": 70,
+    "defects": [
+      "Agency name is the dominant headline, not a candidate-facing hook about the opportunity",
+      "Key recruitment details (about the project, country, roles) are less visually prominent than the agency/corporate brand",
+      "Contact CTA is not prominent or visually dominant; phone and email are at the bottom in small size",
+      "Verification/trust/agency identity info crowds the bottom band, but is not clearly separated in a footer or distinct trust block",
+      "QR code is present but looks like an afterthought sticker, not visually integrated or designed-in",
+      "Significant dead canvas zones (upper and mid portions are dominated by decorative but muted imagery, pushing job info to the bottom third)",
+      "Background imagery of the refinery is strong but partially wasted by text placement/crowding and size of bottom list",
+      "Repeated 'coiled tubing' in jobs listed (likely a content issue but also adds visual clutter)"
+    ],
+    "catastrophicDefects": [
+      "No clear candidate-facing hook as the dominant headline (agency name is largest on canvas)",
+      "Key opportunity (project + country/sector) does not pass the three-second visual clarity test (project, role, location) — forced careful reading",
+      "Contact CTA is not prominent enough; easy to overlook, not competitive for social/mobile"
+    ],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Replace agency name as dominant headline with a strong candidate-facing hook that clearly states the opportunity and country (e.g., 'HALLIBURTON — SAUDI PROJECT, OIL & GAS POSITIONS')."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the size/prominence of the contact/CTA area. Use color, size, or icon treatment so phone and email immediately stand out, especially for mobile viewing."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce dead zone in image and rebalance visual hierarchy so job list doesn't feel compressed at the canvas bottom. Text/image integration needed for dynamic layout."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Increase distinction between text overlays and background image to ensure perfect readability — scrims or stronger overlays may be needed for role titles, CTA, QR."
+      },
+      {
+        "type": "OTHER",
+        "note": "Make QR code visually integrated — currently it looks pasted or sticker-like, which reduces the design professionalism."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Expected 'Halliburton Field Services — Mass Recruitment' but image shows only 'HALLIBURTON' at top and 'OIL & GAS' as a main header; 'Field Services — Mass Recruitment' is missing or not visible as header.",
+      "Position: Expected 'Scaffolders (3)' but image shows 'Craffolders'.",
+      "Position: 'Coiled Tubing (5)' vs image: Left column 'Coiled Tubing' (no number), right column 'Coiled Tubing 6 openings' (should be 5 openings per provided facts).",
+      "Position: 'Baroid Fluids (5)' vs image: 'Barold Fluids 5 openings' (spelling 'Barold' instead of 'Baroid').",
+      "Position: 'Production Solutions (6)' vs image: 'Production Solutions 5 openings' (should be 6 openings, not 5).",
+      "Position: 'Heavy Drivers (6)' vs image: 'Heavy Drivers' (no number; right column positions have numbers, left does not).",
+      "Position: 'Warehouse Keepers (5)' vs image: 'Warehouse Keepers 5 openings' but not listed in the left column.",
+      "Position: 'Riggers Level 3 (2)' vs image: Listed twice, left column 'Riggers Level 3', right column 'Riggers Level 3 2 openings'.",
+      "Position: 'Crane Operators (4)' vs image: Only in right column as 'Crane Operators 4 openings', not in left column.",
+      "Benefit: Image shows 'BENEFITS: Company transport, Medical insurance' but in low contrast and hard to read."
+    ],
+    "missingCriticalFacts": [
+      "Header: 'Field Services — Mass Recruitment' not present as a visible header.",
+      "Employer: 'Halliburton' as employer line missing explicitly—it appears as a logo/header, not as an explicit employer line.",
+      "Country: 'Saudi Arabia' is visible but as part of 'SAUDI ARABIA • OIL & GAS'."
+    ],
+    "legibilityIssues": [
+      "The benefits section ('Company transport, Medical insurance') is present in a faint, low-contrast font over a light background, making it hard to read.",
+      "The interview information ('Online screening at Shortlisted candidates') is also in very low contrast and hard to read."
+    ]
+  }
+}
