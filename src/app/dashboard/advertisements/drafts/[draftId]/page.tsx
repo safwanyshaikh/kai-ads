@@ -38,7 +38,15 @@ export default async function AdvertisementDraftPage({
       <DraftWorkspace
         draftId={draft.id}
         sourceType={draft.sourceType}
-        hasRawText={Boolean(draft.rawText)}
+        hasRawText={Boolean(
+          // Composer drafts: instructions or attachments are extraction
+          // sources exactly like pasted text — without this, an
+          // instructions-only or attachments-only draft would skip
+          // straight to the manual fallback form.
+          draft.rawText ||
+            draft.instructions ||
+            (Array.isArray(draft.attachments) && draft.attachments.length > 0),
+        )}
         initialStatus={draft.status}
       />
     </DashboardShell>

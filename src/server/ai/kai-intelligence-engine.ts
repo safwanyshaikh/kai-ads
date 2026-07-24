@@ -1,14 +1,27 @@
 import { getAiExtractionToolkit, type AiExtractionToolkit } from "@/server/ai";
 import { fetchAndProcessSourceFile } from "@/server/ai/document-processing.service";
+import { buildMergedExtractionText, type AttachmentText } from "@/server/ai/extraction-input-merge";
 import { AiInvalidResponseError } from "@/server/ai/openai/errors";
 import type { AiExtractionInput } from "@/server/ai/types";
 import type { ExtractionResult } from "@/server/ai/extraction-result.schema";
 import { ConflictError } from "@/lib/errors";
 
+/** One staged composer attachment as stored on AdvertisementDraft.attachments. */
+export interface DraftAttachment {
+  url: string;
+  sourceType: "PDF" | "DOCX" | "IMAGE" | "WHATSAPP_SCREENSHOT";
+  fileName: string;
+  mimeType: string;
+}
+
 interface KaiIntelligenceEngineParams {
   sourceType: "PASTE_TEXT" | "PDF" | "DOCX" | "IMAGE" | "WHATSAPP_SCREENSHOT";
   rawText?: string | null;
   sourceFileUrl?: string | null;
+  /** ChatGPT-style composer: typed guidance accompanying the sources. */
+  instructions?: string | null;
+  /** ChatGPT-style composer: every staged file. When set, sourceFileUrl is unused. */
+  attachments?: DraftAttachment[] | null;
   /** Dependency injection seam for tests — pass a fake toolkit instead of the real OpenAI-backed one. */
   toolkit?: AiExtractionToolkit;
 }
@@ -39,13 +52,17 @@ export async function runKaiIntelligenceEngine(
   params: KaiIntelligenceEngineParams,
 ): Promise<KaiIntelligenceEngineOutcome> {
   const toolkit = params.toolkit ?? getAiExtractionToolkit();
-  const input = await buildExtractionInput(params);
+  const { input, mergeWarnings } = await buildExtractionInput(params);
 
   if (toolkit.composite) {
     const { result, usage } = await toolkit.composite.extractAll(input);
     if (!result.found || !result.value) {
       throw new AiInvalidResponseError("no structured result was returned");
     }
+    // Composer merge caveats (e.g. an image attachment that couldn't be
+    // transcribed alongside text sources) surface as ordinary extraction
+    // warnings — visible to the recruiter, never silently dropped.
+    result.value.warnings = [...result.value.warnings, ...mergeWarnings];
     return {
       result: result.value,
       provider: toolkit.composite.name,
@@ -59,15 +76,107 @@ export async function runKaiIntelligenceEngine(
   // No composite capability offered (e.g. a minimal provider implementing
   // only the seven required interfaces). Reassemble from those instead —
   // this loses per-field confidence nuance but stays fully functional.
-  return reassembleFromRequiredInterfaces(toolkit, input);
+  const outcome = await reassembleFromRequiredInterfaces(toolkit, input);
+  outcome.result.warnings = [...outcome.result.warnings, ...mergeWarnings];
+  return outcome;
 }
 
-async function buildExtractionInput(params: KaiIntelligenceEngineParams): Promise<AiExtractionInput> {
+interface BuiltExtractionInput {
+  input: AiExtractionInput;
+  /** Merge caveats to append to the extraction result's warnings — never content. */
+  mergeWarnings: string[];
+}
+
+/**
+ * ChatGPT-style composer path: several attachments and/or typed
+ * instructions on one draft. Every PDF/DOCX attachment is converted to
+ * text through the same processing pipeline a single upload uses; the
+ * texts are then merged (instructions -> rawText -> attachments, see
+ * buildMergedExtractionText) into one text input.
+ *
+ * Images are the constraint: the provider contract (AiExtractionInput)
+ * accepts exactly one image, and there is no standalone per-image
+ * transcription capability to call once per screenshot — so rather than
+ * invent one (or worse, invent content), images fall back deliberately:
+ * with no text from any source, the FIRST image goes through the
+ * existing single-image vision path and the rest are reported skipped;
+ * with text present, the text wins and the images are reported as noted
+ * but not transcribed. NEVER fabricated — Truth Brain (Principle 1).
+ */
+async function buildComposerExtractionInput(
+  params: KaiIntelligenceEngineParams,
+): Promise<BuiltExtractionInput> {
+  const attachments = params.attachments ?? [];
+  const documentAttachments = attachments.filter(
+    (a) => a.sourceType === "PDF" || a.sourceType === "DOCX",
+  );
+  const imageAttachments = attachments.filter(
+    (a) => a.sourceType === "IMAGE" || a.sourceType === "WHATSAPP_SCREENSHOT",
+  );
+
+  // Sequential on purpose: each fetch+parse can be memory-heavy (15MB
+  // cap per file) and attachment counts are small (max 10).
+  const attachmentTexts: AttachmentText[] = [];
+  for (const attachment of documentAttachments) {
+    const processed = await fetchAndProcessSourceFile(attachment.url, attachment.sourceType);
+    if (processed.kind === "text") {
+      attachmentTexts.push({ fileName: attachment.fileName, text: processed.text });
+    }
+  }
+
+  const mergedText = buildMergedExtractionText({
+    instructions: params.instructions,
+    rawText: params.rawText,
+    attachmentTexts,
+  });
+
+  if (mergedText) {
+    const mergeWarnings =
+      imageAttachments.length > 0
+        ? [
+            `Image attachment(s) ${imageAttachments.map((a) => a.fileName).join(", ")} were noted but not transcribed — extraction used the text sources.`,
+          ]
+        : [];
+    return { input: { text: mergedText, sourceType: params.sourceType }, mergeWarnings };
+  }
+
+  if (imageAttachments.length > 0) {
+    const [first, ...skipped] = imageAttachments;
+    const processed = await fetchAndProcessSourceFile(first.url, first.sourceType);
+    if (processed.kind !== "text") {
+      const mergeWarnings =
+        skipped.length > 0
+          ? [
+              `Only the first image (${first.fileName}) was read — skipped: ${skipped.map((a) => a.fileName).join(", ")}.`,
+            ]
+          : [];
+      return {
+        input: {
+          imageBase64: processed.base64,
+          imageMimeType: processed.mimeType,
+          sourceType: first.sourceType,
+        },
+        mergeWarnings,
+      };
+    }
+  }
+
+  throw new ConflictError("None of this draft's sources contained anything to extract from.");
+}
+
+async function buildExtractionInput(params: KaiIntelligenceEngineParams): Promise<BuiltExtractionInput> {
+  // Composer drafts (attachments and/or instructions) take the merged
+  // multi-source path; everything else is the original single-source
+  // behavior, byte for byte.
+  if ((params.attachments && params.attachments.length > 0) || params.instructions) {
+    return buildComposerExtractionInput(params);
+  }
+
   if (params.sourceType === "PASTE_TEXT") {
     if (!params.rawText) {
       throw new ConflictError("This draft has no pasted text to extract from.");
     }
-    return { text: params.rawText, sourceType: params.sourceType };
+    return { input: { text: params.rawText, sourceType: params.sourceType }, mergeWarnings: [] };
   }
 
   if (!params.sourceFileUrl) {
@@ -75,9 +184,13 @@ async function buildExtractionInput(params: KaiIntelligenceEngineParams): Promis
   }
 
   const processed = await fetchAndProcessSourceFile(params.sourceFileUrl, params.sourceType);
-  return processed.kind === "text"
-    ? { text: processed.text, sourceType: params.sourceType }
-    : { imageBase64: processed.base64, imageMimeType: processed.mimeType, sourceType: params.sourceType };
+  return {
+    input:
+      processed.kind === "text"
+        ? { text: processed.text, sourceType: params.sourceType }
+        : { imageBase64: processed.base64, imageMimeType: processed.mimeType, sourceType: params.sourceType },
+    mergeWarnings: [],
+  };
 }
 
 async function reassembleFromRequiredInterfaces(

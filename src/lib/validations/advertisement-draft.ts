@@ -11,8 +11,28 @@ const draftSourceTypeSchema = z.enum([
 ]);
 
 /**
- * Create Advertisement — Screen: choose an input method.
- * Exactly one of rawText / sourceFileUrl is expected, enforced by
+ * One staged attachment from the ChatGPT-style composer. `sourceType`
+ * reuses the existing per-file enum values — deliberately NO "MIXED"
+ * member: a draft's own sourceType stays a real file kind (the FIRST
+ * attachment's), or PASTE_TEXT when the draft is text-only, so every
+ * existing consumer of AdvertisementDraftSourceType (DB enum, engine,
+ * audit metadata) keeps working without a schema-wide new value.
+ */
+const draftAttachmentSchema = z.object({
+  url: z.string().url().max(2000),
+  sourceType: draftSourceTypeSchema.exclude(["PASTE_TEXT"]),
+  fileName: z.string().max(255),
+  mimeType: z.string().max(100),
+});
+export type DraftAttachmentInput = z.infer<typeof draftAttachmentSchema>;
+
+/**
+ * Create Advertisement — the single ChatGPT-style composer (Supreme
+ * Constitution Principle 12). A draft is valid when it has ANY of:
+ * rawText, instructions, or at least one attachment. The original
+ * single-source rules are preserved verbatim for back-compat: PASTE_TEXT
+ * with no attachments still needs 10+ chars of text, and a file
+ * sourceType with no attachments still needs sourceFileUrl — enforced by
  * .superRefine below rather than a discriminated union, so the error
  * message can be specific to which one is missing.
  */
@@ -25,10 +45,32 @@ export const createDraftSchema = z
     // is the realistic source of a stray NUL/control character.
     rawText: z.string().trim().max(20000).transform(stripInvalidPostgresChars).optional(),
     sourceFileUrl: z.string().max(2000).optional(),
+    // Composer: free-typed guidance alongside attachments. Same sanitize
+    // rationale as rawText — this is typed/pasted straight into a textarea.
+    instructions: z.string().trim().max(4000).transform(stripInvalidPostgresChars).optional(),
+    attachments: z.array(draftAttachmentSchema).max(10).optional(),
   })
   .superRefine((data, ctx) => {
+    const attachments = data.attachments ?? [];
+
+    if (attachments.length > 0) {
+      // Composer rule: the draft's sourceType mirrors the FIRST
+      // attachment (see draftAttachmentSchema comment for why there is
+      // no "MIXED" value). rawText/instructions may accompany freely.
+      if (data.sourceType !== attachments[0].sourceType) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["sourceType"],
+          message: "With attachments, sourceType must match the first attachment.",
+        });
+      }
+      return;
+    }
+
     if (data.sourceType === "PASTE_TEXT") {
-      if (!data.rawText || data.rawText.length < 10) {
+      // Text-only composer submit: rawText (a pasted requirement) or
+      // instructions (typed guidance) each count as valid input.
+      if ((!data.rawText || data.rawText.length < 10) && !data.instructions) {
         ctx.addIssue({
           code: "custom",
           path: ["rawText"],

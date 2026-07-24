@@ -4,7 +4,7 @@ import { advertisementDraftRepository } from "@/server/repositories/advertisemen
 import { advertisementService } from "@/server/services/advertisement.service";
 import { auditLogService } from "@/server/services/audit-log.service";
 import { costTrackingService } from "@/server/services/cost-tracking.service";
-import { runKaiIntelligenceEngine } from "@/server/ai/kai-intelligence-engine";
+import { runKaiIntelligenceEngine, type DraftAttachment } from "@/server/ai/kai-intelligence-engine";
 import { AiProviderNotImplementedError } from "@/server/ai";
 import type { AiExtractionToolkit } from "@/server/ai";
 import { AUDIT_ACTIONS } from "@/lib/constants";
@@ -17,7 +17,7 @@ import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 const log = createLogger("advertisement-draft-service");
 
 export const advertisementDraftService = {
-  /** Create Advertisement — Paste Requirement / Upload PDF / DOCX / Image / WhatsApp Screenshot. */
+  /** Create Advertisement — the ChatGPT-style composer: pasted text, typed instructions, and/or multiple attachments in one draft. */
   async create(agencyId: string, actorId: string, input: CreateDraftInput) {
     const draft = await advertisementDraftRepository.create({
       agency: { connect: { id: agencyId } },
@@ -25,6 +25,10 @@ export const advertisementDraftService = {
       sourceType: input.sourceType,
       rawText: input.rawText,
       sourceFileUrl: input.sourceFileUrl,
+      instructions: input.instructions,
+      // Zod-validated array of { url, sourceType, fileName, mimeType } —
+      // stored as-is; runExtraction reads it back for the merged input.
+      attachments: input.attachments as unknown as Prisma.InputJsonValue,
       status: "UPLOADED",
     });
 
@@ -34,7 +38,7 @@ export const advertisementDraftService = {
       entityId: draft.id,
       agencyId,
       actorId,
-      metadata: { sourceType: input.sourceType },
+      metadata: { sourceType: input.sourceType, attachmentCount: input.attachments?.length ?? 0 },
     });
 
     return draft;
@@ -75,7 +79,13 @@ export const advertisementDraftService = {
   async runExtraction(id: string, agencyId: string, actorId?: string, toolkit?: AiExtractionToolkit) {
     const draft = await advertisementDraftService.getById(id, agencyId);
 
-    if (!draft.rawText && !draft.sourceFileUrl) {
+    // Composer drafts carry attachments/instructions instead of (or on
+    // top of) the legacy single rawText/sourceFileUrl pair — any one of
+    // the four is enough to extract from.
+    const attachments = Array.isArray(draft.attachments)
+      ? (draft.attachments as unknown as DraftAttachment[])
+      : [];
+    if (!draft.rawText && !draft.sourceFileUrl && !draft.instructions && attachments.length === 0) {
       throw new ConflictError("This draft has no requirement text or file to extract from.");
     }
 
@@ -85,6 +95,8 @@ export const advertisementDraftService = {
         sourceType: draft.sourceType,
         rawText: draft.rawText,
         sourceFileUrl: draft.sourceFileUrl,
+        instructions: draft.instructions,
+        attachments,
         toolkit,
       });
 

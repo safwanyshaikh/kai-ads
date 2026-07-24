@@ -401,6 +401,16 @@ model AdvertisementDraft {
   rawText       String? // Paste Requirement input
   sourceFileUrl String? // Upload PDF / DOCX / Image / WhatsApp Screenshot
 
+  // ChatGPT-style composer (Supreme Constitution Principle 12): one draft
+  // can carry several sources at once — typed text, pasted images, and
+  // mixed PDF/DOCX/image uploads together. `attachments` is an array of
+  // { url, sourceType, fileName, mimeType }; `instructions` is the
+  // recruiter's free-typed guidance alongside those attachments. Both are
+  // additive — rawText/sourceFileUrl keep working exactly as before for
+  // every draft created by the older single-source form.
+  attachments  Json?
+  instructions String?
+
   // AI Extraction Review — populated by the KAI Intelligence Engine
   // (Sprint 003: a real OpenAI-backed implementation of the Sprint 002
   // provider interfaces). Nullable: extraction can fail (missing API key,
