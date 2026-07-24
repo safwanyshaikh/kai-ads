@@ -1,5 +1,15 @@
 # KAI Ads — Project Instructions
 
+## Supreme Constitution (highest law — read first)
+
+**`docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`** is the highest-level document in
+the entire project. Every feature, prompt, model change, UI decision, and
+engineering task must be evaluated against it BEFORE being built. If a proposed
+change does not move KAI closer to its principles, do not implement it. Where
+any other document, prompt, code, or prior decision conflicts with it, the
+Supreme Constitution wins. Only the product owner may amend it, and only by
+editing that file directly.
+
 ## Advertisement Composition Constitution (mandatory)
 
 Before modifying, creating, testing, evaluating, or accepting any advertisement
@@ -7,7 +17,8 @@ generation, composition, archetype, layout, typography, imagery, footer, CTA,
 or visual-QA code, you MUST first read and comply with the repository's
 Advertisement Composition Constitution:
 
-**`docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md`** (canonical, single source of truth)
+**`docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md`** (canonical for
+composition detail, subordinate only to the Supreme Constitution above)
 
 No advertisement work may bypass or contradict it. If any code, prompt,
 document, or prior layout conflicts with it, the Constitution wins unless the
