@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Real-API run artifacts (published to disposable inspection branches by CI, never committed to main)
+scripts/*/artifacts/

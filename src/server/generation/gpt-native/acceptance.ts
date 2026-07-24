@@ -32,7 +32,7 @@ import jsQR from "jsqr";
 import { zodTextFormat } from "openai/helpers/zod";
 import { getOpenAiClient, getKaiVisionModel } from "@/server/ai/openai/openai-client";
 import { getIntegrationStatus } from "@/lib/env";
-import { getVisualQaProvider } from "@/server/ai/visual-qa";
+import { getVisualQaProvider, type VisualQaResult } from "@/server/ai/visual-qa";
 import { createLogger } from "@/lib/logger";
 import type { AdvertisementFacts } from "../archetypes/types";
 import { TRUST_ZONE } from "./master-prompt-builder";
@@ -66,6 +66,10 @@ export interface GptNativeAcceptanceOutcome {
   visionChecksRan: boolean;
   /** 0-100 from the commercial Visual QA brain; null when skipped/failed. */
   visualQaScore: number | null;
+  /** The full per-dimension Visual QA verdict (certification/benchmark evidence); null when skipped. */
+  visualQa: VisualQaResult | null;
+  /** The full rendered-fact proofread verdict; null when skipped. */
+  factCheck: RenderedFactCheck | null;
   /** Human-readable defect strings across all checks (empty = clean). */
   defects: string[];
   /** True when defects warrant one bounded regeneration attempt. */
@@ -166,9 +170,11 @@ export async function runGptNativeAcceptance(
   const defects: string[] = [];
   let visualQaScore: number | null = null;
   let visionChecksRan = false;
+  let factCheck: RenderedFactCheck | null = null;
+  let visualQa: VisualQaResult | null = null;
 
   try {
-    const factCheck = await verifyRenderedFacts(input.finalPng, input.facts);
+    factCheck = await verifyRenderedFacts(input.finalPng, input.facts);
     if (factCheck) {
       visionChecksRan = true;
       defects.push(
@@ -184,7 +190,7 @@ export async function runGptNativeAcceptance(
   try {
     const qa = getVisualQaProvider();
     if (qa) {
-      const verdict = await qa.evaluate({
+      visualQa = await qa.evaluate({
         imagePngBase64: input.finalPng.toString("base64"),
         archetype: "GPT_NATIVE_FULL",
         platformFormatKey: input.platformFormatKey,
@@ -192,11 +198,11 @@ export async function runGptNativeAcceptance(
         heightPx: input.heightPx,
       });
       visionChecksRan = true;
-      visualQaScore = verdict.overallScore;
-      defects.push(...verdict.catastrophicDefects.map((d) => `Visual QA (catastrophic): ${d}`));
-      if (verdict.overallScore < 85) {
-        defects.push(`Visual QA score ${verdict.overallScore}/100 is below the 85 publishable bar`);
-        defects.push(...verdict.defects.slice(0, 5).map((d) => `Visual QA: ${d}`));
+      visualQaScore = visualQa.overallScore;
+      defects.push(...visualQa.catastrophicDefects.map((d) => `Visual QA (catastrophic): ${d}`));
+      if (visualQa.overallScore < 85) {
+        defects.push(`Visual QA score ${visualQa.overallScore}/100 is below the 85 publishable bar`);
+        defects.push(...visualQa.defects.slice(0, 5).map((d) => `Visual QA: ${d}`));
       }
     }
   } catch (error) {
@@ -207,6 +213,8 @@ export async function runGptNativeAcceptance(
     qrDecodable,
     visionChecksRan,
     visualQaScore,
+    visualQa,
+    factCheck,
     defects,
     shouldRegenerate: defects.length > 0,
   };
