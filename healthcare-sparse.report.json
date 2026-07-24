@@ -1,0 +1,84 @@
+{
+  "id": "healthcare-sparse",
+  "industry": "Healthcare",
+  "density": "sparse",
+  "branded": false,
+  "imageSha256": "e5fc0a2a3d918335fd33168799c53d80224dbe3575313e16edbf529113b59c71",
+  "scores": {
+    "photography": 7.2,
+    "typography": 9,
+    "hierarchy": 7.5,
+    "commercialAppeal": 7.5,
+    "recruitmentEffectiveness": 7.8,
+    "trust": 8,
+    "luxuryMagazineQuality": 7.5,
+    "brandConsistency": null,
+    "visualStorytelling": 7.2,
+    "readability": 9,
+    "mobileReadability": 9,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Image shows 'Consultant Radiologist' and 'Kuwait • Healthcare', but does not explicitly state 'Consultant Radiologist — Kuwait Ministry Hospital' as a continuous header.",
+    "Spelling/fidelity: Position: Image shows 'Consultant Radiologist (2 openings)' instead of 'Consultant Radiologist (2) — KWD 3,200'.",
+    "Spelling/fidelity: Agency: Image shows 'Al-Yousuf Enterprises LI P' instead of 'Al-Yousuf Enterprises LLP'.",
+    "Missing fact: Country: Kuwait (the word 'Kuwait' is present, but not in the explicit field of 'Country' as the expected fact; although appears at the top as part of 'Kuwait • Healthcare', if this is considered insufficient labeling)",
+    "Visual QA score 78/100 is below the 85 publishable bar",
+    "Visual QA: Unjustified large empty space towards bottom right around QR and footer creates mild dead canvas effect.",
+    "Visual QA: Visual hierarchy slightly off: 'Earning KWD 3,200' is clear, but the destination (Kuwait), employer, and exact role are distributed over several lines rather than being immediately fused in a powerful headline.",
+    "Visual QA: Candidate-facing hook ('Earning KWD 3,200') is strong, but the role/destination (Consultant Radiologist – Kuwait) should dominate visually in a single headline card for overseas recruitment best practice.",
+    "Visual QA: Contact CTA (phone/email/QR) is slightly small relative to total space and could be more prominent or better integrated.",
+    "Visual QA: Image is heavily concentrated to the right (doctor), but left side is visually and textually dominant (blue zone, heavy text); this leaves overall balance feeling top-heavy and slightly segmented."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 61781,
+  "fullVisualQa": {
+    "overallScore": 78,
+    "commercialQualityScore": 75,
+    "hierarchyScore": 75,
+    "readabilityScore": 90,
+    "imageryScore": 72,
+    "canvasUtilizationScore": 75,
+    "ctaScore": 80,
+    "trustScore": 80,
+    "defects": [
+      "Unjustified large empty space towards bottom right around QR and footer creates mild dead canvas effect.",
+      "Visual hierarchy slightly off: 'Earning KWD 3,200' is clear, but the destination (Kuwait), employer, and exact role are distributed over several lines rather than being immediately fused in a powerful headline.",
+      "Candidate-facing hook ('Earning KWD 3,200') is strong, but the role/destination (Consultant Radiologist – Kuwait) should dominate visually in a single headline card for overseas recruitment best practice.",
+      "Contact CTA (phone/email/QR) is slightly small relative to total space and could be more prominent or better integrated.",
+      "Image is heavily concentrated to the right (doctor), but left side is visually and textually dominant (blue zone, heavy text); this leaves overall balance feeling top-heavy and slightly segmented.",
+      "Agency trust details are present and formatted correctly, but the registration/license information could be more visibly verified for Gulf standards (MEA/RA badge would help)."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Fuse role, country, and compensation into a single, dominant, candidate-facing hero headline for immediate comprehension."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce dead space, especially around the QR and agency info; rebalance layout to minimize large unused zones at bottom right and between blocks."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the visual presence of the interview phone/email/QR contact CTA pane—the call to action is currently functional but not commanding."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Image shows 'Consultant Radiologist' and 'Kuwait • Healthcare', but does not explicitly state 'Consultant Radiologist — Kuwait Ministry Hospital' as a continuous header.",
+      "Position: Image shows 'Consultant Radiologist (2 openings)' instead of 'Consultant Radiologist (2) — KWD 3,200'.",
+      "Agency: Image shows 'Al-Yousuf Enterprises LI P' instead of 'Al-Yousuf Enterprises LLP'."
+    ],
+    "missingCriticalFacts": [
+      "Country: Kuwait (the word 'Kuwait' is present, but not in the explicit field of 'Country' as the expected fact; although appears at the top as part of 'Kuwait • Healthcare', if this is considered insufficient labeling)"
+    ],
+    "legibilityIssues": []
+  }
+}

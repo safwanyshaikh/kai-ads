@@ -1,0 +1,74 @@
+{
+  "id": "shipyard-medium",
+  "industry": "Shipyard",
+  "density": "medium",
+  "branded": false,
+  "imageSha256": "ef81066ff10ce5a3231dd34daa90aec6ffb81efa7b9f02a04e660d53bad4db42",
+  "scores": {
+    "photography": 9.2,
+    "typography": 9.2,
+    "hierarchy": 9.4,
+    "commercialAppeal": 9.5,
+    "recruitmentEffectiveness": 9.3,
+    "trust": 9.5,
+    "luxuryMagazineQuality": 9.5,
+    "brandConsistency": null,
+    "visualStorytelling": 9.2,
+    "readability": 9.2,
+    "mobileReadability": 9.2,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Ship Fitter (25) — AED 1,800 (image: Ship Fitter 25 openings) AED 1,800",
+    "Spelling/fidelity: Position: Marine Pipe Fitter (20) — AED 1,900 (image: Marine Pipe Fitter 20 o. AED 1,900)",
+    "Spelling/fidelity: Position: Hull Welder 6G (30) — AED 2,200 (image: Hull Welder 6G 30 openings AED 2,200)",
+    "Spelling/fidelity: Position: Blaster/Painter (15) — AED 1,600 (image: Blaster/Painter 15 openings AED 1,600)",
+    "Spelling/fidelity: Header: Ship Repair Yard — Multiple Trades (image: Ship Repair Yard - Multiple Trades)",
+    "Missing fact: Country: UAE"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 59872,
+  "fullVisualQa": {
+    "overallScore": 93,
+    "commercialQualityScore": 95,
+    "hierarchyScore": 94,
+    "readabilityScore": 92,
+    "imageryScore": 92,
+    "canvasUtilizationScore": 90,
+    "ctaScore": 92,
+    "trustScore": 95,
+    "defects": [
+      "QR code integration is slightly plain and could look more visually integrated rather than feeling like a sticker.",
+      "The benefits could be a bit more visually separated for greater at-a-glance clarity."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "OTHER",
+        "note": "Frame/integrate the QR code with a border, shadow, or contrasting band to make it feel designed-in rather than added as a plain sticker."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Add a touch more separation between 'Benefits' and the openings list for increased visual clarity."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Ship Fitter (25) — AED 1,800 (image: Ship Fitter 25 openings) AED 1,800",
+      "Position: Marine Pipe Fitter (20) — AED 1,900 (image: Marine Pipe Fitter 20 o. AED 1,900)",
+      "Position: Hull Welder 6G (30) — AED 2,200 (image: Hull Welder 6G 30 openings AED 2,200)",
+      "Position: Blaster/Painter (15) — AED 1,600 (image: Blaster/Painter 15 openings AED 1,600)",
+      "Header: Ship Repair Yard — Multiple Trades (image: Ship Repair Yard - Multiple Trades)"
+    ],
+    "missingCriticalFacts": [
+      "Country: UAE"
+    ],
+    "legibilityIssues": []
+  }
+}

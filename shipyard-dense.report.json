@@ -1,0 +1,84 @@
+{
+  "id": "shipyard-dense",
+  "industry": "Shipyard",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "34bd9dbdb9fb646c300f690d60afdf2e32db7d8438f98f6683ea5749b764a880",
+  "scores": {
+    "photography": 8.5,
+    "typography": 8.2,
+    "hierarchy": 8,
+    "commercialAppeal": 8,
+    "recruitmentEffectiveness": 8.2,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 8,
+    "brandConsistency": 8.2,
+    "visualStorytelling": 8.5,
+    "readability": 8.2,
+    "mobileReadability": 8.2,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Interview: 'CV shortlisting at Apply by email' is rendered as 'CV shortlisting Apply by email'. The word 'at' is missing.",
+    "Missing fact: Country: Qatar",
+    "Missing fact: Agency: Al-Yousuf Enterprises LLP",
+    "Legibility: The lower right corner (agency name and contact info) is partially obscured by a white box, making some of the text difficult to read.",
+    "Visual QA score 82/100 is below the 85 publishable bar",
+    "Visual QA: Contact CTA is visually small and lost in the lower right; it is not prominent enough for quick application.",
+    "Visual QA: The QR code and contact block overlaps the candidate visual, compromising both the imagery and the clarity of the call-to-action.",
+    "Visual QA: The main candidate hook is present but shares nearly equal typographic weight with other non-candidate-centric headers (“NEW-BUILD PROGRAM”), slightly reducing impact.",
+    "Visual QA: Visual card/panel overlays are dense and could be spaced more efficiently to minimize crowding and offer better balance.",
+    "Visual QA: Some dead canvas exists in the top (title area is strong but spacious); this space could be used for slightly greater headline emphasis or a subheading."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 68948,
+  "fullVisualQa": {
+    "overallScore": 82,
+    "commercialQualityScore": 80,
+    "hierarchyScore": 80,
+    "readabilityScore": 82,
+    "imageryScore": 85,
+    "canvasUtilizationScore": 80,
+    "ctaScore": 75,
+    "trustScore": 85,
+    "defects": [
+      "Contact CTA is visually small and lost in the lower right; it is not prominent enough for quick application.",
+      "The QR code and contact block overlaps the candidate visual, compromising both the imagery and the clarity of the call-to-action.",
+      "The main candidate hook is present but shares nearly equal typographic weight with other non-candidate-centric headers (“NEW-BUILD PROGRAM”), slightly reducing impact.",
+      "Visual card/panel overlays are dense and could be spaced more efficiently to minimize crowding and offer better balance.",
+      "Some dead canvas exists in the top (title area is strong but spacious); this space could be used for slightly greater headline emphasis or a subheading."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "The contact/CTA (phone, email, QR) should be much more visually prominent and clearly the point of engagement, both for mobile and print readability. The current design tucks it away into the lower corner where it doesn't pop."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce visual crowding between the 'POSITIONS' block, benefits, and the lower CTA/trust block for greater clarity and flow."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Give the project/country hook (QATAR • SHIPYARD) even greater size and isolation at the top, reducing competition from secondary headers like 'NEW-BUILD PROGRAM'."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Interview: 'CV shortlisting at Apply by email' is rendered as 'CV shortlisting Apply by email'. The word 'at' is missing."
+    ],
+    "missingCriticalFacts": [
+      "Country: Qatar",
+      "Agency: Al-Yousuf Enterprises LLP"
+    ],
+    "legibilityIssues": [
+      "The lower right corner (agency name and contact info) is partially obscured by a white box, making some of the text difficult to read."
+    ]
+  }
+}

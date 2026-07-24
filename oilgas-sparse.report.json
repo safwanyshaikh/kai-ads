@@ -1,0 +1,99 @@
+{
+  "id": "oilgas-sparse",
+  "industry": "Oil & Gas",
+  "density": "sparse",
+  "branded": false,
+  "imageSha256": "f55ed0ffb9bf360c0c2fb86fe85e87073b910cdabe77846ed73b6686cfeaec3e",
+  "scores": {
+    "photography": 8.8,
+    "typography": 8,
+    "hierarchy": 6.8,
+    "commercialAppeal": 8,
+    "recruitmentEffectiveness": 7.7,
+    "trust": 8,
+    "luxuryMagazineQuality": 8,
+    "brandConsistency": null,
+    "visualStorytelling": 8.8,
+    "readability": 8,
+    "mobileReadability": 8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.7
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Email: jobs@alyousufent.com (image shows: jobs@alyousufunt.com)",
+    "Missing fact: Header: Senior Drilling Supervisor — Saudi Arabia",
+    "Missing fact: Country: Saudi Arabia",
+    "Missing fact: Position: Senior Drilling Supervisor (1) — SAR 18,000",
+    "Legibility: Portion of the phone number is blocked by the QR code, making it partially illegible",
+    "Visual QA (catastrophic): No clear candidate-facing hook visible immediately—the main headline is ARAMCO CONTRACTOR instead of role/country/project succinctly.",
+    "Visual QA (catastrophic): Visual hierarchy is materially weaker than professional Gulf overseas-recruitment advertisements, with the opportunity/country/role too small for top attention.",
+    "Visual QA (catastrophic): More than 20% of the bottom right is unjustified dead canvas due to the oversize QR card; this is not a platform-mandated space.",
+    "Visual QA score 77/100 is below the 85 publishable bar",
+    "Visual QA: Headline/primary hook (ARAMCO CONTRACTOR) is visually dominant, but it is agency-focused rather than candidate- or job-focused.",
+    "Visual QA: Job role (Senior Drilling Supervisor) is secondary in size/hierarchy and not immediately the single-main hook.",
+    "Visual QA: Significant lower-right dead canvas due to oversized QR & background card—inefficient use of available space.",
+    "Visual QA: Contact CTA is present but not maximized for immediate attention—partially obscured by QR card and small compared to other text.",
+    "Visual QA: Candidate information is clear but visually outshone by branding and project headline."
+  ],
+  "catastrophicDefects": [
+    "No clear candidate-facing hook visible immediately—the main headline is ARAMCO CONTRACTOR instead of role/country/project succinctly.",
+    "Visual hierarchy is materially weaker than professional Gulf overseas-recruitment advertisements, with the opportunity/country/role too small for top attention.",
+    "More than 20% of the bottom right is unjustified dead canvas due to the oversize QR card; this is not a platform-mandated space."
+  ],
+  "latencyMs": 52619,
+  "fullVisualQa": {
+    "overallScore": 77,
+    "commercialQualityScore": 80,
+    "hierarchyScore": 68,
+    "readabilityScore": 80,
+    "imageryScore": 88,
+    "canvasUtilizationScore": 60,
+    "ctaScore": 74,
+    "trustScore": 80,
+    "defects": [
+      "Headline/primary hook (ARAMCO CONTRACTOR) is visually dominant, but it is agency-focused rather than candidate- or job-focused.",
+      "Job role (Senior Drilling Supervisor) is secondary in size/hierarchy and not immediately the single-main hook.",
+      "Significant lower-right dead canvas due to oversized QR & background card—inefficient use of available space.",
+      "Contact CTA is present but not maximized for immediate attention—partially obscured by QR card and small compared to other text.",
+      "Candidate information is clear but visually outshone by branding and project headline.",
+      "Information is not clipped or truncated, but proportionality is off: company/contract headline is much more visually dominant than the role/country hook.",
+      "Agency trust band is at the bottom but visually muted."
+    ],
+    "catastrophicDefects": [
+      "No clear candidate-facing hook visible immediately—the main headline is ARAMCO CONTRACTOR instead of role/country/project succinctly.",
+      "Visual hierarchy is materially weaker than professional Gulf overseas-recruitment advertisements, with the opportunity/country/role too small for top attention.",
+      "More than 20% of the bottom right is unjustified dead canvas due to the oversize QR card; this is not a platform-mandated space."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Reframe/resize the role/country hook (e.g., 'Senior Drilling Supervisor – Saudi Arabia') as the primary top-of-canvas focal point, not 'ARAMCO CONTRACTOR'."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce the QR card's footprint or more efficiently integrate it to eliminate the large area of dead canvas at bottom right."
+      },
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Raise the contact information (especially phone/email) to be more immediately visible and proportionally larger for outbound action."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Email: jobs@alyousufent.com (image shows: jobs@alyousufunt.com)"
+    ],
+    "missingCriticalFacts": [
+      "Header: Senior Drilling Supervisor — Saudi Arabia",
+      "Country: Saudi Arabia",
+      "Position: Senior Drilling Supervisor (1) — SAR 18,000"
+    ],
+    "legibilityIssues": [
+      "Portion of the phone number is blocked by the QR code, making it partially illegible"
+    ]
+  }
+}

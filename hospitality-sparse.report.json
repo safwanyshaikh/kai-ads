@@ -1,0 +1,73 @@
+{
+  "id": "hospitality-sparse",
+  "industry": "Hospitality",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "76ec85882d092f2f3b9fe6bb1e6da5f96df2a8b9f2ab924e95448ba65c2e4337",
+  "scores": {
+    "photography": 9,
+    "typography": 9.3,
+    "hierarchy": 9.2,
+    "commercialAppeal": 9.2,
+    "recruitmentEffectiveness": 9,
+    "trust": 9,
+    "luxuryMagazineQuality": 9.2,
+    "brandConsistency": 9,
+    "visualStorytelling": 9,
+    "readability": 9.3,
+    "mobileReadability": 9.3,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Image shows 'Executive Chef' and '5-Star Resort, Ras Al Khaimah' as separate lines, not as a single header 'Executive Chef — 5-Star Resort, Ras Al Khaimah'.",
+    "Spelling/fidelity: Position: Image displays 'Executive Chef (1 openings)' instead of expected 'Executive Chef (1)'.",
+    "Missing fact: Country: UAE (Image displays only 'United Arab Emirates')"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 61103,
+  "fullVisualQa": {
+    "overallScore": 90,
+    "commercialQualityScore": 92,
+    "hierarchyScore": 92,
+    "readabilityScore": 93,
+    "imageryScore": 90,
+    "canvasUtilizationScore": 85,
+    "ctaScore": 88,
+    "trustScore": 90,
+    "defects": [
+      "The QR code in the lower right corner is large and its white background encroaches on the visual balance, which slightly disrupts overall integration.",
+      "The bottom contact CTA is strong but could use a little more contrast or padding for maximum mobile legibility.",
+      "There is a mild band of unused space above and below the main top headline, which could be optimized."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Enhance the legibility and visual balance of the CTA bar, adjusting spacing around phone/email for even greater emphasis and clarity."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Reduce dead space at the very top and optimize space at the footer for slightly better canvas utilization."
+      },
+      {
+        "type": "OTHER",
+        "note": "Consider integrating the QR design more seamlessly into the footer or as a badge, reducing its dominance and helping it blend more naturally with the advertisement."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Image shows 'Executive Chef' and '5-Star Resort, Ras Al Khaimah' as separate lines, not as a single header 'Executive Chef — 5-Star Resort, Ras Al Khaimah'.",
+      "Position: Image displays 'Executive Chef (1 openings)' instead of expected 'Executive Chef (1)'."
+    ],
+    "missingCriticalFacts": [
+      "Country: UAE (Image displays only 'United Arab Emirates')"
+    ],
+    "legibilityIssues": []
+  }
+}

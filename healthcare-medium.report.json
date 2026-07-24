@@ -1,0 +1,107 @@
+{
+  "id": "healthcare-medium",
+  "industry": "Healthcare",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "8d87eb5b42c027f8c4babb56dd4e48cc22a5f97bb29a1274b299409c7cb3d25f",
+  "scores": {
+    "photography": 8.5,
+    "typography": 8,
+    "hierarchy": 7.3,
+    "commercialAppeal": 7.8,
+    "recruitmentEffectiveness": 7.6,
+    "trust": 7.4,
+    "luxuryMagazineQuality": 7.8,
+    "brandConsistency": 7.6,
+    "visualStorytelling": 8.5,
+    "readability": 8,
+    "mobileReadability": 8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.6
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Rendered as 'NEW SPECIALTY HOSPITAL – RIYADH' (all caps) vs expected 'New Specialty Hospital — Riyadh' (case not considered an error, em dash vs en dash acceptable, not an error).",
+    "Spelling/fidelity: Benefit: Rendered as 'Accommodation' (missing 'Free' from 'Free accommodation').",
+    "Spelling/fidelity: Interview: Rendered as 'Prometric + online' and the prompt 'at Apply now' appears missing or replaced with a QR code area—not directly stating 'at Apply now'.",
+    "Spelling/fidelity: Email: Rendered as 'jobs@alyousufent.com', but part of the email is covered by a white overlay, making the domain partially obscured.",
+    "Missing fact: Country: Saudi Arabia (only appears in the header 'Saudi Arabia Healthcare', which is separated from the factual listing—this may be borderline, but it is not presented alongside the core fact block).",
+    "Missing fact: Phone: 9324995767 (not visible anywhere in the advert).",
+    "Legibility: Part of the email address is covered by a white overlay, which reduces confidence in full accuracy.",
+    "Legibility: The white overlay obscures some text in the lower right—potentially additional factual information.",
+    "Visual QA (catastrophic): QR code/CTA white block covers and clips underlying essential agency/trust information (AL-YOUSUF ENTERPRISES LLP and part of the contact), making regulatory/agency identity unreadable.",
+    "Visual QA (catastrophic): Contact CTA ('Apply now') is partially cut off and the email is split, difficult to quickly find and read.",
+    "Visual QA score 76/100 is below the 85 publishable bar",
+    "Visual QA: CTA (email, QR) lacks sufficient visual emphasis and feels lost at the lower right; the 'Apply now' is cut and hard to notice.",
+    "Visual QA: Trust/verification (agency/reg/license) is poorly integrated, awkwardly layered under a white block.",
+    "Visual QA: Significant lower right dead canvas (white rectangle for the QR/CTA cuts off part of content and creates imbalance).",
+    "Visual QA: The large salary header does not mention a destination or project (no employer or country in dominant type).",
+    "Visual QA: The candidate hook is not optimally strong; 'Earning SAR 8,400' is not as powerful as 'Healthcare Careers in Saudi Arabia' or project/role focused headline."
+  ],
+  "catastrophicDefects": [
+    "QR code/CTA white block covers and clips underlying essential agency/trust information (AL-YOUSUF ENTERPRISES LLP and part of the contact), making regulatory/agency identity unreadable.",
+    "Contact CTA ('Apply now') is partially cut off and the email is split, difficult to quickly find and read."
+  ],
+  "latencyMs": 64749,
+  "fullVisualQa": {
+    "overallScore": 76,
+    "commercialQualityScore": 78,
+    "hierarchyScore": 73,
+    "readabilityScore": 80,
+    "imageryScore": 85,
+    "canvasUtilizationScore": 67,
+    "ctaScore": 68,
+    "trustScore": 74,
+    "defects": [
+      "CTA (email, QR) lacks sufficient visual emphasis and feels lost at the lower right; the 'Apply now' is cut and hard to notice.",
+      "Trust/verification (agency/reg/license) is poorly integrated, awkwardly layered under a white block.",
+      "Significant lower right dead canvas (white rectangle for the QR/CTA cuts off part of content and creates imbalance).",
+      "The large salary header does not mention a destination or project (no employer or country in dominant type).",
+      "The candidate hook is not optimally strong; 'Earning SAR 8,400' is not as powerful as 'Healthcare Careers in Saudi Arabia' or project/role focused headline.",
+      "Agency branding is semi-visible but not a prominent footer band (identity is somewhat obscured behind the white overlay).",
+      "Benefits text and details appear cramped in the lower section.",
+      "Contact CTA and agency ID visually collide and are not balanced with the rest of the design."
+    ],
+    "catastrophicDefects": [
+      "QR code/CTA white block covers and clips underlying essential agency/trust information (AL-YOUSUF ENTERPRISES LLP and part of the contact), making regulatory/agency identity unreadable.",
+      "Contact CTA ('Apply now') is partially cut off and the email is split, difficult to quickly find and read."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Redesign CTA area for clear, prominent, mobile-visible contact/apply instruction, and ensure it does not obscure or overlap trust/agency information."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Avoid content collisions and crowding in the lower section, and integrate trust information and benefits into a clear, visually unified footer."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Strengthen top-line candidate hook to clearly signal opportunity (job/project and country/sector) in the largest type."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Ensure footer and CTA are cleanly readable—reduce conflicts with background and overlays."
+      }
+    ],
+    "verdict": "BLOCKED"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Rendered as 'NEW SPECIALTY HOSPITAL – RIYADH' (all caps) vs expected 'New Specialty Hospital — Riyadh' (case not considered an error, em dash vs en dash acceptable, not an error).",
+      "Benefit: Rendered as 'Accommodation' (missing 'Free' from 'Free accommodation').",
+      "Interview: Rendered as 'Prometric + online' and the prompt 'at Apply now' appears missing or replaced with a QR code area—not directly stating 'at Apply now'.",
+      "Email: Rendered as 'jobs@alyousufent.com', but part of the email is covered by a white overlay, making the domain partially obscured."
+    ],
+    "missingCriticalFacts": [
+      "Country: Saudi Arabia (only appears in the header 'Saudi Arabia Healthcare', which is separated from the factual listing—this may be borderline, but it is not presented alongside the core fact block).",
+      "Phone: 9324995767 (not visible anywhere in the advert)."
+    ],
+    "legibilityIssues": [
+      "Part of the email address is covered by a white overlay, which reduces confidence in full accuracy.",
+      "The white overlay obscures some text in the lower right—potentially additional factual information."
+    ]
+  }
+}

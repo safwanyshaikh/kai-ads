@@ -1,0 +1,88 @@
+{
+  "id": "healthcare-dense",
+  "industry": "Healthcare",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "59927f29120201f8db640d2466ede56000cc1ae147aa2a2fdcac296d8a2fb253",
+  "scores": {
+    "photography": 8.2,
+    "typography": 8.5,
+    "hierarchy": 7.4,
+    "commercialAppeal": 7.8,
+    "recruitmentEffectiveness": 7.8,
+    "trust": 9.2,
+    "luxuryMagazineQuality": 7.8,
+    "brandConsistency": 7.8,
+    "visualStorytelling": 8.2,
+    "readability": 8.5,
+    "mobileReadability": 8.5,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: Housing allowance (image shows 'Accommodation' instead of 'Housing allowance')",
+    "Spelling/fidelity: Interview: Rolling at Online (image shows 'Interviews at Online')",
+    "Missing fact: Country: UAE",
+    "Visual QA (catastrophic): Large white QR background box covers and clips the primary CTA ('Interviews at Online...'), making the critical contact action partially unreadable and visually broken. This is a catastrophic canvas utilization and CTA visibility defect.",
+    "Visual QA score 78/100 is below the 85 publishable bar",
+    "Visual QA: Contact CTA is not prominent enough—blends into the design and can be missed, especially on mobile.",
+    "Visual QA: Benefits and CTA area feels crowded due to overlapping QR and red CTA box (QR partly covers callout).",
+    "Visual QA: Canvas (lower right corner) has a large dead zone created by the white QR background overlapping and occluding both the CTA and part of the benefits card.",
+    "Visual QA: Candidate opportunity hook is reasonably prominent, but 'Healthcare Earning opportunity' is slightly secondary to the 'UNITED ARAB EMIRATES' country callout, which dominates.",
+    "Visual QA: Imagery is strong but the figure is large, creating visual imbalance (crowds all action to lower left)."
+  ],
+  "catastrophicDefects": [
+    "Large white QR background box covers and clips the primary CTA ('Interviews at Online...'), making the critical contact action partially unreadable and visually broken. This is a catastrophic canvas utilization and CTA visibility defect."
+  ],
+  "latencyMs": 60591,
+  "fullVisualQa": {
+    "overallScore": 78,
+    "commercialQualityScore": 78,
+    "hierarchyScore": 74,
+    "readabilityScore": 85,
+    "imageryScore": 82,
+    "canvasUtilizationScore": 72,
+    "ctaScore": 70,
+    "trustScore": 92,
+    "defects": [
+      "Contact CTA is not prominent enough—blends into the design and can be missed, especially on mobile.",
+      "Benefits and CTA area feels crowded due to overlapping QR and red CTA box (QR partly covers callout).",
+      "Canvas (lower right corner) has a large dead zone created by the white QR background overlapping and occluding both the CTA and part of the benefits card.",
+      "Candidate opportunity hook is reasonably prominent, but 'Healthcare Earning opportunity' is slightly secondary to the 'UNITED ARAB EMIRATES' country callout, which dominates.",
+      "Imagery is strong but the figure is large, creating visual imbalance (crowds all action to lower left).",
+      "Job list is text dense and could use better spacing for easier scanning.",
+      "Agency/verification line at the bottom is clear and only present in the footer (no top repetition), which is correct."
+    ],
+    "catastrophicDefects": [
+      "Large white QR background box covers and clips the primary CTA ('Interviews at Online...'), making the critical contact action partially unreadable and visually broken. This is a catastrophic canvas utilization and CTA visibility defect."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Redesign the CTA and QR area to ensure the contact method is wholly clear, unoccluded, and visually prioritized—QR should not cover or clip the CTA text."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Adjust spacing on the job list and 'Benefits' card to avoid crowding and improve scan-ability, particularly on mobile."
+      },
+      {
+        "type": "OTHER",
+        "note": "Rebalance visual weighting so the figure and action areas don't overwhelm or leave parts of the text area visually underutilized."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: Housing allowance (image shows 'Accommodation' instead of 'Housing allowance')",
+      "Interview: Rolling at Online (image shows 'Interviews at Online')"
+    ],
+    "missingCriticalFacts": [
+      "Country: UAE"
+    ],
+    "legibilityIssues": []
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "id": "construction-medium",
+  "industry": "Construction",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "3cd50d42fcbe83eb286fcf9922e19c265e30ba2d2bddf2657466ef708ff621c1",
+  "scores": {
+    "photography": 8.9,
+    "typography": 9,
+    "hierarchy": 9.1,
+    "commercialAppeal": 9,
+    "recruitmentEffectiveness": 8.7,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 9,
+    "brandConsistency": 8.7,
+    "visualStorytelling": 8.9,
+    "readability": 9,
+    "mobileReadability": 9,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Benefit: Overtime (missing entirely, not altered)",
+    "Spelling/fidelity: Header: UAE (appears as 'UNITED ARAB EMIRATES' instead of 'UAE', this is not a misspelling but a full spelling out, likely acceptable as per instructions unless exact wording 'UAE' is required)",
+    "Missing fact: Benefit: Overtime"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 58965,
+  "fullVisualQa": {
+    "overallScore": 87,
+    "commercialQualityScore": 90,
+    "hierarchyScore": 91,
+    "readabilityScore": 90,
+    "imageryScore": 89,
+    "canvasUtilizationScore": 85,
+    "ctaScore": 85,
+    "trustScore": 85,
+    "defects": [
+      "Agency identity is present in the footer, but could be a bit more de-emphasized in favor of boosting CTA clarity.",
+      "The phone and email CTA line could be slightly bolder/larger for quicker visual access.",
+      "Benefits/Interview details use colored text instead of elevated visual cards or highlights—could achieve better visual separation."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the visual weight or size of the contact line (phone/email) to ensure it's instantly findable for jobseekers."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Slightly improve the spacing between sections, particularly from the benefits/interview row to make the informational hierarchy even stronger."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Benefit: Overtime (missing entirely, not altered)",
+      "Header: UAE (appears as 'UNITED ARAB EMIRATES' instead of 'UAE', this is not a misspelling but a full spelling out, likely acceptable as per instructions unless exact wording 'UAE' is required)"
+    ],
+    "missingCriticalFacts": [
+      "Benefit: Overtime"
+    ],
+    "legibilityIssues": []
+  }
+}

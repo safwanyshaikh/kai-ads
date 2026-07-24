@@ -1,0 +1,74 @@
+{
+  "id": "shipyard-sparse",
+  "industry": "Shipyard",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "7de9da8a62883a644193d5db4ce22feec73e9991aaad9fd29831576d7e1df284",
+  "scores": {
+    "photography": 9,
+    "typography": 9.2,
+    "hierarchy": 9,
+    "commercialAppeal": 9.2,
+    "recruitmentEffectiveness": 8.9,
+    "trust": 8.5,
+    "luxuryMagazineQuality": 9.2,
+    "brandConsistency": 8.9,
+    "visualStorytelling": 9,
+    "readability": 9.2,
+    "mobileReadability": 9.2,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Expected 'Marine Chief Engineer — Bahrain Dry Docks' but image displays only 'Marine Chief Engineer' and 'Bahrain Shipyard', omitting 'Dry Docks'.",
+    "Spelling/fidelity: Country: Expected 'Bahrain', image only says 'Bahrain Shipyard' but does not list 'Country: Bahrain.'",
+    "Spelling/fidelity: Position: Expected 'Marine Chief Engineer (2) — BHD 1,200', image shows 'Marine Chief Engineer (2 openings) Class 1 CoC - BHD 1.200' (wording is restructured and includes 'Class 1 CoC').",
+    "Spelling/fidelity: Agency: Expected 'Al-Yousuf Enterprises LLP', but this is not visible anywhere on the image.",
+    "Missing fact: Employer: ASRY is present under Marine Chief Engineer but is not explicitly listed as 'Employer: ASRY'",
+    "Missing fact: Agency: Al-Yousuf Enterprises LLP is not present anywhere on the image."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 59636,
+  "fullVisualQa": {
+    "overallScore": 89,
+    "commercialQualityScore": 92,
+    "hierarchyScore": 90,
+    "readabilityScore": 92,
+    "imageryScore": 90,
+    "canvasUtilizationScore": 87,
+    "ctaScore": 86,
+    "trustScore": 85,
+    "defects": [
+      "Minor crowding in footer: phone/email/QR slightly compressed together; could use a touch more spacing for optimal scan/read comfort.",
+      "QR code could be better integrated with the footer design rather than feeling sticker-like at the lower right corner."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Increase horizontal spacing between the QR, phone number, and email in the footer for optimal readability and visual balance."
+      },
+      {
+        "type": "OTHER",
+        "note": "Consider visually integrating the QR code—perhaps with a slight border or positioning adjustment—so it looks more designed-in rather than an add-on."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Expected 'Marine Chief Engineer — Bahrain Dry Docks' but image displays only 'Marine Chief Engineer' and 'Bahrain Shipyard', omitting 'Dry Docks'.",
+      "Country: Expected 'Bahrain', image only says 'Bahrain Shipyard' but does not list 'Country: Bahrain.'",
+      "Position: Expected 'Marine Chief Engineer (2) — BHD 1,200', image shows 'Marine Chief Engineer (2 openings) Class 1 CoC - BHD 1.200' (wording is restructured and includes 'Class 1 CoC').",
+      "Agency: Expected 'Al-Yousuf Enterprises LLP', but this is not visible anywhere on the image."
+    ],
+    "missingCriticalFacts": [
+      "Employer: ASRY is present under Marine Chief Engineer but is not explicitly listed as 'Employer: ASRY'",
+      "Agency: Al-Yousuf Enterprises LLP is not present anywhere on the image."
+    ],
+    "legibilityIssues": []
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "id": "construction-sparse",
+  "industry": "Construction",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "05c06810c0d69d2a060c503f7cb9096f041ca19b2d9dd78f30f3f1170a8b3830",
+  "scores": {
+    "photography": 9.2,
+    "typography": 8.9,
+    "hierarchy": 8,
+    "commercialAppeal": 8.4,
+    "recruitmentEffectiveness": 8.4,
+    "trust": 8,
+    "luxuryMagazineQuality": 8.4,
+    "brandConsistency": 8.4,
+    "visualStorytelling": 9.2,
+    "readability": 8.9,
+    "mobileReadability": 8.9,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Agency: Image shows 'AL-YOLSUF ENTERPRISES LLP' vs expected 'Al-Yousuf Enterprises LLP'",
+    "Missing fact: Employer: NEOM Main Contractor",
+    "Visual QA score 84/100 is below the 85 publishable bar",
+    "Visual QA: The agency/verification identity appears too prominently at the bottom but does not dominate the top—acceptable, though the trust band could be more integrated.",
+    "Visual QA: The central attention is dominated by salary not project/title—primary opportunity hook is monetary rather than role/country/project.",
+    "Visual QA: There is some underutilized canvas at the bottom right (QR area spills into white, causing unnecessary dead space and visual imbalance).",
+    "Visual QA: Elevated salary amount is repeated both top and mid-cards, causing slight redundancy.",
+    "Visual QA: The ‘Interview Now’ CTA is not highly prominent and could be made larger or more striking in color."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 62699,
+  "fullVisualQa": {
+    "overallScore": 84,
+    "commercialQualityScore": 84,
+    "hierarchyScore": 80,
+    "readabilityScore": 89,
+    "imageryScore": 92,
+    "canvasUtilizationScore": 78,
+    "ctaScore": 80,
+    "trustScore": 80,
+    "defects": [
+      "The agency/verification identity appears too prominently at the bottom but does not dominate the top—acceptable, though the trust band could be more integrated.",
+      "The central attention is dominated by salary not project/title—primary opportunity hook is monetary rather than role/country/project.",
+      "There is some underutilized canvas at the bottom right (QR area spills into white, causing unnecessary dead space and visual imbalance).",
+      "Elevated salary amount is repeated both top and mid-cards, causing slight redundancy.",
+      "The ‘Interview Now’ CTA is not highly prominent and could be made larger or more striking in color."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase size/contrast/visual separation of the contact section so the CTA truly anchors the lower third."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Fix visual balance: QR code area could be better integrated, possibly by making the lower card less segmented or merging CTA functions for unity."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Give more parity to the project/country headline versus the monetary figure, so the hook balances opportunity and destination."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Agency: Image shows 'AL-YOLSUF ENTERPRISES LLP' vs expected 'Al-Yousuf Enterprises LLP'"
+    ],
+    "missingCriticalFacts": [
+      "Employer: NEOM Main Contractor"
+    ],
+    "legibilityIssues": []
+  }
+}

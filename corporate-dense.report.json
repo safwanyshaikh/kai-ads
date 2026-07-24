@@ -1,0 +1,30 @@
+{
+  "id": "corporate-dense",
+  "industry": "Corporate",
+  "density": "dense",
+  "branded": false,
+  "imageSha256": "2bde626a0d800639f2d96255cc39f05f07a31fc4f412a1110ecbbb9d937d73d0",
+  "scores": {
+    "photography": null,
+    "typography": null,
+    "hierarchy": null,
+    "commercialAppeal": null,
+    "recruitmentEffectiveness": null,
+    "trust": null,
+    "luxuryMagazineQuality": null,
+    "brandConsistency": null,
+    "visualStorytelling": null,
+    "readability": null,
+    "mobileReadability": null,
+    "spellingGrammar": null,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": null
+  },
+  "passed": false,
+  "defects": [],
+  "catastrophicDefects": [],
+  "latencyMs": 61409,
+  "fullVisualQa": null,
+  "factCheck": null
+}

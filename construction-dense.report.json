@@ -1,0 +1,123 @@
+{
+  "id": "construction-dense",
+  "industry": "Construction",
+  "density": "dense",
+  "branded": false,
+  "imageSha256": "c1dfbc9b38a9873b47349a602b837cc5c464133e382eaff37db45051f3050d97",
+  "scores": {
+    "photography": 8.2,
+    "typography": 7.2,
+    "hierarchy": 6.8,
+    "commercialAppeal": 7,
+    "recruitmentEffectiveness": 7.3,
+    "trust": 7,
+    "luxuryMagazineQuality": 7,
+    "brandConsistency": null,
+    "visualStorytelling": 8.2,
+    "readability": 7.2,
+    "mobileReadability": 7.2,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 7.3
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Header: Shows 'Qatar Infrastructure Program - 500+ Vacancies' but main header on top says 'QATAR · CONSTRUCTION' instead of 'Qatar Infrastructure Program — 500+ Vacancies'",
+    "Spelling/fidelity: Position: 'Roller Operator (4)' is rendered as 'Roiler Operator'",
+    "Spelling/fidelity: Position: 'Concrete Foreman (6)' is rendered as 'Concrete Foreman' (no vacancy number shown)",
+    "Spelling/fidelity: Position: 'Safety Officer NEBOSH (5)' is rendered as 'Safety Officer NEBOSH' (no vacancy number shown)",
+    "Spelling/fidelity: Position: 'First Aider (6)' is rendered as 'First Aider' (no vacancy number shown)",
+    "Spelling/fidelity: Position: 'Storekeeper (2)' is rendered as 'Storekeeper' (no vacancy number shown)",
+    "Spelling/fidelity: Position: 'Timekeeper (3)' is rendered as 'Timekeeper' (no vacancy number shown)",
+    "Spelling/fidelity: Position: 'Camp Boss (4)' is rendered as 'Camp Boss' (no vacancy number shown)",
+    "Spelling/fidelity: Position: 'Cook (5)' is rendered as 'Cook' (no vacancy number shown)",
+    "Spelling/fidelity: Position: 'Cleaner (6)' is rendered twice as 'Cleaner' with no vacancy numbers",
+    "Spelling/fidelity: Position: 'Drainage Supervisor (3)' is missing, instead 'Concrete Supervisor' is listed",
+    "Spelling/fidelity: Position: 'Concrete Supervisor' appears on image but is not in the expected facts",
+    "Missing fact: Country: Qatar (The main country 'Qatar' is not stated except in program title, not clearly as country)",
+    "Missing fact: Agency: Al-Yousuf Enterprises LLP",
+    "Visual QA (catastrophic): No clear verification/trust footer with agency name/logo, RA/MEA number, presented with visual confidence; only small license detail as a line of microtext.",
+    "Visual QA (catastrophic): Contact CTA lacks prominence and is hard to locate at a glance.",
+    "Visual QA (catastrophic): No distinct, dominant candidate-facing hook: the headline is generic, and the UAE/Qatar/project/opportunity combination could be much more direct and bolder for instant recognition.",
+    "Visual QA (catastrophic): No visible agency identity—no logo, no verification band.",
+    "Visual QA score 73/100 is below the 85 publishable bar",
+    "Visual QA: Agency/verification identity elements (license details) are present but minimized and not clearly separated as a single trust footer—there is no logo, RA number, or MEA mark placed with trust emphasis.",
+    "Visual QA: The headline is prominent, but the candidate-facing hook ('QATAR CONSTRUCTION Earning opportunity') is split between lines and not as focused as best practice would dictate; the opportunity/country text could be more dominant.",
+    "Visual QA: Visual hierarchy could be stronger: job roles and CTA details collide slightly and do not maximize eye flow. The contact CTA is not visually prominent and blends with the job listing.",
+    "Visual QA: Main canvas is split into heavy top/bottom bands with large amounts of dense text—not as visually dynamic/engaging as competitive Gulf agency ads.",
+    "Visual QA: QR code feels like a sticker at the bottom instead of being organically integrated."
+  ],
+  "catastrophicDefects": [
+    "No clear verification/trust footer with agency name/logo, RA/MEA number, presented with visual confidence; only small license detail as a line of microtext.",
+    "Contact CTA lacks prominence and is hard to locate at a glance.",
+    "No distinct, dominant candidate-facing hook: the headline is generic, and the UAE/Qatar/project/opportunity combination could be much more direct and bolder for instant recognition.",
+    "No visible agency identity—no logo, no verification band."
+  ],
+  "latencyMs": 65438,
+  "fullVisualQa": {
+    "overallScore": 73,
+    "commercialQualityScore": 70,
+    "hierarchyScore": 68,
+    "readabilityScore": 72,
+    "imageryScore": 82,
+    "canvasUtilizationScore": 75,
+    "ctaScore": 65,
+    "trustScore": 70,
+    "defects": [
+      "Agency/verification identity elements (license details) are present but minimized and not clearly separated as a single trust footer—there is no logo, RA number, or MEA mark placed with trust emphasis.",
+      "The headline is prominent, but the candidate-facing hook ('QATAR CONSTRUCTION Earning opportunity') is split between lines and not as focused as best practice would dictate; the opportunity/country text could be more dominant.",
+      "Visual hierarchy could be stronger: job roles and CTA details collide slightly and do not maximize eye flow. The contact CTA is not visually prominent and blends with the job listing.",
+      "Main canvas is split into heavy top/bottom bands with large amounts of dense text—not as visually dynamic/engaging as competitive Gulf agency ads.",
+      "QR code feels like a sticker at the bottom instead of being organically integrated.",
+      "The benefits, walk-in, and contact information are all in a similarly sized small font—important contact CTA under-emphasized.",
+      "Too much similar text treatment: needs clearer typographic step between headline, subheadline, jobs, and critical CTA."
+    ],
+    "catastrophicDefects": [
+      "No clear verification/trust footer with agency name/logo, RA/MEA number, presented with visual confidence; only small license detail as a line of microtext.",
+      "Contact CTA lacks prominence and is hard to locate at a glance.",
+      "No distinct, dominant candidate-facing hook: the headline is generic, and the UAE/Qatar/project/opportunity combination could be much more direct and bolder for instant recognition.",
+      "No visible agency identity—no logo, no verification band."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase the size, visual prominence, and separation of the contact CTA (phone/email) so it is immediately findable and visually dominant."
+      },
+      {
+        "type": "OTHER",
+        "note": "Add a proper trust/verification footer with agency logo, name, RA number, and MEA mark, not just as microtext, to meet industry trust conventions."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Increase the dominance and candidate-focus of the primary headline—recast as a unified, compelling hook (e.g. 'QATAR CONSTRUCTION — 500+ VACANCIES')."
+      },
+      {
+        "type": "OTHER",
+        "note": "Integrate the QR code so it looks built into the footer/trust section, not floating on the composition."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Header: Shows 'Qatar Infrastructure Program - 500+ Vacancies' but main header on top says 'QATAR · CONSTRUCTION' instead of 'Qatar Infrastructure Program — 500+ Vacancies'",
+      "Position: 'Roller Operator (4)' is rendered as 'Roiler Operator'",
+      "Position: 'Concrete Foreman (6)' is rendered as 'Concrete Foreman' (no vacancy number shown)",
+      "Position: 'Safety Officer NEBOSH (5)' is rendered as 'Safety Officer NEBOSH' (no vacancy number shown)",
+      "Position: 'First Aider (6)' is rendered as 'First Aider' (no vacancy number shown)",
+      "Position: 'Storekeeper (2)' is rendered as 'Storekeeper' (no vacancy number shown)",
+      "Position: 'Timekeeper (3)' is rendered as 'Timekeeper' (no vacancy number shown)",
+      "Position: 'Camp Boss (4)' is rendered as 'Camp Boss' (no vacancy number shown)",
+      "Position: 'Cook (5)' is rendered as 'Cook' (no vacancy number shown)",
+      "Position: 'Cleaner (6)' is rendered twice as 'Cleaner' with no vacancy numbers",
+      "Position: 'Drainage Supervisor (3)' is missing, instead 'Concrete Supervisor' is listed",
+      "Position: 'Concrete Supervisor' appears on image but is not in the expected facts"
+    ],
+    "missingCriticalFacts": [
+      "Country: Qatar (The main country 'Qatar' is not stated except in program title, not clearly as country)",
+      "Agency: Al-Yousuf Enterprises LLP"
+    ],
+    "legibilityIssues": []
+  }
+}

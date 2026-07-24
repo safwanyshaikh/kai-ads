@@ -1,0 +1,30 @@
+{
+  "id": "retail-medium",
+  "industry": "Retail",
+  "density": "medium",
+  "branded": false,
+  "imageSha256": "46883dab811e478e04eb0472ec154b11e3b1d86b783d0ae5d2b5042482b219b2",
+  "scores": {
+    "photography": null,
+    "typography": null,
+    "hierarchy": null,
+    "commercialAppeal": null,
+    "recruitmentEffectiveness": null,
+    "trust": null,
+    "luxuryMagazineQuality": null,
+    "brandConsistency": null,
+    "visualStorytelling": null,
+    "readability": null,
+    "mobileReadability": null,
+    "spellingGrammar": null,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": null
+  },
+  "passed": false,
+  "defects": [],
+  "catastrophicDefects": [],
+  "latencyMs": 60291,
+  "fullVisualQa": null,
+  "factCheck": null
+}

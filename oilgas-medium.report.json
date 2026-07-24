@@ -1,0 +1,94 @@
+{
+  "id": "oilgas-medium",
+  "industry": "Oil & Gas",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "798831a6bb1797315969224d70543e266a3c87afc969d1ed5945a7aae56d24af",
+  "scores": {
+    "photography": 8.9,
+    "typography": 8.3,
+    "hierarchy": 8,
+    "commercialAppeal": 8.4,
+    "recruitmentEffectiveness": 8.2,
+    "trust": 6.9,
+    "luxuryMagazineQuality": 8.4,
+    "brandConsistency": 8.2,
+    "visualStorytelling": 8.9,
+    "readability": 8.3,
+    "mobileReadability": 8.3,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Instrument Technician (8) — Image shows 'Instrument Technician 8 openings' instead of '(8)'",
+    "Spelling/fidelity: Position: Rotating Equipment Technician (6) — Image does not specify number of openings",
+    "Spelling/fidelity: Position: Mechanical Technician (10) — Image shows 'Mechanical Technician 10 openings' instead of '(10)'",
+    "Spelling/fidelity: Position: Electrical Technician (9) — Image shows 'Electrical Technician 9 openings' instead of '(9)'",
+    "Missing fact: Employer: Bilfinger",
+    "Missing fact: Country: Saudi Arabia",
+    "Legibility: The benefits, interview date at Mumbai, and part of \"Food & accommodation\" are obscured in the lower right corner by a white block, making them illegible.",
+    "Visual QA (catastrophic): Canvas utilization: the large white verification/QR block covers critical job/benefit/contact details, amounting to >20% unjustified dead zone — this breaks the flow and clarity required for publication.",
+    "Visual QA (catastrophic): No professionally structured trust/verification band with agency/logo/RA/verification info; footer is weak, isolating the agency name.",
+    "Visual QA score 82/100 is below the 85 publishable bar",
+    "Visual QA: QR code and trust footer location block a significant portion of the job/benefit information and crowd the lower right, harming information flow.",
+    "Visual QA: No fully integrated trust/verification band or agency identity footer. Agency name is in a small, visually weak position at the very bottom, not in a footer band with proper trust marks.",
+    "Visual QA: Canvas utilization is slightly weak due to the white block covering the lower right; it introduces a dead zone and visually interrupts the advertisement's flow.",
+    "Visual QA: The connection between the contact/CTA and the footer is weak; CTA blends with job info instead of standing out in a designed band.",
+    "Visual QA: Candidate-facing hook is strong at top, but agency/verification is an afterthought, not confidently present for trust."
+  ],
+  "catastrophicDefects": [
+    "Canvas utilization: the large white verification/QR block covers critical job/benefit/contact details, amounting to >20% unjustified dead zone — this breaks the flow and clarity required for publication.",
+    "No professionally structured trust/verification band with agency/logo/RA/verification info; footer is weak, isolating the agency name."
+  ],
+  "latencyMs": 66066,
+  "fullVisualQa": {
+    "overallScore": 82,
+    "commercialQualityScore": 84,
+    "hierarchyScore": 80,
+    "readabilityScore": 83,
+    "imageryScore": 89,
+    "canvasUtilizationScore": 72,
+    "ctaScore": 83,
+    "trustScore": 69,
+    "defects": [
+      "QR code and trust footer location block a significant portion of the job/benefit information and crowd the lower right, harming information flow.",
+      "No fully integrated trust/verification band or agency identity footer. Agency name is in a small, visually weak position at the very bottom, not in a footer band with proper trust marks.",
+      "Canvas utilization is slightly weak due to the white block covering the lower right; it introduces a dead zone and visually interrupts the advertisement's flow.",
+      "The connection between the contact/CTA and the footer is weak; CTA blends with job info instead of standing out in a designed band.",
+      "Candidate-facing hook is strong at top, but agency/verification is an afterthought, not confidently present for trust."
+    ],
+    "catastrophicDefects": [
+      "Canvas utilization: the large white verification/QR block covers critical job/benefit/contact details, amounting to >20% unjustified dead zone — this breaks the flow and clarity required for publication.",
+      "No professionally structured trust/verification band with agency/logo/RA/verification info; footer is weak, isolating the agency name."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Redesign the QR and verification band to avoid covering job info and contact; make space for trust/verification elements in a proper footer rather than an overlay that blocks content."
+      },
+      {
+        "type": "OTHER",
+        "note": "Rework the trust/verification/agency information into a confident, visible footer band rather than treating it as an afterthought or letting it disrupt core job info."
+      }
+    ],
+    "verdict": "BLOCKED"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Instrument Technician (8) — Image shows 'Instrument Technician 8 openings' instead of '(8)'",
+      "Position: Rotating Equipment Technician (6) — Image does not specify number of openings",
+      "Position: Mechanical Technician (10) — Image shows 'Mechanical Technician 10 openings' instead of '(10)'",
+      "Position: Electrical Technician (9) — Image shows 'Electrical Technician 9 openings' instead of '(9)'"
+    ],
+    "missingCriticalFacts": [
+      "Employer: Bilfinger",
+      "Country: Saudi Arabia"
+    ],
+    "legibilityIssues": [
+      "The benefits, interview date at Mumbai, and part of \"Food & accommodation\" are obscured in the lower right corner by a white block, making them illegible."
+    ]
+  }
+}

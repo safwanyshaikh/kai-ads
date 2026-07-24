@@ -1,0 +1,30 @@
+{
+  "id": "engineering-dense",
+  "industry": "Engineering",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "66bbb40960fb3cf9dad6246fa112dee5b5c7a4664df3d7d3257fb5ab5282ce62",
+  "scores": {
+    "photography": null,
+    "typography": null,
+    "hierarchy": null,
+    "commercialAppeal": null,
+    "recruitmentEffectiveness": null,
+    "trust": null,
+    "luxuryMagazineQuality": null,
+    "brandConsistency": null,
+    "visualStorytelling": null,
+    "readability": null,
+    "mobileReadability": null,
+    "spellingGrammar": null,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": null
+  },
+  "passed": false,
+  "defects": [],
+  "catastrophicDefects": [],
+  "latencyMs": 57338,
+  "fullVisualQa": null,
+  "factCheck": null
+}

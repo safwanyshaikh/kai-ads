@@ -1,0 +1,30 @@
+{
+  "id": "retail-sparse",
+  "industry": "Retail",
+  "density": "sparse",
+  "branded": true,
+  "imageSha256": "a027d4140f348a7811cf4cc24d0677a4a25a04bd674ae56fcb75a8e5552385d1",
+  "scores": {
+    "photography": null,
+    "typography": null,
+    "hierarchy": null,
+    "commercialAppeal": null,
+    "recruitmentEffectiveness": null,
+    "trust": null,
+    "luxuryMagazineQuality": null,
+    "brandConsistency": null,
+    "visualStorytelling": null,
+    "readability": null,
+    "mobileReadability": null,
+    "spellingGrammar": null,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": null
+  },
+  "passed": false,
+  "defects": [],
+  "catastrophicDefects": [],
+  "latencyMs": 54987,
+  "fullVisualQa": null,
+  "factCheck": null
+}

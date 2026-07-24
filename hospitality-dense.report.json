@@ -1,0 +1,147 @@
+{
+  "id": "hospitality-dense",
+  "industry": "Hospitality",
+  "density": "dense",
+  "branded": false,
+  "imageSha256": "255d78c37c45f8943cc0f3dd1a02012e0afdfabd274f67182f3a85e42c60d2d8",
+  "scores": {
+    "photography": 8.5,
+    "typography": 7.8,
+    "hierarchy": 7.3,
+    "commercialAppeal": 7,
+    "recruitmentEffectiveness": 6.9,
+    "trust": 6.5,
+    "luxuryMagazineQuality": 7,
+    "brandConsistency": null,
+    "visualStorytelling": 8.5,
+    "readability": 7.8,
+    "mobileReadability": 7.8,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 6.9
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Commis I (3 openning) (expected: Commis I (2))",
+    "Spelling/fidelity: Commis II (5 openning) (expected: Commis II (3))",
+    "Spelling/fidelity: Demi Chef (4 openning) (expected: Demi Chef (4)); should be 'openings'.",
+    "Spelling/fidelity: Chef de Partie (5 openning) (expected: Chef de Partie (5)); should be 'openings'.",
+    "Spelling/fidelity: Pastry Chef (6 openning) (expected: Pastry Chef (6)); should be 'openings'.",
+    "Spelling/fidelity: Butcher (2 openning) (expected: Butcher (2)); should be 'openings'.",
+    "Spelling/fidelity: Waiter (4 openning) (expected: Waiter (4)); should be 'openings'.",
+    "Spelling/fidelity: Hostess (5 openning) (expected: Hostess (5)); should be 'openings'.",
+    "Spelling/fidelity: Bartender (6 openning) (expected: Bartender (6)); should be 'openings'.",
+    "Spelling/fidelity: Front Desk Agent (5 openning) (expected: Front Desk Agent (5)); should be 'openings'.",
+    "Spelling/fidelity: Concierge (6 openning) (expected: Concierge (6)); should be 'openings'.",
+    "Spelling/fidelity: Driver (4 openning) (expected: Driver (6)); should be 'openings' and number is 4 not 6.",
+    "Spelling/fidelity: Room Attendant (2) missing (openings).",
+    "Spelling/fidelity: Public Area Attendant missing (3).",
+    "Spelling/fidelity: Laundry Attendant missing (4).",
+    "Spelling/fidelity: Lifeguard (2) missing (openings).",
+    "Spelling/fidelity: Spa Therapist (3) is missing.",
+    "Spelling/fidelity: Fitness Instructor (4) is missing.",
+    "Spelling/fidelity: Bellman (5) is missing.",
+    "Spelling/fidelity: Benefit: Full board is listed but split as 'Air Ticket • Full board • Flights • Uniform'; 'Air Ticket' should not appear and 'Flights' and 'Uniform' appear in a different order.",
+    "Spelling/fidelity: Benefit: Uniform is present, but not the only item: joined line.",
+    "Spelling/fidelity: Country: Saudi Arabia is not a standalone statement, only appears in the large header as 'SAUDI ARABIA HOSPITALITY'",
+    "Missing fact: Spa Therapist (3)",
+    "Missing fact: Fitness Instructor (4)",
+    "Missing fact: Bellman (5)",
+    "Missing fact: Public Area Attendant (3) (no number present)",
+    "Missing fact: Laundry Attendant (4) (no number present)",
+    "Visual QA (catastrophic): More than ~20% unjustified dead canvas (lower right corner, oversized QR white panel is not efficiently integrated and burns significant candidate-attention canvas).",
+    "Visual QA (catastrophic): No clear, immediate candidate-facing opportunity hook — topmost text and headline lack compelling project/destination framing.",
+    "Visual QA score 69/100 is below the 85 publishable bar",
+    "Visual QA: Agency and verification/trust elements are only minimally present and somewhat merged into the bottom block, risking confidence for Gulf recruitment (insufficient separation/emphasis for trust footer).",
+    "Visual QA: The headline 'Earning opportunity' is weak and not a strong candidate-facing hook; 'SAUDI ARABIA HOSPITALITY' is the largest but lacks recruiter urgency and opportunity framing.",
+    "Visual QA: The contact CTA, while present, does not visually pop and could be easily overlooked in dense copy.",
+    "Visual QA: More than 20% of the lower right/side canvas is underutilized by a large, stark white QR code box that detracts from the visual harmony and wastes premium canvas.",
+    "Visual QA: Job list is cramped and dense, challenging clarity at a glance, making the opportunity less instantly consumable."
+  ],
+  "catastrophicDefects": [
+    "More than ~20% unjustified dead canvas (lower right corner, oversized QR white panel is not efficiently integrated and burns significant candidate-attention canvas).",
+    "No clear, immediate candidate-facing opportunity hook — topmost text and headline lack compelling project/destination framing."
+  ],
+  "latencyMs": 67371,
+  "fullVisualQa": {
+    "overallScore": 69,
+    "commercialQualityScore": 70,
+    "hierarchyScore": 73,
+    "readabilityScore": 78,
+    "imageryScore": 85,
+    "canvasUtilizationScore": 66,
+    "ctaScore": 72,
+    "trustScore": 65,
+    "defects": [
+      "Agency and verification/trust elements are only minimally present and somewhat merged into the bottom block, risking confidence for Gulf recruitment (insufficient separation/emphasis for trust footer).",
+      "The headline 'Earning opportunity' is weak and not a strong candidate-facing hook; 'SAUDI ARABIA HOSPITALITY' is the largest but lacks recruiter urgency and opportunity framing.",
+      "The contact CTA, while present, does not visually pop and could be easily overlooked in dense copy.",
+      "More than 20% of the lower right/side canvas is underutilized by a large, stark white QR code box that detracts from the visual harmony and wastes premium canvas.",
+      "Job list is cramped and dense, challenging clarity at a glance, making the opportunity less instantly consumable.",
+      "Copy uses several type styles and highlight colors inconsistently, reducing professional impact and immediate hierarchy.",
+      "The AI visual, while appropriate, is slightly overwhelmed by dense text and overlay clutter."
+    ],
+    "catastrophicDefects": [
+      "More than ~20% unjustified dead canvas (lower right corner, oversized QR white panel is not efficiently integrated and burns significant candidate-attention canvas).",
+      "No clear, immediate candidate-facing opportunity hook — topmost text and headline lack compelling project/destination framing."
+    ],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Make the contact CTA more prominent and visually distinct for immediate action."
+      },
+      {
+        "type": "IMPROVE_SPACING",
+        "note": "Spread out the job listing rows for better glance readability and less visual crowding."
+      },
+      {
+        "type": "IMPROVE_CONTRAST",
+        "note": "Improve visual separation and typographic contrast for the verification/trust block at the bottom."
+      },
+      {
+        "type": "REGENERATE_IMAGE",
+        "note": "Integrate the QR code more subtly; do not use a large dead white square—overlay or badge it to preserve harmonious canvas use."
+      },
+      {
+        "type": "INCREASE_HEADLINE_EMPHASIS",
+        "note": "Replace the initial weak phrase with a strong candidate-facing, opportunity-centric hook that immediately conveys the project and destination."
+      }
+    ],
+    "verdict": "REGENERATE"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Commis I (3 openning) (expected: Commis I (2))",
+      "Commis II (5 openning) (expected: Commis II (3))",
+      "Demi Chef (4 openning) (expected: Demi Chef (4)); should be 'openings'.",
+      "Chef de Partie (5 openning) (expected: Chef de Partie (5)); should be 'openings'.",
+      "Pastry Chef (6 openning) (expected: Pastry Chef (6)); should be 'openings'.",
+      "Butcher (2 openning) (expected: Butcher (2)); should be 'openings'.",
+      "Waiter (4 openning) (expected: Waiter (4)); should be 'openings'.",
+      "Hostess (5 openning) (expected: Hostess (5)); should be 'openings'.",
+      "Bartender (6 openning) (expected: Bartender (6)); should be 'openings'.",
+      "Front Desk Agent (5 openning) (expected: Front Desk Agent (5)); should be 'openings'.",
+      "Concierge (6 openning) (expected: Concierge (6)); should be 'openings'.",
+      "Driver (4 openning) (expected: Driver (6)); should be 'openings' and number is 4 not 6.",
+      "Room Attendant (2) missing (openings).",
+      "Public Area Attendant missing (3).",
+      "Laundry Attendant missing (4).",
+      "Lifeguard (2) missing (openings).",
+      "Spa Therapist (3) is missing.",
+      "Fitness Instructor (4) is missing.",
+      "Bellman (5) is missing.",
+      "Benefit: Full board is listed but split as 'Air Ticket • Full board • Flights • Uniform'; 'Air Ticket' should not appear and 'Flights' and 'Uniform' appear in a different order.",
+      "Benefit: Uniform is present, but not the only item: joined line.",
+      "Country: Saudi Arabia is not a standalone statement, only appears in the large header as 'SAUDI ARABIA HOSPITALITY'"
+    ],
+    "missingCriticalFacts": [
+      "Spa Therapist (3)",
+      "Fitness Instructor (4)",
+      "Bellman (5)",
+      "Public Area Attendant (3) (no number present)",
+      "Laundry Attendant (4) (no number present)"
+    ],
+    "legibilityIssues": []
+  }
+}

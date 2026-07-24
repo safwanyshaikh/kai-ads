@@ -1,0 +1,59 @@
+{
+  "id": "hospitality-medium",
+  "industry": "Hospitality",
+  "density": "medium",
+  "branded": true,
+  "imageSha256": "e6abf92c878cf7810c07de2cfa55408e145eed2baf7e1d4f49e1414ada7bde4c",
+  "scores": {
+    "photography": 9.2,
+    "typography": 9.3,
+    "hierarchy": 9.5,
+    "commercialAppeal": 9,
+    "recruitmentEffectiveness": 9.2,
+    "trust": 9.3,
+    "luxuryMagazineQuality": 9,
+    "brandConsistency": 9.2,
+    "visualStorytelling": 9.2,
+    "readability": 9.3,
+    "mobileReadability": 9.3,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Country: Qatar — Not explicitly shown as a standalone fact. The word 'Qatar' appears in 'Qatar Hospitality' at the top but not as a country line."
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 57539,
+  "fullVisualQa": {
+    "overallScore": 92,
+    "commercialQualityScore": 90,
+    "hierarchyScore": 95,
+    "readabilityScore": 93,
+    "imageryScore": 92,
+    "canvasUtilizationScore": 90,
+    "ctaScore": 90,
+    "trustScore": 93,
+    "defects": [
+      "The QR code is well-placed but somewhat blends into the white footer; could benefit from a subtle border or shadow for visual separation.",
+      "The salary figure \"QAR 2,200\" is strong, but the \"EARN\" hook could be slightly smaller or more integrated to maximize the clarity of project/destination as the first attention point."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "OTHER",
+        "note": "Enhance the visual separation of the QR code (border or shadow) to maintain top-tier professionalism."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Country: Qatar — Not explicitly shown as a standalone fact. The word 'Qatar' appears in 'Qatar Hospitality' at the top but not as a country line."
+    ],
+    "missingCriticalFacts": [],
+    "legibilityIssues": []
+  }
+}

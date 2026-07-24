@@ -1,0 +1,86 @@
+{
+  "id": "oilgas-dense",
+  "industry": "Oil & Gas",
+  "density": "dense",
+  "branded": true,
+  "imageSha256": "a77c298a45d08f0479e4aa00bded4b68356edcf88473e18d7834ee5a64153995",
+  "scores": {
+    "photography": 9.1,
+    "typography": 8.5,
+    "hierarchy": 8.8,
+    "commercialAppeal": 9.2,
+    "recruitmentEffectiveness": 8.9,
+    "trust": 8.8,
+    "luxuryMagazineQuality": 9.2,
+    "brandConsistency": 8.9,
+    "visualStorytelling": 9.1,
+    "readability": 8.5,
+    "mobileReadability": 8.5,
+    "spellingGrammar": 0,
+    "logoQuality": null,
+    "qr": 10,
+    "overall": 8
+  },
+  "passed": false,
+  "defects": [
+    "Spelling/fidelity: Position: Wireline & Perforating (3) — Image: Wireline & Perforating, opening count not specified.",
+    "Spelling/fidelity: Position: Cementing Operators (4) — Image: Cementing Operators, opening count not specified.",
+    "Spelling/fidelity: Position: Coiled Tubing (5) — Image: Colled Tubing 5 openings (\"Colled\" instead of \"Coiled\").",
+    "Spelling/fidelity: Position: Completion Tools (2) — Image: Completion Tools 2 openings.",
+    "Spelling/fidelity: Position: Testing & Subsea (6) — Image: Testing & Subsea 6 openings.",
+    "Spelling/fidelity: Position: Drill Bits Services (4) — Image: \"Drill Bits Services\" (expected) vs \"Drill BitsServices\" (missing space on left column) and both columns show 4 openings.",
+    "Spelling/fidelity: Position: Baroid Fluids (5) — Image: Barold Fluids 6 openings (\"Barold\" instead of \"Baroid\" and opening count is 6, not 5).",
+    "Spelling/fidelity: Position: Production Solutions (6) — Image: Production Solutions (opening count missing on left, present as 6 on right).",
+    "Spelling/fidelity: Position: Pipeline Services (2) — Not found.",
+    "Spelling/fidelity: Position: Scaffolders (3) — Image: Scaffolders 4 openings (should be 3).",
+    "Missing fact: Position: Pipeline Services (2)"
+  ],
+  "catastrophicDefects": [],
+  "latencyMs": 69792,
+  "fullVisualQa": {
+    "overallScore": 89,
+    "commercialQualityScore": 92,
+    "hierarchyScore": 88,
+    "readabilityScore": 85,
+    "imageryScore": 91,
+    "canvasUtilizationScore": 88,
+    "ctaScore": 85,
+    "trustScore": 88,
+    "defects": [
+      "Contact CTA (phone/email) is clear but visually could be more prominent for WhatsApp/mobile formats.",
+      "QR section in the bottom right slightly overlaps normal content, feels a bit like a sticker rather than organically integrated.",
+      "Minor crowding in position listings—dense use of space but not unreadable.",
+      "Agency/verification line at the bottom is readable but very small; could be very slightly more prominent, though this is minor."
+    ],
+    "catastrophicDefects": [],
+    "requiredCorrections": [
+      {
+        "type": "IMPROVE_CTA",
+        "note": "Increase visual weight of the phone and email CTA in the lower part—could use slightly larger font, punchier color, or bolder formatting for WhatsApp/mobile visibility."
+      },
+      {
+        "type": "OTHER",
+        "note": "Better integrate the QR code within the layout—a more evident card/ribbon treatment would keep it from appearing as a sticker."
+      }
+    ],
+    "verdict": "PASS"
+  },
+  "factCheck": {
+    "misspelledOrAlteredFacts": [
+      "Position: Wireline & Perforating (3) — Image: Wireline & Perforating, opening count not specified.",
+      "Position: Cementing Operators (4) — Image: Cementing Operators, opening count not specified.",
+      "Position: Coiled Tubing (5) — Image: Colled Tubing 5 openings (\"Colled\" instead of \"Coiled\").",
+      "Position: Completion Tools (2) — Image: Completion Tools 2 openings.",
+      "Position: Testing & Subsea (6) — Image: Testing & Subsea 6 openings.",
+      "Position: Drill Bits Services (4) — Image: \"Drill Bits Services\" (expected) vs \"Drill BitsServices\" (missing space on left column) and both columns show 4 openings.",
+      "Position: Baroid Fluids (5) — Image: Barold Fluids 6 openings (\"Barold\" instead of \"Baroid\" and opening count is 6, not 5).",
+      "Position: Production Solutions (6) — Image: Production Solutions (opening count missing on left, present as 6 on right).",
+      "Position: Pipeline Services (2) — Not found.",
+      "Position: Scaffolders (3) — Image: Scaffolders 4 openings (should be 3)."
+    ],
+    "missingCriticalFacts": [
+      "Position: Pipeline Services (2)"
+    ],
+    "legibilityIssues": []
+  }
+}
