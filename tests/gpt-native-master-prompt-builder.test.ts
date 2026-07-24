@@ -32,7 +32,7 @@ const FACTS: AdvertisementFacts = {
   fullRegistrationNumber: "B-1487/MUM/PART/1000+/9986/2022",
 };
 
-describe("buildMasterAdvertisementPrompt", () => {
+describe("buildMasterAdvertisementPrompt (Sprint 008 Workstream D — Prompt DNA)", () => {
   const direction = runCreativeDirector(INPUT);
   const brief = buildCommercialAdvertisementBrief(direction);
   const prompt = buildMasterAdvertisementPrompt(brief, FACTS, { widthPx: 1080, heightPx: 1350 });
@@ -51,8 +51,9 @@ describe("buildMasterAdvertisementPrompt", () => {
     expect(p).toContain("do not invent one");
   });
 
-  it("explicitly forbids GPT from drawing a QR code or trust badge", () => {
+  it("explicitly forbids GPT from drawing a QR code, logo, or trust badge", () => {
     expect(prompt).toMatch(/do not draw any qr code/i);
+    expect(prompt).toMatch(/do not draw or invent any logo/i);
   });
 
   it("reserves the exact bottom-right zone the KAI Trust Layer composites into", () => {
@@ -61,9 +62,76 @@ describe("buildMasterAdvertisementPrompt", () => {
     expect(prompt).toMatch(/bottom-right/i);
   });
 
-  it("instructs GPT to render the COMPLETE advertisement, not a background", () => {
-    expect(prompt).toMatch(/complete typography/i);
-    expect(prompt).toMatch(/complete layout/i);
+  it("instructs GPT to create the FULL, publication-ready advertisement", () => {
+    expect(prompt).toMatch(/full advertisement/i);
+    expect(prompt).toMatch(/finished typography/i);
     expect(prompt).toMatch(/publication-ready/i);
+  });
+
+  // Workstream D law: no internal enum tokens or engineering vocabulary
+  // may leak into the creative brief — the image model gets art-director
+  // language, never implementation constants.
+  it("leaks NO internal enum tokens or engineering constants", () => {
+    for (const token of [
+      "DTP_GRID",
+      "SINGLE_ROLE_BOX",
+      "MULTI_VACANCY_POSTER",
+      "MEGA_PROJECT personality",
+      "WORKER_HERO",
+      "URGENT_MOBILIZATION",
+      "MASS_HIRING",
+      "OFFSHORE_PLATFORM",
+      "prominence: HIGH",
+      "prominence: MEDIUM",
+      "prominence: LOW",
+      "EMPLOYER >",
+      " -> ",
+      "vacancyProminence",
+      "GPT_NATIVE",
+    ]) {
+      expect(prompt, `internal token "${token}" leaked into the prompt`).not.toContain(token);
+    }
+  });
+
+  it("translates the Brain's decisions into visual creative language", () => {
+    // The reading order arrives as a sentence of human phrases, not lever enums.
+    expect(prompt).toMatch(/the eye should travel/i);
+    // Photography direction is explicit (Supreme P7).
+    expect(prompt).toMatch(/photorealistic/i);
+    expect(prompt).toMatch(/no plastic skin/i);
+  });
+
+  it("varies composition guidance with content density instead of hardcoding one layout", () => {
+    const sparseFacts: AdvertisementFacts = { ...FACTS, positions: [{ title: "Site Manager", count: 1 }] };
+    const sparseInput: CreativeInput = { ...INPUT, positions: [{ title: "Site Manager", count: 1 }] };
+    const sparseBrief = buildCommercialAdvertisementBrief(runCreativeDirector(sparseInput));
+    const sparsePrompt = buildMasterAdvertisementPrompt(sparseBrief, sparseFacts, { widthPx: 1080, heightPx: 1350 });
+
+    const denseInput: CreativeInput = {
+      ...INPUT,
+      positions: Array.from({ length: 30 }, (_, i) => ({ title: `Role ${i}`, count: 1 })),
+    };
+    const denseFacts: AdvertisementFacts = {
+      ...FACTS,
+      positions: Array.from({ length: 30 }, (_, i) => ({ title: `Role ${i}`, count: 1 })),
+    };
+    const denseBrief = buildCommercialAdvertisementBrief(runCreativeDirector(denseInput));
+    const densePrompt = buildMasterAdvertisementPrompt(denseBrief, denseFacts, { widthPx: 1080, heightPx: 1350 });
+
+    expect(sparsePrompt).toMatch(/cinematic hero poster/i);
+    expect(densePrompt).toMatch(/magazine|newspaper listing/i);
+    expect(sparsePrompt).not.toEqual(densePrompt);
+  });
+
+  it("weaves the agency's Visual DNA palette in when provided (Supreme P10)", () => {
+    const branded = buildMasterAdvertisementPrompt(brief, FACTS, {
+      widthPx: 1080,
+      heightPx: 1350,
+      brand: { primaryColor: "#0B3D2E", secondaryColor: "#C9A227", accentColor: "#E4572E" },
+    });
+    expect(branded).toContain("#0B3D2E");
+    expect(branded).toContain("#C9A227");
+    expect(branded).toContain("#E4572E");
+    expect(branded).toMatch(/belongs to this agency/i);
   });
 });
