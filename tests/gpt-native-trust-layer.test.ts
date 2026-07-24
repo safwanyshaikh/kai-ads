@@ -3,7 +3,8 @@ import sharp from "sharp";
 import { PNG } from "pngjs";
 import jsQR from "jsqr";
 import { generateAndVerifyQr, buildQrTrackingUrl } from "@/server/generation/qr-renderer";
-import { applyTrustLayer } from "@/server/generation/gpt-native/trust-layer";
+import { applyTrustLayer, computeImageSha256 } from "@/server/generation/gpt-native/trust-layer";
+import { verifyTrustZoneQr } from "@/server/generation/gpt-native/acceptance";
 
 // Sprint 007: the KAI Trust Layer composites ONLY the QR + agency
 // verification + registration number onto GPT's returned image — real
@@ -111,5 +112,74 @@ describe("applyTrustLayer", () => {
 
     const meta = await sharp(result).metadata();
     expect(meta.exif).toBeDefined();
+  });
+});
+
+// Sprint 008 Workstream G: generation ID + agency logo + content hash, and
+// Workstream E's runtime QR gate — all proven on real composited pixels.
+describe("applyTrustLayer — Sprint 008 ownership carriers", () => {
+  it("composites generation ID and agency logo without breaking QR decodability", async () => {
+    const base = await fakeGptImage();
+    const url = buildQrTrackingUrl({ agencyVerificationId: "av9", advertisementId: "ad9" });
+    const qr = await generateAndVerifyQr(url);
+    const logo = await sharp({
+      create: { width: 200, height: 80, channels: 4, background: { r: 200, g: 30, b: 30, alpha: 1 } },
+    })
+      .png()
+      .toBuffer();
+
+    const result = await applyTrustLayer({
+      baseImagePng: base,
+      qrPng: qr.png,
+      agencyName: "Al-Yousuf Enterprises LLP",
+      raLicenseId: "9986",
+      version: 3,
+      widthPx: WIDTH,
+      heightPx: HEIGHT,
+      generationId: "KAI-AD9XXXXX-V3",
+      agencyLogoPng: logo,
+    });
+
+    expect(await verifyTrustZoneQr(result, url, WIDTH, HEIGHT)).toBe(true);
+  });
+
+  it("a corrupt logo never blocks generation (non-fatal compositing)", async () => {
+    const base = await fakeGptImage();
+    const qr = await generateAndVerifyQr(buildQrTrackingUrl({ agencyVerificationId: "av10", advertisementId: "ad10" }));
+
+    const result = await applyTrustLayer({
+      baseImagePng: base,
+      qrPng: qr.png,
+      agencyName: "Test Agency",
+      raLicenseId: "1",
+      version: 1,
+      widthPx: WIDTH,
+      heightPx: HEIGHT,
+      generationId: "KAI-TEST-V1",
+      agencyLogoPng: Buffer.from("this is not an image"),
+    });
+    expect(result.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+  });
+
+  it("computeImageSha256 is deterministic and content-sensitive (authenticity record)", async () => {
+    const a = await fakeGptImage();
+    expect(computeImageSha256(a)).toBe(computeImageSha256(a));
+    expect(computeImageSha256(a)).toMatch(/^[0-9a-f]{64}$/);
+    expect(computeImageSha256(Buffer.concat([a, Buffer.from([1])]))).not.toBe(computeImageSha256(a));
+  });
+
+  it("verifyTrustZoneQr rejects an image whose trust zone carries the WRONG QR payload", async () => {
+    const base = await fakeGptImage();
+    const qr = await generateAndVerifyQr(buildQrTrackingUrl({ agencyVerificationId: "av11", advertisementId: "ad11" }));
+    const result = await applyTrustLayer({
+      baseImagePng: base,
+      qrPng: qr.png,
+      agencyName: "Test Agency",
+      raLicenseId: null,
+      version: 1,
+      widthPx: WIDTH,
+      heightPx: HEIGHT,
+    });
+    expect(await verifyTrustZoneQr(result, "https://attacker.example/fake", WIDTH, HEIGHT)).toBe(false);
   });
 });

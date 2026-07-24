@@ -13,8 +13,12 @@
  */
 
 import "../font-config"; // side effect: FONTCONFIG_FILE must be set before any rasterization (see Bug 005)
+import { createHash } from "node:crypto";
 import sharp from "sharp";
+import { createLogger } from "@/lib/logger";
 import { TRUST_ZONE } from "./master-prompt-builder";
+
+const log = createLogger("gpt-native-trust-layer");
 
 export interface TrustLayerInput {
   /** GPT's complete, already-rendered advertisement PNG. */
@@ -26,6 +30,28 @@ export interface TrustLayerInput {
   version: number;
   widthPx: number;
   heightPx: number;
+  /**
+   * Sprint 008 Workstream G: the pixel-borne ownership carriers. EXIF
+   * dies on social-platform re-encode (WhatsApp/Facebook strip metadata),
+   * so the generation ID is ALSO micro-printed visibly in the trust zone,
+   * and the agency's real logo (never drawn by GPT) is composited beside
+   * the verification text — the carriers that actually survive
+   * circulation.
+   */
+  generationId?: string | null;
+  /** Agency's real logo bytes (PNG/JPEG/WEBP); compositing is non-fatal — a bad logo never blocks generation. */
+  agencyLogoPng?: Buffer | null;
+}
+
+/**
+ * Workstream G: content hash for the authenticity record. Stored
+ * server-side (version snapshot) so any re-uploaded copy of the file can
+ * later be matched byte-for-byte against KAI's record via the /v/ page —
+ * a provenance check that survives even total metadata stripping when
+ * the file itself is unmodified.
+ */
+export function computeImageSha256(png: Buffer): string {
+  return createHash("sha256").update(png).digest("hex");
 }
 
 function escapeXml(value: string): string {
@@ -66,17 +92,42 @@ export async function applyTrustLayer(input: TrustLayerInput): Promise<Buffer> {
       ? `<text x="${textX}" y="${padding + fontSize * 3.6}" font-family="KaiSans, sans-serif" font-size="${Math.round(fontSize * 0.8)}" fill="#555555">RA ${escapeXml(input.raLicenseId)}</text>`
       : ""
   }
-  <text x="${textX}" y="${zoneH - padding * 0.6}" font-family="KaiSans, sans-serif" font-size="${Math.round(fontSize * 0.65)}" fill="#777777">Scan to verify · kai-ads</text>
+  <text x="${textX}" y="${zoneH - padding * 0.6}" font-family="KaiSans, sans-serif" font-size="${Math.round(fontSize * 0.65)}" fill="#777777">${input.generationId ? `${escapeXml(input.generationId)} · ` : ""}Scan to verify · kai-ads</text>
 </svg>`;
 
   const overlayPng = await sharp(Buffer.from(overlaySvg), { density: 144 }).png().toBuffer();
 
+  const composites: { input: Buffer; left: number; top: number }[] = [
+    { input: overlayPng, left: zoneX, top: zoneY },
+    { input: qrResized, left: zoneX + padding, top: zoneY + padding },
+  ];
+
+  // Agency logo (Workstream G / Supreme P10-P11): the REAL logo, composited
+  // by KAI — GPT is explicitly forbidden from drawing/inventing one. Sized
+  // to sit above the verification text at the zone's right edge. Non-fatal:
+  // an unreadable logo file must never block an otherwise valid generation.
+  if (input.agencyLogoPng) {
+    try {
+      const logoH = Math.round(zoneH * 0.28);
+      const logoW = Math.round(zoneW * 0.28);
+      const logoResized = await sharp(input.agencyLogoPng)
+        .resize(logoW, logoH, { fit: "inside", withoutEnlargement: true })
+        .png()
+        .toBuffer();
+      const logoMeta = await sharp(logoResized).metadata();
+      composites.push({
+        input: logoResized,
+        left: zoneX + zoneW - padding - (logoMeta.width ?? logoW),
+        top: zoneY + padding,
+      });
+    } catch (error) {
+      log.warn({ err: error }, "Agency logo could not be composited — continuing without it");
+    }
+  }
+
   const composited = await sharp(input.baseImagePng)
     .resize(input.widthPx, input.heightPx, { fit: "cover" })
-    .composite([
-      { input: overlayPng, left: zoneX, top: zoneY },
-      { input: qrResized, left: zoneX + padding, top: zoneY + padding },
-    ])
+    .composite(composites)
     .png()
     .toBuffer();
 
@@ -85,7 +136,7 @@ export async function applyTrustLayer(input: TrustLayerInput): Promise<Buffer> {
       exif: {
         IFD0: {
           Copyright: `KAI Ads — ${escapeXml(input.agencyName)}`,
-          Software: `kai-ads-gpt-native-v${input.version}`,
+          Software: `kai-ads-gpt-native ${input.generationId ?? `v${input.version}`}`,
         },
       },
     })

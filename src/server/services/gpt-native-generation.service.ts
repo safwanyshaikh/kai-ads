@@ -47,9 +47,11 @@ import { normalizeInterviewEvents } from "@/server/generation/interview-events";
 import { runCreativeDirector } from "@/server/generation/creative-director/creative-director";
 import { factsToCreativeInput } from "@/server/generation/creative-director/pipeline-adapter";
 import type { AdvertisementFacts } from "@/server/generation/archetypes/types";
+import { resolveAgencyVisualDna } from "@/server/generation/archetypes";
 import { buildCommercialAdvertisementBrief } from "@/server/generation/gpt-native/commercial-brief";
-import { buildMasterAdvertisementPrompt } from "@/server/generation/gpt-native/master-prompt-builder";
-import { applyTrustLayer } from "@/server/generation/gpt-native/trust-layer";
+import { buildMasterAdvertisementPrompt, type BrandContext } from "@/server/generation/gpt-native/master-prompt-builder";
+import { applyTrustLayer, computeImageSha256 } from "@/server/generation/gpt-native/trust-layer";
+import { runGptNativeAcceptance } from "@/server/generation/gpt-native/acceptance";
 import type { GenerateAdvertisementInput } from "@/lib/validations/advertisement-generation";
 
 const log = createLogger("gpt-native-generation");
@@ -115,62 +117,13 @@ export const gptNativeGenerationService = {
     const style = input.style ?? "VISUAL";
     const densityWarnings: string[] = [];
 
-    const provider = getImageGenerationProvider();
-    const imageStartedAt = Date.now();
-    let finalPng: Buffer;
-    let usage: { model: string; latencyMs: number; estimatedCostUsd: number | null };
-
-    try {
-      const prompt = buildMasterAdvertisementPrompt(brief, facts, {
-        widthPx: platformFormat.widthPx,
-        heightPx: platformFormat.heightPx,
-      });
-      const result = await provider.generate({
-        prompt,
-        widthPx: platformFormat.widthPx,
-        heightPx: platformFormat.heightPx,
-        quality: getEnv().KAI_IMAGE_QUALITY,
-      });
-      finalPng = Buffer.from(result.output.imageBase64, "base64");
-      usage = result.usage;
-
-      await costTrackingService.record({
-        operationType: "FULL_AD_GENERATION",
-        provider: provider.name,
-        model: usage.model,
-        inputTokens: null,
-        outputTokens: null,
-        latencyMs: usage.latencyMs,
-        success: true,
-        agencyId,
-        userId: actorId,
-        advertisementId,
-        imageSize: `${platformFormat.widthPx}x${platformFormat.heightPx}`,
-        imageQuality: getEnv().KAI_IMAGE_QUALITY,
-      });
-    } catch (error) {
-      if (error instanceof ImageProviderNotImplementedError) {
-        throw new AppError(
-          "GPT-Native Advertisement Architecture requires the KAI Creative Engine to be configured — there is no deterministic fallback for a GPT-owned composition.",
-          503,
-        );
-      }
-      await costTrackingService.record({
-        operationType: "FULL_AD_GENERATION",
-        provider: "openai",
-        model: "unknown",
-        inputTokens: null,
-        outputTokens: null,
-        latencyMs: Date.now() - imageStartedAt,
-        success: false,
-        errorMessage: error instanceof Error ? error.message : "GPT-native image generation failed",
-        agencyId,
-        userId: actorId,
-        advertisementId,
-      });
-      log.error({ advertisementId, err: error }, "GPT-native advertisement generation failed");
-      throw error;
-    }
+    // Sprint 008 Workstream C / Supreme P10: Agency Visual DNA — the
+    // advertisement must belong to THIS agency. Logo fetch is non-fatal.
+    const agencyLogoPng = await fetchLogoBuffer(agency.logoUrl);
+    const dna = await resolveAgencyVisualDna({ logo: agencyLogoPng });
+    const brand: BrandContext | null = dna
+      ? { primaryColor: dna.primaryColor, secondaryColor: dna.secondaryColor, accentColor: dna.accentColor }
+      : null;
 
     const badge = selectBadgeConfig({ style, density, positionCount: positions.length, platformFormat });
 
@@ -198,18 +151,131 @@ export const gptNativeGenerationService = {
     }
 
     const nextVersion = advertisement.currentVersion + 1;
+    // Workstream G: the pixel-borne, human-readable ownership identifier —
+    // micro-printed in the trust zone AND embedded in metadata, verifiable
+    // via the /v/ page even after platforms strip EXIF.
+    const generationId = `KAI-${advertisementId.slice(-8).toUpperCase()}-V${nextVersion}`;
 
-    // KAI Trust Layer: the ONLY thing composited onto GPT's returned
-    // image — QR, agency verification, registration number, metadata.
-    finalPng = await applyTrustLayer({
-      baseImagePng: finalPng,
-      qrPng: qrResult.png,
-      agencyName: agency.name,
-      raLicenseId: compactRaLicenseId,
-      version: nextVersion,
+    const provider = getImageGenerationProvider();
+    const basePrompt = buildMasterAdvertisementPrompt(brief, facts, {
       widthPx: platformFormat.widthPx,
       heightPx: platformFormat.heightPx,
+      brand,
     });
+
+    // Sprint 008 Workstream E: bounded generate → trust-layer → verify
+    // loop. GPT owns every attempt's composition in full (Supreme P2);
+    // KAI's only remedies are regenerate-once-with-feedback or flag for
+    // review — never redrawing.
+    const MAX_ATTEMPTS = 2;
+    let finalPng!: Buffer;
+    let usage!: { model: string; latencyMs: number; estimatedCostUsd: number | null };
+    let acceptance!: Awaited<ReturnType<typeof runGptNativeAcceptance>>;
+    let attemptsUsed = 0;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      attemptsUsed = attempt;
+      const imageStartedAt = Date.now();
+      const prompt =
+        attempt === 1
+          ? basePrompt
+          : `${basePrompt}\n\n=== CORRECTIONS FROM THE PREVIOUS ATTEMPT — fix every one ===\n${acceptance.defects.map((d) => `- ${d}`).join("\n")}`;
+
+      try {
+        const result = await provider.generate({
+          prompt,
+          widthPx: platformFormat.widthPx,
+          heightPx: platformFormat.heightPx,
+          quality: getEnv().KAI_IMAGE_QUALITY,
+        });
+        finalPng = Buffer.from(result.output.imageBase64, "base64");
+        usage = result.usage;
+
+        await costTrackingService.record({
+          operationType: "FULL_AD_GENERATION",
+          provider: provider.name,
+          model: usage.model,
+          inputTokens: null,
+          outputTokens: null,
+          latencyMs: usage.latencyMs,
+          success: true,
+          agencyId,
+          userId: actorId,
+          advertisementId,
+          imageSize: `${platformFormat.widthPx}x${platformFormat.heightPx}`,
+          imageQuality: getEnv().KAI_IMAGE_QUALITY,
+        });
+      } catch (error) {
+        if (error instanceof ImageProviderNotImplementedError) {
+          throw new AppError(
+            "GPT-Native Advertisement Architecture requires the KAI Creative Engine to be configured — there is no deterministic fallback for a GPT-owned composition.",
+            503,
+          );
+        }
+        await costTrackingService.record({
+          operationType: "FULL_AD_GENERATION",
+          provider: "openai",
+          model: "unknown",
+          inputTokens: null,
+          outputTokens: null,
+          latencyMs: Date.now() - imageStartedAt,
+          success: false,
+          errorMessage: error instanceof Error ? error.message : "GPT-native image generation failed",
+          agencyId,
+          userId: actorId,
+          advertisementId,
+        });
+        log.error({ advertisementId, attempt, err: error }, "GPT-native advertisement generation failed");
+        throw error;
+      }
+
+      // KAI Trust Layer: the ONLY thing composited onto GPT's returned
+      // image — QR, agency logo, verification text, generation ID, metadata.
+      finalPng = await applyTrustLayer({
+        baseImagePng: finalPng,
+        qrPng: qrResult.png,
+        agencyName: agency.name,
+        raLicenseId: compactRaLicenseId,
+        version: nextVersion,
+        widthPx: platformFormat.widthPx,
+        heightPx: platformFormat.heightPx,
+        generationId,
+        agencyLogoPng,
+      });
+
+      acceptance = await runGptNativeAcceptance({
+        finalPng,
+        facts,
+        expectedQrUrl: qrUrl,
+        widthPx: platformFormat.widthPx,
+        heightPx: platformFormat.heightPx,
+        platformFormatKey: input.platformFormat,
+      });
+
+      // The QR gate is the same absolute law as the legacy pipeline's
+      // deterministic gate: an advertisement whose verification QR does
+      // not decode from the final pixels must never be accepted.
+      if (!acceptance.qrDecodable) {
+        throw new AppError(
+          "Advertisement generation failed a deterministic acceptance gate: the verification QR could not be decoded from the final image.",
+          500,
+        );
+      }
+
+      if (!acceptance.shouldRegenerate) break;
+      log.warn(
+        { advertisementId, attempt, defects: acceptance.defects },
+        attempt < MAX_ATTEMPTS
+          ? "GPT-native acceptance found defects — regenerating with corrections"
+          : "GPT-native acceptance defects remain after final attempt — flagging for review",
+      );
+    }
+
+    if (acceptance.defects.length > 0) {
+      densityWarnings.push(
+        ...acceptance.defects.map((d) => `KAI verification: ${d}`),
+      );
+    }
 
     const trustCheck = runTrustCheck({
       agencyName: agency.name,
@@ -224,6 +290,13 @@ export const gptNativeGenerationService = {
       trustCheck.warnings = [...trustCheck.warnings, ...direction.truth.violations];
     }
 
+    // Workstream E: an advertisement with unresolved verification defects
+    // is never presented as TRUST_READY — the recruiter must look at it.
+    if (acceptance.defects.length > 0 && trustCheck.status === "TRUST_READY") {
+      trustCheck.status = "REVIEW_RECOMMENDED";
+    }
+
+    const imageSha256 = computeImageSha256(finalPng);
     const generatedAssetUrl = `data:image/png;base64,${finalPng.toString("base64")}`;
 
     const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -256,6 +329,19 @@ export const gptNativeGenerationService = {
             commercialBrief: brief,
             commercialScore: direction.commercialScore,
             imageModel: usage.model,
+            // Workstream G: the authenticity record — generation ID (also
+            // micro-printed on the artwork + in EXIF) and the content hash
+            // any re-uploaded copy can be matched against via /v/.
+            generationId,
+            imageSha256,
+            // Workstream E/P16: per-generation verification evidence —
+            // the raw material for continuous benchmarking.
+            acceptance: {
+              attempts: attemptsUsed,
+              visionChecksRan: acceptance.visionChecksRan,
+              visualQaScore: acceptance.visualQaScore,
+              defects: acceptance.defects,
+            },
           } as unknown as Prisma.InputJsonValue,
           changeSummary: "Full advertisement generated (GPT-Native pipeline)",
           regenerationMethod: "AI_REGENERATED",
@@ -313,3 +399,20 @@ export const gptNativeGenerationService = {
     return updated;
   },
 };
+
+/**
+ * Fetches the agency's real logo bytes for Trust-Layer compositing and
+ * Visual DNA extraction. Always our own storage's URL (set at
+ * registration via storageService). Non-fatal: no logo simply means no
+ * logo on the badge and industry-default DNA — never a failed generation.
+ */
+async function fetchLogoBuffer(url: string | null | undefined): Promise<Buffer | null> {
+  if (!url) return null;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
