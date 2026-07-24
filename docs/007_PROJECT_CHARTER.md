@@ -2,9 +2,9 @@
 
 # PROJECT CHARTER
 
-Status : LOCKED
+Status : LOCKED — subordinate to `docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`
 
-Version : 1.0
+Version : 1.1
 
 Owner : Safwan Yusuf Shaikh
 
@@ -181,6 +181,12 @@ Object Storage
 # Product Rules
 
 Never regenerate entire advertisement.
+
+*(Amendment 1, July 2026 — SUPERSEDED for the GPT-Native pipeline by Supreme
+Constitution Principle 2: GPT produces the complete artwork, and a visual
+refresh regenerates the whole advertisement from updated grounded facts, with
+version history preserving prior artwork. This rule as written continues to
+govern only the legacy deterministic pipeline while it remains in service.)*
 
 Never ask unnecessary questions.
 

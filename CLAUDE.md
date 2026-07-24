@@ -22,9 +22,13 @@ composition detail, subordinate only to the Supreme Constitution above)
 
 No advertisement work may bypass or contradict it. If any code, prompt,
 document, or prior layout conflicts with it, the Constitution wins unless the
-product owner explicitly amends that file. Runtime enforcement lives in
-`src/server/generation/archetypes/composition-constitution.ts` and is wired
-through `composeAdvertisement()`; do not weaken or route around it.
+product owner explicitly amends that file. Its Articles I–IV and VI–VIII apply
+to EVERY pipeline as evaluation criteria; Articles V and IX (the deterministic
+engine sequence and `composeAdvertisement()` runtime enforcement, implemented
+in `src/server/generation/archetypes/composition-constitution.ts`) are scoped
+by Amendment 1 to the legacy deterministic pipeline only — do not weaken or
+route around them there, and do not reintroduce deterministic recomposition
+into the GPT-Native pipeline (Supreme Principle 2 forbids it).
 
 ## Other governing documents
 

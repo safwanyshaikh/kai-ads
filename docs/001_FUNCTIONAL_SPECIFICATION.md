@@ -2,11 +2,20 @@
 
 # Functional Specification
 
-Version : 1.0
+Version : 1.1
 
-Status : DRAFT
+Status : DRAFT — subordinate to `docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`
 
 Owner : Product Architecture
+
+> **Amendment 1 (July 2026, product owner):** the Review Screen and Style
+> Selection steps below are SUPERSEDED by the Sprint 006 workflow replacement
+> and Supreme Constitution Principle 13 (Zero Friction): the shipped flow is
+> Paste/Upload → AI Extraction → Truth Brain → Creative Director → Generate →
+> Advertisement Canvas, with every block edited in place on the canvas and a
+> manual form appearing ONLY as the exception path when extraction cannot
+> ground the required facts. The superseded sections are preserved below for
+> historical context.
 
 ---
 
@@ -237,6 +246,9 @@ Language
 ---
 
 # Review Screen
+
+*(SUPERSEDED — see Amendment 1 in the header. There is no Review form step;
+the AI auto-publishes and the recruiter edits exceptions on the Canvas.)*
 
 Every extracted field is editable.
 

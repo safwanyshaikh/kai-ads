@@ -2,20 +2,46 @@
 
 ## Advertisement Composition Constitution
 
-Version: 1.0
+Version: 1.1
 
-Status: ACTIVE — amendable only by the product owner
+Status: ACTIVE — amendable only by the product owner; subordinate to
+`docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`
 
 Owner: KAI Platform (product owner)
 
 Last Updated: July 2026
+
+> **Amendment 1 (July 2026, product owner) — Scope under the Supreme
+> Constitution.** The Supreme Constitution's Golden Rule ("GPT is the Creative
+> Artist. KAI is the Creative Director.") and Principle 2 ("GPT Must Create the
+> Entire Advertisement") now govern all advertisement generation. Accordingly:
+>
+> 1. **Articles I–IV, VI, VII, and VIII apply to EVERY advertisement from EVERY
+>    pipeline** — candidate-first law, information hierarchy, typography law,
+>    canvas law, Agency Visual DNA, anti-patterns, and the Final Commercial
+>    Acceptance Question are pipeline-independent EVALUATION criteria. A
+>    GPT-generated advertisement that violates them fails, exactly as a
+>    deterministically composed one would.
+> 2. **Article V's mandatory engine sequence and Article IX's
+>    `composeAdvertisement()` runtime enforcement are SCOPED to the legacy
+>    deterministic pipeline only**, for as long as that pipeline remains in
+>    service. On the GPT-Native pipeline the governing sequence is:
+>    `SOURCE INPUT → TRUTH EXTRACTION (Brain A) → LOAD/ENFORCE CONSTITUTIONS →
+>    CREATIVE DIRECTOR BRAIN → COMMERCIAL ADVERTISEMENT BRIEF → ONE MASTER GPT
+>    PROMPT → GPT FULL COMPOSITION → KAI TRUST LAYER (validate + enrich only)
+>    → QUALITY/ACCEPTANCE GATES → ACCEPT / REGENERATE / BLOCK`. The
+>    deterministic factual composition step is deliberately ABSENT from that
+>    sequence — under Supreme Principle 2, KAI never rebuilds GPT's artwork.
+> 3. Nothing in this amendment weakens the Truth Brain, the QR/verification
+>    laws, or the anti-fabrication laws — those remain absolute on both
+>    pipelines.
 
 ---
 
 # Registry Entry (Source of Truth)
 
 - **Canonical path:** `docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md`
-- **Authority level:** Primary commercial design authority for all KAI Ads advertisements. Sits directly under `docs/000_PRODUCT_CONSTITUTION.md` (product law) and above all archetype code, Creative Brain prompts, Visual QA prompts, design documents, and prior layout conventions.
+- **Authority level:** Primary commercial design authority for all KAI Ads advertisements. Sits under `docs/009_KAI_ADS_SUPREME_CONSTITUTION.md` (supreme law) and `docs/000_PRODUCT_CONSTITUTION.md` (product law), and above all archetype code, Creative Brain prompts, Visual QA prompts, design documents, and prior layout conventions.
 - **Scope:** Every advertisement layout, archetype, Creative Direction Plan, typography decision, imagery decision, footer, CTA, verification block, visual composition, and rendered advertisement produced by KAI Ads — current and future.
 - **Systems governed:**
   - `src/server/generation/archetypes/` (all engines: Visual Hero, Structured Professional, High Density, DTP/Newspaper, and any future archetype)
@@ -63,7 +89,11 @@ Last Updated: July 2026
 
 # Article V — The Composition Engines (Mandatory Sequence)
 
-Every advertisement MUST pass through this sequence. No archetype, script, or future feature may bypass or reorder the load/enforce step:
+*(Amendment 1: this Article is scoped to the LEGACY DETERMINISTIC PIPELINE
+only — see the amendment note in the header. The GPT-Native pipeline follows
+the GPT-native sequence defined there instead.)*
+
+Every advertisement on the legacy deterministic pipeline MUST pass through this sequence. No archetype, script, or future feature may bypass or reorder the load/enforce step:
 
 ```
 SOURCE INPUT
@@ -121,7 +151,12 @@ If NO, the advertisement fails — regardless of engineering-gate results or num
 
 # Article IX — Enforcement
 
-- Runtime: `composeAdvertisement()` (the single dispatch for all archetypes) computes `CompositionDirectives` via `buildCompositionDirectives()` and runs `enforceCompositionConstitution()` on every rendered output. A render that violates the footer trust architecture, drops the hook, or hides the CTA **throws** — it cannot become an advertisement.
+*(Amendment 1: the `composeAdvertisement()` runtime-enforcement clause below is
+scoped to the legacy deterministic pipeline. On the GPT-Native pipeline,
+enforcement of Articles I–IV/VI–VIII happens through the quality/acceptance
+gates named in the header amendment — never by KAI redrawing GPT's artwork.)*
+
+- Runtime (legacy pipeline): `composeAdvertisement()` (the single dispatch for all archetypes) computes `CompositionDirectives` via `buildCompositionDirectives()` and runs `enforceCompositionConstitution()` on every rendered output. A render that violates the footer trust architecture, drops the hook, or hides the CTA **throws** — it cannot become an advertisement.
 - QA: Brain D's instructions embed this Constitution's mandatory rejection conditions and the final commercial acceptance question.
 - Tests: `tests/composition-constitution.test.ts` locks these laws against regression.
 - Truth: nothing in this Constitution weakens the Truth Brain. Grounded-facts-only, anti-fabrication, QR/verification, and export laws remain absolute.

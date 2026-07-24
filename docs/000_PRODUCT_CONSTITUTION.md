@@ -2,13 +2,19 @@
 
 ## Product Constitution
 
-Version: 1.0
+Version: 1.1
 
-Status: LOCKED
+Status: LOCKED — subordinate to `docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`
 
 Owner: KAI Platform
 
 Last Updated: July 2026
+
+> **Amendment 1 (July 2026, product owner):** This document now sits under the
+> Supreme Constitution (`docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`). Where any
+> clause below conflicts with the Supreme Constitution, the Supreme
+> Constitution wins. Superseded clauses are marked in place and preserved for
+> historical context — they are not silently deleted.
 
 ---
 
@@ -72,6 +78,12 @@ Rule 5
 
 Generated advertisements must always remain editable.
 
+*Amendment 1 clarification: editing must always remain POSSIBLE, but per the
+Supreme Constitution's Success Criteria it must never be REQUIRED — every
+generated advertisement must be immediately publishable with zero manual
+correction. Rule 5 guarantees the recruiter's right to edit, not an
+expectation that they will need to.*
+
 ---
 
 Rule 6
@@ -79,6 +91,18 @@ Rule 6
 Only regenerate the edited section.
 
 Never regenerate the whole advertisement.
+
+*Amendment 1 — SUPERSEDED for the GPT-Native pipeline by Supreme Constitution
+Principle 2 ("GPT Must Create the Entire Advertisement... Never regenerate
+sections"). Reconciled doctrine: an edit changes the grounded FACTS (on the
+Advertisement Canvas, per block); when a visual refresh is needed, GPT
+regenerates the COMPLETE artwork from the updated facts, and version history
+preserves every prior artwork. Rule 6's original intent — never destroy a
+recruiter's approved content, never waste work — is preserved through fact-
+level editing and full version history, not through section-level image
+regeneration. Rule 6 as originally written continues to govern only the
+legacy deterministic pipeline for as long as that pipeline remains in
+service.*
 
 ---
 
