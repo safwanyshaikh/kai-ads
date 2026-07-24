@@ -16,7 +16,17 @@ export function getOpenAiClient(): OpenAI {
   }
 
   if (!cachedClient) {
-    cachedClient = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+    // Sprint 008 Workstream A: never run on the SDK's defaults (600s
+    // timeout / 2 retries) — a serverless function is killed by the
+    // platform long before 600s, turning every slow generation into an
+    // opaque platform kill instead of a clean, logged application error.
+    // Both budgets are env-tunable; the timeout must stay below the
+    // calling route's maxDuration.
+    cachedClient = new OpenAI({
+      apiKey: env.OPENAI_API_KEY,
+      timeout: env.KAI_OPENAI_TIMEOUT_MS,
+      maxRetries: env.KAI_OPENAI_MAX_RETRIES,
+    });
   }
   return cachedClient;
 }

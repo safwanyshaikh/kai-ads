@@ -113,6 +113,15 @@ const envSchema = z.object({
 
   // KAI Creative Engine (Sprint 004) — image generation. Same optional/
   // feature-gated pattern as the text engine above.
+  // Sprint 008 Workstream A: explicit OpenAI client budgets. The SDK's
+  // defaults (600s timeout, 2 retries) exceed any serverless function
+  // duration and multiply worst-case latency x3 — the app must fail
+  // cleanly inside its own route maxDuration instead of being killed by
+  // the platform. Timeout must stay comfortably BELOW the generate
+  // route's maxDuration (300s) so errors are ours, not Vercel's.
+  KAI_OPENAI_TIMEOUT_MS: z.coerce.number().int().positive().default(240000),
+  KAI_OPENAI_MAX_RETRIES: z.coerce.number().int().min(0).max(3).default(1),
+
   KAI_IMAGE_MODEL: z.string().default("gpt-image-1"),
   // Sprint 006: "high" by default — the background is the single most
   // visible quality lever on a Visual ad. Overridable via env.

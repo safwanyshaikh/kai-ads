@@ -62,6 +62,8 @@ function fullEnv(overrides: Partial<Env>): Env {
     CREATIVE_BRAIN_BACKGROUND_BRIEF: false,
     CREATIVE_DIRECTOR_BRAIN: false,
     GPT_NATIVE_AD_GENERATION: false,
+    KAI_OPENAI_TIMEOUT_MS: 240000,
+    KAI_OPENAI_MAX_RETRIES: 1,
     LOG_LEVEL: "info",
     ...overrides,
   };

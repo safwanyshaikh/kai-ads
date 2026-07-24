@@ -3,6 +3,9 @@ import { advertisementDraftService } from "@/server/services/advertisement-draft
 import { handleApiError } from "@/lib/errors";
 import { requireAgencyMember } from "@/lib/session";
 
+/** Sprint 008 Workstream A: extraction calls the text/vision model (can run 30-90s on long requirements) — needs more than the platform's default duration, less than a full generation. */
+export const maxDuration = 120;
+
 /**
  * POST /api/advertisement-drafts/[id]/extract — AI Extraction Review step.
  * Architecture only in Sprint 002: every provider is unimplemented, so
