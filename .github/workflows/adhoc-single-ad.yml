@@ -1,0 +1,85 @@
+name: KAI Ads Adhoc Single-Ad Test (GPT-Native)
+
+# Manual, one-off real generation for debugging/tuning a single fixture
+# against the real GPT-Native pipeline. Not part of CI gating.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/kai-ads-verify-state-upnt70
+    paths:
+      - ".github/workflows/adhoc-single-ad.yml"
+      - "scripts/adhoc/welder-gpt-native-test.ts"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    name: Real-API single advertisement generation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fail fast if the OpenAI secret is unavailable
+        run: |
+          if [ -z "${OPENAI_API_KEY}" ]; then
+            echo "OPENAI_API_KEY secret is NOT available."
+            exit 1
+          fi
+          echo "OPENAI_API_KEY secret: PRESENT (value not shown)"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run adhoc generation
+        run: npx tsx scripts/adhoc/welder-gpt-native-test.ts
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          KAI_VISION_MODEL: gpt-4.1
+          KAI_IMAGE_MODEL: gpt-image-1
+          KAI_IMAGE_QUALITY: high
+          GPT_NATIVE_AD_GENERATION: "true"
+          KAI_PUBLIC_DOMAIN: ${{ vars.KAI_PUBLIC_DOMAIN || 'https://kai-ads.vercel.app' }}
+          NODE_ENV: development
+          DATABASE_URL: postgresql://user:password@localhost:5432/kai_ads_unused
+          BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef-ci-only
+          BETTER_AUTH_URL: http://localhost:3000
+          EMAIL_PROVIDER: none
+          STORAGE_PROVIDER: none
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adhoc-single-ad-${{ github.run_id }}
+          path: scripts/adhoc/out/
+
+      - name: Publish to a disposable inspection branch
+        if: always()
+        run: |
+          set -e
+          if [ ! -d scripts/adhoc/out ] || [ -z "$(ls -A scripts/adhoc/out 2>/dev/null)" ]; then
+            echo "No output produced — skipping publish."
+            exit 0
+          fi
+          cd scripts/adhoc/out
+          git init -b "adhoc-single-ad-${GITHUB_RUN_ID}"
+          git config user.email "actions@github.com"
+          git config user.name "github-actions"
+          git add -A
+          git commit -m "Adhoc single-ad artifacts (run ${GITHUB_RUN_ID})"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/adhoc-single-ad-${GITHUB_RUN_ID}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
