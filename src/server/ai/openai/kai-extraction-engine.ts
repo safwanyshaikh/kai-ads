@@ -61,7 +61,7 @@ export async function runKaiExtraction(input: KaiExtractionInput): Promise<KaiEx
       throw error;
     }
     if (error instanceof OpenAiRateLimitError) {
-      throw new AiRateLimitError();
+      throw new AiRateLimitError(error.code ?? undefined);
     }
     if (error instanceof APIConnectionTimeoutError) {
       throw new AiTimeoutError();

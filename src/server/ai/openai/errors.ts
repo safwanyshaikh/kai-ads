@@ -18,13 +18,26 @@ export class AiTimeoutError extends AppError {
   }
 }
 
-/** The provider returned HTTP 429. */
+/**
+ * The provider returned HTTP 429. OpenAI overloads this status for two
+ * different conditions with the same HTTP code but a different `code`
+ * field in the response body — they need different user-facing messages
+ * because only one of them clears by waiting:
+ *   - "rate_limit_exceeded" — transient, requests-per-minute throttling.
+ *     Waiting genuinely fixes it.
+ *   - "insufficient_quota" — the OpenAI account's billing limit/credit is
+ *     exhausted. Retrying changes nothing until the account is topped up;
+ *     telling the user "try again in a moment" here is actively wrong.
+ */
 export class AiRateLimitError extends AppError {
-  constructor() {
+  constructor(providerCode?: string) {
+    const isQuotaExhausted = providerCode === "insufficient_quota";
     super(
-      "The KAI Intelligence Engine is temporarily busy. Try again in a moment.",
+      isQuotaExhausted
+        ? "The KAI Intelligence Engine is unavailable — the OpenAI account has run out of quota/credit. This will not resolve by retrying; the account's billing limit needs to be raised or credit added."
+        : "The KAI Intelligence Engine is temporarily busy. Try again in a moment.",
       429,
-      "AI_RATE_LIMITED",
+      isQuotaExhausted ? "AI_QUOTA_EXHAUSTED" : "AI_RATE_LIMITED",
     );
   }
 }
