@@ -197,8 +197,46 @@ export function renderStructuredProfessional(input: CompositionInput): string {
     afterCard += noteH;
   }
 
-  // --- Bottom identity strip + KAI verification panel ---
   const stripY = H - bottomStripH;
+
+  // --- Compensation & Benefits detail card ---
+  // The Advertisement Composition Constitution's reclaimed-canvas
+  // allocation (composition-constitution.ts) names BENEFIT_PROMINENCE as
+  // what should fill space reclaimed from trust deduplication — but until
+  // now nothing actually rendered into it. The positions card above is
+  // capped at a max row height (px(62)) so it never grows to fill the
+  // canvas; for a sparse requirement (few positions) that left a large
+  // blank gap between the card and the footer. Expanding each benefit's
+  // label+detail into its own card here both kills that dead canvas and
+  // makes what the employer actually pays/provides visually prominent,
+  // instead of the compact one-line banner above being the only mention.
+  const benefitsGapAvailable = stripY - afterCard - px(24);
+  if (facts.benefits.length > 0 && benefitsGapAvailable > px(90)) {
+    const benefitsHeaderRowH = px(52);
+    const benefitsRowH = Math.max(
+      px(44),
+      Math.min(px(88), Math.floor((benefitsGapAvailable - benefitsHeaderRowH) / facts.benefits.length)),
+    );
+    const benefitsCardH = benefitsHeaderRowH + facts.benefits.length * benefitsRowH;
+    const benefitsY = afterCard;
+    parts.push(
+      `<rect x="${cardX}" y="${benefitsY}" width="${cardW}" height="${benefitsCardH}" rx="${px(8)}" fill="#ffffff" stroke="#d8e0e8" stroke-width="1.5" />
+  <rect x="${cardX}" y="${benefitsY}" width="${cardW}" height="${benefitsHeaderRowH}" rx="${px(8)}" fill="${brand2}" />
+  <rect x="${cardX}" y="${benefitsY + benefitsHeaderRowH - px(8)}" width="${cardW}" height="${px(8)}" fill="${brand2}" />
+  <text x="${cardX + px(20)}" y="${benefitsY + benefitsHeaderRowH / 2 + fpx(9)}" font-family="${font}" font-size="${fpx(24)}" font-weight="700" letter-spacing="3" fill="#ffffff">WHAT YOU'LL GET</text>`,
+    );
+    facts.benefits.forEach((b, i) => {
+      const ry = benefitsY + benefitsHeaderRowH + i * benefitsRowH;
+      const text = b.detail ? `${b.label} — ${b.detail}` : b.label;
+      const size = fitFontSize(text, cardW - px(60), fpx(28), fpx(14));
+      parts.push(
+        `<rect x="${cardX + px(2)}" y="${ry}" width="${cardW - px(4)}" height="${benefitsRowH}" fill="${i % 2 === 0 ? "#eef2f7" : "#ffffff"}" />
+  <text x="${cardX + px(22)}" y="${ry + benefitsRowH / 2 + size * 0.36}" font-family="${font}" font-size="${size}" font-weight="700" fill="${navy}">${escapeXml(text)}</text>`,
+      );
+    });
+  }
+
+  // --- Bottom identity strip + KAI verification panel ---
   parts.push(`<rect x="0" y="${stripY}" width="${W}" height="${bottomStripH}" fill="${navy}" />
   <rect x="0" y="${stripY}" width="${W}" height="${px(6)}" fill="${gold}" />`);
   const panelH = px(Math.round(92 * qrPanelScale));
