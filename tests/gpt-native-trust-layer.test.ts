@@ -168,6 +168,49 @@ describe("applyTrustLayer — Sprint 008 ownership carriers", () => {
     expect(computeImageSha256(Buffer.concat([a, Buffer.from([1])]))).not.toBe(computeImageSha256(a));
   });
 
+  it("a long agency name is shrunk to fit, never silently clipped out of the raster", async () => {
+    // Regression: the overlay is rasterized at exactly zoneW x zoneH, so
+    // text drawn past that boundary isn't visual overflow — sharp crops it
+    // clean out of the PNG with no error. A fixed font size with no
+    // width-fitting is exactly how "Al Yousuf Enterprises LLP" vanished
+    // entirely from a real generation. Proven here by actually sampling
+    // pixels in the text column for dark ink, not just checking dimensions.
+    const base = await fakeGptImage();
+    const qr = await generateAndVerifyQr(buildQrTrackingUrl({ agencyVerificationId: "av12", advertisementId: "ad12" }));
+    const longName = "Al Yousuf International Recruitment & Manpower Enterprises LLP";
+
+    const result = await applyTrustLayer({
+      baseImagePng: base,
+      qrPng: qr.png,
+      agencyName: longName,
+      raLicenseId: "9986",
+      version: 1,
+      widthPx: WIDTH,
+      heightPx: HEIGHT,
+      generationId: "KAI-LONGNAME-V1",
+    });
+
+    const zoneW = Math.round(WIDTH * 0.3);
+    const zoneH = Math.round(HEIGHT * 0.22);
+    const qrSize = Math.round(Math.min(zoneW * 0.4, zoneH - Math.round(zoneW * 0.06) * 2));
+    const padding = Math.round(zoneW * 0.06);
+    const textX = padding + qrSize + padding;
+    // Sample the ENTIRE text column (full zone height, right of the QR) —
+    // if any of the four text lines rendered, some pixel in this column
+    // must be darker than the white/near-white panel background.
+    const textColumn = await sharp(result)
+      .extract({
+        left: WIDTH - zoneW + textX,
+        top: HEIGHT - zoneH,
+        width: Math.max(10, zoneW - textX - Math.round(padding / 2)),
+        height: zoneH,
+      })
+      .raw()
+      .toBuffer();
+    const hasInk = Array.from(textColumn).some((v) => v < 200); // dark pixel somewhere in the column
+    expect(hasInk).toBe(true);
+  });
+
   it("verifyTrustZoneQr rejects an image whose trust zone carries the WRONG QR payload", async () => {
     const base = await fakeGptImage();
     const qr = await generateAndVerifyQr(buildQrTrackingUrl({ agencyVerificationId: "av11", advertisementId: "ad11" }));

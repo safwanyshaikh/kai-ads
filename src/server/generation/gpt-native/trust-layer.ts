@@ -17,6 +17,7 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { createLogger } from "@/lib/logger";
 import { TRUST_ZONE } from "./master-prompt-builder";
+import { fitFontSize } from "../archetypes/composition-shared";
 
 const log = createLogger("gpt-native-trust-layer");
 
@@ -81,18 +82,31 @@ export async function applyTrustLayer(input: TrustLayerInput): Promise<Buffer> {
   const qrResized = await sharp(input.qrPng).resize(qrSize, qrSize).png().toBuffer();
 
   const textX = padding + qrSize + padding;
-  const fontSize = Math.max(11, Math.round(zoneH * 0.11));
+  // This overlay is rasterized at exactly zoneW x zoneH (sharp renders the
+  // SVG's declared width/height as the output raster) — any text extending
+  // past that boundary is not "overflow," it is silently cropped out of
+  // existence with no error. A fixed font size with no width-fitting
+  // routinely overflowed a ~150px-wide text column (QR takes the other
+  // ~40%), which is exactly how the entire agency name/trust identity
+  // vanished from a real render with nothing in the logs to explain it.
+  const textMaxW = Math.max(20, zoneW - textX - padding);
+  const baseFontSize = Math.max(11, Math.round(zoneH * 0.11));
+  const labelSize = fitFontSize("MEA VERIFIED AGENCY", textMaxW, baseFontSize, 8);
+  const nameSize = fitFontSize(input.agencyName, textMaxW, Math.round(baseFontSize * 0.85), 7);
+  const raSize = input.raLicenseId ? fitFontSize(`RA ${input.raLicenseId}`, textMaxW, Math.round(baseFontSize * 0.8), 7) : 0;
+  const captionText = `${input.generationId ? `${input.generationId} · ` : ""}Scan to verify · kai-ads`;
+  const captionSize = fitFontSize(captionText, textMaxW, Math.round(baseFontSize * 0.65), 6);
 
   const overlaySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${zoneW}" height="${zoneH}">
   <rect x="0" y="0" width="${zoneW}" height="${zoneH}" rx="${Math.round(zoneH * 0.06)}" fill="#ffffff" fill-opacity="0.92" stroke="#1a1a1a" stroke-width="1"/>
-  <text x="${textX}" y="${padding + fontSize}" font-family="KaiSans, sans-serif" font-size="${fontSize}" font-weight="700" fill="#111111">MEA VERIFIED AGENCY</text>
-  <text x="${textX}" y="${padding + fontSize * 2.3}" font-family="KaiSans, sans-serif" font-size="${Math.round(fontSize * 0.85)}" fill="#333333">${escapeXml(input.agencyName)}</text>
+  <text x="${textX}" y="${padding + labelSize}" font-family="KaiSans, sans-serif" font-size="${labelSize}" font-weight="700" fill="#111111">MEA VERIFIED AGENCY</text>
+  <text x="${textX}" y="${padding + baseFontSize * 2.3}" font-family="KaiSans, sans-serif" font-size="${nameSize}" fill="#333333">${escapeXml(input.agencyName)}</text>
   ${
     input.raLicenseId
-      ? `<text x="${textX}" y="${padding + fontSize * 3.6}" font-family="KaiSans, sans-serif" font-size="${Math.round(fontSize * 0.8)}" fill="#555555">RA ${escapeXml(input.raLicenseId)}</text>`
+      ? `<text x="${textX}" y="${padding + baseFontSize * 3.6}" font-family="KaiSans, sans-serif" font-size="${raSize}" fill="#555555">RA ${escapeXml(input.raLicenseId)}</text>`
       : ""
   }
-  <text x="${textX}" y="${zoneH - padding * 0.6}" font-family="KaiSans, sans-serif" font-size="${Math.round(fontSize * 0.65)}" fill="#777777">${input.generationId ? `${escapeXml(input.generationId)} · ` : ""}Scan to verify · kai-ads</text>
+  <text x="${textX}" y="${zoneH - padding * 0.6}" font-family="KaiSans, sans-serif" font-size="${captionSize}" fill="#777777">${input.generationId ? `${escapeXml(input.generationId)} · ` : ""}Scan to verify · kai-ads</text>
 </svg>`;
 
   const overlayPng = await sharp(Buffer.from(overlaySvg), { density: 144 }).png().toBuffer();

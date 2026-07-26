@@ -200,11 +200,12 @@ Leave the bottom-right ${TRUST_ZONE.widthPct}% width x ${TRUST_ZONE.heightPct}% 
 
 === FACTUAL FIDELITY — THE ADVERTISEMENT IS ONLY VALID IF EVERY FACT IS RENDERED EXACTLY ===
 - Render the contact email and phone number EXACTLY, character for character, as written above. Never substitute a different address, never shorten a domain, never invent contact details. If the email is "jobs@alyousufent.com" it must read "jobs@alyousufent.com" — not "apply@..." or any other address.
-- Render each position's number of openings when one is given: show the count exactly (e.g. "Electrical Technician — 20 openings"), never drop it.
+- Render each position's number of openings when one is given: show the count exactly (e.g. "Electrical Technician — 20 openings"), never drop it. If NO count is given for a position, do not add one — no "(10 openings)", no number of any kind next to that position.
+- Every number in the "IMPORTANT NOTE"/requirement text (years of experience, voltage ratings, degree requirements, any figure) must be copied EXACTLY. "5+ Years of Experience" must read "5+ Years of Experience" — never "3+", never any other number. This rule is not limited to salary — it applies to every digit anywhere in the facts above.
 - Render every salary figure exactly as written, keeping the given digit grouping and currency (e.g. "SAR 3,200" stays "SAR 3,200" — never "SAR 3.200", never "$3,200", never rounded).
 - If a monetary figure has NO currency stated in the facts above (e.g. "5K to 7K Basic"), render it exactly as written with no currency symbol or code added. Never assume "$"/USD or any other currency — an unstated currency must stay unstated, not be guessed.
 - Render the country name exactly as written; do not expand or translate it (if it says "UAE", show "UAE").
-- Do not invent, add, or alter any headline, salary, benefit, date, or contact detail. Every number and word on the advertisement must come from the facts above.
+- Do not invent, add, or alter ANY headline, salary, benefit, date, contact detail, position count, or requirement/footer note text — every field above, without exception. Every number and word on the advertisement must come from the facts above, character for character.
 
 === HARD RULES ===
 - Do not fabricate salary, vacancy counts, urgency, or benefits beyond what is listed above.
