@@ -1,0 +1,63 @@
+{
+  "imageSha256": "987458e285205e6b28e855afa0d915e58cfce427257a28167c30da0cf877dea1",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 81,
+    "visualQa": {
+      "overallScore": 81,
+      "commercialQualityScore": 80,
+      "hierarchyScore": 78,
+      "readabilityScore": 83,
+      "imageryScore": 87,
+      "canvasUtilizationScore": 75,
+      "ctaScore": 80,
+      "trustScore": 76,
+      "defects": [
+        "Trust/agency/verification information is faint, small, and relegated to a transparent sliver at the bottom; it's not clearly visible or legible enough to inspire trust for Gulf recruitment standards.",
+        "Canvas utilization in the lower section is poor due to an overly large white QR band that wastes significant space, crowding other elements and pushing key info toward edges.",
+        "Welders' requirements and benefits are slightly crammed and could benefit from better spacing for easier scan-ability.",
+        "Headline is strong but 'EARNING 3,800 AED' (rather than 'WELDER ABU DHABI UAE') is the dominant hook — this is not best practice, as job/country should outweigh salary.",
+        "CTA email in red bar is comparatively small and not as visually anchored as required for direct candidate action.",
+        "QR code integration is functional but visually disruptive, separating the bottom into zones and diluting the visual flow."
+      ],
+      "catastrophicDefects": [],
+      "requiredCorrections": [
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Increase spacing between bullet points and ensure the benefits/roles are easier to scan."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Enlarge and visually anchor email/phone CTA for dominance in the bottom CTA band."
+        },
+        {
+          "type": "OTHER",
+          "note": "Increase legibility and prominence of agency/trust/verification information in the footer so it meets standard visibility."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Reduce dead canvas from the large white QR area, integrating it more elegantly with contact info rather than isolating it."
+        }
+      ],
+      "verdict": "REGENERATE"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Yearly Leave cycle (expected) vs Yearly Leave cyccle (image shows 'cyccle')"
+      ],
+      "missingCriticalFacts": [],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Spelling/fidelity: Yearly Leave cycle (expected) vs Yearly Leave cyccle (image shows 'cyccle')",
+      "Visual QA score 81/100 is below the 85 publishable bar",
+      "Visual QA: Trust/agency/verification information is faint, small, and relegated to a transparent sliver at the bottom; it's not clearly visible or legible enough to inspire trust for Gulf recruitment standards.",
+      "Visual QA: Canvas utilization in the lower section is poor due to an overly large white QR band that wastes significant space, crowding other elements and pushing key info toward edges.",
+      "Visual QA: Welders' requirements and benefits are slightly crammed and could benefit from better spacing for easier scan-ability.",
+      "Visual QA: Headline is strong but 'EARNING 3,800 AED' (rather than 'WELDER ABU DHABI UAE') is the dominant hook — this is not best practice, as job/country should outweigh salary.",
+      "Visual QA: CTA email in red bar is comparatively small and not as visually anchored as required for direct candidate action."
+    ],
+    "shouldRegenerate": true
+  }
+}
