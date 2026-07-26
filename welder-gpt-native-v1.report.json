@@ -1,0 +1,76 @@
+{
+  "imageSha256": "5d1e9ba1aa91e3f6b37eb8978cd1ebe1fb765e5bd716b4fe4148cde51899d3df",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 78,
+    "visualQa": {
+      "overallScore": 78,
+      "commercialQualityScore": 80,
+      "hierarchyScore": 70,
+      "readabilityScore": 77,
+      "imageryScore": 85,
+      "canvasUtilizationScore": 70,
+      "ctaScore": 75,
+      "trustScore": 70,
+      "defects": [
+        "The agency identity (AL YOUSUF ENTERPRISES LLP) is presented as major text in the CTA/verification area but lacks a proper integrated trust footer design with RA/badge.",
+        "Contact CTA area is merged with trust but lacks visual framing–does not stand out strongly as a CTA for WhatsApp or mobile.",
+        "The bottom QR/code/contact block interrupts and weakens visual hierarchy by overlapping with the image and text, reducing harmony.",
+        "The main opportunity hook ('UNITED ARAB EMIRATES CONSTRUCTION') is clear but could be more directly candidate-facing ('WELDERS FOR UAE CONSTRUCTION PROJECT' or similar) for stronger engagement.",
+        "There is some wasted space at the bottom right with too much white in the CTA block versus the dark background.",
+        "Hierarchy between role/location/benefits is not maximized: 'Welders Required – Abu Dhabi' is smaller than the header, reducing primary candidate focus.",
+        "No MEA/RA/logo badge seen in the verification/trust area (if required for compliance/credibility).",
+        "No visible clipping or major contrast issues, but the typographic scale slightly underserves the main 'Welders Required' candidate hook, which should be as prominent as or more than 'UNITED ARAB EMIRATES CONSTRUCTION'."
+      ],
+      "catastrophicDefects": [
+        "No clear, dominant candidate-facing hook: headline 'UNITED ARAB EMIRATES CONSTRUCTION' is a project/country but the actual job opportunity (welder role/location) is not the single largest, clearest element.",
+        "Visual hierarchy is materially weaker than true Gulf agency advertisements, where the opening line is role and country (not merely country/project).",
+        "Canvas utilization (bottom large white block) is inefficient and weakens professional composition.",
+        "Agency identity/trust band is not properly rendered as a footer; instead, it's floating as part of a CTA block."
+      ],
+      "requiredCorrections": [
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Promote 'Welders Required – Abu Dhabi' to the single largest, most dominant hook headline at the top for immediate clarity."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Visually balance and amplify the contact area/CTA so it stands out as the call to action, not just as embedded text and QR."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Rearrange bottom section to reduce excessive dead white space and visually anchor the trust/verification element as an uncluttered footer."
+        },
+        {
+          "type": "OTHER",
+          "note": "Add a clear trust/verification footer with agency ID, RA number, and any compliance badges (not just the name/email)."
+        }
+      ],
+      "verdict": "REGENERATE"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Benefit: Food Allowance (300 AED) — image shows 'Food Allowance: 300 AED' (parentheses missing, replaced by colon)",
+        "Country: United Arab Emirates — image does not show 'Country' explicitly but does display 'UNITED ARAB EMIRATES' as part of the header"
+      ],
+      "missingCriticalFacts": [],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Spelling/fidelity: Benefit: Food Allowance (300 AED) — image shows 'Food Allowance: 300 AED' (parentheses missing, replaced by colon)",
+      "Spelling/fidelity: Country: United Arab Emirates — image does not show 'Country' explicitly but does display 'UNITED ARAB EMIRATES' as part of the header",
+      "Visual QA (catastrophic): No clear, dominant candidate-facing hook: headline 'UNITED ARAB EMIRATES CONSTRUCTION' is a project/country but the actual job opportunity (welder role/location) is not the single largest, clearest element.",
+      "Visual QA (catastrophic): Visual hierarchy is materially weaker than true Gulf agency advertisements, where the opening line is role and country (not merely country/project).",
+      "Visual QA (catastrophic): Canvas utilization (bottom large white block) is inefficient and weakens professional composition.",
+      "Visual QA (catastrophic): Agency identity/trust band is not properly rendered as a footer; instead, it's floating as part of a CTA block.",
+      "Visual QA score 78/100 is below the 85 publishable bar",
+      "Visual QA: The agency identity (AL YOUSUF ENTERPRISES LLP) is presented as major text in the CTA/verification area but lacks a proper integrated trust footer design with RA/badge.",
+      "Visual QA: Contact CTA area is merged with trust but lacks visual framing–does not stand out strongly as a CTA for WhatsApp or mobile.",
+      "Visual QA: The bottom QR/code/contact block interrupts and weakens visual hierarchy by overlapping with the image and text, reducing harmony.",
+      "Visual QA: The main opportunity hook ('UNITED ARAB EMIRATES CONSTRUCTION') is clear but could be more directly candidate-facing ('WELDERS FOR UAE CONSTRUCTION PROJECT' or similar) for stronger engagement.",
+      "Visual QA: There is some wasted space at the bottom right with too much white in the CTA block versus the dark background."
+    ],
+    "shouldRegenerate": true
+  }
+}
