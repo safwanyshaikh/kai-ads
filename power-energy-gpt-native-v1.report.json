@@ -1,0 +1,71 @@
+{
+  "imageSha256": "17d49840900dbb9e6fe11c992302ff1d3d00b7de010708c1e365dba4d5b68678",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 68,
+    "visualQa": {
+      "overallScore": 68,
+      "commercialQualityScore": 72,
+      "hierarchyScore": 68,
+      "readabilityScore": 65,
+      "imageryScore": 80,
+      "canvasUtilizationScore": 50,
+      "ctaScore": 65,
+      "trustScore": 55,
+      "defects": [
+        "Agency name is featured at the bottom only, but not in a dedicated trust footer or verification band, and is not visually separated from the commercial content.",
+        "The CTA (email/contact) is moderately prominent but partially overlapped/obscured by a large, opaque QR box.",
+        "A large dead white box (for QR) in the bottom-right corner severely disrupts the visual balance and occupies premium candidate-information canvas, leading to inefficient canvas utilization.",
+        "The overall visual hierarchy is slightly confused: the emphasis is on salary rather than clear 'candidate hook' (project + job + country) at the immediate top; 'Earning Opportunity' is less candidate-forward than the role+country.",
+        "Text readability and contrast is generally good, but tightly packed and some details at the mid-bottom are diminished due to overlapping elements.",
+        "No dedicated trust/verification band—agency identity is present but not visually separated or authenticated.",
+        "Key role/country statement is not the dominant or single largest text at the top—the salary is, which is less candidate-centric.",
+        "The white QR panel looks like a sticker and is not integrated/designed into the canvas."
+      ],
+      "catastrophicDefects": [
+        "More than 20% dead canvas due to large unused (white) QR code panel at the bottom right.",
+        "Key job and application details are visually diminished and partially covered by the QR code panel.",
+        "No sufficiently strong, clear candidate-facing hook or project headline at the top—salary is prioritized over the unique job/country proposition."
+      ],
+      "requiredCorrections": [
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Redesign bottom area to avoid QR code and email/requirements overlapping; reduce dead white space and integrate QR design."
+        },
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Candidate-facing hook (project/job + country) must be the top and largest—reframe top section to emphasize role/opportunity in Saudi Arabia before salary."
+        },
+        {
+          "type": "OTHER",
+          "note": "Add a dedicated, visually separated trust/verification band footer with agency identity/registration/RA number/MEA if appropriate."
+        }
+      ],
+      "verdict": "REGENERATE"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Benefit: Salary Range (5K to 7K Basic (varies based on interview assessment)) is shown as 'Salary Range: 5K to 7K Basic (varies based on interview assessment)' (minor difference: colon added, but not a wording alteration)."
+      ],
+      "missingCriticalFacts": [
+        "Header: Power Infrastructure Engineers — Saudi Arabia (The image header is 'POWER INFRASTRUCTURE ENGINEERS – SAUDI ARABIA', which uses an EN DASH instead of an EM DASH.)"
+      ],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Spelling/fidelity: Benefit: Salary Range (5K to 7K Basic (varies based on interview assessment)) is shown as 'Salary Range: 5K to 7K Basic (varies based on interview assessment)' (minor difference: colon added, but not a wording alteration).",
+      "Missing fact: Header: Power Infrastructure Engineers — Saudi Arabia (The image header is 'POWER INFRASTRUCTURE ENGINEERS – SAUDI ARABIA', which uses an EN DASH instead of an EM DASH.)",
+      "Visual QA (catastrophic): More than 20% dead canvas due to large unused (white) QR code panel at the bottom right.",
+      "Visual QA (catastrophic): Key job and application details are visually diminished and partially covered by the QR code panel.",
+      "Visual QA (catastrophic): No sufficiently strong, clear candidate-facing hook or project headline at the top—salary is prioritized over the unique job/country proposition.",
+      "Visual QA score 68/100 is below the 85 publishable bar",
+      "Visual QA: Agency name is featured at the bottom only, but not in a dedicated trust footer or verification band, and is not visually separated from the commercial content.",
+      "Visual QA: The CTA (email/contact) is moderately prominent but partially overlapped/obscured by a large, opaque QR box.",
+      "Visual QA: A large dead white box (for QR) in the bottom-right corner severely disrupts the visual balance and occupies premium candidate-information canvas, leading to inefficient canvas utilization.",
+      "Visual QA: The overall visual hierarchy is slightly confused: the emphasis is on salary rather than clear 'candidate hook' (project + job + country) at the immediate top; 'Earning Opportunity' is less candidate-forward than the role+country.",
+      "Visual QA: Text readability and contrast is generally good, but tightly packed and some details at the mid-bottom are diminished due to overlapping elements."
+    ],
+    "shouldRegenerate": true
+  }
+}
