@@ -239,6 +239,26 @@ export function renderStructuredProfessional(input: CompositionInput): string {
   // --- Bottom identity strip + KAI verification panel ---
   parts.push(`<rect x="0" y="${stripY}" width="${W}" height="${bottomStripH}" fill="${navy}" />
   <rect x="0" y="${stripY}" width="${W}" height="${px(6)}" fill="${gold}" />`);
+
+  // Agency logo (tenant identity). This archetype's identity band at the
+  // top deliberately omits the logo (trust architecture places it once,
+  // in the footer, to avoid duplication) — but until now nothing actually
+  // drew it here either, so agencies with a real uploaded logo never saw
+  // it on Structured Professional or High-Density ads (the two archetypes
+  // any 2+-position requirement routes to). Mirrors visual-hero.ts's
+  // footer-logo treatment: a white rounded chip so the logo reads on the
+  // navy strip regardless of the logo's own background.
+  let logoBandX = pad;
+  const logoFooterSize = px(52);
+  if (plan.agencyLogoDataUri) {
+    const logoY = stripY + Math.round((bottomStripH - logoFooterSize) / 2);
+    parts.push(
+      `<rect x="${pad}" y="${logoY}" width="${logoFooterSize + px(8)}" height="${logoFooterSize + px(8)}" rx="${px(6)}" fill="#ffffff" />
+  <image x="${pad + px(4)}" y="${logoY + px(4)}" width="${logoFooterSize}" height="${logoFooterSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
+    );
+    logoBandX = pad + logoFooterSize + px(22);
+  }
+
   const panelH = px(Math.round(92 * qrPanelScale));
   const panelProbe = verificationPanel({
     x: 0,
@@ -263,10 +283,10 @@ export function renderStructuredProfessional(input: CompositionInput): string {
       accentColor: brand,
     }).svg,
   );
-  const stripTextW = panelX - pad - px(20);
+  const stripTextW = panelX - logoBandX - px(20);
   parts.push(
-    `<text x="${pad}" y="${stripY + bottomStripH / 2 - fpx(2)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, stripTextW, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>
-  ${facts.fullRegistrationNumber ? `<text x="${pad}" y="${stripY + bottomStripH / 2 + fpx(22)}" font-family="${font}" font-size="${fitFontSize(`Regd. No. ${facts.fullRegistrationNumber}`, stripTextW, fpx(16), fpx(9))}" fill="#c6d2e0">Regd. No. ${escapeXml(facts.fullRegistrationNumber)}</text>` : ""}`,
+    `<text x="${logoBandX}" y="${stripY + bottomStripH / 2 - fpx(2)}" font-family="${font}" font-size="${fitFontSize(facts.agencyName, stripTextW, fpx(24), fpx(13))}" font-weight="700" fill="#ffffff">${escapeXml(facts.agencyName)}</text>
+  ${facts.fullRegistrationNumber ? `<text x="${logoBandX}" y="${stripY + bottomStripH / 2 + fpx(22)}" font-family="${font}" font-size="${fitFontSize(`Regd. No. ${facts.fullRegistrationNumber}`, stripTextW, fpx(16), fpx(9))}" fill="#c6d2e0">Regd. No. ${escapeXml(facts.fullRegistrationNumber)}</text>` : ""}`,
   );
 
   void isLandscape;

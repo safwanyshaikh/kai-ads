@@ -198,7 +198,24 @@ export function renderHighDensity(input: CompositionInput): string {
     captionColor: "#ffffff",
     accentColor: accent,
   });
-  const panelX = W - pad - panelProbe.width;
+  let panelX = W - pad - panelProbe.width;
+
+  // Agency logo (tenant identity) — this archetype never drew it at all,
+  // so any agency with a real uploaded logo lost it on every mass-hiring
+  // (10+ position) advertisement. Reserve a slot just left of the QR
+  // verification panel, in its own white chip so it reads against the
+  // dark bar, then shift the QR panel left to make room.
+  if (plan.agencyLogoDataUri) {
+    const logoSize = px(56);
+    const logoSlot = logoSize + px(28);
+    panelX -= logoSlot;
+    const logoX = panelX + panelProbe.width + px(8);
+    const logoY = barY + Math.round((barH - logoSize) / 2);
+    parts.push(
+      `<rect x="${logoX}" y="${logoY - px(4)}" width="${logoSize + px(8)}" height="${logoSize + px(8)}" rx="${px(6)}" fill="#ffffff" />
+  <image x="${logoX + px(4)}" y="${logoY}" width="${logoSize}" height="${logoSize}" href="${plan.agencyLogoDataUri}" preserveAspectRatio="xMidYMid meet" />`,
+    );
+  }
   parts.push(
     verificationPanel({
       x: panelX,

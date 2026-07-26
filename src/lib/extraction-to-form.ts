@@ -26,7 +26,13 @@ export function extractionResultToFormValues(
   const industry = extracted.industry.value ?? undefined;
 
   const values: Partial<CreateAdvertisementInput> = {
-    header: deriveHeader({ employer, country, industry, projectType: extracted.projectType.value }),
+    header: deriveHeader({
+      employer,
+      country,
+      industry,
+      projectType: extracted.projectType.value,
+      positionTitles: extracted.positions.map((p) => p.title).filter((t): t is string => Boolean(t)),
+    }),
     industry: industry ?? "",
     country: country ?? "",
     employer: employer ?? "",
@@ -101,9 +107,24 @@ function deriveHeader(params: {
   country?: string;
   industry?: string;
   projectType?: string | null;
+  positionTitles?: string[];
 }): string {
-  const { employer, country, industry, projectType } = params;
-  const subject = employer ?? projectType ?? industry;
+  const { employer, country, industry, projectType, positionTitles } = params;
+  // The advertisement canvas always shows its own "Country · Industry"
+  // block right below the header (advertisement-canvas.tsx), so a header
+  // that falls back to bare industry (no employer/project to distinguish
+  // it) reads as a verbatim duplicate of that line — e.g. header "Power &
+  // Energy — Saudi Arabia" directly above a block reading "Saudi Arabia ·
+  // Power & Energy". Lead with the actual roles being hired for instead,
+  // same as a real recruitment ad would, whenever no employer/project name
+  // is available to make the header distinct.
+  const roleSubject =
+    positionTitles && positionTitles.length > 0
+      ? positionTitles.length === 1
+        ? positionTitles[0]
+        : `${positionTitles[0]} + ${positionTitles.length - 1} more role${positionTitles.length > 2 ? "s" : ""}`
+      : undefined;
+  const subject = employer ?? projectType ?? roleSubject ?? industry;
   // Don't repeat the country when the subject already names it
   // (e.g. employer "Halliburton Saudi Arabia" must not become
   // "Halliburton Saudi Arabia — Saudi Arabia").

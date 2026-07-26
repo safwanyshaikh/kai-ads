@@ -7,7 +7,7 @@
  * archetype (STRUCTURED_PROFESSIONAL, 2 positions) never calls the AI
  * image provider, so no OPENAI_API_KEY is needed to reproduce and fix it.
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import {
   recommendArchetype,
@@ -82,6 +82,11 @@ async function main() {
   const qrUrl = buildQrTrackingUrl({ agencyVerificationId: "adhoc-test", advertisementId: "adhoc-welder" });
   const qr = await generateAndVerifyQr(qrUrl);
 
+  const logoPath = "/tmp/fake-logo.png";
+  const agencyLogoDataUri = existsSync(logoPath)
+    ? `data:image/png;base64,${readFileSync(logoPath).toString("base64")}`
+    : null;
+
   const svg = composeAdvertisement({
     facts,
     plan: {
@@ -90,7 +95,7 @@ async function main() {
       accentColor: "#0B3D2E",
       qrDataUri: `data:image/png;base64,${qr.png.toString("base64")}`,
       backgroundImageDataUri: null,
-      agencyLogoDataUri: null,
+      agencyLogoDataUri,
       dna: null,
       copy,
       directives,
