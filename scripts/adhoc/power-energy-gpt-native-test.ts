@@ -17,6 +17,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { runCreativeDirector } from "@/server/generation/creative-director/creative-director";
 import { factsToCreativeInput } from "@/server/generation/creative-director/pipeline-adapter";
+import { applyDestinationCurrency } from "@/server/generation/creative-director/knowledge";
 import { buildCommercialAdvertisementBrief } from "@/server/generation/gpt-native/commercial-brief";
 import { buildMasterAdvertisementPrompt, type BrandContext } from "@/server/generation/gpt-native/master-prompt-builder";
 import { applyTrustLayer, computeImageSha256 } from "@/server/generation/gpt-native/trust-layer";
@@ -52,6 +53,12 @@ const facts: AdvertisementFacts = {
   raLicenseId: "9986",
   fullRegistrationNumber: "REG. LICENSE NO. B-1487/MUM/PART/1000+/9986/2022",
 };
+// Mirrors what gpt-native-generation.service.ts now does for every real
+// generation: a bare monetary figure gets the destination's real currency
+// applied before it ever reaches the prompt.
+facts.benefits = facts.benefits.map((b) =>
+  b.detail ? { ...b, detail: applyDestinationCurrency(b.detail, facts.country) } : b,
+);
 
 const brand: BrandContext = { primaryColor: "#0B3D2E", secondaryColor: "#C9A227", accentColor: "#E4572E" };
 

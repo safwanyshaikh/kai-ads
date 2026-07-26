@@ -27,6 +27,7 @@ import {
   toCreativeBrainDecisions,
 } from "@/server/generation/background-brief";
 import { buildCreativeDirectorBrief } from "@/server/generation/creative-director/pipeline-adapter";
+import { applyDestinationCurrency } from "@/server/generation/creative-director/knowledge";
 import { getEnv, getFeatureFlags } from "@/lib/env";
 import { runAcceptanceLoop } from "@/server/generation/acceptance/acceptance-loop";
 import { getVisualQaProvider } from "@/server/ai/visual-qa";
@@ -146,13 +147,25 @@ export const advertisementGenerationService = {
     // capped at MAX_ACCEPTANCE_ITERATIONS; the creative canvas is reused
     // across iterations unless Visual QA explicitly requires imagery
     // regeneration.
+    // A bare figure with no currency (e.g. "5K to 7K Basic") must show the
+    // destination's real currency (Truth Brain: Saudi Arabia pay is SAR,
+    // never left unlabeled and never guessed by the image model) — applied
+    // here, before facts reach the renderer/prompt, so the fact itself is
+    // already correct.
+    const currencyCorrectedPositions = positions.map((p) =>
+      p.salary ? { ...p, salary: applyDestinationCurrency(p.salary, advertisement.country) } : p,
+    );
+    const currencyCorrectedBenefits = benefits.map((b) =>
+      b.detail ? { ...b, detail: applyDestinationCurrency(b.detail, advertisement.country) } : b,
+    );
+
     const facts = {
       header: advertisement.header,
       industry: advertisement.industry,
       country: advertisement.country,
       employer: advertisement.employer,
-      positions,
-      benefits,
+      positions: currencyCorrectedPositions,
+      benefits: currencyCorrectedBenefits,
       interview,
       contact,
       footer: advertisement.footer,

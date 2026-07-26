@@ -46,6 +46,7 @@ import { createLogger } from "@/lib/logger";
 import { normalizeInterviewEvents } from "@/server/generation/interview-events";
 import { runCreativeDirector } from "@/server/generation/creative-director/creative-director";
 import { factsToCreativeInput } from "@/server/generation/creative-director/pipeline-adapter";
+import { applyDestinationCurrency } from "@/server/generation/creative-director/knowledge";
 import type { AdvertisementFacts } from "@/server/generation/archetypes/types";
 import { resolveAgencyVisualDna } from "@/server/generation/archetypes";
 import { buildCommercialAdvertisementBrief } from "@/server/generation/gpt-native/commercial-brief";
@@ -91,13 +92,25 @@ export const gptNativeGenerationService = {
     const density = classifyDensity(positions.map((p) => ({ title: p.title, count: p.count })));
     const compactRaLicenseId = deriveCompactRegistrationNumber(agency.registrationNumber);
 
+    // A bare figure with no currency (e.g. "5K to 7K Basic") must show the
+    // destination's real currency (Truth Brain: Saudi Arabia pay is SAR,
+    // never left unlabeled and never guessed as "$" by the image model) —
+    // applied here, before any fact reaches the prompt/renderer, so the
+    // fact itself is already correct instead of relying on GPT to infer it.
+    const currencyCorrectedPositions = positions.map((p) =>
+      p.salary ? { ...p, salary: applyDestinationCurrency(p.salary, advertisement.country) } : p,
+    );
+    const currencyCorrectedBenefits = benefits.map((b) =>
+      b.detail ? { ...b, detail: applyDestinationCurrency(b.detail, advertisement.country) } : b,
+    );
+
     const facts: AdvertisementFacts = {
       header: advertisement.header,
       industry: advertisement.industry,
       country: advertisement.country,
       employer: advertisement.employer,
-      positions,
-      benefits,
+      positions: currencyCorrectedPositions,
+      benefits: currencyCorrectedBenefits,
       interview,
       contact,
       footer: advertisement.footer,
