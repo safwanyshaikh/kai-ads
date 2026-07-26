@@ -216,6 +216,13 @@ describe("Phase C — Candidate Psychology coherence with the locked hero (Decis
       const d = runCreativeDirector(input);
       if (d.opportunity.hero === "SALARY") {
         expect(d.psychology.dominantHook).toMatch(/earning|salary/i);
+        // The hook must carry the actual grounded figure, not a bare
+        // "Earning — salary opportunity" phrase with no number — a hook
+        // that names salary without the real figure is exactly what left
+        // GPT to invent one (a real fabricated "SAR 50-700" reached a
+        // render when the true source figure was "SAR 5K to 7K").
+        expect(d.psychology.dominantHook).toBe(`Earning ${d.salary.salaryText}`);
+        expect(d.salary.salaryText).toBeTruthy();
       } else if (d.opportunity.hero === "EMPLOYER") {
         expect(d.psychology.dominantHook).toBe(input.employer ?? input.industry);
       } else if (d.opportunity.hero === "COUNTRY") {

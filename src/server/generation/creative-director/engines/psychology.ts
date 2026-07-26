@@ -88,6 +88,7 @@ export interface PsychologyInput {
   project: ProjectDecision;
   employer: EmployerDecision;
   urgency: UrgencyDecision;
+  salary: SalaryDecision;
   opportunity: OpportunityRankingDecision;
 }
 
@@ -117,7 +118,10 @@ export function candidatePsychology(a: PsychologyInput): EngineOutput<Psychology
 
   switch (hero) {
     case "SALARY":
-      dominantHook = "Earning — salary opportunity";
+      // Embed the actual grounded figure — a hook that names "salary"
+      // without the real number leaves a blank for GPT to fill in
+      // itself (Playbook §2 exists precisely to prevent that fabrication).
+      dominantHook = a.salary.salaryText ? `Earning ${a.salary.salaryText}` : "Earning opportunity";
       break;
     case "EMPLOYER":
       dominantHook = a.input.employer ?? a.input.industry;
@@ -167,7 +171,7 @@ export function candidatePsychology(a: PsychologyInput): EngineOutput<Psychology
 
 function secondaryHookFor(lever: OpportunityLever, a: PsychologyInput): string | null {
   switch (lever) {
-    case "SALARY": return "Earning opportunity";
+    case "SALARY": return a.salary.salaryText ? `Earning ${a.salary.salaryText}` : "Earning opportunity";
     case "COUNTRY": return `${a.country.country} · ${a.input.industry}`;
     case "INDUSTRY": return a.input.industry;
     case "PROJECT": return a.project.projectType;

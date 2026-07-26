@@ -126,6 +126,16 @@ export interface IndustryDecision {
 }
 export interface SalaryDecision {
   hasSalary: boolean;
+  /**
+   * The actual grounded salary figure (e.g. "SAR 3,200", "SAR 5K to 7K
+   * Basic"), null when hasSalary is false. Downstream hook composition
+   * (psychology.ts) MUST embed this exact text rather than writing a
+   * generic "Earning — salary opportunity" phrase with no number — a
+   * hook that names "salary" without the figure leaves a blank for GPT
+   * to fill in itself, which is exactly how a fabricated figure (e.g.
+   * "SAR 50-700" for a real "SAR 5K to 7K") reaches the rendered image.
+   */
+  salaryText: string | null;
   overtimePresent: boolean;
   prominence: Prominence;
   vacancyCount: number;

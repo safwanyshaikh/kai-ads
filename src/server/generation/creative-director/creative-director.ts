@@ -38,7 +38,7 @@ export function runCreativeDirector(input: CreativeInput): CreativeDirection {
   // ── psychology ── Decision Flow Stage 1 (lock the hero) runs before
   // Stage 2/3 (derive hook/emotion FROM that hero) — see psychology.ts.
   const opportunity = push(opportunityRanking({ country, salary, industry, project, employer, urgency }));
-  const psychology = push(candidatePsychology({ input, country, industry, project, employer, urgency, opportunity }));
+  const psychology = push(candidatePsychology({ input, country, industry, project, employer, urgency, salary, opportunity }));
 
   // ── visual ──
   const vs = push(visualStory({ input, project, urgency }));

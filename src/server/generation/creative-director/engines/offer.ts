@@ -41,8 +41,16 @@ export function salaryIntelligence(input: CreativeInput): EngineOutput<SalaryDec
   // fabricated one ("EARNING 3,800 AED") to satisfy the instruction, a
   // Truth Brain violation (never fabricate salary). Only explicit
   // salary/wage language counts; an allowance/bonus amount does not.
-  const salaryInBenefits = /\bsalary\b|\bbasic\s*pay\b|\bwage\b|\bremuneration\b/i.test(benefitsText);
+  const salaryBenefit = input.benefits.find((b) => /\bsalary\b|\bbasic\s*pay\b|\bwage\b|\bremuneration\b/i.test(`${b.label} ${b.detail ?? ""}`));
+  const salaryInBenefits = salaryBenefit != null;
   const hasSalary = posHasSalary || salaryInBenefits;
+  // The actual grounded figure, not just a boolean — psychology.ts's hook
+  // composer embeds this literally instead of writing an unparameterized
+  // "Earning — salary opportunity" phrase that leaves GPT to invent its
+  // own number (exactly how a fabricated "SAR 50-700" reached a real
+  // render when the true figure was "SAR 5K to 7K").
+  const positionWithSalary = input.positions.find((p) => (p.salary ?? "").trim().length > 0);
+  const salaryText = positionWithSalary?.salary ?? (salaryBenefit ? (salaryBenefit.detail ?? salaryBenefit.label) : null);
   const overtimePresent = /overtime|\bot\b/i.test(benefitsText) || input.positions.some((p) => /overtime|\bot\b/i.test(p.salary ?? ""));
   const vacancyCount = input.positions.reduce((a, p) => a + (p.count ?? 1), 0);
   const prominence: Prominence = hasSalary ? "HIGH" : "LOW";
@@ -51,8 +59,8 @@ export function salaryIntelligence(input: CreativeInput): EngineOutput<SalaryDec
     : vacancyCount >= VACANCY_PROMINENCE_MEDIUM_THRESHOLD ? "MEDIUM"
     : "LOW";
   return {
-    value: { hasSalary, overtimePresent, prominence, vacancyCount, vacancyProminence },
-    trace: { engine: "salaryIntelligence", decision: `salary=${hasSalary} ot=${overtimePresent} vac=${vacancyCount}`, reason: `Salary ${hasSalary ? "present → HIGH" : "absent → LOW (never fabricated, Playbook §2)"}; overtime ${overtimePresent}; ${vacancyCount} vacancies → ${vacancyProminence}.` },
+    value: { hasSalary, salaryText, overtimePresent, prominence, vacancyCount, vacancyProminence },
+    trace: { engine: "salaryIntelligence", decision: `salary=${hasSalary} ot=${overtimePresent} vac=${vacancyCount}`, reason: `Salary ${hasSalary ? `present (${salaryText}) → HIGH` : "absent → LOW (never fabricated, Playbook §2)"}; overtime ${overtimePresent}; ${vacancyCount} vacancies → ${vacancyProminence}.` },
   };
 }
 
