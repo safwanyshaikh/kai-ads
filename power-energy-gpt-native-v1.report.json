@@ -1,0 +1,75 @@
+{
+  "imageSha256": "3a3a09d4f08dc3f1d593672bdbf607c85a6c6eeb83130c651d9cf71f6c220f63",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 74,
+    "visualQa": {
+      "overallScore": 74,
+      "commercialQualityScore": 70,
+      "hierarchyScore": 70,
+      "readabilityScore": 75,
+      "imageryScore": 85,
+      "canvasUtilizationScore": 70,
+      "ctaScore": 60,
+      "trustScore": 65,
+      "defects": [
+        "No agency/verification/trust identity or footer present",
+        "Contact CTA is present but not visually emphasized (email is small, QR code is visually awkwardly placed, no phone/WhatsApp)",
+        "Main salary headline does not pass three-second test for immediate role clarity; no clear candidate-facing hook as largest text (project or specific job/role in Saudi Arabia missing from header)",
+        "Significant visual premium area used for generic salary language, not an attention-winning candidate hook",
+        "Some dead canvas at the bottom right where QR code sits on a plain block, with poor compositional integration",
+        "Text segmentation is not as punchy or commercial as strong Gulf recruitment ads"
+      ],
+      "catastrophicDefects": [
+        "No agency/verification/trust identity or footer present",
+        "No clear candidate-facing hook (project or specific job/role/country in the headline section)",
+        "Contact CTA (email and QR) lacks prominence and may be missed; not visually emphasized"
+      ],
+      "requiredCorrections": [
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Increase the prominence and clarity of the contact CTA (use bolder, larger font, and add WhatsApp/phone for recruitment convention)."
+        },
+        {
+          "type": "OTHER",
+          "note": "Add an agency verification/trust footer (logo, RA number, MEA, registration) integrated at the bottom of the canvas."
+        },
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Rework headline to foreground the actual project/job role and Saudi Arabia as the candidate-facing hook, not just the salary."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Better integrate the QR code into the visual hierarchy and reduce unused/awkward plain areas at the bottom."
+        }
+      ],
+      "verdict": "BLOCKED"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Header: Power Infrastructure Engineers — Saudi Arabia (Image shows 'Earning SAR 50-700' as the header instead.)",
+        "Benefit: Salary Range (SAR 5K to 7K Basic (varies based on interview assessment)) (Image shows 'Salary Range: SAR 5K to 7K Basic (varies based on interview assessment))'—the use of '5K' and '7K' is correct but header above says 'SAR 50-700', which is a significant numeric discrepancy compared to SAR 5K-7K)"
+      ],
+      "missingCriticalFacts": [
+        "Agency: Al Yousuf Enterprises LLP (Agency is not referenced or shown anywhere on the image)"
+      ],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Spelling/fidelity: Header: Power Infrastructure Engineers — Saudi Arabia (Image shows 'Earning SAR 50-700' as the header instead.)",
+      "Spelling/fidelity: Benefit: Salary Range (SAR 5K to 7K Basic (varies based on interview assessment)) (Image shows 'Salary Range: SAR 5K to 7K Basic (varies based on interview assessment))'—the use of '5K' and '7K' is correct but header above says 'SAR 50-700', which is a significant numeric discrepancy compared to SAR 5K-7K)",
+      "Missing fact: Agency: Al Yousuf Enterprises LLP (Agency is not referenced or shown anywhere on the image)",
+      "Visual QA (catastrophic): No agency/verification/trust identity or footer present",
+      "Visual QA (catastrophic): No clear candidate-facing hook (project or specific job/role/country in the headline section)",
+      "Visual QA (catastrophic): Contact CTA (email and QR) lacks prominence and may be missed; not visually emphasized",
+      "Visual QA score 74/100 is below the 85 publishable bar",
+      "Visual QA: No agency/verification/trust identity or footer present",
+      "Visual QA: Contact CTA is present but not visually emphasized (email is small, QR code is visually awkwardly placed, no phone/WhatsApp)",
+      "Visual QA: Main salary headline does not pass three-second test for immediate role clarity; no clear candidate-facing hook as largest text (project or specific job/role in Saudi Arabia missing from header)",
+      "Visual QA: Significant visual premium area used for generic salary language, not an attention-winning candidate hook",
+      "Visual QA: Some dead canvas at the bottom right where QR code sits on a plain block, with poor compositional integration"
+    ],
+    "shouldRegenerate": true
+  }
+}
