@@ -4,12 +4,22 @@ name: KAI Ads Adhoc Single-Ad Test (GPT-Native)
 # against the real GPT-Native pipeline. Not part of CI gating.
 on:
   workflow_dispatch:
+    inputs:
+      script:
+        description: "Adhoc script path to run"
+        required: false
+        default: "scripts/adhoc/welder-gpt-native-test.ts"
+      agency_logo_url:
+        description: "Optional public URL of the agency's real logo to composite"
+        required: false
+        default: ""
   push:
     branches:
       - claude/kai-ads-verify-state-upnt70
     paths:
       - ".github/workflows/adhoc-single-ad.yml"
       - "scripts/adhoc/welder-gpt-native-test.ts"
+      - "scripts/adhoc/power-energy-gpt-native-test.ts"
 
 permissions:
   contents: write
@@ -44,9 +54,10 @@ jobs:
         run: npm ci
 
       - name: Run adhoc generation
-        run: npx tsx scripts/adhoc/welder-gpt-native-test.ts
+        run: npx tsx "${{ inputs.script || 'scripts/adhoc/welder-gpt-native-test.ts' }}"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AGENCY_LOGO_URL: ${{ inputs.agency_logo_url }}
           KAI_VISION_MODEL: gpt-4.1
           KAI_IMAGE_MODEL: gpt-image-1
           KAI_IMAGE_QUALITY: high
