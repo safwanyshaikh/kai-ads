@@ -1,0 +1,73 @@
+{
+  "imageSha256": "eda695c0f98c095377caddf7a2305d9ba39d9259a1b689558213a20ebd5eed13",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 66,
+    "visualQa": {
+      "overallScore": 66,
+      "commercialQualityScore": 60,
+      "hierarchyScore": 60,
+      "readabilityScore": 70,
+      "imageryScore": 88,
+      "canvasUtilizationScore": 55,
+      "ctaScore": 55,
+      "trustScore": 70,
+      "defects": [
+        "Lower portion has a very large, unjustified dead zone due to massively oversized, mostly blank QR panel hiding/cropping text.",
+        "Food Allowance and contact phone/email CTA overlap or are lost into the white QR panel.",
+        "Agency/verification details (Al Yousuf Enterprises LLP) lack clear footer separation; not enough trust styling.",
+        "Primary job/role block lacks visual emphasis and could be much larger.",
+        "Information is jumbled/colliding at the bottom — text falls under QR code.",
+        "No single strong candidate-facing 'headline' — country/destination is clear, but project or opportunity is not powerfully foregrounded near the top.",
+        "Contact CTA (phone/email) is present, but lacks extra visual emphasis or easy scan access — gets washed out by QR block."
+      ],
+      "catastrophicDefects": [
+        "More than 20% unjustified dead canvas in lower right — white QR block consumes critical canvas and obscures/crops factual content.",
+        "Key recruitment/contact info is partially hidden or unreadable due to QR overlay.",
+        "Information requires slow, careful reading to decode opportunity/offer due to jumbled lower block and inconsistent hierarchy."
+      ],
+      "requiredCorrections": [
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Redesign text/QR integration — minimize dead space, avoid covering information, arrange all elements for legibility and canvas efficiency."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Emphasize contact CTA, separate QR code with better design, and ensure all contact info is fully visible and clear."
+        },
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Opportunity hook and project/country combination should dominate and be instantly clear as the headline."
+        },
+        {
+          "type": "OTHER",
+          "note": "Strengthen information hierarchy for mobile and social viewing; ensure the key offer is instantly readable and not lost."
+        }
+      ],
+      "verdict": "BLOCKED"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [],
+      "missingCriticalFacts": [],
+      "legibilityIssues": [
+        "Part of 'Free Accommodation' benefit is obscured/unreadable due to the white QR code box overlapping the text, making that fact illegible.",
+        "The phone number '8655960415' is partially obscured/faint and difficult to read reliably due to its color blending with the background."
+      ]
+    },
+    "defects": [
+      "Legibility: Part of 'Free Accommodation' benefit is obscured/unreadable due to the white QR code box overlapping the text, making that fact illegible.",
+      "Legibility: The phone number '8655960415' is partially obscured/faint and difficult to read reliably due to its color blending with the background.",
+      "Visual QA (catastrophic): More than 20% unjustified dead canvas in lower right — white QR block consumes critical canvas and obscures/crops factual content.",
+      "Visual QA (catastrophic): Key recruitment/contact info is partially hidden or unreadable due to QR overlay.",
+      "Visual QA (catastrophic): Information requires slow, careful reading to decode opportunity/offer due to jumbled lower block and inconsistent hierarchy.",
+      "Visual QA score 66/100 is below the 85 publishable bar",
+      "Visual QA: Lower portion has a very large, unjustified dead zone due to massively oversized, mostly blank QR panel hiding/cropping text.",
+      "Visual QA: Food Allowance and contact phone/email CTA overlap or are lost into the white QR panel.",
+      "Visual QA: Agency/verification details (Al Yousuf Enterprises LLP) lack clear footer separation; not enough trust styling.",
+      "Visual QA: Primary job/role block lacks visual emphasis and could be much larger.",
+      "Visual QA: Information is jumbled/colliding at the bottom — text falls under QR code."
+    ],
+    "shouldRegenerate": true
+  }
+}
