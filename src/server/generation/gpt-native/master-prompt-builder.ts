@@ -202,6 +202,7 @@ Leave the bottom-right ${TRUST_ZONE.widthPct}% width x ${TRUST_ZONE.heightPct}% 
 - Render the contact email and phone number EXACTLY, character for character, as written above. Never substitute a different address, never shorten a domain, never invent contact details. If the email is "jobs@alyousufent.com" it must read "jobs@alyousufent.com" — not "apply@..." or any other address.
 - Render each position's number of openings when one is given: show the count exactly (e.g. "Electrical Technician — 20 openings"), never drop it.
 - Render every salary figure exactly as written, keeping the given digit grouping and currency (e.g. "SAR 3,200" stays "SAR 3,200" — never "SAR 3.200", never "$3,200", never rounded).
+- If a monetary figure has NO currency stated in the facts above (e.g. "5K to 7K Basic"), render it exactly as written with no currency symbol or code added. Never assume "$"/USD or any other currency — an unstated currency must stay unstated, not be guessed.
 - Render the country name exactly as written; do not expand or translate it (if it says "UAE", show "UAE").
 - Do not invent, add, or alter any headline, salary, benefit, date, or contact detail. Every number and word on the advertisement must come from the facts above.
 
