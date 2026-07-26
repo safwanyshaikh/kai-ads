@@ -1,0 +1,83 @@
+{
+  "imageSha256": "f6feb403350ac9e12c7f4d8c5598f0a72c1d655d47c5d1a60a422778d352f8c3",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 74,
+    "visualQa": {
+      "overallScore": 74,
+      "commercialQualityScore": 70,
+      "hierarchyScore": 80,
+      "readabilityScore": 75,
+      "imageryScore": 90,
+      "canvasUtilizationScore": 65,
+      "ctaScore": 68,
+      "trustScore": 70,
+      "defects": [
+        "No visible agency verification or trust footer; required agency license or MEA registration elements are missing.",
+        "Contact CTA (email) is moderately clear but lacks prominence—could be visually stronger, with a more urgent call to action or larger clickable/tappable style.",
+        "Canvas underutilization: Large dead area in the upper portion; insufficient information density compared to professional Gulf ads—feels overly spaced, hurting density and urgency.",
+        "QR code integration is abrupt and lacks designed-in contextualization; visually appears as a sticker, not an integrated part of the layout.",
+        "Role/country could be made more emphatic as the top-level hook—salary has been given disproportionate headline hierarchy.",
+        "No explicit agency/verification/trust information included anywhere—may create trust issues.",
+        "Secondary info at the very bottom (prerequisites) is extremely small and close to illegible.",
+        "Contrast of small white-on-brown text becomes hard to read, especially at bottom edge."
+      ],
+      "catastrophicDefects": [
+        "Advertisement lacks any agency/verification/trust identity: no RA number, agency name, or regulatory compliance verification, which blocks publication by any Gulf recruitment agency.",
+        "No clear candidate-facing hook line stating the project/opportunity. The salary line dominates, making the ad feel transactional rather than a recruitment invitation.",
+        "Contact CTA is not sufficiently prominent and could easily be missed in fast scroll contexts.",
+        "QR code not visually integrated—appears pasted on and disrupts the professional layout.",
+        "Bottom section's font size is dangerously small—effectively unreadable."
+      ],
+      "requiredCorrections": [
+        {
+          "type": "OTHER",
+          "note": "Add a designed-in trust/verification footer with agency RA number, name, and compliance elements as per commercial recruitment standards."
+        },
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Restructure hierarchy so that the project and country (e.g., 'Saudi Arabia Power Engineers') is the dominant opening hook, not just the pay scale."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Make the contact CTA (email/QR) significantly more prominent, using strong color contrast and clear call-out design."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Reduce dead/empty areas, and rebalance information density so the ad feels urgent and complete at a glance. Increase the font size of the eligibility/prerequisite text."
+        },
+        {
+          "type": "OTHER",
+          "note": "Integrate the QR code in a visually harmonious manner—within a panel, ribbon, or corner element with context (e.g. 'Apply Instantly')."
+        }
+      ],
+      "verdict": "BLOCKED"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Header: Image shows 'Power Infrastructure Engineers – Saudi Arabia' in a subheading section instead of as the top header. The top header reads 'Earning 5K to 7K Basic (varies based on interview assessment)'."
+      ],
+      "missingCriticalFacts": [
+        "Agency: Al Yousuf Enterprises LLP (not visible anywhere on the advertisement)"
+      ],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Spelling/fidelity: Header: Image shows 'Power Infrastructure Engineers – Saudi Arabia' in a subheading section instead of as the top header. The top header reads 'Earning 5K to 7K Basic (varies based on interview assessment)'.",
+      "Missing fact: Agency: Al Yousuf Enterprises LLP (not visible anywhere on the advertisement)",
+      "Visual QA (catastrophic): Advertisement lacks any agency/verification/trust identity: no RA number, agency name, or regulatory compliance verification, which blocks publication by any Gulf recruitment agency.",
+      "Visual QA (catastrophic): No clear candidate-facing hook line stating the project/opportunity. The salary line dominates, making the ad feel transactional rather than a recruitment invitation.",
+      "Visual QA (catastrophic): Contact CTA is not sufficiently prominent and could easily be missed in fast scroll contexts.",
+      "Visual QA (catastrophic): QR code not visually integrated—appears pasted on and disrupts the professional layout.",
+      "Visual QA (catastrophic): Bottom section's font size is dangerously small—effectively unreadable.",
+      "Visual QA score 74/100 is below the 85 publishable bar",
+      "Visual QA: No visible agency verification or trust footer; required agency license or MEA registration elements are missing.",
+      "Visual QA: Contact CTA (email) is moderately clear but lacks prominence—could be visually stronger, with a more urgent call to action or larger clickable/tappable style.",
+      "Visual QA: Canvas underutilization: Large dead area in the upper portion; insufficient information density compared to professional Gulf ads—feels overly spaced, hurting density and urgency.",
+      "Visual QA: QR code integration is abrupt and lacks designed-in contextualization; visually appears as a sticker, not an integrated part of the layout.",
+      "Visual QA: Role/country could be made more emphatic as the top-level hook—salary has been given disproportionate headline hierarchy."
+    ],
+    "shouldRegenerate": true
+  }
+}
