@@ -1,0 +1,64 @@
+{
+  "imageSha256": "37aac3fb812fbd87b37170f429672bf84fb0611938746509cf5b0e1823c48cb2",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 81,
+    "visualQa": {
+      "overallScore": 81,
+      "commercialQualityScore": 80,
+      "hierarchyScore": 74,
+      "readabilityScore": 83,
+      "imageryScore": 90,
+      "canvasUtilizationScore": 77,
+      "ctaScore": 75,
+      "trustScore": 78,
+      "defects": [
+        "The largest text ('UNITED ARAB EMIRATES') is country-only, lacking a direct, candidate-facing opportunity+destination hook—'CONSTRUCTION WELDER JOBS – UAE' or similar would be a stronger lead.",
+        "Visual hierarchy is slightly confusing: strong country headline overshadows the actual job opportunity, which is buried mid-ad.",
+        "CTA (email, phone) is visible but lacks emphasis and is less prominent than primary content.",
+        "Agency/trust identity is present at the bottom but visually disconnected by the large block above—could be more integrated.",
+        "There is a moderately large underutilized white canvas block at bottom right (QR band) that disrupts flow and is out of proportion to the information it contains.",
+        "Yellow on white for phone number in the CTA footer is hard to read and lacks sufficient contrast.",
+        "Typography for benefits and contact details is minimally sized; could be increased for mobile legibility."
+      ],
+      "catastrophicDefects": [],
+      "requiredCorrections": [
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "The role/destination hook ('Welders Required – Abu Dhabi') should be the single largest and most attention-getting line, not just the country name."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Contact line (email/phone) and QR code need bolder, higher-contrast presentation and more prominence to serve as an effective CTA, especially on mobile."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "The QR/CTA footer area uses a large white block that feels imbalanced relative to other content; it could be made less obtrusive or better integrated to utilize space without disrupting layout."
+        },
+        {
+          "type": "IMPROVE_CONTRAST",
+          "note": "Yellow-gold text for contact number is low-contrast on a white band, reducing legibility."
+        }
+      ],
+      "verdict": "REGENERATE"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [],
+      "missingCriticalFacts": [
+        "Medical"
+      ],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Missing fact: Medical",
+      "Visual QA score 81/100 is below the 85 publishable bar",
+      "Visual QA: The largest text ('UNITED ARAB EMIRATES') is country-only, lacking a direct, candidate-facing opportunity+destination hook—'CONSTRUCTION WELDER JOBS – UAE' or similar would be a stronger lead.",
+      "Visual QA: Visual hierarchy is slightly confusing: strong country headline overshadows the actual job opportunity, which is buried mid-ad.",
+      "Visual QA: CTA (email, phone) is visible but lacks emphasis and is less prominent than primary content.",
+      "Visual QA: Agency/trust identity is present at the bottom but visually disconnected by the large block above—could be more integrated.",
+      "Visual QA: There is a moderately large underutilized white canvas block at bottom right (QR band) that disrupts flow and is out of proportion to the information it contains."
+    ],
+    "shouldRegenerate": true
+  }
+}
