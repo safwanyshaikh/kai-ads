@@ -1,0 +1,74 @@
+{
+  "imageSha256": "fa03fcf8d2d7767e32895ccb0387834636d7edf12c4d1fd7a6471df716c6ff5e",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 62,
+    "visualQa": {
+      "overallScore": 62,
+      "commercialQualityScore": 62,
+      "hierarchyScore": 55,
+      "readabilityScore": 65,
+      "imageryScore": 78,
+      "canvasUtilizationScore": 55,
+      "ctaScore": 47,
+      "trustScore": 66,
+      "defects": [
+        "Headline is not sufficiently candidate-facing: the headline 'Earning $5,000–7,000 Basic' is not a clear candidate-facing hook combining project and destination; project/company/country info is de-emphasized.",
+        "Visual hierarchy is weak: salary dominates but role/country/project is comparatively small and unclear.",
+        "Major dead canvas: significant upper zone (top quarter) is large, plain, and visually underutilized.",
+        "Contact CTA (email) is not prominent and visually blends in; lacks strong emphasis, color contrast, or iconography.",
+        "QR code integration is abrupt; it looks like a sticker and is not visually blended with the design.",
+        "Trust/agency identity is cramped and hard to see behind the QR code.",
+        "Information split, read order is not clear—project/company/country is not integrated with immediate recruiting info."
+      ],
+      "catastrophicDefects": [
+        "No clear candidate-facing hook: country/project/role are not immediately visible leading the visual hierarchy; viewer cannot tell specifics at a glance.",
+        "Contact CTA difficult to find: understated, not visually prioritized or graphically accented.",
+        "Large unused/dead canvas in the header/top section (much more than 20%)."
+      ],
+      "requiredCorrections": [
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Create a true candidate-facing headline: project, country, and opportunity as the largest/lead text—example: 'Saudi Arabia Power & Energy — Engineer Roles • $5K–$7K Basic'"
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Visually prioritize and design the contact CTA (email/QR) with clear color/action separators and possibly a button or bold highlight."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Utilize more of the top/upper canvas with integrated brand, project, or visual elements—reduce dead canvas."
+        },
+        {
+          "type": "OTHER",
+          "note": "Visually integrate the QR code—blend it into the trust/footer panel, ensuring trust information remains readable and not hidden."
+        }
+      ],
+      "verdict": "REGENERATE"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Header: Image shows 'Earning $5,000-7,000 Basic' and 'Saudi Arabia • Power & Energy' instead of 'Power Infrastructure Engineers — Saudi Arabia'."
+      ],
+      "missingCriticalFacts": [],
+      "legibilityIssues": [
+        "The agency name 'Al Yousuf Enterprises LLP' is partially obscured by the white box in the bottom right corner, making it difficult to read in full."
+      ]
+    },
+    "defects": [
+      "Spelling/fidelity: Header: Image shows 'Earning $5,000-7,000 Basic' and 'Saudi Arabia • Power & Energy' instead of 'Power Infrastructure Engineers — Saudi Arabia'.",
+      "Legibility: The agency name 'Al Yousuf Enterprises LLP' is partially obscured by the white box in the bottom right corner, making it difficult to read in full.",
+      "Visual QA (catastrophic): No clear candidate-facing hook: country/project/role are not immediately visible leading the visual hierarchy; viewer cannot tell specifics at a glance.",
+      "Visual QA (catastrophic): Contact CTA difficult to find: understated, not visually prioritized or graphically accented.",
+      "Visual QA (catastrophic): Large unused/dead canvas in the header/top section (much more than 20%).",
+      "Visual QA score 62/100 is below the 85 publishable bar",
+      "Visual QA: Headline is not sufficiently candidate-facing: the headline 'Earning $5,000–7,000 Basic' is not a clear candidate-facing hook combining project and destination; project/company/country info is de-emphasized.",
+      "Visual QA: Visual hierarchy is weak: salary dominates but role/country/project is comparatively small and unclear.",
+      "Visual QA: Major dead canvas: significant upper zone (top quarter) is large, plain, and visually underutilized.",
+      "Visual QA: Contact CTA (email) is not prominent and visually blends in; lacks strong emphasis, color contrast, or iconography.",
+      "Visual QA: QR code integration is abrupt; it looks like a sticker and is not visually blended with the design."
+    ],
+    "shouldRegenerate": true
+  }
+}
