@@ -33,7 +33,15 @@ const VACANCY_PROMINENCE_MEDIUM_THRESHOLD = 15;
 export function salaryIntelligence(input: CreativeInput): EngineOutput<SalaryDecision> {
   const posHasSalary = input.positions.some((p) => (p.salary ?? "").trim().length > 0);
   const benefitsText = input.benefits.map((b) => `${b.label} ${b.detail ?? ""}`).join(" ");
-  const salaryInBenefits = /salary|basic pay|\bsar\b|\baed\b|\bqar\b|\bkwd\b|\bbhd\b|\bomr\b/i.test(benefitsText);
+  // A bare currency code (AED/SAR/...) is NOT evidence of a salary — a
+  // "Food Allowance — 300 AED" benefit line matches \baed\b but is an
+  // allowance, not a wage. Matching on the currency code alone told the
+  // Commercial Brief "salary presence: commanding", which told GPT to
+  // "lead with the salary offer" with no real figure to use — GPT then
+  // fabricated one ("EARNING 3,800 AED") to satisfy the instruction, a
+  // Truth Brain violation (never fabricate salary). Only explicit
+  // salary/wage language counts; an allowance/bonus amount does not.
+  const salaryInBenefits = /\bsalary\b|\bbasic\s*pay\b|\bwage\b|\bremuneration\b/i.test(benefitsText);
   const hasSalary = posHasSalary || salaryInBenefits;
   const overtimePresent = /overtime|\bot\b/i.test(benefitsText) || input.positions.some((p) => /overtime|\bot\b/i.test(p.salary ?? ""));
   const vacancyCount = input.positions.reduce((a, p) => a + (p.count ?? 1), 0);
