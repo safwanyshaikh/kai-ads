@@ -1,0 +1,73 @@
+{
+  "imageSha256": "c2269e0b388f5d179bd6041db7f57f83228ba1775a3fcb1d218d8efb7f938338",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 78,
+    "visualQa": {
+      "overallScore": 78,
+      "commercialQualityScore": 80,
+      "hierarchyScore": 72,
+      "readabilityScore": 75,
+      "imageryScore": 90,
+      "canvasUtilizationScore": 70,
+      "ctaScore": 75,
+      "trustScore": 70,
+      "defects": [
+        "No clear agency/verification/trust footer; agency name and verification details are absent from the bottom as required by the Constitution.",
+        "Agency/contact information (email) lacks professionalism, being only an email (no logo, name, RA number, or trust elements visible).",
+        "Canvas is split nearly in half with a brown band, resulting in some unjustified dead canvas especially around the QR segment.",
+        "Visual hierarchy: Salary headline dominates, but secondary candidate-facing opportunity headline ('Power Infrastructure Engineers – Saudi Arabia') is less prominent and visually squashed.",
+        "Spacing is tight at the bottom: text almost touches the card edges.",
+        "QR code looks like a sticker, not cleanly designed-in or integrated (no surrounding information or trust elements, and occupying a dead white patch).",
+        "Typo in footer: 'Ealary Range' instead of 'Salary Range'.",
+        "Information is repeated ('SAR 5K to 7K Basic' and again as salary range in the footer)."
+      ],
+      "catastrophicDefects": [
+        "Missing agency identity, logo, and verification or RA number in the trust footer (required by the Constitution).",
+        "No clear, integrated, prominent trust/verification band at the bottom with agency details."
+      ],
+      "requiredCorrections": [
+        {
+          "type": "OTHER",
+          "note": "Add an integrated trust footer, including agency name, logo, RA number, and verification to comply with Constitutional requirements."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Increase spacing in the lower block to avoid crowding at the edges and to better integrate the QR code."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Elevate contact prominence and professionalism—consider adding a WhatsApp/phone number and present them with visual priority."
+        },
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Strengthen the opportunity/project headline ('Power Infrastructure Engineers – Saudi Arabia') to compete more closely with the salary grab."
+        }
+      ],
+      "verdict": "BLOCKED"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Benefit: 'Ealary Range: SAR 5K to 7K Basic (varies based on interview assessment)' (image) vs 'Salary Range (SAR 5K to 7K Basic (varies based on interview assessment))' (expected)"
+      ],
+      "missingCriticalFacts": [
+        "Agency: Al Yousuf Enterprises LLP"
+      ],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Spelling/fidelity: Benefit: 'Ealary Range: SAR 5K to 7K Basic (varies based on interview assessment)' (image) vs 'Salary Range (SAR 5K to 7K Basic (varies based on interview assessment))' (expected)",
+      "Missing fact: Agency: Al Yousuf Enterprises LLP",
+      "Visual QA (catastrophic): Missing agency identity, logo, and verification or RA number in the trust footer (required by the Constitution).",
+      "Visual QA (catastrophic): No clear, integrated, prominent trust/verification band at the bottom with agency details.",
+      "Visual QA score 78/100 is below the 85 publishable bar",
+      "Visual QA: No clear agency/verification/trust footer; agency name and verification details are absent from the bottom as required by the Constitution.",
+      "Visual QA: Agency/contact information (email) lacks professionalism, being only an email (no logo, name, RA number, or trust elements visible).",
+      "Visual QA: Canvas is split nearly in half with a brown band, resulting in some unjustified dead canvas especially around the QR segment.",
+      "Visual QA: Visual hierarchy: Salary headline dominates, but secondary candidate-facing opportunity headline ('Power Infrastructure Engineers – Saudi Arabia') is less prominent and visually squashed.",
+      "Visual QA: Spacing is tight at the bottom: text almost touches the card edges."
+    ],
+    "shouldRegenerate": true
+  }
+}
