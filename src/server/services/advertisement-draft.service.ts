@@ -180,32 +180,6 @@ export const advertisementDraftService = {
     return updated;
   },
 
-  /** Style Selection — store only, no rendering. */
-  async selectStyle(
-    id: string,
-    agencyId: string,
-    actorId: string,
-    style: "VISUAL" | "TYPOGRAPHY" | "NEWSPAPER",
-  ) {
-    await advertisementDraftService.getById(id, agencyId);
-
-    const updated = await advertisementDraftRepository.update(id, {
-      selectedStyle: style,
-      status: "STYLE_SELECTED",
-    });
-
-    await auditLogService.record({
-      action: AUDIT_ACTIONS.advertisementDraftStyleSelected,
-      entity: "AdvertisementDraft",
-      entityId: id,
-      agencyId,
-      actorId,
-      metadata: { style },
-    });
-
-    return updated;
-  },
-
   /** Save — Preview -> Save. Converts the reviewed draft into a real Advertisement. */
   async save(id: string, agencyId: string, actorId: string) {
     const draft = await advertisementDraftService.getById(id, agencyId);

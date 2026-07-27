@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { advertisementStyleSchema } from "./advertisement";
 import { stripInvalidPostgresChars } from "@/lib/sanitize-text";
 
 const draftSourceTypeSchema = z.enum([
@@ -90,9 +89,4 @@ export type CreateDraftInput = z.infer<typeof createDraftSchema>;
 /** AI Extraction Review — the recruiter's edited/approved data. Same shape as the Advertisement content blocks. */
 export const reviewDraftSchema = z.object({
   reviewedData: z.record(z.string(), z.unknown()),
-});
-
-/** Style Selection — store only. */
-export const selectDraftStyleSchema = z.object({
-  style: advertisementStyleSchema,
 });

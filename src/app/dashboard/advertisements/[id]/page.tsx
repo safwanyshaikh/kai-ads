@@ -80,7 +80,6 @@ export default async function AdvertisementDetailPage({
           {can(user, "advertisement:generate") && (
             <GenerationPanel
               advertisementId={advertisement.id}
-              currentStyle={advertisement.style}
               generatedAssetUrl={advertisement.generatedAssetUrl}
               trustStatus={advertisement.trustStatus}
               trustWarnings={(advertisement.trustWarnings as string[] | null) ?? []}

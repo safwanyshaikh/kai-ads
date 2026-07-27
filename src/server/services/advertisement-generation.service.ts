@@ -1,5 +1,4 @@
 import type { Prisma } from "@prisma/client";
-import { deepStripInvalidChars } from "@/lib/sanitize-text";
 import { db } from "@/lib/db";
 import { advertisementRepository } from "@/server/repositories/advertisement.repository";
 import { agencyRepository } from "@/server/repositories/agency.repository";
@@ -18,7 +17,7 @@ import { getPlatformFormat, isValidPlatformFormatKey } from "@/lib/platform-form
 import { ImageProviderNotImplementedError } from "@/server/ai/image";
 import { getEnv } from "@/lib/env";
 import { AUDIT_ACTIONS } from "@/lib/constants";
-import { AppError, ConflictError, NotFoundError } from "@/lib/errors";
+import { AppError, NotFoundError } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
 import type { GenerateAdvertisementInput } from "@/lib/validations/advertisement-generation";
 
@@ -215,118 +214,6 @@ export const advertisementGenerationService = {
     });
 
     log.info({ advertisementId, style, density, trustStatus: trustCheck.status }, "Advertisement generated");
-
-    return updated;
-  },
-
-  /**
-   * Section edits update the changed fact field, then re-run the ONE
-   * production pipeline for a full regeneration. GPT owns full composition
-   * (Supreme Constitution Principle 2), so there is no deterministic
-   * per-section renderer to call — "regenerate only this section" is no
-   * longer a distinct rendering operation, only a distinct data edit.
-   * MANUAL_EDIT never regenerates artwork; it only updates the field.
-   */
-  async regenerateSection(
-    advertisementId: string,
-    agencyId: string,
-    actorId: string,
-    section: "HEADER" | "COUNTRY_INDUSTRY" | "POSITIONS" | "BENEFITS" | "INTERVIEW" | "CONTACT" | "AGENCY_FOOTER",
-    newSectionData: Record<string, unknown>,
-    method: "AI_REGENERATED" | "MANUAL_EDIT",
-    reason?: string,
-  ) {
-    const advertisement = await advertisementRepository.findById(advertisementId, agencyId);
-    if (!advertisement) throw new NotFoundError("Advertisement");
-    if (!advertisement.generatedAssetUrl) {
-      throw new ConflictError("Generate the advertisement before editing an individual section.");
-    }
-
-    const sectionFieldMap: Record<string, keyof typeof advertisement> = {
-      HEADER: "header",
-      COUNTRY_INDUSTRY: "industry",
-      POSITIONS: "positions",
-      BENEFITS: "benefits",
-      INTERVIEW: "interview",
-      CONTACT: "contact",
-      AGENCY_FOOTER: "footer",
-    };
-    const field = sectionFieldMap[section];
-    const previousSectionData = { [field]: advertisement[field] };
-
-    if (!(field in newSectionData)) {
-      throw new AppError(
-        `The updated ${section} section must include a "${String(field)}" value.`,
-        400,
-      );
-    }
-    // Sprint 006 Bug 006: this field can be a plain text column (header,
-    // footer) or a jsonb column (positions, benefits, ...) — Postgres
-    // rejects a NUL codepoint in either, so sanitize before the write
-    // regardless of which kind this section's field is.
-    const newFieldValue = deepStripInvalidChars(newSectionData[field as string]);
-
-    const nextVersion = advertisement.currentVersion + 1;
-    const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-      const result = await tx.advertisement.update({
-        where: { id: advertisementId },
-        data: {
-          [field]: newFieldValue,
-          currentVersion: nextVersion,
-        },
-      });
-
-      await tx.advertisementVersion.create({
-        data: {
-          advertisementId,
-          versionNumber: nextVersion,
-          snapshot: { [field]: result[field] } as unknown as Prisma.InputJsonValue,
-          changeSummary: reason ?? `${section} section updated`,
-          changedSection: section,
-          regenerationMethod: method,
-          previousSectionData: previousSectionData as unknown as Prisma.InputJsonValue,
-          newSectionData: newSectionData as unknown as Prisma.InputJsonValue,
-          createdById: actorId,
-        },
-      });
-
-      await tx.advertisementHistory.create({
-        data: {
-          advertisementId,
-          action: "section_regenerated",
-          metadata: { section, method, reason },
-          actorId,
-        },
-      });
-
-      return result;
-    });
-
-    if (method === "AI_REGENERATED") {
-      await generationQuotaService.recordSectionRegeneration(agencyId);
-    }
-
-    await auditLogService.record({
-      action: AUDIT_ACTIONS.advertisementSectionRegenerated,
-      entity: "Advertisement",
-      entityId: advertisementId,
-      agencyId,
-      actorId,
-      metadata: { section, method },
-    });
-
-    // AI_REGENERATED: GPT owns full composition, so editing one fact means
-    // re-running the one production pipeline in full — never a partial
-    // re-render of just this section.
-    if (method === "AI_REGENERATED") {
-      if (!updated.platformFormat) {
-        throw new AppError("Generate the full advertisement at least once before AI-regenerating a section.", 409);
-      }
-      return this.generate(advertisementId, agencyId, actorId, {
-        platformFormat: updated.platformFormat,
-        style: updated.style ?? undefined,
-      });
-    }
 
     return updated;
   },
