@@ -1,0 +1,124 @@
+{
+  "results": [
+    {
+      "id": "oilgas-1",
+      "industry": "Oil & Gas",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "construction-2",
+      "industry": "Construction",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "oilgas-2",
+      "industry": "Oil & Gas",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "construction-1",
+      "industry": "Construction",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "healthcare-1",
+      "industry": "Healthcare",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "healthcare-2",
+      "industry": "Healthcare",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "hospitality-1",
+      "industry": "Hospitality",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "hospitality-2",
+      "industry": "Hospitality",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "retail-2",
+      "industry": "Retail",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "retail-1",
+      "industry": "Retail",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "manufacturing-1",
+      "industry": "Manufacturing",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "manufacturing-2",
+      "industry": "Manufacturing",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "marine-1",
+      "industry": "Marine",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "logistics-1",
+      "industry": "Logistics",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "logistics-2",
+      "industry": "Logistics",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "marine-2",
+      "industry": "Marine",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "powerenergy-1",
+      "industry": "Power & Energy",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "powerenergy-2",
+      "industry": "Power & Energy",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "corporate-1",
+      "industry": "Corporate",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "corporate-2",
+      "industry": "Corporate",
+      "ok": false,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    }
+  ]
+}
