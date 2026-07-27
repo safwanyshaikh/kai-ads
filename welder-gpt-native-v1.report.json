@@ -1,0 +1,65 @@
+{
+  "imageSha256": "7ab9e6afd8726b56031b68057cf148beaf76763bf7a9c97028464b4cf184d218",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 81,
+    "visualQa": {
+      "overallScore": 81,
+      "commercialQualityScore": 80,
+      "hierarchyScore": 80,
+      "readabilityScore": 82,
+      "imageryScore": 88,
+      "canvasUtilizationScore": 75,
+      "ctaScore": 76,
+      "trustScore": 85,
+      "defects": [
+        "Agency identity (name) appears prominently in both the bottom band AND as an email address and watermark-style contact, causing minor duplication of trust elements.",
+        "Contact CTA (phone/email) is not visually dominant enough—it blends into the block of text and does not draw the eye quickly.",
+        "Some dead canvas exists along the lower left, with underutilized space, and the main candidate hook could be visually even more dominant.",
+        "Split between employer/job/positions/benefits is dense and requires careful reading to scan for opportunity clarity.",
+        "Footer trust block is large and slightly visually heavy, taking over significant attention from job details.",
+        "Text overlays are clean but the segmentation (benefits, positions, etc.) could use more spacing to aid quick skimming."
+      ],
+      "catastrophicDefects": [
+        "Agency name and identity (Al Yousuf Enterprises LLP) is present three times: as a footer, as part of the CTA block (email/job section), and embedded in the trust/verification overlay. This causes unjustified repetition of agency trust information in top and bottom regions, occupying premium canvas.",
+        "Opportunity (role/location) requires careful reading within body text and is not expressed in a clear, candidate-hook headline. 'CONSTRUCTION' is bold but is not itself a job opportunity, and 'Welders Required – Abu Dhabi' is not sufficiently visually separated or dominant. There is no clear, eye-stopping candidate-facing hook that immediately states the project and role above all else."
+      ],
+      "requiredCorrections": [
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Create a single, visually dominant candidate-facing hook combining project, role, and location (e.g., 'Welders for Abu Dhabi Construction Project – UAE'), replacing/restructuring the top 'CONSTRUCTION' line and/or making the opportunity clear at first glance."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Make the contact details (email/phone) more visually prominent and separated from dense information, possibly using a high-contrast highlight, icon, or callout block for immediate WhatsApp/social scanning."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Improve separation and skimmability between POSITIONS, BENEFITS, and EMPLOYER details in the text overlay area to enhance rapid comprehension."
+        },
+        {
+          "type": "OTHER",
+          "note": "Reduce trust/agency duplication—keep all verification/agency elements together in the footer verification band and remove from the opportunity/CTA region to maximize candidate-first messaging."
+        }
+      ],
+      "verdict": "REGENERATE"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [],
+      "missingCriticalFacts": [],
+      "legibilityIssues": []
+    },
+    "defects": [
+      "Visual QA (catastrophic): Agency name and identity (Al Yousuf Enterprises LLP) is present three times: as a footer, as part of the CTA block (email/job section), and embedded in the trust/verification overlay. This causes unjustified repetition of agency trust information in top and bottom regions, occupying premium canvas.",
+      "Visual QA (catastrophic): Opportunity (role/location) requires careful reading within body text and is not expressed in a clear, candidate-hook headline. 'CONSTRUCTION' is bold but is not itself a job opportunity, and 'Welders Required – Abu Dhabi' is not sufficiently visually separated or dominant. There is no clear, eye-stopping candidate-facing hook that immediately states the project and role above all else.",
+      "Visual QA score 81/100 is below the 85 publishable bar",
+      "Visual QA: Agency identity (name) appears prominently in both the bottom band AND as an email address and watermark-style contact, causing minor duplication of trust elements.",
+      "Visual QA: Contact CTA (phone/email) is not visually dominant enough—it blends into the block of text and does not draw the eye quickly.",
+      "Visual QA: Some dead canvas exists along the lower left, with underutilized space, and the main candidate hook could be visually even more dominant.",
+      "Visual QA: Split between employer/job/positions/benefits is dense and requires careful reading to scan for opportunity clarity.",
+      "Visual QA: Footer trust block is large and slightly visually heavy, taking over significant attention from job details."
+    ],
+    "shouldRegenerate": true
+  }
+}
