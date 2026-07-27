@@ -209,6 +209,31 @@ describe("applyTrustLayer — Sprint 008 ownership carriers", () => {
       .toBuffer();
     const hasInk = Array.from(textColumn).some((v) => v < 200); // dark pixel somewhere in the column
     expect(hasInk).toBe(true);
+
+    // Separate, stricter regression for a distinct bug that a whole-column
+    // scan can miss by coincidence: the overlay used to be rasterized at
+    // 2x the nominal zone size (a `density: 144` sharpening option with no
+    // matching resize), so only its top-left corner still lined up with
+    // the real zone when composited — everything below/right of that,
+    // including this bottom caption line, was pushed off-canvas and
+    // silently clipped, even though a whole-column ink scan could still
+    // pass on stray top-left pixels. Sample specifically at the bottom
+    // caption line's real expected position — this line is unaffected by
+    // name-length shrinking, so its absence unambiguously means
+    // mispositioning/clipping, not just a small font.
+    const zoneY = HEIGHT - zoneH;
+    const padding2 = Math.round(zoneW * 0.06);
+    const captionStrip = await sharp(result)
+      .extract({
+        left: WIDTH - zoneW + textX,
+        top: zoneY + zoneH - Math.round(padding2 * 0.6) - 12,
+        width: Math.max(10, zoneW - textX - Math.round(padding2 / 2)),
+        height: 12,
+      })
+      .raw()
+      .toBuffer();
+    const captionHasInk = Array.from(captionStrip).some((v) => v < 200);
+    expect(captionHasInk).toBe(true);
   });
 
   it("verifyTrustZoneQr rejects an image whose trust zone carries the WRONG QR payload", async () => {

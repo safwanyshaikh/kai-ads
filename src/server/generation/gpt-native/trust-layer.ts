@@ -109,7 +109,23 @@ export async function applyTrustLayer(input: TrustLayerInput): Promise<Buffer> {
   <text x="${textX}" y="${zoneH - padding * 0.6}" font-family="KaiSans, sans-serif" font-size="${captionSize}" fill="#777777">${input.generationId ? `${escapeXml(input.generationId)} · ` : ""}Scan to verify · kai-ads</text>
 </svg>`;
 
-  const overlayPng = await sharp(Buffer.from(overlaySvg), { density: 144 }).png().toBuffer();
+  // density:144 sharpens the text but ALSO scales the raw raster output
+  // (144/72 default = 2x actual pixel dimensions) — with no viewBox on
+  // this SVG, sharp does not auto-normalize that back down. Compositing
+  // the resulting oversized buffer at the nominal (zoneX, zoneY) offset
+  // pushed most of the overlay — everything but the top-left corner —
+  // past the base canvas's edge, where sharp.composite() clips it away
+  // with no error. This is the actual reason the agency name/trust text
+  // was missing from real renders (a font-fitting fix alone could not
+  // have solved this — the text was never mispositioned, it was
+  // rasterized at 2x and then silently cropped off-canvas). Resizing
+  // back to the nominal zone size after rasterizing keeps the sharper
+  // anti-aliasing from the higher density while guaranteeing the pixel
+  // dimensions actually match what compositing assumes.
+  const overlayPng = await sharp(Buffer.from(overlaySvg), { density: 144 })
+    .resize(zoneW, zoneH)
+    .png()
+    .toBuffer();
 
   const composites: { input: Buffer; left: number; top: number }[] = [
     { input: overlayPng, left: zoneX, top: zoneY },
