@@ -1,14 +1,14 @@
-name: KAI Ads Adhoc Single-Ad Test (GPT-Native)
+name: KAI Ads Adhoc Single-Ad Test
 
 # Manual, one-off real generation for debugging/tuning a single fixture
-# against the real GPT-Native pipeline. Not part of CI gating.
+# against the one production pipeline. Not part of CI gating.
 on:
   workflow_dispatch:
     inputs:
       script:
         description: "Adhoc script path to run"
         required: false
-        default: "scripts/adhoc/welder-gpt-native-test.ts"
+        default: "scripts/adhoc/single-ad-test.ts"
       agency_logo_url:
         description: "Optional public URL of the agency's real logo to composite"
         required: false
@@ -18,8 +18,7 @@ on:
       - claude/kai-ads-verify-state-upnt70
     paths:
       - ".github/workflows/adhoc-single-ad.yml"
-      - "scripts/adhoc/welder-gpt-native-test.ts"
-      - "scripts/adhoc/power-energy-gpt-native-test.ts"
+      - "scripts/adhoc/single-ad-test.ts"
 
 permissions:
   contents: write
@@ -61,7 +60,6 @@ jobs:
           KAI_VISION_MODEL: gpt-4.1
           KAI_IMAGE_MODEL: gpt-image-1
           KAI_IMAGE_QUALITY: high
-          GPT_NATIVE_AD_GENERATION: "true"
           KAI_PUBLIC_DOMAIN: ${{ vars.KAI_PUBLIC_DOMAIN || 'https://kai-ads.vercel.app' }}
           NODE_ENV: development
           DATABASE_URL: postgresql://user:password@localhost:5432/kai_ads_unused

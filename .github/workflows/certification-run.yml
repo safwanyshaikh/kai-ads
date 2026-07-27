@@ -55,7 +55,6 @@ jobs:
           KAI_VISION_MODEL: gpt-4.1
           KAI_IMAGE_MODEL: gpt-image-1
           KAI_IMAGE_QUALITY: high
-          GPT_NATIVE_AD_GENERATION: "true"
           KAI_PUBLIC_DOMAIN: ${{ vars.KAI_PUBLIC_DOMAIN || 'https://kai-ads.vercel.app' }}
           # Dummy values satisfying env validation only — certification never
           # touches the database, auth, email, or storage.

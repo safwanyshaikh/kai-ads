@@ -2,7 +2,7 @@
 
 ## Advertisement Composition Constitution
 
-Version: 1.1
+Version: 1.2
 
 Status: ACTIVE — amendable only by the product owner; subordinate to
 `docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`
@@ -12,29 +12,43 @@ Owner: KAI Platform (product owner)
 Last Updated: July 2026
 
 > **Amendment 1 (July 2026, product owner) — Scope under the Supreme
-> Constitution.** The Supreme Constitution's Golden Rule ("GPT is the Creative
-> Artist. KAI is the Creative Director.") and Principle 2 ("GPT Must Create the
-> Entire Advertisement") now govern all advertisement generation. Accordingly:
+> Constitution.** *(Superseded by Amendment 2 below — kept for history.)* The
+> Supreme Constitution's Golden Rule ("GPT is the Creative Artist. KAI is the
+> Creative Director.") and Principle 2 ("GPT Must Create the Entire
+> Advertisement") now govern all advertisement generation. Articles I–IV, VI,
+> VII, and VIII applied to every pipeline as evaluation criteria; Article V's
+> mandatory engine sequence and Article IX's `composeAdvertisement()` runtime
+> enforcement were scoped to the legacy deterministic pipeline for as long as
+> that pipeline remained in service, alongside the (then-parallel) GPT-Native
+> pipeline.
+
+> **Amendment 2 (July 2026, product owner) — One production pipeline.** The
+> legacy deterministic pipeline (`composeAdvertisement()`, the four archetype
+> engines, the acceptance loop) is RETIRED and deleted from the codebase.
+> There is no longer a pipeline choice, no feature flag, and no parallel
+> engine — every advertisement, from the UI and from the batch/certification
+> scripts alike, goes through exactly one production pipeline:
 >
-> 1. **Articles I–IV, VI, VII, and VIII apply to EVERY advertisement from EVERY
->    pipeline** — candidate-first law, information hierarchy, typography law,
->    canvas law, Agency Visual DNA, anti-patterns, and the Final Commercial
->    Acceptance Question are pipeline-independent EVALUATION criteria. A
->    GPT-generated advertisement that violates them fails, exactly as a
->    deterministically composed one would.
+> `RECRUITER MESSAGE → REQUIREMENT INTELLIGENCE (Truth Brain facts) →
+> CREATIVE BRIEF (one text call) → ONE GPT IMAGE CALL (GPT owns full
+> composition) → MINIMAL BRANDING OVERLAY (logo + QR + footer) → RETURN
+> ADVERTISEMENT`
+>
+> implemented in `src/server/generation/pipeline/`. Accordingly:
+>
+> 1. **Articles I–IV, VI, VII, and VIII apply to this one pipeline** as
+>    evaluation criteria — candidate-first law, information hierarchy,
+>    typography law, canvas law, Agency Visual DNA, anti-patterns, and the
+>    Final Commercial Acceptance Question. A GPT-generated advertisement that
+>    violates them fails.
 > 2. **Article V's mandatory engine sequence and Article IX's
->    `composeAdvertisement()` runtime enforcement are SCOPED to the legacy
->    deterministic pipeline only**, for as long as that pipeline remains in
->    service. On the GPT-Native pipeline the governing sequence is:
->    `SOURCE INPUT → TRUTH EXTRACTION (Brain A) → LOAD/ENFORCE CONSTITUTIONS →
->    CREATIVE DIRECTOR BRAIN → COMMERCIAL ADVERTISEMENT BRIEF → ONE MASTER GPT
->    PROMPT → GPT FULL COMPOSITION → KAI TRUST LAYER (validate + enrich only)
->    → QUALITY/ACCEPTANCE GATES → ACCEPT / REGENERATE / BLOCK`. The
->    deterministic factual composition step is deliberately ABSENT from that
->    sequence — under Supreme Principle 2, KAI never rebuilds GPT's artwork.
+>    `composeAdvertisement()` runtime-enforcement clause are RETIRED along
+>    with the legacy pipeline they governed** — there is no deterministic
+>    factual composition step, and none may be reintroduced (Supreme
+>    Principle 2: KAI never rebuilds, redraws, or partially re-renders GPT's
+>    artwork — including "regenerate just this section").
 > 3. Nothing in this amendment weakens the Truth Brain, the QR/verification
->    laws, or the anti-fabrication laws — those remain absolute on both
->    pipelines.
+>    laws, or the anti-fabrication laws — those remain absolute.
 
 ---
 
@@ -44,14 +58,9 @@ Last Updated: July 2026
 - **Authority level:** Primary commercial design authority for all KAI Ads advertisements. Sits under `docs/009_KAI_ADS_SUPREME_CONSTITUTION.md` (supreme law) and `docs/000_PRODUCT_CONSTITUTION.md` (product law), and above all archetype code, Creative Brain prompts, Visual QA prompts, design documents, and prior layout conventions.
 - **Scope:** Every advertisement layout, archetype, Creative Direction Plan, typography decision, imagery decision, footer, CTA, verification block, visual composition, and rendered advertisement produced by KAI Ads — current and future.
 - **Systems governed:**
-  - `src/server/generation/archetypes/` (all engines: Visual Hero, Structured Professional, High Density, DTP/Newspaper, and any future archetype)
-  - `src/server/generation/archetypes/composition-constitution.ts` (runtime enforcement module)
-  - `src/server/generation/archetypes/advertisement-intelligence.ts` (Brain B — hooks/copy)
-  - `src/server/generation/archetypes/archetype-selection.ts` (Creative Brain archetype decision)
-  - `src/server/generation/archetypes/visual-dna.ts` (Agency Visual DNA)
-  - `src/server/ai/visual-qa/` (Brain D — commercial Visual QA)
-  - `src/server/generation/acceptance/` (gates + acceptance loop)
-  - `tests/` constitutional tests
+  - `src/server/generation/pipeline/` (the one production pipeline: Requirement Intelligence, Creative Brief, GPT Image call, Minimal Branding Overlay)
+  - `src/server/services/advertisement-generation.service.ts` (persistence/quota/audit wrapper around the pipeline)
+  - `tests/` constitutional/regression tests
 - **Conflict rule:** If any archetype implementation, design prompt, AI instruction, Creative Brain output, Visual QA score, older documentation, or existing layout conflicts with this Constitution, **the Constitution wins**, unless the product owner explicitly amends this file. Passing engineering gates never overrides it.
 
 ---
@@ -87,42 +96,16 @@ Last Updated: July 2026
 18. **High-density vacancy tables** activate **only** for genuinely dense sources (many positions/columns). Forcing a dense table onto a five-position source, or a sparse source, is a violation. Density is decided by the Content Density Engine, never by habit.
 19. **Visual storytelling for image-led archetypes:** the imagery must dominate and tell the work-environment story (e.g. refinery at dusk), with text zones designed into the image composition (clear sky for the hook) — never imagery suffocated under heavy washes, and never imagery as decoration behind a document.
 
-# Article V — The Composition Engines (Mandatory Sequence)
+# Article V — RETIRED (Amendment 2)
 
-*(Amendment 1: this Article is scoped to the LEGACY DETERMINISTIC PIPELINE
-only — see the amendment note in the header. The GPT-Native pipeline follows
-the GPT-native sequence defined there instead.)*
-
-Every advertisement on the legacy deterministic pipeline MUST pass through this sequence. No archetype, script, or future feature may bypass or reorder the load/enforce step:
-
-```
-SOURCE INPUT
-→ TRUTH EXTRACTION (Brain A)
-→ LOAD/ENFORCE ADVERTISEMENT COMPOSITION CONSTITUTION
-→ INFORMATION PRIORITY DECISION       (Information Priority Engine)
-→ STRONGEST TRUTHFUL HOOK SELECTION   (Brain B)
-→ TYPOGRAPHY SCALE DECISION           (Typography Scale Engine)
-→ CONTENT DENSITY DECISION            (Content Density Engine)
-→ ARCHETYPE/COMPOSITION DECISION      (Creative Brain)
-→ AGENCY VISUAL DNA APPLICATION
-→ IMAGE/CREATIVE GENERATION WHERE APPROPRIATE
-→ DETERMINISTIC FACTUAL COMPOSITION   (Deterministic Truth Layer)
-→ FOOTER + CTA + VERIFICATION INTEGRATION (Footer Composition System)
-→ MOBILE READABILITY GATE
-→ CANVAS UTILISATION GATE
-→ COMMERCIAL VISUAL QA (Brain D)
-→ ACCEPT / REGENERATE / BLOCK
-```
-
-Engine definitions (all implemented in or wired through `src/server/generation/archetypes/composition-constitution.ts` and the systems it governs):
-
-20. **Information Priority Engine:** produces an ordered `informationPriority` list from the grounded facts; the hook and destination always outrank agency identity, which is always last.
-21. **Typography Scale Engine:** produces `typographyScale` from the content density class (sparse → larger, dense → controlled) and folds it into every engine's headline sizing. Fonts follow priority, never habit.
-22. **Content Density Engine:** classifies the source into `SPARSE | MEDIUM | HIGH` (`contentDensityClass`) from positions/benefits/interview volume; archetype suitability and layout rules key off it.
-23. **Canvas Utilisation Engine:** dead-canvas is policed at two levels — composition (engines distribute leftover space into content, banners, and cards) and QA (Brain D mandatory rejection above ~20% unjustified dead canvas).
-24. **Footer Composition System:** a flexible standard footer with controlled variants (`footerVariant`): the navy trust strip (agency name + registration + KAI verification panel) for poster archetypes, and print small-print (full RC verbatim) for the DTP/newspaper grammar. Every variant must contain agency identity, registration/RA, and the KAI verification QR with its scan caption.
-25. **Mobile Readability Gate:** enforced in Brain D's mandatory rejection conditions — headline too small for mobile, information requiring careful reading, or hidden CTA blocks acceptance regardless of score.
-26. **Commercial Visual QA:** Brain D judges against professional Gulf/overseas-recruitment benchmarks within each archetype's own grammar, with catastrophic defects blocking PASS at any score, and the 95/100 commercial launch threshold above the 85 technical minimum.
+This Article previously mandated a deterministic composition engine
+sequence (Information Priority Engine, Typography Scale Engine, Content
+Density Engine, archetype selection, deterministic factual composition,
+Footer Composition System) for the legacy pipeline. That pipeline is
+deleted; the sequence is retired with it and MUST NOT be reintroduced —
+under Supreme Principle 2, GPT owns full composition and KAI never
+rebuilds, redraws, or deterministically re-renders the advertisement. The
+one production pipeline's actual sequence is stated in Amendment 2 above.
 
 # Article VI — Agency Visual DNA
 
@@ -151,12 +134,13 @@ If NO, the advertisement fails — regardless of engineering-gate results or num
 
 # Article IX — Enforcement
 
-*(Amendment 1: the `composeAdvertisement()` runtime-enforcement clause below is
-scoped to the legacy deterministic pipeline. On the GPT-Native pipeline,
-enforcement of Articles I–IV/VI–VIII happens through the quality/acceptance
-gates named in the header amendment — never by KAI redrawing GPT's artwork.)*
+*(Amendment 2: the `composeAdvertisement()` runtime-enforcement clause
+that previously governed the legacy pipeline is RETIRED along with that
+pipeline — see Amendment 2 above. Enforcement of Articles I–IV/VI–VIII on
+the one production pipeline happens through review against this
+Constitution and the Final Commercial Acceptance Question — never by KAI
+rebuilding or redrawing GPT's artwork.)*
 
-- Runtime (legacy pipeline): `composeAdvertisement()` (the single dispatch for all archetypes) computes `CompositionDirectives` via `buildCompositionDirectives()` and runs `enforceCompositionConstitution()` on every rendered output. A render that violates the footer trust architecture, drops the hook, or hides the CTA **throws** — it cannot become an advertisement.
-- QA: Brain D's instructions embed this Constitution's mandatory rejection conditions and the final commercial acceptance question.
-- Tests: `tests/composition-constitution.test.ts` locks these laws against regression.
+- Runtime: the one production pipeline (`src/server/generation/pipeline/`) never deterministically recomposes an advertisement; GPT owns full composition of every generated image.
+- QA: advertisements are judged against this Constitution's mandatory rejection conditions and the Final Commercial Acceptance Question.
 - Truth: nothing in this Constitution weakens the Truth Brain. Grounded-facts-only, anti-fabrication, QR/verification, and export laws remain absolute.

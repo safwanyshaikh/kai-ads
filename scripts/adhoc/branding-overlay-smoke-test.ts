@@ -1,6 +1,6 @@
 import { writeFileSync, readFileSync } from "node:fs";
 import sharp from "sharp";
-import { applyBrandingOverlay } from "@/server/generation-v2/branding-overlay";
+import { applyBrandingOverlay } from "@/server/generation/pipeline/branding-overlay";
 import { generateAndVerifyQr, buildQrTrackingUrl } from "@/server/generation/qr-renderer";
 
 async function main() {

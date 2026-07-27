@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyDestinationCurrency } from "@/server/generation/creative-director/knowledge";
+import { applyDestinationCurrency } from "@/server/generation/pipeline/currency";
 
 describe("applyDestinationCurrency — destination currency is a known fact, not a guess", () => {
   it("labels a bare 'K' shorthand range with the destination's real currency", () => {

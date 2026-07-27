@@ -1,4 +1,4 @@
-import "../generation/font-config"; // FONTCONFIG_FILE must be set before any rasterization
+import "../font-config"; // FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
 
 export interface BrandingOverlayInput {
@@ -11,9 +11,9 @@ export interface BrandingOverlayInput {
 }
 
 /**
- * V2 — Step 6 (optional): logo + small QR + a single small footer line.
- * Nothing else. No panel, no white box, no card — each element is
- * composited directly onto the corner of GPT's image.
+ * Minimal Branding Overlay (optional): logo + small QR + a single small
+ * footer line. Nothing else. No panel, no white box, no card — each
+ * element is composited directly onto the corner of GPT's image.
  */
 export async function applyBrandingOverlay(input: BrandingOverlayInput): Promise<Buffer> {
   const pad = Math.round(input.widthPx * 0.03);

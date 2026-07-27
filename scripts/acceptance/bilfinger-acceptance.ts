@@ -1,14 +1,12 @@
 /**
  * REAL-API end-to-end acceptance run (CI only — requires OPENAI_API_KEY).
  *
- * Exercises the actual production modules, no mocks:
- *   runKaiExtraction (Truth Brain, gpt text model + enforceSourceGrounding)
- *   → recommendArchetype (Creative Brain suitability)
- *   → KaiCreativeEngineProvider (real gpt image model, Visual Hero only)
- *   → composeAdvertisement (four archetype engines)
+ * Exercises the ONE production pipeline, no mocks:
+ *   runKaiExtraction (Truth Brain, real text model + enforceSourceGrounding)
+ *   → buildAdvertisementFacts (Requirement Intelligence)
+ *   → generateAdvertisement (Creative Brief → GPT Image → Minimal Branding
+ *     Overlay — the exact function the UI's generate route calls)
  *   → generateAndVerifyQr (KAI QR, self-decode)
- *   → runAcceptanceLoop (Gates A/B/C + KaiVisualQaProvider vision QA,
- *     bounded corrections, max 3 iterations)
  *   → exportImage (PNG/JPG/PDF)
  *
  * Never prints or writes any secret. Writes all artifacts + a manifest
@@ -16,27 +14,11 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import sharp from "sharp";
 import { runKaiExtraction } from "@/server/ai/openai/kai-extraction-engine";
-import {
-  buildAdCopyPlan,
-  buildCompositionDirectives,
-  buildImageBrief,
-  composeAdvertisement,
-  recommendArchetype,
-  resolveAgencyVisualDna,
-  type AdvertisementArchetype,
-  type AdvertisementFacts,
-} from "@/server/generation/archetypes";
-import {
-  COMMERCIAL_LAUNCH_THRESHOLD,
-  isPlaceholderVerificationDomain,
-  runAcceptanceLoop,
-} from "@/server/generation/acceptance/acceptance-loop";
-import { getImageGenerationProvider } from "@/server/ai/image";
-import { getVisualQaProvider } from "@/server/ai/visual-qa";
+import { generateAdvertisement } from "@/server/generation/pipeline/generate";
+import type { AdvertisementFacts } from "@/server/generation/pipeline/types";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
-import { rasterizeSvg, exportImage } from "@/server/generation/image-export.service";
+import { exportImage } from "@/server/generation/image-export.service";
 import { getPlatformFormat } from "@/lib/platform-formats";
 import { deriveCompactRegistrationNumber } from "@/lib/registration-number";
 import { normalizeInterviewEvents } from "@/server/generation/interview-events";
@@ -76,19 +58,29 @@ Interview:
 const AGENCY_NAME = "Al Yousuf Enterprises LLP";
 const FULL_RC = "RC-B1487/MUM/PART/1000+/9986/2022";
 
-const ARCHETYPES: AdvertisementArchetype[] = [
-  "STRUCTURED_PROFESSIONAL", // recommended first
-  "VISUAL_HERO",
-  "HIGH_DENSITY",
-  "DTP_NEWSPAPER",
-];
-
-const ACCENTS: Record<AdvertisementArchetype, string> = {
-  VISUAL_HERO: "#e0342c",
-  STRUCTURED_PROFESSIONAL: "#0d4f8b",
-  HIGH_DENSITY: "#0d4f8b",
-  DTP_NEWSPAPER: "#8b0d0d",
-};
+/**
+ * The verification QR must always encode the KAI-controlled canonical
+ * production domain — never a placeholder/dev/localhost domain. A launch
+ * gate this script enforces before treating a run as commercially valid.
+ */
+function isPlaceholderVerificationDomain(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.endsWith(".local") ||
+      host === "example.com" ||
+      host.endsWith(".example.com") ||
+      host.endsWith(".example.org") ||
+      host.endsWith(".example.net") ||
+      host.endsWith(".test") ||
+      host.endsWith(".invalid")
+    );
+  } catch {
+    return true; // unparseable destination is never production-ready
+  }
+}
 
 async function main() {
   if (!process.env.OPENAI_API_KEY) {
@@ -134,20 +126,6 @@ async function main() {
   });
   writeFileSync(path.join(OUT, "facts.json"), JSON.stringify(facts, null, 2));
 
-  // ---- CREATIVE BRAIN: suitability ----
-  const recommendation = recommendArchetype({
-    positionCount: facts.positions.length,
-    totalHeadcount: facts.positions.reduce((s, p) => s + (p.count ?? 1), 0),
-    benefitCount: facts.benefits.length,
-    interviewEventCount: facts.interview.length,
-    hasSalarySignal: true,
-    isUrgent: false,
-    aspectRatio: fmt.widthPx / fmt.heightPx,
-  });
-  writeFileSync(path.join(OUT, "archetype-recommendation.json"), JSON.stringify(recommendation, null, 2));
-  console.log("=== Creative Brain recommendation ===");
-  console.log(JSON.stringify(recommendation, null, 2));
-
   // ---- KAI QR (verification moat) ----
   const advertisementId = `ad-bilfinger-${Date.now()}`;
   const verificationId = "av-al-yousuf-acceptance";
@@ -158,10 +136,6 @@ async function main() {
     console.error("QR self-decode FAILED — aborting.");
     process.exit(1);
   }
-  const qrDataUri = `data:image/png;base64,${qr.png.toString("base64")}`;
-
-  const visualQa = getVisualQaProvider();
-  console.log("Visual QA Brain:", visualQa ? `configured (${env.KAI_VISION_MODEL})` : "NOT CONFIGURED");
 
   // Commercial launch gate: the QR must encode the canonical production
   // domain — a placeholder/dev domain can never be production-ready.
@@ -172,157 +146,27 @@ async function main() {
     process.exit(1);
   }
 
-  // Agency Visual DNA — derived from the tenant's real logo asset.
+  // Agency logo — the tenant's real asset, composited by the Minimal
+  // Branding Overlay exactly as production does.
   const logoBuffer = readFileSync(path.join(process.cwd(), "scripts", "acceptance", "assets", "al-yousuf-logo.png"));
-  const agencyLogoDataUri = `data:image/png;base64,${logoBuffer.toString("base64")}`;
-  const dna = await resolveAgencyVisualDna({ logo: logoBuffer });
-  console.log("Agency Visual DNA:", JSON.stringify(dna));
-  writeFileSync(path.join(OUT, "visual-dna.json"), JSON.stringify(dna, null, 2));
 
-  // Advertisement Intelligence — grounded emphasis plan.
-  const copy = buildAdCopyPlan(facts, { hasCompensationSignal: true });
-  console.log("Ad copy plan:", JSON.stringify(copy));
-  writeFileSync(path.join(OUT, "ad-copy-plan.json"), JSON.stringify(copy, null, 2));
+  console.log("KAI Creative Engine: generating real advertisement (model:", env.KAI_IMAGE_MODEL, ")...");
+  const { imagePng, brief, usage } = await generateAdvertisement({
+    facts,
+    widthPx: fmt.widthPx,
+    heightPx: fmt.heightPx,
+    agencyLogoPng: logoBuffer,
+    qrPng: qr.png,
+    footerText: AGENCY_NAME,
+  });
+  writeFileSync(path.join(OUT, "creative-brief.txt"), brief);
+  writeFileSync(path.join(OUT, "advertisement.png"), imagePng);
+  console.log("image generated | latencyMs:", usage.latencyMs, "| model:", usage.model);
 
-  // Constitution directives + the exact creative brief sent to the image
-  // model — persisted as run evidence (decision → composition → output).
-  const heroDirectives = buildCompositionDirectives(facts, { archetype: "VISUAL_HERO", copy });
-  const heroBriefContext = { copy, dna, directives: heroDirectives, aspectRatio: fmt.widthPx / fmt.heightPx };
-  writeFileSync(path.join(OUT, "composition-directives.json"), JSON.stringify(heroDirectives, null, 2));
-  writeFileSync(path.join(OUT, "visual-hero-creative-brief.txt"), buildImageBrief(facts, heroBriefContext));
-  console.log("Commercial launch threshold:", COMMERCIAL_LAUNCH_THRESHOLD);
-
-  const cropQrRegion = async (png: Buffer) => {
-    const w = Math.round(fmt.widthPx * 0.45);
-    const h = Math.round(fmt.heightPx * 0.3);
-    return sharp(png)
-      .extract({ left: fmt.widthPx - w, top: fmt.heightPx - h, width: w, height: h })
-      .png()
-      .toBuffer();
-  };
-
-  const manifest: Record<string, unknown>[] = [];
-
-  for (const archetype of ARCHETYPES) {
-    console.log(`\n=== ${archetype} ===`);
-    console.log(
-      "suitability:",
-      recommendation.suitabilityScores[archetype],
-      "| mode:",
-      archetype === recommendation.recommendedArchetype ? "AUTO-RECOMMENDED" : "EXPLICITLY FORCED (acceptance matrix)",
-    );
-
-    let backgroundImageDataUri: string | null = null;
-    try {
-    if (archetype === "VISUAL_HERO") {
-      console.log("KAI Creative Engine: generating real background (model:", env.KAI_IMAGE_MODEL, ")...");
-      const provider = getImageGenerationProvider();
-      const { output, usage } = await provider.generate({
-        prompt: buildImageBrief(facts, heroBriefContext),
-        widthPx: fmt.widthPx,
-        heightPx: fmt.heightPx,
-        quality: "medium",
-      });
-      backgroundImageDataUri = `data:${output.mimeType};base64,${output.imageBase64}`;
-      writeFileSync(path.join(OUT, "visual-hero-raw-background.png"), Buffer.from(output.imageBase64, "base64"));
-      console.log("image generated | latencyMs:", usage.latencyMs, "| model:", usage.model);
-    }
-
-    const outcome = await runAcceptanceLoop(
-      facts,
-      {
-        archetype,
-        platformFormat: fmt,
-        accentColor: ACCENTS[archetype],
-        qrDataUri,
-        backgroundImageDataUri,
-        agencyLogoDataUri,
-        dna,
-        copy,
-      },
-      {
-        compose: (f, p) => composeAdvertisement({ facts: f, plan: p }),
-        rasterize: (svg) => rasterizeSvg(svg, fmt.widthPx, fmt.heightPx),
-        visualQa,
-        expectedQrUrl: qrUrl,
-        cropQrRegion,
-        passThreshold: COMMERCIAL_LAUNCH_THRESHOLD,
-        regenerateImage:
-          archetype === "VISUAL_HERO"
-            ? async (defectNotes) => {
-                console.log("REGENERATE_IMAGE requested — regenerating with defect feedback...");
-                try {
-                  const provider = getImageGenerationProvider();
-                  const { output } = await provider.generate({
-                    prompt: `${buildImageBrief(facts, heroBriefContext)} Address these defects from a previous attempt: ${defectNotes.join("; ")}`,
-                    widthPx: fmt.widthPx,
-                    heightPx: fmt.heightPx,
-                    quality: "medium",
-                  });
-                  writeFileSync(
-                    path.join(OUT, `visual-hero-raw-background-regen-${Date.now()}.png`),
-                    Buffer.from(output.imageBase64, "base64"),
-                  );
-                  return `data:${output.mimeType};base64,${output.imageBase64}`;
-                } catch (error) {
-                  console.error("image regeneration failed:", error instanceof Error ? error.message : error);
-                  return null;
-                }
-              }
-            : undefined,
-      },
-    );
-
-    writeFileSync(path.join(OUT, `${archetype}.png`), outcome.finalPng);
-    if (outcome.finalPng.length > 0) {
-      const jpg = await exportImage(outcome.finalPng, "jpg", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
-      const pdf = await exportImage(outcome.finalPng, "pdf", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
-      writeFileSync(path.join(OUT, `${archetype}.jpg`), jpg.buffer);
-      writeFileSync(path.join(OUT, `${archetype}.pdf`), pdf.buffer);
-    } else {
-      console.error(`  WARNING: ${archetype} produced empty PNG — skipping JPG/PDF export`);
-    }
-    writeFileSync(
-      path.join(OUT, `${archetype}-acceptance-history.json`),
-      JSON.stringify({ status: outcome.status, finalScore: outcome.finalScore, blockReason: outcome.blockReason, iterations: outcome.iterations }, null, 2),
-    );
-
-    console.log("status:", outcome.status, "| finalScore:", outcome.finalScore, "| iterations:", outcome.iterations.length);
-    for (const it of outcome.iterations) {
-      console.log(
-        `  iteration ${it.iteration}: gates A/B/C = ${it.gates.sourceFidelity.passed}/${it.gates.technicalRender.passed}/${it.gates.qr.passed}` +
-          ` | score: ${it.visualQa?.overallScore ?? "n/a"} | catastrophic: ${JSON.stringify(it.visualQa?.catastrophicDefects ?? [])}` +
-          ` | defects: ${JSON.stringify(it.visualQa?.defects ?? [])} | corrections: ${JSON.stringify(it.visualQa?.requiredCorrections ?? [])}` +
-          ` | tuning applied: ${JSON.stringify(it.tuning)} | image regenerated: ${it.regeneratedImage}`,
-      );
-    }
-    if (outcome.blockReason) console.log("  blockReason:", outcome.blockReason);
-
-    manifest.push({
-      archetype,
-      mode: archetype === recommendation.recommendedArchetype ? "recommended" : "forced",
-      suitabilityScore: recommendation.suitabilityScores[archetype],
-      status: outcome.status,
-      finalScore: outcome.finalScore,
-      iterations: outcome.iterations.length,
-      blockReason: outcome.blockReason ?? null,
-      usedRealAiImage: archetype === "VISUAL_HERO" && backgroundImageDataUri !== null,
-    });
-  } catch (archetypeError) {
-    console.error(`  ARCHETYPE ${archetype} CRASHED:`, archetypeError instanceof Error ? archetypeError.message : archetypeError);
-    if (archetypeError instanceof Error) console.error(archetypeError.stack);
-    manifest.push({
-      archetype,
-      mode: archetype === recommendation.recommendedArchetype ? "recommended" : "forced",
-      suitabilityScore: recommendation.suitabilityScores[archetype],
-      status: "CRASHED",
-      finalScore: null,
-      iterations: 0,
-      blockReason: archetypeError instanceof Error ? archetypeError.message : String(archetypeError),
-      usedRealAiImage: archetype === "VISUAL_HERO" && backgroundImageDataUri !== null,
-    });
-  }
-  }
+  const jpg = await exportImage(imagePng, "jpg", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
+  const pdf = await exportImage(imagePng, "pdf", { widthPx: fmt.widthPx, heightPx: fmt.heightPx });
+  writeFileSync(path.join(OUT, "advertisement.jpg"), jpg.buffer);
+  writeFileSync(path.join(OUT, "advertisement.pdf"), pdf.buffer);
 
   writeFileSync(
     path.join(OUT, "manifest.json"),
@@ -331,30 +175,21 @@ async function main() {
         generatedAt: new Date().toISOString(),
         branch: process.env.GITHUB_REF_NAME ?? null,
         commit: process.env.GITHUB_SHA ?? null,
-        models: { text: env.KAI_TEXT_MODEL, vision: env.KAI_VISION_MODEL, image: env.KAI_IMAGE_MODEL },
-        commercialThreshold: COMMERCIAL_LAUNCH_THRESHOLD,
+        models: { text: env.KAI_TEXT_MODEL, image: env.KAI_IMAGE_MODEL },
         qrCanonicalDomainOk: !placeholderDomain,
-        visualDna: dna,
-        adCopyPlan: copy,
+        qrDecodable: qr.decodable,
         advertisementId,
         verificationId,
         qrDestination: qrUrl,
         platformFormat: { key: fmt.key, widthPx: fmt.widthPx, heightPx: fmt.heightPx },
-        recommendation,
-        results: manifest,
+        imageLatencyMs: usage.latencyMs,
+        imageModel: usage.model,
       },
       null,
       2,
     ),
   );
-  console.log("\n=== MANIFEST ===");
-  console.log(JSON.stringify(manifest, null, 2));
-
-  const deterministicBlock = manifest.some((m) => m.status === "BLOCKED_DETERMINISTIC");
-  if (deterministicBlock) {
-    console.error("A deterministic gate failed — see manifest.");
-    process.exit(1);
-  }
+  console.log("\nAcceptance run complete — see scripts/acceptance/artifacts/manifest.json");
 }
 
 main().catch((err) => {

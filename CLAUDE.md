@@ -22,13 +22,18 @@ composition detail, subordinate only to the Supreme Constitution above)
 
 No advertisement work may bypass or contradict it. If any code, prompt,
 document, or prior layout conflicts with it, the Constitution wins unless the
-product owner explicitly amends that file. Its Articles I–IV and VI–VIII apply
-to EVERY pipeline as evaluation criteria; Articles V and IX (the deterministic
-engine sequence and `composeAdvertisement()` runtime enforcement, implemented
-in `src/server/generation/archetypes/composition-constitution.ts`) are scoped
-by Amendment 1 to the legacy deterministic pipeline only — do not weaken or
-route around them there, and do not reintroduce deterministic recomposition
-into the GPT-Native pipeline (Supreme Principle 2 forbids it).
+product owner explicitly amends that file. There is exactly ONE production
+advertisement pipeline, implemented in `src/server/generation/pipeline/`:
+Requirement Intelligence -> Creative Brief -> one GPT Image call -> Minimal
+Branding Overlay -> return. The legacy deterministic pipeline
+(`composeAdvertisement()`, archetypes, acceptance loop) is retired and
+deleted (Amendment 2). Articles I–IV and VI–VIII apply to this one pipeline
+as evaluation criteria; Article V's mandatory engine sequence and Article
+IX's `composeAdvertisement()` runtime enforcement are retired with the
+legacy pipeline and must never be reintroduced — GPT owns full composition
+(Supreme Principle 2); KAI never rebuilds, redraws, or partially
+re-renders an advertisement, and no feature flag may route generation
+through a second engine.
 
 ## Other governing documents
 
