@@ -1,0 +1,124 @@
+{
+  "results": [
+    {
+      "id": "construction-1",
+      "industry": "Construction",
+      "ok": true,
+      "bytes": 3432487
+    },
+    {
+      "id": "oilgas-1",
+      "industry": "Oil & Gas",
+      "ok": true,
+      "bytes": 3236168
+    },
+    {
+      "id": "construction-2",
+      "industry": "Construction",
+      "ok": true,
+      "bytes": 3888100
+    },
+    {
+      "id": "oilgas-2",
+      "industry": "Oil & Gas",
+      "ok": true,
+      "bytes": 3472498
+    },
+    {
+      "id": "healthcare-1",
+      "industry": "Healthcare",
+      "ok": true,
+      "bytes": 3733330
+    },
+    {
+      "id": "healthcare-2",
+      "industry": "Healthcare",
+      "ok": true,
+      "bytes": 3514230
+    },
+    {
+      "id": "hospitality-1",
+      "industry": "Hospitality",
+      "ok": true,
+      "bytes": 4069120
+    },
+    {
+      "id": "hospitality-2",
+      "industry": "Hospitality",
+      "ok": true,
+      "bytes": 3527559
+    },
+    {
+      "id": "retail-1",
+      "industry": "Retail",
+      "ok": true,
+      "bytes": 3369512
+    },
+    {
+      "id": "retail-2",
+      "industry": "Retail",
+      "ok": true,
+      "bytes": 3425140
+    },
+    {
+      "id": "manufacturing-1",
+      "industry": "Manufacturing",
+      "ok": true,
+      "bytes": 3668301
+    },
+    {
+      "id": "manufacturing-2",
+      "industry": "Manufacturing",
+      "ok": true,
+      "bytes": 3486277
+    },
+    {
+      "id": "marine-1",
+      "industry": "Marine",
+      "ok": true,
+      "bytes": 3532250
+    },
+    {
+      "id": "marine-2",
+      "industry": "Marine",
+      "ok": true,
+      "bytes": 3598837
+    },
+    {
+      "id": "logistics-1",
+      "industry": "Logistics",
+      "ok": true,
+      "bytes": 3199603
+    },
+    {
+      "id": "logistics-2",
+      "industry": "Logistics",
+      "ok": true,
+      "bytes": 2994001
+    },
+    {
+      "id": "corporate-1",
+      "industry": "Corporate",
+      "ok": true,
+      "bytes": 3478976
+    },
+    {
+      "id": "powerenergy-1",
+      "industry": "Power & Energy",
+      "ok": true,
+      "bytes": 3855426
+    },
+    {
+      "id": "powerenergy-2",
+      "industry": "Power & Energy",
+      "ok": true,
+      "bytes": 3843689
+    },
+    {
+      "id": "corporate-2",
+      "industry": "Corporate",
+      "ok": true,
+      "bytes": 3554957
+    }
+  ]
+}
