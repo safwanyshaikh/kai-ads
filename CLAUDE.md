@@ -10,30 +10,34 @@ any other document, prompt, code, or prior decision conflicts with it, the
 Supreme Constitution wins. Only the product owner may amend it, and only by
 editing that file directly.
 
-## Advertisement Composition Constitution (mandatory)
+## KAI Ads V2 Final Product Constitution (mandatory, architecture authority)
 
 Before modifying, creating, testing, evaluating, or accepting any advertisement
-generation, composition, archetype, layout, typography, imagery, footer, CTA,
-or visual-QA code, you MUST first read and comply with the repository's
-Advertisement Composition Constitution:
+generation, requirement-intelligence, creative-brief, image-generation, or
+branding-overlay code, you MUST first read and comply with:
 
-**`docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md`** (canonical for
-composition detail, subordinate only to the Supreme Constitution above)
+**`docs/010_KAI_ADS_V2_FINAL_PRODUCT_CONSTITUTION.md`** (canonical for
+generation architecture; subordinate only to the Supreme Constitution above)
 
-No advertisement work may bypass or contradict it. If any code, prompt,
-document, or prior layout conflicts with it, the Constitution wins unless the
-product owner explicitly amends that file. There is exactly ONE production
-advertisement pipeline, implemented in `src/server/generation/pipeline/`:
-Requirement Intelligence -> Creative Brief -> one GPT Image call -> Minimal
-Branding Overlay -> return. The legacy deterministic pipeline
-(`composeAdvertisement()`, archetypes, acceptance loop) is retired and
-deleted (Amendment 2). Articles I–IV and VI–VIII apply to this one pipeline
-as evaluation criteria; Article V's mandatory engine sequence and Article
-IX's `composeAdvertisement()` runtime enforcement are retired with the
-legacy pipeline and must never be reintroduced — GPT owns full composition
-(Supreme Principle 2); KAI never rebuilds, redraws, or partially
-re-renders an advertisement, and no feature flag may route generation
-through a second engine.
+KAI is a Recruitment Intelligence Platform, NOT an advertisement designer,
+layout engine, template engine, renderer, or graphics engine. Its
+responsibility ends at producing a complete, accurate, structured Creative
+Brief. GPT Image owns all layout, typography, visual hierarchy, background,
+color, composition, and creativity — never recreate these through code.
+There is exactly ONE production advertisement pipeline, implemented in
+`src/server/generation/pipeline/`: Requirement Intelligence -> Creative
+Brief -> one GPT Image call -> Branding Overlay (only if required) ->
+return. Never create a layout engine, template engine, theme engine,
+composer, canvas generator, section renderer, or a second prompt builder.
+No feature flag may route generation through a second engine. Quality
+issues are fixed by improving Requirement Intelligence, the Creative
+Brief, or the Branding Overlay only — never by adding architecture.
+
+`docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md` is superseded for
+architecture by docs/010; its Articles I–IV and VI–VIII remain active as
+quality-evaluation criteria for GPT Image's output (candidate-first law,
+information hierarchy, typography law, canvas law, Agency Visual DNA,
+anti-patterns, Final Commercial Acceptance Question).
 
 ## Other governing documents
 

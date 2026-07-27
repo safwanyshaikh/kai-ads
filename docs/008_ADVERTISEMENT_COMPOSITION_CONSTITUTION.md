@@ -4,8 +4,13 @@
 
 Version: 1.2
 
-Status: ACTIVE — amendable only by the product owner; subordinate to
-`docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`
+Status: SUPERSEDED for architecture by
+`docs/010_KAI_ADS_V2_FINAL_PRODUCT_CONSTITUTION.md` — that document is now
+authoritative on generation architecture (KAI/GPT Image responsibility
+split, the one production pipeline, engineering rules). This document's
+Articles I–IV and VI–VIII remain ACTIVE as quality-evaluation criteria for
+GPT Image's output; Articles V and IX are void (see Amendment 2, and
+docs/010). Subordinate to `docs/009_KAI_ADS_SUPREME_CONSTITUTION.md`.
 
 Owner: KAI Platform (product owner)
 
