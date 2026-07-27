@@ -36,11 +36,36 @@ export async function applyBrandingOverlay(input: BrandingOverlayInput): Promise
 
   if (input.footerText) {
     const fontSize = Math.round(input.widthPx * 0.022);
-    const footerSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${input.widthPx}" height="${fontSize * 2}">
+    const footerHeight = fontSize * 2;
+    const bottomTop = input.heightPx - footerHeight - Math.round(pad / 2);
+
+    // Fix 4: if GPT already drew busy content (text/graphics) where the footer
+    // would land, reposition to the opposite corner instead of overlapping it.
+    // No logo means top-left is free; if both corners are busy, skip the footer
+    // rather than render illegible overlapping text.
+    const bottomIsBusy = await regionIsBusy(input.imagePng, input.widthPx, input.heightPx, 0, bottomTop, input.widthPx, footerHeight);
+
+    let footerTop = bottomTop;
+    let skip = false;
+    if (bottomIsBusy) {
+      const topLeftFree = !input.agencyLogoPng;
+      const topIsBusy = topLeftFree
+        ? await regionIsBusy(input.imagePng, input.widthPx, input.heightPx, 0, 0, input.widthPx, footerHeight)
+        : true;
+      if (topLeftFree && !topIsBusy) {
+        footerTop = 0;
+      } else {
+        skip = true;
+      }
+    }
+
+    if (!skip) {
+      const footerSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${input.widthPx}" height="${footerHeight}">
   <text x="${pad}" y="${fontSize}" font-family="KaiSans, sans-serif" font-size="${fontSize}" fill="#ffffff" stroke="#000000" stroke-width="${Math.max(1, Math.round(fontSize * 0.08))}" paint-order="stroke">${escapeXml(input.footerText)}</text>
 </svg>`;
-    const footerPng = await sharp(Buffer.from(footerSvg)).png().toBuffer();
-    composites.push({ input: footerPng, left: 0, top: input.heightPx - fontSize * 2 - Math.round(pad / 2) });
+      const footerPng = await sharp(Buffer.from(footerSvg)).png().toBuffer();
+      composites.push({ input: footerPng, left: 0, top: footerTop });
+    }
   }
 
   if (composites.length === 0) return input.imagePng;
@@ -50,6 +75,30 @@ export async function applyBrandingOverlay(input: BrandingOverlayInput): Promise
     .composite(composites)
     .png()
     .toBuffer();
+}
+
+/**
+ * A flat region (sky, wall, empty margin) has low luminance variance; text,
+ * logos, or busy scenery push it up sharply. Used only to decide whether the
+ * footer would land on top of existing content — not a general vision system.
+ */
+async function regionIsBusy(
+  imagePng: Buffer,
+  imageWidth: number,
+  imageHeight: number,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+): Promise<boolean> {
+  const clampedTop = Math.max(0, Math.min(top, imageHeight - height));
+  const stats = await sharp(imagePng)
+    .resize(imageWidth, imageHeight, { fit: "cover" })
+    .extract({ left, top: clampedTop, width, height })
+    .greyscale()
+    .stats();
+  const stdev = stats.channels[0]?.stdev ?? 0;
+  return stdev > 30;
 }
 
 function escapeXml(value: string): string {
