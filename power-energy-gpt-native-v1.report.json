@@ -1,0 +1,73 @@
+{
+  "imageSha256": "073c8cf9c73d507be3d44db549f3fc8b3318dcf6230c99f3ba734dcf17c1cff6",
+  "acceptance": {
+    "qrDecodable": true,
+    "visionChecksRan": true,
+    "visualQaScore": 80,
+    "visualQa": {
+      "overallScore": 80,
+      "commercialQualityScore": 78,
+      "hierarchyScore": 80,
+      "readabilityScore": 82,
+      "imageryScore": 86,
+      "canvasUtilizationScore": 74,
+      "ctaScore": 80,
+      "trustScore": 86,
+      "defects": [
+        "Headline ('Earning 5K to 7K Basic') is prominent but does not combine both candidate/opportunity hook and destination in a single dominating line—it slightly fragments the attention between salary and sector/country.",
+        "The positioning and relationship of blocks feel stacked, with a significant horizontal band (brown) that interrupts the full hero visual impact.",
+        "Role/country line is slightly secondary to the salary headline; the candidate-facing hook could be reframed for maximum mobile attention.",
+        "Contact CTA is reasonably visible, but set in a secondary block rather than commandingly prioritized.",
+        "Salary column in the job list is empty (column header visible, but no values), resulting in a slight visual imbalance.",
+        "Canvas has visible horizontal banding that creates unnecessary separation and minor dead canvas above the trust footer."
+      ],
+      "catastrophicDefects": [],
+      "requiredCorrections": [
+        {
+          "type": "INCREASE_HEADLINE_EMPHASIS",
+          "note": "Refocus the single largest headline to combine opportunity, country, and salary into a unified, mobile-dominant hook (e.g., 'POWER ENGINEERS FOR SAUDI ARABIA · EARN 5K–7K BASIC'). Move less critical qualifiers to secondary lines."
+        },
+        {
+          "type": "IMPROVE_SPACING",
+          "note": "Reduce horizontal banding and integrate the brown block into the hero visual more fluidly. Balance space above/below main content and eliminate unnecessary canvas divisions."
+        },
+        {
+          "type": "IMPROVE_CTA",
+          "note": "Enhance contact CTA size/visual weight, possibly via a call-to-action button or design accent."
+        },
+        {
+          "type": "OTHER",
+          "note": "Either remove the unused 'Salary' column from the job list or provide the corresponding information for each role to maintain structural polish."
+        }
+      ],
+      "verdict": "REGENERATE"
+    },
+    "factCheck": {
+      "misspelledOrAlteredFacts": [
+        "Benefit: Expected 'Salary Range (SAR 5K to 7K Basic (varies based on interview assessment))' but image says 'Earning 5K to 7K Basic (varies based on interview assessment)' and omits 'SAR' and 'Salary Range'."
+      ],
+      "missingCriticalFacts": [
+        "Country: Saudi Arabia (not displayed alone as a fact, only included with other header text)",
+        "Agency: Al Yousuf Enterprises LLP (only seen at bottom right in lower-contrast, not as a clear agency label)"
+      ],
+      "legibilityIssues": [
+        "The agency name 'AL YOUSUF ENTERPRISES LLP' at the bottom is in very low-contrast, small text making it difficult to read clearly.",
+        "Some small-print text at bottom (including regulatory information) is illegible."
+      ]
+    },
+    "defects": [
+      "Spelling/fidelity: Benefit: Expected 'Salary Range (SAR 5K to 7K Basic (varies based on interview assessment))' but image says 'Earning 5K to 7K Basic (varies based on interview assessment)' and omits 'SAR' and 'Salary Range'.",
+      "Missing fact: Country: Saudi Arabia (not displayed alone as a fact, only included with other header text)",
+      "Missing fact: Agency: Al Yousuf Enterprises LLP (only seen at bottom right in lower-contrast, not as a clear agency label)",
+      "Legibility: The agency name 'AL YOUSUF ENTERPRISES LLP' at the bottom is in very low-contrast, small text making it difficult to read clearly.",
+      "Legibility: Some small-print text at bottom (including regulatory information) is illegible.",
+      "Visual QA score 80/100 is below the 85 publishable bar",
+      "Visual QA: Headline ('Earning 5K to 7K Basic') is prominent but does not combine both candidate/opportunity hook and destination in a single dominating line—it slightly fragments the attention between salary and sector/country.",
+      "Visual QA: The positioning and relationship of blocks feel stacked, with a significant horizontal band (brown) that interrupts the full hero visual impact.",
+      "Visual QA: Role/country line is slightly secondary to the salary headline; the candidate-facing hook could be reframed for maximum mobile attention.",
+      "Visual QA: Contact CTA is reasonably visible, but set in a secondary block rather than commandingly prioritized.",
+      "Visual QA: Salary column in the job list is empty (column header visible, but no values), resulting in a slight visual imbalance."
+    ],
+    "shouldRegenerate": true
+  }
+}
