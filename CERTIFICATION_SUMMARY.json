@@ -1,0 +1,249 @@
+{
+  "generatedAt": "2026-07-27T17:04:55.700Z",
+  "totalRequested": 30,
+  "totalGenerated": 0,
+  "passed": 0,
+  "rejected": 30,
+  "reports": [
+    {
+      "id": "oilgas-sparse",
+      "industry": "Oil & Gas",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "oilgas-medium",
+      "industry": "Oil & Gas",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "oilgas-dense",
+      "industry": "Oil & Gas",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "construction-sparse",
+      "industry": "Construction",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "construction-medium",
+      "industry": "Construction",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "construction-dense",
+      "industry": "Construction",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "shipyard-sparse",
+      "industry": "Shipyard",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "shipyard-medium",
+      "industry": "Shipyard",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "hospitality-sparse",
+      "industry": "Hospitality",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "shipyard-dense",
+      "industry": "Shipyard",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "hospitality-medium",
+      "industry": "Hospitality",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "hospitality-dense",
+      "industry": "Hospitality",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "healthcare-medium",
+      "industry": "Healthcare",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "healthcare-dense",
+      "industry": "Healthcare",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "healthcare-sparse",
+      "industry": "Healthcare",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "retail-sparse",
+      "industry": "Retail",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "retail-dense",
+      "industry": "Retail",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "logistics-sparse",
+      "industry": "Logistics",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "retail-medium",
+      "industry": "Retail",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "logistics-dense",
+      "industry": "Logistics",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "logistics-medium",
+      "industry": "Logistics",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "manufacturing-sparse",
+      "industry": "Manufacturing",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "manufacturing-dense",
+      "industry": "Manufacturing",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "engineering-sparse",
+      "industry": "Engineering",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "engineering-medium",
+      "industry": "Engineering",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "engineering-dense",
+      "industry": "Engineering",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "manufacturing-medium",
+      "industry": "Manufacturing",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "corporate-medium",
+      "industry": "Corporate",
+      "density": "medium",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "corporate-sparse",
+      "industry": "Corporate",
+      "density": "sparse",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    },
+    {
+      "id": "corporate-dense",
+      "industry": "Corporate",
+      "density": "dense",
+      "passed": false,
+      "latencyMs": 0,
+      "error": "429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors."
+    }
+  ]
+}
