@@ -21,13 +21,19 @@ export async function GET() {
   }
 
   const integrations = getIntegrationStatus();
+  // Gemini migration: text and image are independently gated and either
+  // vendor can serve them, so AI is available when any provider is
+  // configured for a stage. Reporting only `openai` here made the probe
+  // show AI down on a Gemini-only deployment — a false outage.
+  const ai =
+    integrations.geminiText || integrations.geminiImage || integrations.openai;
   const healthy = database;
 
   return NextResponse.json(
     {
       status: healthy ? "ok" : "degraded",
       database,
-      ai: integrations.openai,
+      ai,
       email: integrations.email,
       storage: integrations.storage,
       timestamp: new Date().toISOString(),
