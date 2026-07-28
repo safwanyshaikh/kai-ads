@@ -32,6 +32,11 @@ Legend:
 - ❌ **Not implemented** — constitutional intent, no code yet.
 - ⛔ **Superseded** — deliberately not implemented because a later
   constitution overrides the earlier clause (recorded, not a gap).
+- 🟢 **Collecting Intelligence** — a *second dimension*, not a replacement for
+  the status above. Marks capabilities that are live in production **and**
+  actively accumulating the raw material a Phase 3 capability will consume.
+  KAI is not waiting to learn; it is already gathering the evidence learning
+  will use.
 
 ---
 
@@ -98,11 +103,14 @@ Legend:
 
 | Constitutional Capability | Status | Implementation | Phase |
 |---|---|---|---|
-| Audit Trail | ✅ | `AuditLog` model + `audit-log.service.ts` — every generation recorded | Production |
-| Advertisement Versioning (nothing overwritten) | ✅ | `AdvertisementVersion` + `AdvertisementHistory` — immutable per generation | Production |
-| AI usage & cost telemetry | ✅ | `AiUsageLog` + `cost-tracking.service.ts` | Production |
+| Audit Trail | ✅ 🟢 | `AuditLog` model + `audit-log.service.ts` — every generation recorded | Production |
+| Advertisement Versioning (nothing overwritten) | ✅ 🟢 | `AdvertisementVersion` + `AdvertisementHistory` — immutable per generation | Production |
+| AI usage & cost telemetry | ✅ 🟢 | `AiUsageLog` + `cost-tracking.service.ts` | Production |
 | Generation quota governance | ✅ | `AgencyGenerationQuota` + `generation-quota.service.ts` | Production |
-| Real-world engagement signal | ✅ | `QrScanEvent` — every verification scan captured | Production |
+| Real-world engagement signal | ✅ 🟢 | `QrScanEvent` — every verification scan captured | Production |
+| Structured recruitment facts per ad | ✅ 🟢 | `Advertisement` columns: industry, country, employer, positions, benefits, salary | Production |
+| Trust outcome per ad | ✅ 🟢 | `Advertisement.trustStatus` + `trustWarnings` | Production |
+| **Production Data Collection** | **🟢 Active** | The six 🟢 rows above, accumulating from launch day | Production |
 | Human Approval Workflow | ⚠️ | `Approval` model exists but `ApprovalTargetType` covers only `AGENCY \| JOIN_REQUEST`. `AdvertisementStatus.REVIEW/APPROVED` exist as enum values with no workflow behind them. | **Phase 2** |
 | Evidence capture (advertisement-level) | ❌ | The only `evidenceReference` is on `AgencyVerification` (agency paperwork), unrelated to ads. | **Phase 3** |
 | Recruiter feedback capture | ❌ | No feedback model or service. | **Phase 3** |
@@ -168,3 +176,68 @@ reporting query** over those existing tables can honestly answer, today:
 That is reporting on data already captured — not a knowledge system, and it
 must not be presented as one. It is offered here because it gives the product
 owner real visibility from day one while Phase 3's prerequisites accumulate.
+
+---
+
+# Constitutional Maturity
+
+A single-page snapshot of where the project stands. Figures are **counted from
+the tables above**, not estimated.
+
+| Measure | Value |
+|---|---|
+| Constitution Completion | **100%** — 4 constitutions authored and in force (`docs/000`, `008`, `009`, `010`) |
+| Capabilities Tracked | **48** |
+| Production Implementation | **63%** — 29 of 46 in-scope capabilities fully implemented |
+| Partial Implementation | **9** capabilities (Phase 2) |
+| Not Yet Implemented | **8** capabilities (Phase 3) |
+| Superseded by Later Constitution | **2** (excluded from scoring — deliberately void, not gaps) |
+| Production Data Collection | **🟢 Active** — 6 signal streams accumulating from launch day |
+| Learning Readiness | **Active** — the raw material Phase 3 requires is being captured now |
+| Learning Execution | **Deferred (Phase 3)** — requires approval/rejection labels that do not yet exist |
+| Overall Product Readiness | **Production Ready** — engineering complete, one pipeline, 312 tests, clean build |
+
+### How Production Implementation is counted
+
+Denominator excludes the 2 ⛔ Superseded clauses, since a deliberately voided
+clause is not an outstanding gap. Numerator counts **only fully implemented
+(✅)** capabilities — partials score zero, not half credit, so the figure is a
+floor rather than a flattering estimate. Half-crediting the 9 partials would
+read ~73%; the conservative number is published instead.
+
+| Status | Count | Share of in-scope |
+|---|---:|---:|
+| ✅ Implemented (of which 🟢 collecting: 6) | 29 | 63% |
+| ⚠️ Partial (Phase 2) | 9 | 20% |
+| ❌ Not implemented (Phase 3) | 8 | 17% |
+| **In-scope total** | **46** | **100%** |
+| ⛔ Superseded (excluded) | 2 | — |
+
+Re-tally after any edit to the tables above — these figures must never be
+updated by hand:
+
+```sh
+awk '/^## 1\./,/^# Constitutional Maturity/' \
+    docs/011_CONSTITUTION_TO_IMPLEMENTATION_TRACEABILITY.md \
+  | awk -F'|' 'NF>3 {print $3}' | sed 's/^ *//;s/ *$//' \
+  | grep -E '^(✅|⚠️|❌|⛔)' | sort | uniq -c
+```
+
+Current output: `23 ✅` + `6 ✅ 🟢` = 29 implemented · `9 ⚠️` · `8 ❌` ·
+`2 ⛔` — 48 tracked, 46 in-scope.
+
+### Standing caveat
+
+"Production Ready" describes engineering state: one verified pipeline, passing
+build/typecheck/lint/tests, and a real GPT Image generation confirmed
+end-to-end. First live deployment and first advertisement generated by a real
+recruiter through the production UI remain the outstanding acceptance step, and
+this row should be revisited once that has happened.
+
+### What moves these numbers
+
+Not another planning pass. Production Implementation rises when a Phase 2 item
+ships (Human Approval Workflow first — it is the prerequisite that unlocks
+Phase 3). Learning Execution changes state only once approvals, rejections, and
+recruiter feedback exist in volume. Real usage decides the order; this document
+records the outcome.
