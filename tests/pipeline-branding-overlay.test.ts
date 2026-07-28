@@ -136,3 +136,73 @@ describe("Branding Overlay v2 — watermark", () => {
     expect(Buffer.compare(withoutWatermark, withWatermark)).not.toBe(0);
   });
 });
+
+describe("Branding Overlay v2 — optional agency address/website line", () => {
+  it("leaves output byte-identical when no address line is supplied", async () => {
+    const widthPx = 1024;
+    const heightPx = 1024;
+    const base = {
+      widthPx,
+      heightPx,
+      agencyName: "Gulf Manpower Consultants",
+      registrationNumber: "RC-1234/MUM/2019",
+    };
+
+    const withoutField = await applyBrandingOverlay({ imagePng: await solidBackground(widthPx, heightPx), ...base });
+    const withNull = await applyBrandingOverlay({
+      imagePng: await solidBackground(widthPx, heightPx),
+      ...base,
+      addressLine: null,
+    });
+
+    // Regression guard: adding this field must not have shifted the
+    // existing, visually verified band layout for ads that don't use it.
+    expect(withNull.equals(withoutField)).toBe(true);
+  });
+
+  it("renders the address line inside the band and changes the output when supplied", async () => {
+    const widthPx = 1024;
+    const heightPx = 1024;
+    const base = {
+      widthPx,
+      heightPx,
+      agencyName: "Gulf Manpower Consultants",
+      registrationNumber: "RC-1234/MUM/2019",
+    };
+
+    const plain = await applyBrandingOverlay({ imagePng: await solidBackground(widthPx, heightPx), ...base });
+    const withAddress = await applyBrandingOverlay({
+      imagePng: await solidBackground(widthPx, heightPx),
+      ...base,
+      addressLine: "Andheri East, Mumbai · www.alyousufent.com",
+    });
+
+    expect(withAddress.equals(plain)).toBe(false);
+    // Canvas size is unchanged: the line uses spare room inside the
+    // existing band rather than growing it into the advertisement.
+    const meta = await sharp(withAddress).metadata();
+    expect(meta.width).toBe(widthPx);
+    expect(meta.height).toBe(heightPx);
+  });
+
+  it("does not overflow the band when given a long address", async () => {
+    const widthPx = 1024;
+    const heightPx = 1024;
+    const long =
+      "Office 402, 4th Floor, Sunshine Business Tower, Andheri Kurla Road, Andheri East, Mumbai 400059 · www.alyousufent.com";
+
+    const composited = await applyBrandingOverlay({
+      imagePng: await solidBackground(widthPx, heightPx),
+      widthPx,
+      heightPx,
+      agencyName: "Al-Yousuf Enterprises L.L.P.",
+      registrationNumber: "B-0655/MUM/PER/1000+/4-1/4/7914/2007",
+      contactLine: "+91 22 6666 5353",
+      addressLine: long,
+    });
+
+    const meta = await sharp(composited).metadata();
+    expect(meta.width).toBe(widthPx);
+    expect(meta.height).toBe(heightPx);
+  });
+});

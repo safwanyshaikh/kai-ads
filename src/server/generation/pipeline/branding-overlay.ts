@@ -10,6 +10,12 @@ export interface BrandingOverlayInput {
   agencyName?: string | null;
   registrationNumber?: string | null;
   contactLine?: string | null;
+  /**
+   * Agency office address and/or website, printed as one muted line
+   * beneath the registration number. Optional: when absent the band
+   * renders exactly as before.
+   */
+  addressLine?: string | null;
 }
 
 /**
@@ -50,6 +56,9 @@ const LOGO_SIZE_PCT_OF_BAND = 0.69; // ~25% larger absolute logo than the origin
 const QR_SIZE_PCT_OF_BAND = 0.6; // ~12.5% smaller absolute QR than the original 0.115 * 0.78 band
 const NAME_SIZE_PCT_OF_BAND = 0.35; // more prominent than the original 0.115 * 0.3 band
 const REGISTRATION_SIZE_PCT_OF_BAND = 0.16;
+const ADDRESS_SIZE_PCT_OF_BAND = 0.13; // quieter than the registration line
+const ADDRESS_REG_Y_PCT = 0.68; // registration lifts to here when an address follows
+const ADDRESS_Y_PCT = 0.88; // address sits below it, still inside the band
 const LOGO_TEXT_GAP_FACTOR = 1.0; // horizontal whitespace between logo and text, as a multiple of `pad`
 const WATERMARK_OPACITY = 0.07;
 const WATERMARK_TILE_WIDTH_PCT = 0.16;
@@ -197,9 +206,25 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
   if (input.registrationNumber) {
     const regText = `REG. ${input.registrationNumber}`;
     const regSize = fitFontSize(regText, textMaxWidth, Math.round(bandHeight * REGISTRATION_SIZE_PCT_OF_BAND), Math.round(bandHeight * 0.09));
-    const regY = contactRowHeight + Math.round(bandHeight * 0.76);
+    // Lift the registration line slightly when an address line follows, so
+    // the two share the space below the agency name without colliding.
+    const regY =
+      contactRowHeight + Math.round(bandHeight * (input.addressLine ? ADDRESS_REG_Y_PCT : 0.76));
     parts.push(
       `<text x="${textLeft}" y="${regY}" font-family="KaiSans, sans-serif" font-size="${regSize}" fill="${BAND_MUTED_TEXT}">${escapeXml(regText)}</text>`,
+    );
+  }
+
+  if (input.addressLine) {
+    const addressSize = fitFontSize(
+      input.addressLine,
+      textMaxWidth,
+      Math.round(bandHeight * ADDRESS_SIZE_PCT_OF_BAND),
+      Math.round(bandHeight * 0.08),
+    );
+    const addressY = contactRowHeight + Math.round(bandHeight * ADDRESS_Y_PCT);
+    parts.push(
+      `<text x="${textLeft}" y="${addressY}" font-family="KaiSans, sans-serif" font-size="${addressSize}" fill="${BAND_MUTED_TEXT}">${escapeXml(input.addressLine)}</text>`,
     );
   }
 

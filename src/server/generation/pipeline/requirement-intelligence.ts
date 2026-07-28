@@ -13,11 +13,26 @@ interface AdvertisementRecord {
   interview: unknown;
   contact: unknown;
   footer: string | null;
+  /**
+   * Optional commercial detail. These are extracted by the KAI Extraction
+   * Engine (projectType, per-position qualification/ageLimit) or supplied
+   * by the agency profile, and were previously dropped here — the schema
+   * captured them but nothing carried them to the Creative Brief, so they
+   * could never appear on an advertisement. Optional so no database
+   * migration is required and existing callers are unaffected.
+   */
+  projectType?: string | null;
+  visaType?: string | null;
+  dutyHours?: string | null;
+  rotation?: string | null;
+  legalDisclaimer?: string | null;
 }
 
 interface AgencyRecord {
   name: string;
   registrationNumber: string;
+  officeAddress?: string | null;
+  website?: string | null;
 }
 
 /**
@@ -36,6 +51,9 @@ export function buildAdvertisementFacts(
     count?: number;
     experience?: string;
     salary?: string | null;
+    qualification?: string | null;
+    certifications?: string[];
+    ageLimit?: string | null;
   }[];
   const benefits = advertisement.benefits as unknown as { label: string; detail?: string }[];
   // Decision 3: interview is a schemaless Json column — normalizeInterviewEvents
@@ -66,10 +84,19 @@ export function buildAdvertisementFacts(
     industry: advertisement.industry,
     country: advertisement.country,
     employer: advertisement.employer,
+    // Carried through verbatim when present, omitted entirely when not —
+    // an absent field must never become an invented one downstream.
+    projectType: advertisement.projectType ?? null,
+    visaType: advertisement.visaType ?? null,
+    dutyHours: advertisement.dutyHours ?? null,
+    rotation: advertisement.rotation ?? null,
+    legalDisclaimer: advertisement.legalDisclaimer ?? null,
     positions: currencyCorrectedPositions,
     benefits: currencyCorrectedBenefits,
     interview,
     contact,
+    officeAddress: agency.officeAddress ?? null,
+    website: agency.website ?? null,
     footer: advertisement.footer,
     agencyName: agency.name,
     raLicenseId: deriveCompactRegistrationNumber(agency.registrationNumber),

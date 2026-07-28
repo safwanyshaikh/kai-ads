@@ -32,7 +32,17 @@ describe("Creative Brief text-rendering strategy", () => {
   });
 
   it("caps how many positions may be printed on one canvas", () => {
-    expect(source).toContain("MAX_CANVAS_POSITIONS");
+    // Behaviour of the cap itself is covered by
+    // tests/creative-brief-position-scaling.test.ts.
+    expect(source).toContain("maxCanvasPositions");
+  });
+
+  it("pins the printed position count so the model cannot add a line of its own", () => {
+    // A live verification produced a 10th position line ("Field
+    // Professional") that was not in the brief — a duplicate of an
+    // existing role family invented by the image model.
+    expect(source).toMatch(/no more and no fewer/i);
+    expect(source).toMatch(/do not restate one of them as a\s+/i);
   });
 
   it("states the true total instead of implying the printed list is complete", () => {

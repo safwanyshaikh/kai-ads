@@ -3,13 +3,24 @@ import { BRANDING_RESERVED_HEIGHT_PCT } from "./branding-overlay";
 import type { AdvertisementFacts } from "./types";
 
 /**
- * The most positions that stay legible on one canvas. Real bulk
- * requirements run to 100+ titles across many departments; rendering all
- * of them produces either unreadable 6pt type or a silent drop of most of
- * the list. Above this cap the ad shows a representative subset and states
- * the true total, which is accurate summarisation rather than omission.
+ * How many position lines stay legible on one canvas, as a function of how
+ * many there are. Real requirements range from a single role to the 126
+ * titles across 19 departments in the Halliburton reference; a fixed cap
+ * either wastes the canvas on small ads or produces unreadable 6pt type on
+ * big ones.
+ *
+ * Small lists print in full with room for per-role detail (salary,
+ * experience, qualification). Larger lists print progressively fewer roles
+ * in a denser list, because past roughly a dozen lines the per-role detail
+ * has to go anyway. Beyond that the ad prints a representative subset and
+ * states the true total — accurate summarisation, never a silent drop.
  */
-const MAX_CANVAS_POSITIONS = 8;
+export function maxCanvasPositions(total: number): number {
+  if (total <= 6) return total; // 1-6 roles: print every one, with detail
+  if (total <= 12) return total; // up to 12: still legible in full
+  if (total <= 30) return 12; // 20-ish: dense list, subset + true total
+  return 10; // 50+: fewer lines, since the total carries the message
+}
 
 /**
  * KAI writes ONE creative brief, in plain language, ready to hand straight
@@ -35,17 +46,22 @@ export async function buildCreativeBrief(
   const themeHint = options?.theme ? `Preferred colour theme: ${options.theme}. ` : "";
 
   const totalPositions = facts.positions.length;
-  const overflow = totalPositions - MAX_CANVAS_POSITIONS;
-  const canvasFacts =
-    overflow > 0 ? { ...facts, positions: facts.positions.slice(0, MAX_CANVAS_POSITIONS) } : facts;
+  const cap = maxCanvasPositions(totalPositions);
+  const overflow = totalPositions - cap;
+  const canvasFacts = overflow > 0 ? { ...facts, positions: facts.positions.slice(0, cap) } : facts;
   const overflowRule =
     overflow > 0
       ? `\n\nThis requirement has ${totalPositions} positions in total — too many to print legibly. ` +
-        `Only the ${MAX_CANVAS_POSITIONS} positions listed below may be printed as individual lines. ` +
+        `Print EXACTLY the ${cap} positions listed below as individual lines, no more and no fewer. ` +
+        `Do not add a line for a role that is not in that list, and do not split or restate one of them. ` +
         `The ad MUST also state the true total in words the reader can trust, exactly: ` +
         `"${totalPositions} positions available". Never imply the printed list is the complete list, ` +
-        `and never invent a position title to pad it. `
-      : "";
+        `and never invent a position title to pad it. ` +
+        `With this many roles, keep each line to the role title and vacancy count so the list stays legible. `
+      : `\n\nPrint EXACTLY the ${totalPositions} position${totalPositions === 1 ? "" : "s"} listed below — ` +
+        `no more and no fewer. Do not add a role that is not listed, and do not restate one of them as a ` +
+        `second line. There is room here for per-role detail (vacancies, experience, salary, qualification) ` +
+        `where those facts are given. `;
 
   const { text } = await provider.generateText({
     instructions:
@@ -70,8 +86,15 @@ export async function buildCreativeBrief(
       "Include every concrete fact given below exactly as given — word for word where it is a number, code, or " +
       "name. A short, correctly rendered line always beats a longer line that risks a typo or a dropped digit. " +
       "\n\nZero fabrication, no exceptions: never invent a phone number, email, website, QR code, company name, " +
-      "brand name, client name, salary figure, benefit, or address. If a detail is not present in the facts below, " +
+      "brand name, client name, salary figure, benefit, address, visa type, duty-hours figure, rotation pattern, " +
+      "certification, qualification, or licence number. If a detail is not present in the facts below, " +
       "it does not exist for this brief — do not guess it, do not imply one exists. " +
+      "\n\nThe facts may carry optional commercial detail — project name, visa type, duty hours, rotation, " +
+      "accommodation/food/transport/medical benefits, per-role qualification and certifications, interview date " +
+      "and venue. Print each one ONLY where it is present and non-null. Where a field is absent, omit its label " +
+      "and its section entirely: an ad with four true rows is correct, an ad with six rows where two were " +
+      "guessed is a defect. Never print an empty label, a dash, or 'N/A' to fill a gap. " +
+      "If a legal disclaimer is supplied, reproduce it verbatim and never write one of your own. " +
       "Never instruct the image model to draw a QR code, phone number, or any contact element unless one is " +
       "literally present in the facts. " +
       "\n\nNo placeholder text, ever: never instruct the image model to write things like 'CONTACT HERE', " +

@@ -15,6 +15,8 @@ export interface GeneratePipelineInput {
   agencyName?: string | null;
   registrationNumber?: string | null;
   contactLine?: string | null;
+  /** Agency address/website line for the branding band. */
+  addressLine?: string | null;
 }
 
 export interface GeneratePipelineResult {
@@ -56,6 +58,7 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     agencyName: input.agencyName,
     registrationNumber: input.registrationNumber,
     contactLine: input.contactLine,
+    addressLine: input.addressLine,
   });
 
   return { imagePng: finalPng, brief, usage };
