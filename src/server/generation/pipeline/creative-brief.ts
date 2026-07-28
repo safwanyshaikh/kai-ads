@@ -1,4 +1,4 @@
-import { getOpenAiClient, getKaiTextModel } from "@/server/ai/openai/openai-client";
+import { getTextGenerationProvider } from "@/server/ai/text";
 import type { AdvertisementFacts } from "./types";
 
 /**
@@ -10,13 +10,12 @@ export async function buildCreativeBrief(
   facts: AdvertisementFacts,
   options?: { style?: string; theme?: string },
 ): Promise<string> {
-  const client = getOpenAiClient();
+  const provider = getTextGenerationProvider();
 
   const styleHint = options?.style ? `Preferred visual style: ${options.style}. ` : "";
   const themeHint = options?.theme ? `Preferred colour theme: ${options.theme}. ` : "";
 
-  const response = await client.responses.create({
-    model: getKaiTextModel(),
+  const { text } = await provider.generateText({
     instructions:
       "You are a senior recruitment advertising creative director for the Gulf/GCC overseas-recruitment market. " +
       "Read the grounded recruitment facts below and write ONE rich, vivid creative brief for an image-generation " +
@@ -43,5 +42,5 @@ export async function buildCreativeBrief(
     input: JSON.stringify(facts),
   });
 
-  return response.output_text;
+  return text;
 }

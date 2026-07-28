@@ -18,6 +18,7 @@ import {
   NotImplementedTradeSummaryProvider,
 } from "./not-implemented-providers";
 import { KaiOpenAiExtractionProvider } from "./openai/kai-extraction-provider";
+import { KaiGeminiExtractionProvider } from "./gemini/kai-extraction-provider";
 import { getIntegrationStatus } from "@/lib/env";
 
 export * from "./types";
@@ -52,11 +53,31 @@ let cachedToolkit: AiExtractionToolkit | null = null;
  * (advertisement-draft.service.ts's EXTRACTION_FAILED -> manual-entry
  * path is unchanged and still fully tested) without AI configured.
  *
- * This is the single seam: a second real provider later (e.g. a
- * different model vendor) is a second branch here, no call-site changes.
+ * Gemini migration (Option A — independent gate): GEMINI_TEXT_API_KEY
+ * configured takes priority over OpenAI. OpenAI is kept as-is and used
+ * whenever GEMINI_TEXT_API_KEY is absent — no runtime failover between
+ * the two, just priority order, so either provider can be rolled back
+ * independently by removing its key.
+ *
+ * This is the single seam: a provider is a branch here, no call-site changes.
  */
 export function getAiExtractionToolkit(): AiExtractionToolkit {
   if (cachedToolkit) return cachedToolkit;
+
+  if (getIntegrationStatus().geminiText) {
+    const gemini = new KaiGeminiExtractionProvider();
+    cachedToolkit = {
+      requirementExtraction: gemini,
+      tradeSummary: gemini,
+      industryDetection: gemini,
+      countryDetection: gemini,
+      employerDetection: gemini,
+      salaryDetection: gemini,
+      interviewDetection: gemini,
+      composite: gemini,
+    };
+    return cachedToolkit;
+  }
 
   if (getIntegrationStatus().openai) {
     const openai = new KaiOpenAiExtractionProvider();
