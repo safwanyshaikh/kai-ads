@@ -39,6 +39,15 @@ quality-evaluation criteria for GPT Image's output (candidate-first law,
 information hierarchy, typography law, canvas law, Agency Visual DNA,
 anti-patterns, Final Commercial Acceptance Question).
 
+## Constitution → implementation traceability
+
+`docs/011_CONSTITUTION_TO_IMPLEMENTATION_TRACEABILITY.md` records which
+constitutional capabilities are implemented in code today and which are
+Phase 2/Phase 3 roadmap. It has no authority of its own — it never weakens or
+reinterprets a constitution. Constitutional sections are NEVER removed or
+rewritten to match what happens to be built; an unimplemented capability is
+recorded there as roadmap. Update it when a capability ships.
+
 ## Other governing documents
 
 - `docs/000_PRODUCT_CONSTITUTION.md` — product law (LOCKED).
