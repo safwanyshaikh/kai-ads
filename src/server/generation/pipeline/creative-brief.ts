@@ -1,4 +1,5 @@
 import { getTextGenerationProvider } from "@/server/ai/text";
+import { BRANDING_RESERVED_HEIGHT_PCT } from "./branding-overlay";
 import type { AdvertisementFacts } from "./types";
 
 /**
@@ -35,9 +36,11 @@ export async function buildCreativeBrief(
       "'APPLY HERE', 'YOUR EMAIL', 'INSERT NUMBER', or 'CALL NOW: ___'. If the facts give no contact details, " +
       "tell the image model to end the ad on its strongest benefit or urgency line instead — omit the " +
       "contact/CTA section completely rather than leaving a blank or a placeholder. " +
-      "\n\nLeave the bottom 12% of the canvas (a horizontal strip along the very bottom edge) free of any text, " +
-      "logos, or busy detail — that strip is reserved for KAI's own verification branding and must not be drawn " +
-      "into or covered by ad copy. " +
+      `\n\nLeave the bottom ${BRANDING_RESERVED_HEIGHT_PCT}% of the canvas (a horizontal strip along the very ` +
+      "bottom edge) completely free of any text, logos, or busy detail — that strip is reserved for KAI's own " +
+      "verification branding, which is painted opaquely over it, and anything the ad draws there will be erased. " +
+      "Finish all ad copy above that line: it is better to drop a decorative line entirely than to let a factual " +
+      "line run into the reserved strip and be cut in half. " +
       "\n\nWrite the brief as flowing prose instructions for the image model, not a form or a list of fields.",
     input: JSON.stringify(facts),
   });

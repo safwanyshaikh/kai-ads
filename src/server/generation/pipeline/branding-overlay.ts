@@ -32,6 +32,20 @@ export interface BrandingOverlayInput {
  */
 const BAND_HEIGHT_PCT = 0.13;
 const CONTACT_ROW_HEIGHT_PCT = 0.045;
+
+/**
+ * The fraction of the canvas this overlay can paint over, rounded up to a
+ * round number for headroom (descenders, rounding, a model that lands a
+ * baseline slightly low). The Creative Brief imports this to tell the
+ * image model how much bottom strip to keep clear.
+ *
+ * These two numbers MUST stay tied together. When they drifted apart —
+ * the brief reserving 12% while the overlay painted 17.5% — the image
+ * model composed ad copy into the gap and the band cut it in half, which
+ * cost a whole position line ("WELDER (ARC/TIG)") on real output.
+ */
+export const BRANDING_RESERVED_HEIGHT_PCT =
+  Math.ceil(((BAND_HEIGHT_PCT + CONTACT_ROW_HEIGHT_PCT) * 100) / 5) * 5;
 const LOGO_SIZE_PCT_OF_BAND = 0.69; // ~25% larger absolute logo than the original 0.115 * 0.62 band
 const QR_SIZE_PCT_OF_BAND = 0.6; // ~12.5% smaller absolute QR than the original 0.115 * 0.78 band
 const NAME_SIZE_PCT_OF_BAND = 0.35; // more prominent than the original 0.115 * 0.3 band
