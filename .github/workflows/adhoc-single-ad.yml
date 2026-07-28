@@ -33,15 +33,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fail fast if the OpenAI secret is unavailable
+      - name: Fail fast if no AI provider secret is available
         run: |
-          if [ -z "${OPENAI_API_KEY}" ]; then
-            echo "OPENAI_API_KEY secret is NOT available."
+          if [ -n "${GEMINI_TEXT_API_KEY}" ] && [ -n "${GEMINI_IMAGE_API_KEY}" ]; then
+            echo "Gemini secrets: PRESENT (values not shown) — running the Gemini production stack."
+          elif [ -n "${OPENAI_API_KEY}" ]; then
+            echo "Gemini secrets absent; OPENAI_API_KEY: PRESENT (value not shown) — running the OpenAI fallback."
+          else
+            echo "No AI provider secret is available."
             exit 1
           fi
-          echo "OPENAI_API_KEY secret: PRESENT (value not shown)"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_TEXT_API_KEY: ${{ secrets.GEMINI_TEXT_API_KEY }}
+          GEMINI_IMAGE_API_KEY: ${{ secrets.GEMINI_IMAGE_API_KEY }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -55,10 +60,15 @@ jobs:
       - name: Run adhoc generation
         run: npx tsx "${{ inputs.script || 'scripts/adhoc/welder-gpt-native-test.ts' }}"
         env:
+          # Gemini is the production stack; OpenAI stays as the automatic
+          # fallback used only when the Gemini secrets are absent.
+          GEMINI_TEXT_API_KEY: ${{ secrets.GEMINI_TEXT_API_KEY }}
+          GEMINI_IMAGE_API_KEY: ${{ secrets.GEMINI_IMAGE_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AGENCY_LOGO_URL: ${{ inputs.agency_logo_url }}
-          KAI_VISION_MODEL: gpt-4.1
-          KAI_IMAGE_MODEL: gpt-image-1
+          KAI_TEXT_MODEL: ${{ vars.KAI_TEXT_MODEL || 'gemini-3.5-flash-lite' }}
+          KAI_VISION_MODEL: ${{ vars.KAI_VISION_MODEL || 'gemini-3.5-flash-lite' }}
+          KAI_IMAGE_MODEL: ${{ vars.KAI_IMAGE_MODEL || 'gemini-3.1-flash-lite-image' }}
           KAI_IMAGE_QUALITY: high
           KAI_PUBLIC_DOMAIN: ${{ vars.KAI_PUBLIC_DOMAIN || 'https://kai-ads.vercel.app' }}
           NODE_ENV: development
