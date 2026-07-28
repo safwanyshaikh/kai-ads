@@ -13,6 +13,12 @@ formula. Every decision states its reason.
 
 ## 0. The one law that makes everything else work
 
+> **Constitutional status.** This section is not a KDL design preference. It
+> is the **Factual Integrity Law**, issued by the product owner and binding
+> as Amendment 1 of `010_KAI_ADS_V2_FINAL_PRODUCT_CONSTITUTION.md`, where it
+> supersedes every conflicting clause. KDL implements it; KDL cannot relax
+> it.
+
 **KAI advertisements are composed of two layers, and factual text never
 belongs to the generated one.**
 
@@ -569,3 +575,42 @@ measured.
 Until that extension ships, KDL §0 marks the boundary between what is
 currently guaranteed (footer band and below) and what is currently
 best-effort (everything above it).
+
+### 13.1 Compliance status — stated plainly
+
+Amendment 1 is **binding law as of now**. The implementation is **not yet
+compliant with it**. Recording that honestly is the point of this section;
+a constitution is not weakened to match what happens to be built.
+
+| Fact category | Rendered by | Compliant |
+|---|---|---|
+| Agency name, licence number, address, website | Rendering Engine | ✅ |
+| Contact row | Rendering Engine | ✅ |
+| QR + caption | Rendering Engine | ✅ |
+| Watermark, logo | Rendering Engine | ✅ |
+| Headings, job titles, vacancy counts | Image model | ❌ |
+| Salary, benefits, qualifications, certifications | Image model | ❌ |
+| Interview date and venue | Image model | ❌ |
+| Disclaimer | Image model | ❌ |
+| `LAYOUT_CAPACITY` fail-closed error | Not implemented | ❌ |
+
+**Required to reach compliance**, in dependency order:
+
+1. Extend the Rendering Engine's deterministic text renderer from the footer
+   band into the body, hero and header zones, using the KDL grid (§2), type
+   scale (§3.2) and tiers (§5).
+2. Reduce the Creative Brief's remit to the Atmosphere Layer — background,
+   mood, photography — and stop passing it factual strings to print.
+3. Implement measure-before-commit with the tier-escalation ladder (§10.2)
+   and the `LAYOUT_CAPACITY` error (§10.3).
+4. Retire the on-canvas position cap and the "print EXACTLY N" prompt rules;
+   both are mitigations for model-rendered text and become dead once facts
+   are typeset deterministically.
+
+This is a change in the division of labour between two components already in
+the pipeline. It adds no engine and no prompt builder, and so does not
+conflict with the Engineering Rules.
+
+**Until step 3 ships, KAI can silently omit a verified fact.** Advertisements
+generated before then should be treated as requiring human verification of
+every printed fact against the source requirement.

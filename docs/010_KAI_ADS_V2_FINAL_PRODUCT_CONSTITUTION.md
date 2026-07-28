@@ -144,3 +144,86 @@ repository. `advertisement-generation.service.ts` (UI/API),
 `scripts/acceptance/bilfinger-acceptance.ts`, and `scripts/adhoc/single-ad-test.ts`
 all call this same pipeline — there is no second implementation and no
 feature flag choosing between engines.
+
+---
+
+## Amendment 1 — Factual Integrity Law (issued by the product owner)
+
+**Status:** Binding. Supersedes every conflicting clause in this document,
+including "GPT Image Responsibilities" above.
+
+### The law
+
+> No verified recruitment fact shall depend solely on an AI image model for
+> rendering.
+
+**The image model is responsible for:** visual concept, background artwork,
+photography, illustration, mood, composition, visual enhancement.
+
+**The KAI Rendering Engine is responsible for:** every heading, job title,
+salary, benefit, qualification, certification, contact detail, licence
+number, QR code, footer, address, website, disclaimer — every structured
+recruitment fact.
+
+The Rendering Engine renders verified information **deterministically**. No
+verified information may be omitted, reordered, duplicated, hallucinated,
+clipped, or modified by an image generation model.
+
+If the available layout cannot display all verified information while
+maintaining the minimum readability standards in KDL v1.0
+(`012_KAI_DESIGN_LANGUAGE_KDL_V1.md`), generation **fails with an explicit
+layout-capacity error** rather than silently omitting information.
+
+**KAI prioritises factual integrity over decorative completeness.**
+
+### What this changes
+
+The section "GPT Image Responsibilities" previously assigned typography and
+layout of the entire advertisement to GPT Image, and forbade KAI from using
+"reserved image regions or any code-based recreation of design tooling."
+That clause is amended: it continues to apply in full to **decorative and
+creative design** — the look, feel, artwork and atmosphere of an
+advertisement — and no longer applies to **the typesetting of verified
+facts**, which is now exclusively KAI's.
+
+"Trust GPT Image" remains correct for what an advertisement *looks like*. It
+is withdrawn for what an advertisement *says*.
+
+### What this does not change
+
+The Engineering Rules are **unchanged in substance and in count**. This
+amendment creates no new component. The KAI Rendering Engine is the existing
+Branding Overlay (`branding-overlay.ts`) operating at expanded scope — the
+same single module, the same single pipeline:
+
+- ONE Requirement Intelligence
+- ONE Creative Brief
+- ONE image generation call
+- ONE Rendering Engine (formerly Branding Overlay)
+- ONE Production Pipeline
+
+The prohibition on a second prompt builder, a theme engine, a template
+engine, a composer, or any parallel generation path stands in full. Adding a
+second engine to satisfy this amendment would violate it.
+
+### Why the product owner issued this
+
+Measured behaviour, not preference. Across this project's live generation
+runs, deterministically rendered elements — agency name, licence number, QR,
+footer, contact row — were correct in every run. In those same images,
+model-rendered text dropped a verified role, broke list numbering, invented
+a role line absent from the brief, clipped an email address, and produced
+unreadable strings. Prompt engineering reduced the rate but never closed it,
+because the failure is intrinsic to generative text rendering.
+
+A recruitment advertisement is a regulated commercial instrument. A wrong
+digit in a phone number, or a silently dropped position, is not a cosmetic
+defect — it is a false statement published under an agency's licence number.
+
+### Fail-closed requirement
+
+Silent degradation is prohibited. Where an advertisement cannot be produced
+to standard, the correct outcome is a reported `LAYOUT_CAPACITY` failure
+naming the facts that could not be placed. An advertisement that quietly
+omits a verified fact is a worse outcome than no advertisement, because the
+omission is invisible to the agency publishing it.

@@ -20,18 +20,35 @@ branding-overlay code, you MUST first read and comply with:
 generation architecture; subordinate only to the Supreme Constitution above)
 
 KAI is a Recruitment Intelligence Platform, NOT an advertisement designer,
-layout engine, template engine, renderer, or graphics engine. Its
-responsibility ends at producing a complete, accurate, structured Creative
-Brief. GPT Image owns all layout, typography, visual hierarchy, background,
-color, composition, and creativity — never recreate these through code.
+layout engine, template engine, or graphics engine.
+
+**Factual Integrity Law (docs/010 Amendment 1 — binding).** No verified
+recruitment fact may depend solely on an AI image model for rendering. The
+image model owns visual concept, background artwork, photography,
+illustration, mood, composition, and visual enhancement. The KAI Rendering
+Engine (`branding-overlay.ts`) deterministically renders every heading, job
+title, salary, benefit, qualification, certification, contact detail,
+licence number, QR, footer, address, website, disclaimer — every structured
+fact. No verified information may be omitted, reordered, duplicated,
+hallucinated, clipped, or modified by an image model. If the layout cannot
+hold every verified fact at KDL's minimum readability, generation FAILS with
+an explicit layout-capacity error; it never silently omits. Factual
+integrity outranks decorative completeness.
+
+Trust the image model for what an advertisement *looks like*, never for what
+it *says*. `docs/012_KAI_DESIGN_LANGUAGE_KDL_V1.md` (KDL v1.0) is the single
+visual source of truth: locked palette, type scale, spacing, density tiers,
+anti-clipping and anti-overflow rules.
+
 There is exactly ONE production advertisement pipeline, implemented in
 `src/server/generation/pipeline/`: Requirement Intelligence -> Creative
-Brief -> one GPT Image call -> Branding Overlay (only if required) ->
-return. Never create a layout engine, template engine, theme engine,
-composer, canvas generator, section renderer, or a second prompt builder.
+Brief -> one image call -> Rendering Engine -> return. Never create a second
+layout engine, template engine, theme engine, composer, canvas generator, or
+a second prompt builder. Amendment 1 expands the scope of the ONE existing
+Rendering Engine — satisfying it by adding a component would violate it.
 No feature flag may route generation through a second engine. Quality
 issues are fixed by improving Requirement Intelligence, the Creative
-Brief, or the Branding Overlay only — never by adding architecture.
+Brief, or the Rendering Engine only — never by adding architecture.
 
 `docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md` is superseded for
 architecture by docs/010; its Articles I–IV and VI–VIII remain active as
