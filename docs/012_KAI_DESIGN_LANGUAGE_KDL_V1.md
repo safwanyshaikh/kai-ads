@@ -98,30 +98,52 @@ because a truncated job title is a factually incomplete job title.
 
 ### 3.1 Colour
 
-KAI's palette is **already shipping** in the Branding Engine. KDL formalises
-it and adds only the derived steps needed for contrast compliance.
+KAI's palette is **already shipping** in `branding-overlay.ts`. KDL documents
+it. It does not extend it.
 
-| Token | Hex | Role |
+**Locked tokens — immutable. No KDL revision may alter or add to these.**
+
+| Token | Hex | Role | Source constant |
+|---|---|---|---|
+| `--kai-navy` | `#0B1F33` | Primary brand: footer text, contact row fill, header, dark surfaces | `BAND_TEXT`, `CONTACT_ROW_BACKGROUND` |
+| `--kai-cream` | `#F3EEE3` | Light surface: footer band, light card fill | `BAND_BACKGROUND` |
+| `--kai-gold` | `#F3D98B` | Accent — **on navy only** | `CONTACT_ROW_TEXT` |
+| `--kai-slate` | `#4A5A6C` | Muted secondary text on cream | `BAND_MUTED_TEXT` |
+
+**Supporting tokens — also already in the implementation:**
+
+| Token | Hex | Role | Source constant |
+|---|---|---|---|
+| `--kai-divider` | `#C9C0AB` | Hairline rules on cream | `BAND_DIVIDER` |
+| `--kai-white` | `#FFFFFF` | Display type over the Atmosphere Layer only |
+
+**That is the entire palette — six values.** There is no navy-700, no
+cream-050, no secondary gold. Depth is created by **opacity of a locked
+token**, never by a new hex:
+
+| Derivation | Definition | Use |
 |---|---|---|
-| `--kai-navy-900` | `#0B1F33` | Primary brand, footer band, header, dark cards |
-| `--kai-navy-700` | `#16324D` | Card fill on dark, hover/second-level surface |
-| `--kai-navy-500` | `#24486B` | Dividers on dark, tertiary surface |
-| `--kai-slate-500` | `#4A5A6C` | Muted body text on cream |
-| `--kai-cream-100` | `#F3EEE3` | Footer band, light card fill |
-| `--kai-cream-050` | `#FAF7F1` | Page-level light surface |
-| `--kai-gold-400` | `#F3D98B` | Accent — **on navy only** |
-| `--kai-gold-600` | `#C9A94E` | Accent — **on cream only** |
-| `--kai-divider` | `#C9C0AB` | Hairlines on cream |
-| `--kai-white` | `#FFFFFF` | Display type over photography |
+| Navy scrim | `--kai-navy` @ 88% → 35% | Hero gradient |
+| Navy surface | `--kai-navy` @ 92% | Card fill on photography |
+| Navy hairline | `--kai-white` @ 18% | Dividers on dark surfaces |
+| Cream surface | `--kai-cream` @ 96% | Card fill on light |
+| Watermark | tenant logo @ 7% | `WATERMARK_OPACITY` |
 
-> **Contrast law.** `--kai-gold-400` on `--kai-cream-100` is approximately
-> 1.4:1 — illegible. Gold text appears **only** on navy surfaces. On cream,
-> use `--kai-gold-600`. This single rule prevents the most likely brand
-> misuse.
+**Reason:** opacity derivations stay correct if a locked token is ever
+revised, and they cannot drift into a parallel palette. A new hex is a new
+brand; an opacity is the same brand at a different weight.
 
-**Colour ratio:** 60% navy / 30% cream / 10% gold. Gold is a *punctuation*
-colour — vacancy counts, section rules, the QR caption, the scan prompt.
-Never a background, never body text.
+> **Contrast law.** `--kai-gold` on `--kai-cream` measures approximately
+> **1.4:1** — illegible, and below every accessibility threshold. Gold
+> therefore appears **only on navy**, which is exactly what the shipping
+> implementation does: gold is used for one element, the contact-row text,
+> on a navy fill. KDL states the constraint rather than solving it with a
+> second gold. Where an accent is needed on cream, use `--kai-navy` at
+> display weight — emphasis through weight and size, not hue.
+
+**Colour ratio:** 60% navy / 30% cream / 10% gold. Gold is *punctuation* —
+vacancy counts, the total badge, section rules, the QR caption. Never a
+background, never body text, never on cream.
 
 **Reason for this palette:** deep navy reads as institutional and licensed
 (the ad is a regulated instrument); cream avoids the clinical coldness of
@@ -187,7 +209,7 @@ enough to build every tier and few enough to keep rhythm visible.
 | `shadow-card` | `0 0.004W 0.012W rgba(11,31,51,0.10)` | Light surfaces only |
 | `shadow-none` | — | **Default.** Cards on navy use borders, not shadows |
 | `divider-hair` | `1px` `--kai-divider` @ 60% | Between list rows |
-| `divider-rule` | `0.004W` `--kai-gold-400` | Under section headings, 20% width |
+| `divider-rule` | `0.004W` `--kai-gold` | Under section headings, 20% width |
 
 **Shadows are near-absent by design.** Print and WhatsApp compression both
 destroy soft shadows; separation comes from **fill contrast and whitespace**,
@@ -226,12 +248,12 @@ half. The gap converts a hard edge into a tolerance.
 
 Left-to-right: agency logo (`0.07H` tall) · agency name (`H3`) · flexible
 space · destination flag treatment (optional) · `KAI` verification mark.
-Fill `--kai-navy-900`, text `--kai-white`, one `divider-rule` in gold beneath.
+Fill `--kai-navy`, text `--kai-white`, one `divider-rule` in gold beneath.
 
 ### 4.3 Hero
 
 Full-bleed Atmosphere Layer photograph, overlaid with a **navy scrim**:
-linear gradient `--kai-navy-900` at 88% opacity (left) → 35% (right) for
+linear gradient `--kai-navy` at 88% opacity (left) → 35% (right) for
 `KAI-SQ`/`KAI-PT`; top-to-bottom for `KAI-DOC`.
 
 **Reason:** the scrim guarantees a known contrast floor for `D1`/`H1`
@@ -240,6 +262,57 @@ depends on a non-deterministic background — unacceptable under Rule 0.1.
 
 Hero carries, in order: `D1` destination/campaign line, `H1` employer,
 `H3` project type, then the **total-positions badge** (§6.3).
+
+### 4.4 Information hierarchy
+
+Reading order is fixed. A candidate scanning a feed decides in under two
+seconds, and that decision needs three facts: *where*, *who*, *what work*.
+
+| Rank | Content | Zone | Token | Rule |
+|---|---|---|---|---|
+| **1** | Destination country | Hero | `D1` | Always the largest element on the canvas |
+| **2** | Employer / client | Hero | `H1` | Never smaller than 70% of `D1` |
+| **3** | Total positions | Hero | Total badge | Always present, always the true total |
+| **4** | Project type, industry | Hero | `H3` | Omitted entirely if unverified |
+| **5** | Job titles | Body | `BodyL`/`Body` | The substance — largest share of body area |
+| **6** | Per-role detail (vacancies, experience, salary) | Body | `Caption` | Degrades first under density pressure (§5) |
+| **7** | Benefits, visa, rotation, duty hours | Body | `Caption` | Grouped, icon-led, omitted when absent |
+| **8** | Interview date and venue | Body | `Caption` | Promoted to rank 4 when a date is imminent |
+| **9** | Contact | Contact row | `Caption` | Branding Engine, fixed position |
+| **10** | Agency, licence, address, QR | Footer band | `Micro` | Branding Engine, fixed position |
+
+> **KDL Rule 4.4** — Hierarchy is expressed through **size, weight and
+> position only**. Never through colour alone (fails for colour-blind
+> readers and in greyscale print), and never through a coloured background
+> panel used purely for emphasis.
+
+**Degradation order.** When space is short, detail is removed in this order:
+rank 7 → 6 → 4. Ranks 1, 2, 3, 5, 9 and 10 are **never** removed — an
+advertisement without them is not a KAI advertisement.
+
+### 4.5 Section behaviour
+
+A *section* is a titled group in the body zone (Positions, Benefits,
+Interview, Requirements).
+
+1. **Conditional existence.** A section renders only when it holds at least
+   one verified fact. An empty section is not rendered empty — it does not
+   exist. No heading, no card, no placeholder, no reserved space.
+2. **Collapse.** When a section holds a single short fact, it renders as one
+   inline row rather than a titled card. A card around one line wastes the
+   vertical budget that the position list needs.
+3. **Order.** Positions → Requirements → Benefits → Interview → Contact.
+   Positions always lead: they are the reason the reader stopped.
+4. **Promotion.** An imminent interview date (within 14 days of generation)
+   promotes the Interview section above Benefits.
+5. **No orphan headings.** A heading never renders without at least one row
+   beneath it in the same column. If a column break would separate them,
+   both move together.
+
+**Reason for rule 5:** a live verification produced a `CONTACT DETAILS`
+heading with nothing under it, and another produced `INTERVIEW DETAILS`
+twice. An orphan heading reads as a rendering fault and undermines trust in
+the facts that *did* render.
 
 ---
 
@@ -293,7 +366,7 @@ reserved strip.
 
 ### 6.1 Section card
 
-Fill `--kai-cream-100` on light layouts, `--kai-navy-700` on dark.
+Fill `--kai-cream` on light layouts, `--kai-navy` at 92% on dark.
 `radius-card`, padding `space-4`, heading `H3`, `divider-rule` beneath
 heading, rows separated by `divider-hair`. No shadow on dark.
 
@@ -302,8 +375,8 @@ heading, rows separated by `divider-hair`. No shadow on dark.
 `[vacancy badge] [job title] ................ [detail]`
 
 - Badge left, fixed width `0.06W`, vertically centred
-- Title `BodyL`/`Body`, `--kai-navy-900` on cream / `--kai-white` on navy
-- Detail right-aligned, `Caption`, `--kai-slate-500`
+- Title `BodyL`/`Body`, `--kai-navy` on cream / `--kai-white` on navy
+- Detail right-aligned, `Caption`, `--kai-slate`
 - Row padding `space-2` vertical, separated by `divider-hair`
 - **Rows are never numbered.** Sequence numbers add no information and were
   observed to render incorrectly; the vacancy badge carries the useful number.
@@ -312,10 +385,10 @@ heading, rows separated by `divider-hair`. No shadow on dark.
 
 | Badge | Fill | Text | Use |
 |---|---|---|---|
-| **Count** | `--kai-gold-400` | `--kai-navy-900` | Vacancies per role |
-| **Total** | `--kai-navy-900` | `--kai-gold-400` | "127 positions available" |
-| **Attribute** | transparent, `1px --kai-divider` | `--kai-slate-500` | Visa type, contract type, rotation |
-| **Urgency** | `--kai-navy-900` | `--kai-white` | "Urgent" — **only if the source says so** |
+| **Count** | `--kai-gold` | `--kai-navy` | Vacancies per role |
+| **Total** | `--kai-navy` | `--kai-gold` | "127 positions available" |
+| **Attribute** | transparent, `1px --kai-divider` | `--kai-slate` | Visa type, contract type, rotation |
+| **Urgency** | `--kai-navy` | `--kai-white` | "Urgent" — **only if the source says so** |
 
 All badges: `radius-badge`, padding `space-1` × `space-2`, text `Caption`
 uppercase.
@@ -331,8 +404,8 @@ data, `Caption`, gold dot `0.006W` + label. Absent by default.
 
 ### 6.5 Icons
 
-Line icons, `1.5px` stroke at `0.024W` box, `--kai-gold-600` on cream /
-`--kai-gold-400` on navy. Permitted set is **fixed**: accommodation, food,
+Line icons, `1.5px` stroke at `0.024W` box, `--kai-slate` on cream /
+`--kai-gold` on navy. Permitted set is **fixed**: accommodation, food,
 transport, medical, insurance, salary, duty hours, rotation, visa, interview,
 location, phone, email, web.
 
@@ -348,9 +421,9 @@ Values below match the shipping Branding Engine.
 | Element | Spec |
 |---|---|
 | **Logo** | Footer band, left. `0.69 ×` band height. Left margin `0.03W`. Gap to text `0.03W`. |
-| **Agency name** | `0.35 ×` band height, weight 700, `--kai-navy-900`, baseline at `0.46 ×` band height |
-| **Licence number** | Prefixed `REG.`, `0.16 ×` band height, `--kai-slate-500`, baseline `0.76 ×` band (lifts to `0.68 ×` when an address line follows) |
-| **Address / website** | `0.13 ×` band height, `--kai-slate-500`, baseline `0.88 ×` band. Optional |
+| **Agency name** | `0.35 ×` band height, weight 700, `--kai-navy`, baseline at `0.46 ×` band height |
+| **Licence number** | Prefixed `REG.`, `0.16 ×` band height, `--kai-slate`, baseline `0.76 ×` band (lifts to `0.68 ×` when an address line follows) |
+| **Address / website** | `0.13 ×` band height, `--kai-slate`, baseline `0.88 ×` band. Optional |
 | **QR** | Footer band, right. `0.60 ×` band height. Right margin `0.03W`. Caption `SCAN TO VERIFY` in `Micro` beneath. Vertical `divider-hair` to its left |
 | **Contact row** | Full-width navy strip above the band, `0.045H`, gold text centred |
 | **Watermark** | Tenant logo, `7%` opacity, tile width `0.16W`, spacing factor `1.7`, rotated `30°`, tiled across the full canvas beneath the Fact Layer |
@@ -395,7 +468,52 @@ hero scrim (§4.3) is mandatory rather than aesthetic.
 
 ---
 
-## 10. Anti-patterns — never ship
+## 10. Anti-clipping and anti-overflow
+
+These are the two failure modes that have actually reached generated output
+in this project. They are stated as engine rules, not aspirations.
+
+### 10.1 Anti-clipping
+
+**Clipping** = a glyph intersecting a boundary that will be painted over or
+trimmed away.
+
+| Rule | Definition |
+|---|---|
+| **10.1.1** | No factual glyph may render below `0.80H`. The reserved strip is painted opaquely; anything beneath it is destroyed, not overlapped |
+| **10.1.2** | The advertised reserve always **exceeds** the painted band. Currently `0.20H` advertised vs `0.175H` painted — a `0.025H` tolerance |
+| **10.1.3** | The reserve is **derived from the band constants, never hardcoded**. A literal percentage in a prompt or layout is a defect |
+| **10.1.4** | Measure the rendered text box, not the estimated one. Descenders (`g`, `y`, `Q`, `@`) and diacritics extend below the baseline; `@` appears in every email address |
+| **10.1.5** | Print: no factual glyph within `8mm` of trim on `KAI-DOC` |
+| **10.1.6** | On any clipping detection, the tier escalates (§5.2). Never scale type below the floor to force a fit |
+
+**Reason for 10.1.2 and 10.1.3:** the brief once advertised a 12% reserve
+while the engine painted 17.5%. Content composed into the 5.5% gap and the
+band cut it in half — costing a whole position line, a phone number, and half
+a benefits list across different runs. Two numbers that must agree were
+maintained in two places.
+
+### 10.2 Anti-overflow
+
+**Overflow** = content requiring more space than its zone provides.
+
+| Rule | Definition |
+|---|---|
+| **10.2.1** | Every zone has a hard height budget. Content is measured before commit |
+| **10.2.2** | On overflow, resolution order is: (a) drop rank-7 detail, (b) drop rank-6 detail, (c) escalate column count, (d) escalate density tier. **Never** shrink below the legibility floor |
+| **10.2.3** | Job titles never truncate. A truncated designation is factually wrong (§2) |
+| **10.2.4** | Horizontal overflow is impossible by construction: a title that cannot fit its column triggers a tier change |
+| **10.2.5** | Any role removed by tier escalation must remain accounted for in a visible count (§5.1) |
+| **10.2.6** | Overflow resolution is **deterministic**. The same input yields the same layout every time |
+
+> **KDL Rule 10.3** — An advertisement that cannot fit its verified content
+> at the legibility floor, in the densest tier, is a **generation failure**.
+> It is reported, not shipped. KAI never ships an ad that silently dropped a
+> fact it was given.
+
+---
+
+## 11. Anti-patterns — never ship
 
 1. Marketing prose on the canvas ("seize the opportunity", "stable rewarding
    career"). Sells nothing, and is the highest-risk text to render.
@@ -413,7 +531,7 @@ hero scrim (§4.3) is mandatory rather than aesthetic.
 
 ---
 
-## 11. Pre-release checklist
+## 12. Pre-release checklist
 
 An advertisement ships only when all pass:
 
@@ -432,7 +550,7 @@ An advertisement ships only when all pass:
 
 ---
 
-## 12. Implementation note
+## 13. Implementation note
 
 KDL v1.0 is achievable within the existing single production pipeline
 (`src/server/generation/pipeline/`). It requires no new engine, no second
