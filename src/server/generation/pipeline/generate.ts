@@ -1,6 +1,8 @@
 import { buildCreativeBrief } from "./creative-brief";
+import { renderFactLayer } from "./fact-layer";
 import { applyBrandingOverlay } from "./branding-overlay";
 import { getImageGenerationProvider } from "@/server/ai/image";
+import sharp from "sharp";
 import { getEnv } from "@/lib/env";
 import type { AdvertisementFacts } from "./types";
 
@@ -47,12 +49,29 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     heightPx: input.heightPx,
     quality: getEnv().KAI_IMAGE_QUALITY,
   });
-  const imagePng = Buffer.from(output.imageBase64, "base64");
+  const backgroundPng = Buffer.from(output.imageBase64, "base64");
+
+  // Factual Integrity Law (docs/010 Amendment 1): the model supplies
+  // artwork only. Every verified fact is typeset deterministically here,
+  // over the artwork and beneath the branding band.
+  // The canvas may grow taller than requested so that a large requirement
+  // stays legible — text is never shrunk below KDL's floor to force a fit.
+  const factLayer = await renderFactLayer({
+    facts: input.facts,
+    widthPx: input.widthPx,
+    heightPx: input.heightPx,
+  });
+  const canvasHeight = factLayer.heightPx;
+  const imagePng = await sharp(backgroundPng)
+    .resize(input.widthPx, canvasHeight, { fit: "cover" })
+    .composite([{ input: factLayer.png, left: 0, top: 0 }])
+    .png()
+    .toBuffer();
 
   const finalPng = await applyBrandingOverlay({
     imagePng,
     widthPx: input.widthPx,
-    heightPx: input.heightPx,
+    heightPx: canvasHeight,
     agencyLogoPng: input.agencyLogoPng,
     qrPng: input.qrPng,
     agencyName: input.agencyName,

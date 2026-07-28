@@ -2,56 +2,36 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
 /**
- * Two reliability rules earned from live generation failures in this
- * project. Both live in the Creative Brief prompt, so they are guarded by
- * asserting on the prompt source rather than by burning an image call.
- *
- * 1. Text-rendering strategy. Every unreadable string produced during this
- *    project's live runs — "EXACT POITIOES", "STABLE CULF CARPEDIAATE
- *    CAREER", "advancementes", "case em reliable", "DEPLOYSENY" — was
- *    invented editorial copy, never a grounded fact. Position titles,
- *    counts, salaries, phone numbers and dates rendered correctly. So the
- *    brief must not ask the image model to print marketing prose.
- *
- * 2. Position overflow. Real bulk requirements carry 100+ titles (the
- *    Halliburton reference had 126 across 19 departments). Printing them
- *    all yields illegible type or a silent drop; the ad must instead show
- *    a subset and state the true total.
+ * Under the Factual Integrity Law (docs/010 Amendment 1) the Creative Brief
+ * briefs background artwork only. It must never ask the image model to print
+ * a fact — that class of instruction produced every text defect this project
+ * measured: dropped roles, invented roles, broken numbering, garbled strings.
  */
-describe("Creative Brief text-rendering strategy", () => {
+describe("Creative Brief — artwork only", () => {
   const source = readFileSync("src/server/generation/pipeline/creative-brief.ts", "utf8");
 
-  it("separates visual direction from the text actually rendered", () => {
-    expect(source).toContain("VISUAL DIRECTION");
-    expect(source).toContain("TEXT TO RENDER");
+  it("briefs the background artwork, not the advertisement", () => {
+    expect(source).toMatch(/BACKGROUND ARTWORK ONLY/);
   });
 
-  it("forbids asking the image model to print marketing prose", () => {
-    expect(source).toMatch(/do not ask the image model to print/i);
-    expect(source).toMatch(/slogans|taglines/i);
+  it("instructs the image model to render no text at all", () => {
+    expect(source).toMatch(/NO text, NO letters, NO numbers/);
   });
 
-  it("caps how many positions may be printed on one canvas", () => {
-    // Behaviour of the cap itself is covered by
-    // tests/creative-brief-position-scaling.test.ts.
-    expect(source).toContain("maxCanvasPositions");
+  it("never asks the model to print a position, salary, or contact detail", () => {
+    expect(source).not.toMatch(/print EXACTLY/i);
+    expect(source).not.toMatch(/positions available/i);
+    expect(source).not.toMatch(/TEXT TO RENDER/);
   });
 
-  it("pins the printed position count so the model cannot add a line of its own", () => {
-    // A live verification produced a 10th position line ("Field
-    // Professional") that was not in the brief — a duplicate of an
-    // existing role family invented by the image model.
-    expect(source).toMatch(/no more and no fewer/i);
-    expect(source).toMatch(/do not restate one of them as a\s+/i);
+  it("does not leak printable facts into the model input", () => {
+    // Only industry/country/project/trade names go to the artwork brief —
+    // never salaries, contacts, licence numbers or interview details.
+    const inputBlock = source.slice(source.indexOf("input: JSON.stringify("));
+    expect(inputBlock).not.toMatch(/salary|contact|registration|licence|interview/i);
   });
 
-  it("states the true total instead of implying the printed list is complete", () => {
-    expect(source).toMatch(/never imply the printed list is the complete list/i);
-    expect(source).toMatch(/positions available/i);
-  });
-
-  it("still forbids fabrication and placeholder copy", () => {
-    expect(source).toMatch(/zero fabrication/i);
-    expect(source).toMatch(/no placeholder text/i);
+  it("forbids advertising copy, which is what garbled in live runs", () => {
+    expect(source).toMatch(/Do not write advertising copy/i);
   });
 });

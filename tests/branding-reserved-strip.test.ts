@@ -1,24 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { BRANDING_RESERVED_HEIGHT_PCT } from "@/server/generation/pipeline/branding-overlay";
+import sharp from "sharp";
+import {
+  BRANDING_RESERVED_HEIGHT_PCT,
+  brandingStripHeight,
+} from "@/server/generation/pipeline/branding-overlay";
+import { renderFactLayer } from "@/server/generation/pipeline/fact-layer";
+import type { AdvertisementFacts } from "@/server/generation/pipeline/types";
 
 /**
- * Regression guard for a defect that reached real generated output: the
- * Creative Brief told the image model to keep the bottom 12% clear while
- * the Branding Overlay actually painted over 17.5%. The image model
- * composed ad copy into the 5.5% gap and the opaque band cut it in half —
- * on live runs this cost an entire position line, a contact phone number,
- * and half a benefits list.
+ * The bottom of the canvas belongs to the branding band, which is painted
+ * opaquely — anything drawn beneath it is destroyed, not overlapped. A live
+ * run once lost a position line, a phone number and half a benefits list
+ * this way, because the brief advertised a 12% reserve while the engine
+ * painted 17.5%.
  *
- * The brief now interpolates BRANDING_RESERVED_HEIGHT_PCT, so the two can
- * only drift apart if someone hardcodes a percentage back into the prompt.
- * That is exactly what these tests fail on.
+ * Under the Factual Integrity Law that reserve is no longer a sentence in a
+ * prompt a model may ignore. The Fact Layer places every fact itself and
+ * takes the strip height from the Rendering Engine, so the two cannot drift.
+ * This is asserted behaviourally: nothing is drawn in the strip at all.
  */
-describe("Branding overlay reserved strip", () => {
-  const briefSource = readFileSync("src/server/generation/pipeline/creative-brief.ts", "utf8");
+const facts = (count: number): AdvertisementFacts => ({
+  header: "Urgent Requirement — Saudi Arabia",
+  industry: "Oil & Gas",
+  country: "Saudi Arabia",
+  employer: "Halliburton",
+  positions: Array.from({ length: count }, (_, i) => ({ title: `Field Professional Level ${i + 1}` })),
+  benefits: [{ label: "Free accommodation" }],
+  interview: [{ date: "5th August 2026", location: "Mumbai office" }],
+  contact: { phone: "+91 22 6666 5353", email: "jobs@alyousufent.com" },
+  agencyName: "Al-Yousuf Enterprises L.L.P.",
+  fullRegistrationNumber: "B-0655/MUM/PER/1000+/4-1/4/7914/2007",
+});
 
+describe("Reserved branding strip", () => {
   it("reserves at least as much as the overlay actually paints over", () => {
-    // Overlay geometry: BAND_HEIGHT_PCT (0.13) + CONTACT_ROW_HEIGHT_PCT (0.045).
     expect(BRANDING_RESERVED_HEIGHT_PCT).toBeGreaterThanOrEqual(17.5);
   });
 
@@ -26,12 +41,33 @@ describe("Branding overlay reserved strip", () => {
     expect(BRANDING_RESERVED_HEIGHT_PCT).toBeLessThanOrEqual(25);
   });
 
-  it("is interpolated into the Creative Brief rather than hardcoded", () => {
-    expect(briefSource).toContain("BRANDING_RESERVED_HEIGHT_PCT");
+  it("draws nothing at all inside the strip the band will paint over", async () => {
+    for (const n of [1, 12, 40, 120]) {
+      const { png, heightPx } = await renderFactLayer({
+        facts: facts(n),
+        widthPx: 1024,
+        heightPx: 1024,
+      });
+      const strip = brandingStripHeight(1024, heightPx, true);
+      const { data, info } = await sharp(png)
+        .extract({ left: 0, top: heightPx - strip, width: 1024, height: strip })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      let opaque = 0;
+      for (let i = 3; i < data.length; i += info.channels) if (data[i] !== 0) opaque++;
+      expect(opaque, `Fact Layer drew into the branding strip at ${n} positions`).toBe(0);
+    }
   });
 
-  it("leaves no hardcoded bottom-strip percentage in the Creative Brief", () => {
-    // e.g. a literal "bottom 12%" creeping back into the prompt text.
-    expect(briefSource).not.toMatch(/bottom\s+\d+\s*%/i);
+  it("caps the strip against width so a tall poster keeps a sane band", () => {
+    // 1024x3084: a purely height-proportional band would be ~540px tall and
+    // its agency name and contact line would overflow horizontally.
+    expect(brandingStripHeight(1024, 3084, true)).toBeLessThan(Math.round(3084 * 0.175));
+    // On a square canvas the original proportional geometry is unchanged.
+    expect(brandingStripHeight(1024, 1024, true)).toBe(
+      Math.round(1024 * 0.13) + Math.round(1024 * 0.045),
+    );
   });
 });

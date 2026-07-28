@@ -50,6 +50,32 @@ const CONTACT_ROW_HEIGHT_PCT = 0.045;
  * model composed ad copy into the gap and the band cut it in half, which
  * cost a whole position line ("WELDER (ARC/TIG)") on real output.
  */
+/**
+ * The band is also capped against WIDTH. Its height was purely a fraction
+ * of canvas height, which is correct for a square advertisement and absurd
+ * for a tall directory poster — at 1024x3413 it produced a 600px band whose
+ * agency name, registration and contact line all overflowed horizontally.
+ */
+const BAND_MAX_WIDTH_FACTOR = 0.2;
+const CONTACT_ROW_MAX_WIDTH_FACTOR = 0.07;
+
+export function brandingBandHeight(widthPx: number, heightPx: number): number {
+  return Math.min(Math.round(heightPx * BAND_HEIGHT_PCT), Math.round(widthPx * BAND_MAX_WIDTH_FACTOR));
+}
+
+export function brandingContactRowHeight(widthPx: number, heightPx: number, hasContactLine: boolean): number {
+  if (!hasContactLine) return 0;
+  return Math.min(
+    Math.round(heightPx * CONTACT_ROW_HEIGHT_PCT),
+    Math.round(widthPx * CONTACT_ROW_MAX_WIDTH_FACTOR),
+  );
+}
+
+/** Total height the Rendering Engine paints over, for a given canvas. */
+export function brandingStripHeight(widthPx: number, heightPx: number, hasContactLine: boolean): number {
+  return brandingBandHeight(widthPx, heightPx) + brandingContactRowHeight(widthPx, heightPx, hasContactLine);
+}
+
 export const BRANDING_RESERVED_HEIGHT_PCT =
   Math.ceil(((BAND_HEIGHT_PCT + CONTACT_ROW_HEIGHT_PCT) * 100) / 5) * 5;
 const LOGO_SIZE_PCT_OF_BAND = 0.69; // ~25% larger absolute logo than the original 0.115 * 0.62 band
@@ -159,8 +185,8 @@ async function fadeLogo(logoPng: Buffer, size: number, opacity: number): Promise
  */
 async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buffer; height: number }> {
   const { widthPx, heightPx } = input;
-  const bandHeight = Math.round(heightPx * BAND_HEIGHT_PCT);
-  const contactRowHeight = input.contactLine ? Math.round(heightPx * CONTACT_ROW_HEIGHT_PCT) : 0;
+  const bandHeight = brandingBandHeight(widthPx, heightPx);
+  const contactRowHeight = brandingContactRowHeight(widthPx, heightPx, Boolean(input.contactLine));
   const totalHeight = bandHeight + contactRowHeight;
   const pad = Math.round(widthPx * 0.03);
 
