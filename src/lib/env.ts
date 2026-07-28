@@ -111,6 +111,15 @@ const envSchema = z.object({
   KAI_TEXT_MODEL: z.string().default("gpt-4.1"),
   KAI_VISION_MODEL: z.string().default("gpt-4.1"),
 
+  // Gemini migration (in progress) — independent credentials for text/
+  // extraction vs. image generation (Option A: two separate gates), so
+  // either surface can be migrated and rolled back on its own instead of
+  // an all-or-nothing cutover. Not yet wired into any provider — declared
+  // here only so the values are readable via getEnv()/getIntegrationStatus()
+  // ahead of the provider implementation step.
+  GEMINI_TEXT_API_KEY: z.string().optional(),
+  GEMINI_IMAGE_API_KEY: z.string().optional(),
+
   // KAI Creative Engine (Sprint 004) — image generation. Same optional/
   // feature-gated pattern as the text engine above.
   // Sprint 008 Workstream A: explicit OpenAI client budgets. The SDK's
@@ -180,6 +189,11 @@ export function getIntegrationStatus(env: Env = getEnv()) {
     email: env.EMAIL_PROVIDER !== "none",
     storage: env.STORAGE_PROVIDER !== "none",
     openai: Boolean(env.OPENAI_API_KEY),
+    // Two independent gates (Option A) — text/extraction and image
+    // generation migrate to Gemini on separate schedules, each with its
+    // own rollback. Not yet read by any provider (schema-only step).
+    geminiText: Boolean(env.GEMINI_TEXT_API_KEY),
+    geminiImage: Boolean(env.GEMINI_IMAGE_API_KEY),
   };
 }
 
