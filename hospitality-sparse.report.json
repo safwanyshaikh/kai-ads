@@ -1,0 +1,9 @@
+{
+  "id": "hospitality-sparse",
+  "industry": "Hospitality",
+  "density": "sparse",
+  "imageSha256": "ffb0feba790323b9d7ceb80bc8043ec87722a939e844cea39ba6daf8cec9926a",
+  "qrDecodable": true,
+  "latencyMs": 59819,
+  "passed": true
+}

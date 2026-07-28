@@ -1,0 +1,9 @@
+{
+  "id": "oilgas-sparse",
+  "industry": "Oil & Gas",
+  "density": "sparse",
+  "imageSha256": "c309d16d93e03182d38051328630607008ce3934f05e6f22b6c51a400298d897",
+  "qrDecodable": true,
+  "latencyMs": 66588,
+  "passed": true
+}

@@ -1,0 +1,9 @@
+{
+  "id": "manufacturing-sparse",
+  "industry": "Manufacturing",
+  "density": "sparse",
+  "imageSha256": "96adcd933d05bac7b14eaea08f9db13dc6a6322681a61cba09f1eb186b8d82c4",
+  "qrDecodable": true,
+  "latencyMs": 65011,
+  "passed": true
+}

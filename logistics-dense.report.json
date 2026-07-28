@@ -1,0 +1,9 @@
+{
+  "id": "logistics-dense",
+  "industry": "Logistics",
+  "density": "dense",
+  "imageSha256": "37305962d7bdf0c9f2d0c3eb56218ec1838288e842113c2c00a0d4d86d958dbf",
+  "qrDecodable": true,
+  "latencyMs": 63691,
+  "passed": true
+}

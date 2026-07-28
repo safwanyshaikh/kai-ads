@@ -1,0 +1,9 @@
+{
+  "id": "retail-medium",
+  "industry": "Retail",
+  "density": "medium",
+  "imageSha256": "c4f923d1ee7a626660f33bb219890044a7c6cf148fc784cf8a062f48eb650913",
+  "qrDecodable": true,
+  "latencyMs": 57952,
+  "passed": true
+}

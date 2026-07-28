@@ -1,0 +1,9 @@
+{
+  "id": "manufacturing-dense",
+  "industry": "Manufacturing",
+  "density": "dense",
+  "imageSha256": "3769fbd6d3cdb7046a3cd63b5d0919ff6ced068e94b094914aa4b54b38289eec",
+  "qrDecodable": true,
+  "latencyMs": 65809,
+  "passed": true
+}

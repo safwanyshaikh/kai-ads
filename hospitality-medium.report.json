@@ -1,0 +1,9 @@
+{
+  "id": "hospitality-medium",
+  "industry": "Hospitality",
+  "density": "medium",
+  "imageSha256": "933a9b3f9698d03029bed7b802dfbe1f163d4b042d65edf74668ec95b5ec7130",
+  "qrDecodable": true,
+  "latencyMs": 72236,
+  "passed": true
+}

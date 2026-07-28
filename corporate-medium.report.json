@@ -1,0 +1,9 @@
+{
+  "id": "corporate-medium",
+  "industry": "Corporate",
+  "density": "medium",
+  "imageSha256": "ea9e652703be86c49ec5f4db1952f0831d63101503032f6864803c3797eaf95e",
+  "qrDecodable": true,
+  "latencyMs": 62654,
+  "passed": true
+}

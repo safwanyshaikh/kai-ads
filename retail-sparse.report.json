@@ -1,0 +1,9 @@
+{
+  "id": "retail-sparse",
+  "industry": "Retail",
+  "density": "sparse",
+  "imageSha256": "b214ba5a6a1b6f56254d2fcea1e6d36b7e63f45be753597865a10f759ef6b7db",
+  "qrDecodable": true,
+  "latencyMs": 63165,
+  "passed": true
+}

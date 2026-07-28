@@ -1,0 +1,9 @@
+{
+  "id": "engineering-medium",
+  "industry": "Engineering",
+  "density": "medium",
+  "imageSha256": "dfccf1bfdc2bb11d9b644bf1dc5eee5717a94acae3fb5fd8d65cb1af5c4780ff",
+  "qrDecodable": true,
+  "latencyMs": 74406,
+  "passed": true
+}

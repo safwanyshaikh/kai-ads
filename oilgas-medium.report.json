@@ -1,0 +1,9 @@
+{
+  "id": "oilgas-medium",
+  "industry": "Oil & Gas",
+  "density": "medium",
+  "imageSha256": "38e6158b20c91473c3fc9abee0211c9796397c52a8685e998459c631dd52378c",
+  "qrDecodable": true,
+  "latencyMs": 67555,
+  "passed": true
+}

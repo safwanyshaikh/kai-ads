@@ -1,0 +1,9 @@
+{
+  "id": "construction-sparse",
+  "industry": "Construction",
+  "density": "sparse",
+  "imageSha256": "fd094495451a7e6ebc35c596c730c3b6a11a4f67041a7a75a1b87ae979a47aad",
+  "qrDecodable": true,
+  "latencyMs": 57893,
+  "passed": true
+}

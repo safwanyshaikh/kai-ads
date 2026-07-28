@@ -1,0 +1,9 @@
+{
+  "id": "shipyard-sparse",
+  "industry": "Shipyard",
+  "density": "sparse",
+  "imageSha256": "f165a7478b5126d5673a08b4783819842130610a4b87dd93e91926042a6304ff",
+  "qrDecodable": true,
+  "latencyMs": 55950,
+  "passed": true
+}

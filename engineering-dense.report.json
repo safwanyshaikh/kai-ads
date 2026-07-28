@@ -1,0 +1,9 @@
+{
+  "id": "engineering-dense",
+  "industry": "Engineering",
+  "density": "dense",
+  "imageSha256": "a4fbeba8d10fdc874eff5473d5aaca539af49d78dc1de4bbe696a53044cca962",
+  "qrDecodable": true,
+  "latencyMs": 64600,
+  "passed": true
+}

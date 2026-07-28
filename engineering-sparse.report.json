@@ -1,0 +1,9 @@
+{
+  "id": "engineering-sparse",
+  "industry": "Engineering",
+  "density": "sparse",
+  "imageSha256": "53c7138233dc3fd38fabd49912399ee30a5ab67b2bf2b51a0315072f80a15558",
+  "qrDecodable": true,
+  "latencyMs": 66887,
+  "passed": true
+}

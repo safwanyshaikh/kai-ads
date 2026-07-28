@@ -1,0 +1,9 @@
+{
+  "id": "construction-dense",
+  "industry": "Construction",
+  "density": "dense",
+  "imageSha256": "408222d3f34835fcddd20e5381553753a229c4c0c7d1f4e0140d9ca549059d3e",
+  "qrDecodable": true,
+  "latencyMs": 64744,
+  "passed": true
+}

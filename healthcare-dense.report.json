@@ -1,0 +1,9 @@
+{
+  "id": "healthcare-dense",
+  "industry": "Healthcare",
+  "density": "dense",
+  "imageSha256": "3824a35ea2894a4e9a289e5dbd5a437cb254662c8799c0d57a0a7fafbbe4c2fe",
+  "qrDecodable": true,
+  "latencyMs": 59645,
+  "passed": true
+}

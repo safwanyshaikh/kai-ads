@@ -1,0 +1,9 @@
+{
+  "id": "healthcare-medium",
+  "industry": "Healthcare",
+  "density": "medium",
+  "imageSha256": "cae295be1e7d11f9ed46e0791df2c086da0b130844ef0966edfa8bf41724ddb5",
+  "qrDecodable": true,
+  "latencyMs": 66442,
+  "passed": true
+}

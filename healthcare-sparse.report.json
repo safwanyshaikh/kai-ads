@@ -1,0 +1,9 @@
+{
+  "id": "healthcare-sparse",
+  "industry": "Healthcare",
+  "density": "sparse",
+  "imageSha256": "5a3972d0736846b437d0aaac990b405fe0a133bd669e1dca163f39840a34eed9",
+  "qrDecodable": true,
+  "latencyMs": 62527,
+  "passed": true
+}

@@ -1,0 +1,9 @@
+{
+  "id": "shipyard-medium",
+  "industry": "Shipyard",
+  "density": "medium",
+  "imageSha256": "8ee2fadbb28708ee99bba388815400ddee39e4a2bb373b7ca412d04308a17447",
+  "qrDecodable": true,
+  "latencyMs": 80165,
+  "passed": true
+}

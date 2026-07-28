@@ -1,0 +1,9 @@
+{
+  "id": "corporate-sparse",
+  "industry": "Corporate",
+  "density": "sparse",
+  "imageSha256": "c63f0f567a854754fb6680357670ef60e98f1243cc7ce8f62ae4207de5da6ab9",
+  "qrDecodable": true,
+  "latencyMs": 55202,
+  "passed": true
+}

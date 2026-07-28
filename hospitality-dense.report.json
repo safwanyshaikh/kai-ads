@@ -1,0 +1,9 @@
+{
+  "id": "hospitality-dense",
+  "industry": "Hospitality",
+  "density": "dense",
+  "imageSha256": "8005b075b716a1b7bb6e1195972c0387455c24e70aad3bcdbef28ef5961714e6",
+  "qrDecodable": true,
+  "latencyMs": 61462,
+  "passed": true
+}

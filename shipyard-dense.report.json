@@ -1,0 +1,9 @@
+{
+  "id": "shipyard-dense",
+  "industry": "Shipyard",
+  "density": "dense",
+  "imageSha256": "39c7d70bf67b9e6b8427f433b30ac645e620b1399101ca56e37a6fd1d9851745",
+  "qrDecodable": true,
+  "latencyMs": 68030,
+  "passed": true
+}

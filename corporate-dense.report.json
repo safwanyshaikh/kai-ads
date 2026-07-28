@@ -1,0 +1,9 @@
+{
+  "id": "corporate-dense",
+  "industry": "Corporate",
+  "density": "dense",
+  "imageSha256": "d6234b5f60802c760cca83790749059285ba02a44a1ac72ba5a3d4503a495626",
+  "qrDecodable": true,
+  "latencyMs": 58652,
+  "passed": true
+}

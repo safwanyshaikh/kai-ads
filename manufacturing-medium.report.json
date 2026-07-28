@@ -1,0 +1,9 @@
+{
+  "id": "manufacturing-medium",
+  "industry": "Manufacturing",
+  "density": "medium",
+  "imageSha256": "2bdf4e12d1f3bb0318ebb774e1fd708deff6cc25fa7f3ee24a5dfd462f2422b9",
+  "qrDecodable": true,
+  "latencyMs": 65424,
+  "passed": true
+}

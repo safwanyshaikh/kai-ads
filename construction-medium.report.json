@@ -1,0 +1,9 @@
+{
+  "id": "construction-medium",
+  "industry": "Construction",
+  "density": "medium",
+  "imageSha256": "810c6b24e68010a06d33c119d58bc2e67a51d90f85d57b25633aa20d984a76cd",
+  "qrDecodable": true,
+  "latencyMs": 60489,
+  "passed": true
+}

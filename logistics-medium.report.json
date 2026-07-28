@@ -1,0 +1,9 @@
+{
+  "id": "logistics-medium",
+  "industry": "Logistics",
+  "density": "medium",
+  "imageSha256": "3458b3d7ceade0c9afb462e00f617cabb816ef5afcfcc61bb94a2e089acb10a8",
+  "qrDecodable": true,
+  "latencyMs": 69418,
+  "passed": true
+}

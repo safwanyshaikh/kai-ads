@@ -1,0 +1,9 @@
+{
+  "id": "oilgas-dense",
+  "industry": "Oil & Gas",
+  "density": "dense",
+  "imageSha256": "693e11ac6d72968f8cb8ae73f8d3021567adf0f2c932c40051a626159ef5024c",
+  "qrDecodable": true,
+  "latencyMs": 66794,
+  "passed": true
+}

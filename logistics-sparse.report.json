@@ -1,0 +1,9 @@
+{
+  "id": "logistics-sparse",
+  "industry": "Logistics",
+  "density": "sparse",
+  "imageSha256": "0cb5f0ae02b33c56b311438165afb5cd8c042ca87aff71c8ba01f212bd5b6940",
+  "qrDecodable": true,
+  "latencyMs": 55741,
+  "passed": true
+}

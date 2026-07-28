@@ -1,0 +1,9 @@
+{
+  "id": "retail-dense",
+  "industry": "Retail",
+  "density": "dense",
+  "imageSha256": "391f836821bd380ec4b7b018338c43fc6e02f5cdb5fd6ca867a81919c5737e93",
+  "qrDecodable": true,
+  "latencyMs": 65942,
+  "passed": true
+}
