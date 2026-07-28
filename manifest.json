@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-07-28T06:01:38.394Z",
+  "branch": "claude/kai-ads-verify-state-upnt70",
+  "commit": "e7964299f705b322eab985cfc66291978ce0fff6",
+  "models": {
+    "text": "gpt-4.1-mini",
+    "image": "gpt-image-1"
+  },
+  "qrCanonicalDomainOk": true,
+  "qrDecodable": true,
+  "advertisementId": "ad-bilfinger-1785218444035",
+  "verificationId": "av-al-yousuf-acceptance",
+  "qrDestination": "https://kai-ads.vercel.app/v/av-al-yousuf-acceptance?a=ad-bilfinger-1785218444035",
+  "platformFormat": {
+    "key": "instagram_post",
+    "widthPx": 1080,
+    "heightPx": 1080
+  },
+  "imageLatencyMs": 46445,
+  "imageModel": "gpt-image-1"
+}
