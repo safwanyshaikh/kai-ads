@@ -237,7 +237,9 @@ async function runOne(f: Fixture): Promise<AdReport> {
     widthPx: WIDTH,
     heightPx: HEIGHT,
     qrPng: qr.png,
-    footerText: f.facts.agencyName,
+    agencyName: f.facts.agencyName,
+    registrationNumber: f.facts.fullRegistrationNumber,
+    contactLine: [f.facts.contact.email, f.facts.contact.phone].filter(Boolean).join(" | ") || null,
   });
 
   const imageSha256 = createHash("sha256").update(imagePng).digest("hex");

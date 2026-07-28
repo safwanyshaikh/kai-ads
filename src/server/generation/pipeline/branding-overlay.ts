@@ -7,98 +7,221 @@ export interface BrandingOverlayInput {
   heightPx: number;
   agencyLogoPng?: Buffer | null;
   qrPng?: Buffer | null;
-  footerText?: string | null;
+  agencyName?: string | null;
+  registrationNumber?: string | null;
+  contactLine?: string | null;
 }
 
 /**
- * Minimal Branding Overlay (optional): logo + small QR + a single small
- * footer line. Nothing else. No panel, no white box, no card — each
- * element is composited directly onto the corner of GPT's image.
+ * Branding Overlay v2. GPT still owns 100% of the advertisement's design —
+ * this only adds tenant branding on top, and does so in a way that can
+ * never collide with GPT's content:
+ *
+ *  - A repeating, very low-opacity tenant-logo watermark across the whole
+ *    canvas (copy-protection / attribution, not a visual distraction).
+ *  - One opaque footer band spanning the full width at the bottom. It is
+ *    painted over whatever GPT rendered there (the Creative Brief already
+ *    asks GPT to keep that strip clean — this makes "clean" a guarantee,
+ *    not a hope) and holds the tenant logo, agency name, registration
+ *    number, an optional contact line, and the verification QR — laid out
+ *    with a fixed structure but every measurement computed as a fraction
+ *    of the canvas, so it adapts to portrait, square, or landscape output.
+ *
+ * No heuristic "is this region busy" guessing (removed) — collision-safety
+ * comes from painting an opaque band, not from detecting one.
  */
+const BAND_HEIGHT_PCT = 0.13;
+const CONTACT_ROW_HEIGHT_PCT = 0.045;
+const LOGO_SIZE_PCT_OF_BAND = 0.69; // ~25% larger absolute logo than the original 0.115 * 0.62 band
+const QR_SIZE_PCT_OF_BAND = 0.6; // ~12.5% smaller absolute QR than the original 0.115 * 0.78 band
+const NAME_SIZE_PCT_OF_BAND = 0.35; // more prominent than the original 0.115 * 0.3 band
+const REGISTRATION_SIZE_PCT_OF_BAND = 0.16;
+const LOGO_TEXT_GAP_FACTOR = 1.0; // horizontal whitespace between logo and text, as a multiple of `pad`
+const WATERMARK_OPACITY = 0.07;
+const WATERMARK_TILE_WIDTH_PCT = 0.16;
+const WATERMARK_TILE_SPACING_FACTOR = 1.7;
+const WATERMARK_ROTATION_DEGREES = 30;
+
+const BAND_BACKGROUND = "#F3EEE3";
+const BAND_TEXT = "#0B1F33";
+const BAND_MUTED_TEXT = "#4A5A6C";
+const BAND_DIVIDER = "#C9C0AB";
+const CONTACT_ROW_BACKGROUND = "#0B1F33";
+const CONTACT_ROW_TEXT = "#F3D98B";
+
 export async function applyBrandingOverlay(input: BrandingOverlayInput): Promise<Buffer> {
-  const pad = Math.round(input.widthPx * 0.03);
-  const composites: { input: Buffer; left: number; top: number }[] = [];
+  const { widthPx, heightPx } = input;
+  const layers: { input: Buffer; left: number; top: number }[] = [];
 
   if (input.agencyLogoPng) {
-    const size = Math.round(input.widthPx * 0.12);
-    const logo = await sharp(input.agencyLogoPng)
-      .resize(size, size, { fit: "inside", withoutEnlargement: true })
-      .png()
-      .toBuffer();
-    composites.push({ input: logo, left: pad, top: pad });
+    layers.push(...(await buildWatermarkTiles(input.agencyLogoPng, widthPx, heightPx)));
   }
 
-  if (input.qrPng) {
-    const size = Math.round(input.widthPx * 0.12);
-    const qr = await sharp(input.qrPng).resize(size, size).png().toBuffer();
-    composites.push({ input: qr, left: input.widthPx - size - pad, top: input.heightPx - size - pad });
+  const hasFooterContent = Boolean(
+    input.agencyLogoPng || input.agencyName || input.registrationNumber || input.contactLine || input.qrPng,
+  );
+  if (hasFooterContent) {
+    const footer = await buildFooterBand(input);
+    layers.push({ input: footer.png, left: 0, top: heightPx - footer.height });
   }
 
-  if (input.footerText) {
-    const fontSize = Math.round(input.widthPx * 0.022);
-    const footerHeight = fontSize * 2;
-    const bottomTop = input.heightPx - footerHeight - Math.round(pad / 2);
-
-    // Fix 4: if GPT already drew busy content (text/graphics) where the footer
-    // would land, reposition to the opposite corner instead of overlapping it.
-    // No logo means top-left is free; if both corners are busy, skip the footer
-    // rather than render illegible overlapping text.
-    const bottomIsBusy = await regionIsBusy(input.imagePng, input.widthPx, input.heightPx, 0, bottomTop, input.widthPx, footerHeight);
-
-    let footerTop = bottomTop;
-    let skip = false;
-    if (bottomIsBusy) {
-      const topLeftFree = !input.agencyLogoPng;
-      const topIsBusy = topLeftFree
-        ? await regionIsBusy(input.imagePng, input.widthPx, input.heightPx, 0, 0, input.widthPx, footerHeight)
-        : true;
-      if (topLeftFree && !topIsBusy) {
-        footerTop = 0;
-      } else {
-        skip = true;
-      }
-    }
-
-    if (!skip) {
-      const footerSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${input.widthPx}" height="${footerHeight}">
-  <text x="${pad}" y="${fontSize}" font-family="KaiSans, sans-serif" font-size="${fontSize}" fill="#ffffff" stroke="#000000" stroke-width="${Math.max(1, Math.round(fontSize * 0.08))}" paint-order="stroke">${escapeXml(input.footerText)}</text>
-</svg>`;
-      const footerPng = await sharp(Buffer.from(footerSvg)).png().toBuffer();
-      composites.push({ input: footerPng, left: 0, top: footerTop });
-    }
-  }
-
-  if (composites.length === 0) return input.imagePng;
+  if (layers.length === 0) return input.imagePng;
 
   return sharp(input.imagePng)
-    .resize(input.widthPx, input.heightPx, { fit: "cover" })
-    .composite(composites)
+    .resize(widthPx, heightPx, { fit: "cover" })
+    .composite(layers)
     .png()
     .toBuffer();
 }
 
 /**
- * A flat region (sky, wall, empty margin) has low luminance variance; text,
- * logos, or busy scenery push it up sharply. Used only to decide whether the
- * footer would land on top of existing content — not a general vision system.
+ * A faint, repeating, rotated tenant-logo tile across the full canvas —
+ * discourages uncredited reposting without fighting readability. Tile
+ * size and spacing are fractions of canvas width, so density and scale
+ * stay consistent across portrait/square/landscape formats.
  */
-async function regionIsBusy(
-  imagePng: Buffer,
-  imageWidth: number,
-  imageHeight: number,
-  left: number,
-  top: number,
-  width: number,
-  height: number,
-): Promise<boolean> {
-  const clampedTop = Math.max(0, Math.min(top, imageHeight - height));
-  const stats = await sharp(imagePng)
-    .resize(imageWidth, imageHeight, { fit: "cover" })
-    .extract({ left, top: clampedTop, width, height })
-    .greyscale()
-    .stats();
-  const stdev = stats.channels[0]?.stdev ?? 0;
-  return stdev > 30;
+async function buildWatermarkTiles(
+  logoPng: Buffer,
+  widthPx: number,
+  heightPx: number,
+): Promise<{ input: Buffer; left: number; top: number }[]> {
+  const tileSize = Math.round(widthPx * WATERMARK_TILE_WIDTH_PCT);
+  const faded = await fadeLogo(logoPng, tileSize, WATERMARK_OPACITY);
+  const rotated = await sharp(faded)
+    .rotate(WATERMARK_ROTATION_DEGREES, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+  const meta = await sharp(rotated).metadata();
+  const tw = meta.width ?? tileSize;
+  const th = meta.height ?? tileSize;
+  const spacingX = Math.round(tw * WATERMARK_TILE_SPACING_FACTOR);
+  const spacingY = Math.round(th * WATERMARK_TILE_SPACING_FACTOR);
+
+  const cols = Math.ceil(widthPx / spacingX) + 2;
+  const rows = Math.ceil(heightPx / spacingY) + 2;
+
+  const tiles: { input: Buffer; left: number; top: number }[] = [];
+  for (let r = 0; r < rows; r++) {
+    const rowOffset = r % 2 === 1 ? Math.round(spacingX / 2) : 0;
+    for (let c = -1; c < cols; c++) {
+      const left = c * spacingX + rowOffset;
+      const top = r * spacingY - Math.round(th / 2);
+      if (left < 0 || top < 0 || left >= widthPx || top >= heightPx) continue;
+      tiles.push({ input: rotated, left, top });
+    }
+  }
+  return tiles;
+}
+
+/** Multiplies the alpha channel to produce a faint, translucent copy of an opaque/semi-opaque logo. */
+async function fadeLogo(logoPng: Buffer, size: number, opacity: number): Promise<Buffer> {
+  const { data, info } = await sharp(logoPng)
+    .resize(size, size, { fit: "inside", withoutEnlargement: true })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  for (let i = 3; i < data.length; i += 4) {
+    data[i] = Math.round(data[i] * opacity);
+  }
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
+}
+
+/**
+ * The one guaranteed-clean zone: an opaque band painted across the full
+ * width at the bottom, covering anything GPT drew there. Logo + agency
+ * name + registration on the left, a divider, then the verification QR
+ * (scaled to the band, never the other way around) on the right. An
+ * optional contact row sits above the band. Every size is a fraction of
+ * bandHeight/widthPx — no fixed coordinates.
+ */
+async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buffer; height: number }> {
+  const { widthPx, heightPx } = input;
+  const bandHeight = Math.round(heightPx * BAND_HEIGHT_PCT);
+  const contactRowHeight = input.contactLine ? Math.round(heightPx * CONTACT_ROW_HEIGHT_PCT) : 0;
+  const totalHeight = bandHeight + contactRowHeight;
+  const pad = Math.round(widthPx * 0.03);
+
+  const qrSize = input.qrPng ? Math.round(bandHeight * QR_SIZE_PCT_OF_BAND) : 0;
+  const qrLeft = widthPx - qrSize - pad;
+  const qrTop = contactRowHeight + Math.round((bandHeight - qrSize) / 2);
+
+  const logoSize = input.agencyLogoPng ? Math.round(bandHeight * LOGO_SIZE_PCT_OF_BAND) : 0;
+  const logoLeft = pad;
+  const logoTop = contactRowHeight + Math.round((bandHeight - logoSize) / 2);
+
+  const textLeft = input.agencyLogoPng ? logoLeft + logoSize + Math.round(pad * LOGO_TEXT_GAP_FACTOR) : pad;
+  const dividerX = input.qrPng ? qrLeft - Math.round(pad * 0.6) : widthPx - pad;
+  const textMaxWidth = Math.max(dividerX - textLeft - Math.round(pad * 0.4), 0);
+
+  const parts: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" width="${widthPx}" height="${totalHeight}">`];
+
+  if (input.contactLine) {
+    const contactSize = fitFontSize(input.contactLine, widthPx - pad * 2, Math.round(contactRowHeight * 0.5), Math.round(contactRowHeight * 0.28));
+    parts.push(`<rect x="0" y="0" width="${widthPx}" height="${contactRowHeight}" fill="${CONTACT_ROW_BACKGROUND}"/>`);
+    parts.push(
+      `<text x="${Math.round(widthPx / 2)}" y="${Math.round(contactRowHeight * 0.66)}" font-family="KaiSans, sans-serif" font-size="${contactSize}" fill="${CONTACT_ROW_TEXT}" text-anchor="middle">${escapeXml(input.contactLine)}</text>`,
+    );
+  }
+
+  parts.push(`<rect x="0" y="${contactRowHeight}" width="${widthPx}" height="${bandHeight}" fill="${BAND_BACKGROUND}"/>`);
+
+  if (input.agencyLogoPng) {
+    const logoDataUri = await toPngDataUri(input.agencyLogoPng, logoSize);
+    parts.push(
+      `<image href="${logoDataUri}" x="${logoLeft}" y="${logoTop}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`,
+    );
+  }
+
+  if (input.agencyName) {
+    const nameSize = fitFontSize(input.agencyName, textMaxWidth, Math.round(bandHeight * NAME_SIZE_PCT_OF_BAND), Math.round(bandHeight * 0.16));
+    const nameY = contactRowHeight + (input.registrationNumber ? Math.round(bandHeight * 0.46) : Math.round(bandHeight * 0.58));
+    parts.push(
+      `<text x="${textLeft}" y="${nameY}" font-family="KaiSans, sans-serif" font-size="${nameSize}" font-weight="700" fill="${BAND_TEXT}">${escapeXml(input.agencyName)}</text>`,
+    );
+  }
+
+  if (input.registrationNumber) {
+    const regText = `REG. ${input.registrationNumber}`;
+    const regSize = fitFontSize(regText, textMaxWidth, Math.round(bandHeight * REGISTRATION_SIZE_PCT_OF_BAND), Math.round(bandHeight * 0.09));
+    const regY = contactRowHeight + Math.round(bandHeight * 0.76);
+    parts.push(
+      `<text x="${textLeft}" y="${regY}" font-family="KaiSans, sans-serif" font-size="${regSize}" fill="${BAND_MUTED_TEXT}">${escapeXml(regText)}</text>`,
+    );
+  }
+
+  if (input.qrPng) {
+    if (input.agencyLogoPng || input.agencyName || input.registrationNumber) {
+      parts.push(
+        `<line x1="${dividerX}" y1="${contactRowHeight + Math.round(bandHeight * 0.14)}" x2="${dividerX}" y2="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.14)}" stroke="${BAND_DIVIDER}" stroke-width="2"/>`,
+      );
+    }
+    const qrDataUri = await toPngDataUri(input.qrPng, qrSize);
+    parts.push(`<image href="${qrDataUri}" x="${qrLeft}" y="${qrTop}" width="${qrSize}" height="${qrSize}"/>`);
+    const captionSize = Math.round(bandHeight * 0.09);
+    parts.push(
+      `<text x="${qrLeft + qrSize / 2}" y="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.03)}" font-family="KaiSans, sans-serif" font-size="${captionSize}" fill="${BAND_MUTED_TEXT}" text-anchor="middle">SCAN TO VERIFY</text>`,
+    );
+  }
+
+  parts.push(`</svg>`);
+  const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
+  return { png, height: totalHeight };
+}
+
+/** Shrinks font size (down to minSize) until the text's estimated width fits maxWidth — guarantees no clipped text. */
+function fitFontSize(text: string, maxWidth: number, preferredSize: number, minSize: number): number {
+  const estimateWidth = (size: number) => text.length * size * 0.56;
+  let size = preferredSize;
+  while (size > minSize && estimateWidth(size) > maxWidth) size -= 1;
+  return Math.max(size, minSize);
+}
+
+async function toPngDataUri(png: Buffer, size: number): Promise<string> {
+  const resized = await sharp(png)
+    .resize(size, size, { fit: "inside", withoutEnlargement: true })
+    .png()
+    .toBuffer();
+  return `data:image/png;base64,${resized.toString("base64")}`;
 }
 
 function escapeXml(value: string): string {

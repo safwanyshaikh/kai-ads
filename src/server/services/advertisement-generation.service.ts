@@ -104,7 +104,9 @@ export const advertisementGenerationService = {
         theme: input.theme ?? undefined,
         agencyLogoPng,
         qrPng: qrResult.png,
-        footerText: agency.name,
+        agencyName: agency.name,
+        registrationNumber: agency.registrationNumber,
+        contactLine: buildContactLine(facts.contact),
       });
       pngBuffer = result.imagePng;
 
@@ -233,4 +235,10 @@ async function fetchImageBuffer(url: string | null | undefined): Promise<Buffer 
   } catch {
     return null;
   }
+}
+
+/** A single "email | phone" line for the Branding Overlay's footer band — omits whichever fields are absent rather than showing a blank. */
+function buildContactLine(contact: { phone?: string; email?: string; whatsapp?: string }): string | null {
+  const parts = [contact.email, contact.phone].filter((v): v is string => Boolean(v));
+  return parts.length > 0 ? parts.join(" | ") : null;
 }

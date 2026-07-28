@@ -3,7 +3,7 @@
  * for debugging/tuning the Creative Brief prompt against a single fixture.
  * Requires OPENAI_API_KEY. Not part of CI gating.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { generateAdvertisement } from "@/server/generation/pipeline/generate";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
@@ -51,7 +51,12 @@ async function main() {
     process.exit(1);
   }
 
-  const agencyLogoPng = await fetchLogoBuffer(process.env.AGENCY_LOGO_URL);
+  // Automatically retrieve the tenant logo — an explicit AGENCY_LOGO_URL
+  // wins, otherwise fall back to the checked-in Al-Yousuf asset so this
+  // verification run always exercises real logo/watermark rendering.
+  const agencyLogoPng =
+    (await fetchLogoBuffer(process.env.AGENCY_LOGO_URL)) ??
+    readFileSync(path.join(process.cwd(), "scripts", "acceptance", "assets", "al-yousuf-logo.png"));
   const qrUrl = buildQrTrackingUrl({ agencyVerificationId: "adhoc-single", advertisementId: `adhoc-${Date.now()}` });
   const qr = await generateAndVerifyQr(qrUrl);
 
@@ -61,7 +66,9 @@ async function main() {
     heightPx: 1536,
     agencyLogoPng,
     qrPng: qr.png,
-    footerText: AGENCY.name,
+    agencyName: AGENCY.name,
+    registrationNumber: facts.fullRegistrationNumber,
+    contactLine: [facts.contact.email, facts.contact.phone].filter(Boolean).join(" | ") || null,
   });
 
   writeFileSync(path.join(OUT_DIR, "single-ad-test.png"), imagePng);

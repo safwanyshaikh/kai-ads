@@ -157,7 +157,9 @@ async function main() {
     heightPx: fmt.heightPx,
     agencyLogoPng: logoBuffer,
     qrPng: qr.png,
-    footerText: AGENCY_NAME,
+    agencyName: AGENCY_NAME,
+    registrationNumber: FULL_RC,
+    contactLine: [facts.contact.email, facts.contact.phone].filter(Boolean).join(" | ") || null,
   });
   writeFileSync(path.join(OUT, "creative-brief.txt"), brief);
   writeFileSync(path.join(OUT, "advertisement.png"), imagePng);

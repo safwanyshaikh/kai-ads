@@ -12,7 +12,9 @@ export interface GeneratePipelineInput {
   theme?: string;
   agencyLogoPng?: Buffer | null;
   qrPng?: Buffer | null;
-  footerText?: string | null;
+  agencyName?: string | null;
+  registrationNumber?: string | null;
+  contactLine?: string | null;
 }
 
 export interface GeneratePipelineResult {
@@ -51,7 +53,9 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     heightPx: input.heightPx,
     agencyLogoPng: input.agencyLogoPng,
     qrPng: input.qrPng,
-    footerText: input.footerText,
+    agencyName: input.agencyName,
+    registrationNumber: input.registrationNumber,
+    contactLine: input.contactLine,
   });
 
   return { imagePng: finalPng, brief, usage };
