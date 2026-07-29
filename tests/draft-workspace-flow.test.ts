@@ -13,7 +13,7 @@ describe("Create Advertisement presentation flow", () => {
   const source = readFileSync("src/components/advertisement/draft-workspace.tsx", "utf8");
 
   it("has a recovery step between failed extraction and the manual editor", () => {
-    expect(source).toMatch(/type Step =.*"recovery"/s);
+    expect(source).toMatch(/type Step =[^;]*"recovery"/);
   });
 
   it("routes extraction failures to recovery, never straight to the editor", () => {

@@ -267,6 +267,34 @@ function planHero(facts: AdvertisementFacts, W: number) {
   return { headline, headlineSize, headlineLines, employerSize, sub, subSize, meta, metaSize, badgeH, contentH: h };
 }
 
+/**
+ * What the badge should actually claim.
+ *
+ * Counting roles understates the requirement badly: "50 TIG Welders + 30
+ * Pipe Fitters" is 80 jobs, and a badge reading "2 POSITIONS AVAILABLE"
+ * makes an agency advertising 80 vacancies look like it has two. Vacancies
+ * are what a candidate and an agency both care about.
+ *
+ * The sum is only stated when every role carries a verified count —
+ * otherwise it would be a partial total presented as a whole, which is a
+ * fabricated fact. In that case the badge falls back to counting roles,
+ * which is always true.
+ */
+function headlineCountLabel(facts: AdvertisementFacts): string {
+  const roles = facts.positions.length;
+  const allCounted = roles > 0 && facts.positions.every((p) => typeof p.count === "number");
+
+  if (allCounted) {
+    const vacancies = facts.positions.reduce((sum, p) => sum + (p.count ?? 0), 0);
+    if (vacancies > roles) {
+      return roles === 1
+        ? `${vacancies} VACANCIES`
+        : `${vacancies} VACANCIES · ${roles} ROLES`;
+    }
+  }
+  return `${roles} POSITION${roles === 1 ? "" : "S"} AVAILABLE`;
+}
+
 export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerResult> {
   const { facts, widthPx: W } = input;
   const px = (f: number) => Math.round(f * W);
@@ -305,10 +333,20 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 
   // The hero box always holds its measured content — the cap only trims
   // decorative slack, it never clips a fact.
-  const heroPx = Math.max(
+  let heroPx = Math.max(
     Math.min(Math.round(heroFrac * H), heroCap),
     Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W)) + hero.contentH,
   );
+
+  // A short requirement on a square canvas left a large dead band of cream
+  // below the last line. Give the slack to the artwork instead: a one-role
+  // advertisement should be photo-led, not half-empty. Capped so the hero
+  // never crowds out the facts.
+  const strip = brandingStripHeight(W, H, hasContact);
+  const slack = H - strip - heroPx - plan.bodyH - px(0.05);
+  if (slack > 0) {
+    heroPx = Math.min(heroPx + slack, Math.round(0.55 * H));
+  }
   const margin = plan.margin;
   const contentW = plan.contentW;
   const parts: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`];
@@ -374,7 +412,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   }
 
   // Total badge — always the true, verified total.
-  const label = `${total} POSITION${total === 1 ? "" : "S"} AVAILABLE`;
+  const label = headlineCountLabel(facts);
   const bS = px(T.Caption);
   const bW = Math.round(textWidth(label, bS) + px(0.045));
   y += px(0.008);

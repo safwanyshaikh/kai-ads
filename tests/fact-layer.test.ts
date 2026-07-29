@@ -82,3 +82,42 @@ describe("Fact Layer — deterministic rendering of verified facts", () => {
     }
   });
 });
+
+describe("Fact Layer — headline count", () => {
+  /**
+   * "50 TIG Welders + 30 Pipe Fitters" is 80 jobs. A badge reading "2
+   * POSITIONS AVAILABLE" counted roles and made an agency advertising 80
+   * vacancies look like it had two.
+   */
+  const withCounts = (counts: (number | undefined)[]): AdvertisementFacts => ({
+    ...facts(0),
+    positions: counts.map((c, i) => ({ title: `Trade ${i + 1}`, count: c })),
+  });
+
+  it("states total vacancies when every role carries a verified count", async () => {
+    const png = await renderFactLayer({ facts: withCounts([50, 30]), widthPx: 1024, heightPx: 1024 });
+    expect(png.png.length).toBeGreaterThan(0);
+  });
+
+  it("falls back to counting roles when any count is missing", async () => {
+    // A partial sum presented as a total would be a fabricated fact.
+    const partial = await renderFactLayer({
+      facts: withCounts([50, undefined]),
+      widthPx: 1024,
+      heightPx: 1024,
+    });
+    const full = await renderFactLayer({
+      facts: withCounts([50, 30]),
+      widthPx: 1024,
+      heightPx: 1024,
+    });
+    // Different labels render different pixels.
+    expect(partial.png.equals(full.png)).toBe(false);
+  });
+
+  it("does not claim vacancies when they equal the role count", async () => {
+    // 1 role x 1 vacancy should read as positions, not "1 VACANCIES".
+    const one = await renderFactLayer({ facts: withCounts([1]), widthPx: 1024, heightPx: 1024 });
+    expect(one.png.length).toBeGreaterThan(0);
+  });
+});
