@@ -14,7 +14,14 @@ import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 import { extractionResultSchema } from "@/server/ai/extraction-result.schema";
 import { planAutoPublish } from "@/lib/auto-publish";
 
-type Step = "extracting" | "generating" | "manual";
+/**
+ * "recovery" is a presentation-only state between a failed extraction and
+ * the manual editor. The editor is the fallback experience, not the
+ * default one — landing a recruiter straight in a blank 30-field form
+ * makes KAI look like a data-entry application rather than an assistant
+ * that just tried to do the work for them.
+ */
+type Step = "extracting" | "generating" | "recovery" | "manual";
 
 interface DraftWorkspaceProps {
   draftId: string;
@@ -56,6 +63,11 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
   // Extraction is only retryable when there is source material to re-read.
   const canRetryExtraction = hasRawText || sourceType !== "PASTE_TEXT";
 
+  function handleContinueManually() {
+    setFallbackReason(null);
+    setStep("manual");
+  }
+
   function handleRetryExtraction() {
     setFallbackReason(null);
     setError(null);
@@ -77,26 +89,22 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
       }>(API_ROUTES.advertisementDraftExtract(draftId));
 
       if (!extract.ok || extract.data?.status !== "EXTRACTED") {
-        setFallbackReason(
-          extract.data?.extractionError ??
-            extract.message ??
-            "AI extraction is not available — enter the advertisement details manually.",
-        );
-        setStep("manual");
+        setStep("recovery");
         return;
       }
 
       const parsed = extractionResultSchema.safeParse(extract.data.extractedData);
       if (!parsed.success) {
-        setFallbackReason("AI extraction returned an unexpected shape — enter the details manually.");
-        setStep("manual");
+        setStep("recovery");
         return;
       }
 
       // 2. Decide: enough grounded facts for a real advertisement?
       const plan = planAutoPublish(parsed.data);
       if (plan.mode === "manual") {
-        setFallbackReason(plan.reason);
+        setFallbackReason(
+          "KAI prepared what it could confirm from your requirement. Please add the remaining details below.",
+        );
         setManualDefaults({ ...EMPTY_ADVERTISEMENT_CONTENT, ...plan.partial });
         setStep("manual");
         return;
@@ -172,7 +180,11 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
     <div className="space-y-6">
       <div className="flex items-center text-sm">
         <span className="font-semibold">
-          {step === "manual" ? "Complete the missing details" : "Creating your advertisement"}
+          {step === "manual"
+            ? "Complete the missing details"
+            : step === "recovery"
+              ? "We hit a snag"
+              : "Creating your advertisement"}
         </span>
         <span className="ml-auto">
           <Button type="button" variant="ghost" size="sm" onClick={handleDiscard} disabled={saving}>
@@ -191,29 +203,39 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
       {(step === "extracting" || step === "generating") && (
         <Alert>
           <AlertTitle>
-            {step === "extracting" ? "Running AI Extraction…" : "Building your advertisement…"}
+            {step === "extracting"
+              ? "KAI is reading your requirement…"
+              : "KAI is designing your advertisement…"}
           </AlertTitle>
           <AlertDescription>{pipelineMessage}</AlertDescription>
         </Alert>
+      )}
+
+      {step === "recovery" && (
+        <div className="rounded-lg border p-6 text-center">
+          <p className="font-semibold">KAI couldn&apos;t automatically prepare this advertisement.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You can try again, or fill in the details yourself.
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            {canRetryExtraction && (
+              <Button type="button" onClick={handleRetryExtraction}>
+                Retry
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={handleContinueManually}>
+              Continue Manually
+            </Button>
+          </div>
+        </div>
       )}
 
       {step === "manual" && (
         <div className="space-y-4">
           {fallbackReason && (
             <Alert>
-              <AlertTitle>A few details are needed</AlertTitle>
-              <AlertDescription className="space-y-3">
-                <p>{fallbackReason}</p>
-                {canRetryExtraction && (
-                  // Extraction failing is usually transient. Retrying re-runs
-                  // KAI Intelligence in place; anything already typed into the
-                  // form below is untouched, because the form owns its own
-                  // state and only `manualDefaults` is replaced on success.
-                  <Button type="button" variant="outline" size="sm" onClick={handleRetryExtraction}>
-                    Try again
-                  </Button>
-                )}
-              </AlertDescription>
+              <AlertTitle>KAI has filled in what it could confirm</AlertTitle>
+              <AlertDescription>{fallbackReason}</AlertDescription>
             </Alert>
           )}
           <AdvertisementContentForm
