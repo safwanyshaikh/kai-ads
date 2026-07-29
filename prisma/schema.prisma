@@ -565,7 +565,7 @@ model AgencyGenerationQuota {
   agencyId String @unique
   agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 
-  totalQuota               Int @default(10) // bootstrap trial: 10 free full generations
+  totalQuota               Int @default(50) // closed beta: 50 complimentary generations per approved agency
   successfulGenerationsUsed Int @default(0)
   sectionRegenerationCount  Int @default(0)
 

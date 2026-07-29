@@ -7,10 +7,21 @@ import { createLogger } from "@/lib/logger";
 
 const log = createLogger("generation-quota");
 
+/**
+ * Closed Beta completion, not a billing failure.
+ *
+ * The agency keeps its account, its advertisements and its logins — only
+ * further generation pauses. The wording is deliberately a thank-you
+ * rather than a wall: these are the first twenty agencies helping us
+ * find production issues, and "contact support to continue" read like a
+ * paywall for something we are not charging for.
+ */
 export class QuotaExceededError extends AppError {
   constructor() {
     super(
-      "This agency has used all its free advertisement generations. Contact support to continue.",
+      "You've successfully completed your complimentary beta allocation. " +
+        "Thank you for helping improve KAI Ads. " +
+        "Our team will contact you regarding the next phase.",
       402,
       "QUOTA_EXCEEDED",
     );
@@ -24,11 +35,10 @@ export class AiKillSwitchError extends AppError {
 }
 
 /**
- * Bootstrap Trial Quota (Sprint 004): "10 free successful full
- * advertisement generations per approved agency. Quota belongs to the
- * AGENCY. Not to each employee." Every employee of an agency draws from
- * the same counters — enforced simply by keying everything off agencyId,
- * never userId.
+ * Closed Beta allocation: 50 complimentary successful full advertisement
+ * generations per approved agency. The quota belongs to the AGENCY, not to
+ * each employee — every employee draws from the same counters, enforced by
+ * keying everything off agencyId and never userId.
  */
 export const generationQuotaService = {
   async getStatus(agencyId: string) {

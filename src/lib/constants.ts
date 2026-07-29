@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   join: "/join",
   dashboard: "/dashboard",
   dashboardAgency: "/dashboard/agency",
+  adminBeta: "/admin/beta",
   adminAgencies: "/admin/agencies",
   adminAgencyVerifications: "/admin/agency-verifications",
   advertisements: "/dashboard/advertisements",
