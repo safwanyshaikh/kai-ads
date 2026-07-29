@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AgencyStatusBadge } from "@/components/agency/agency-status-badge";
 import { JoinRequestActions } from "@/components/agency/join-request-actions";
+import { AgencyProfileForm } from "@/components/agency/agency-profile-form";
 import { ContactDirectoryManager } from "@/components/advertisement/contact-directory-manager";
 import { PaginationControls } from "@/components/shared/pagination-controls";
 import { APP_ROUTES } from "@/lib/constants";
@@ -55,19 +56,62 @@ export default async function AgencyAdminPage({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Agency Profile</CardTitle>
-            <CardDescription>Read-only in this sprint.</CardDescription>
+            <CardDescription>
+              Fill this in once. Every advertisement you create uses these details for its footer,
+              watermark and contact line — you never retype them per campaign.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {can(user, "agency:manage_own") ? (
+              <AgencyProfileForm
+                initial={{
+                  logoUrl: agency.logoUrl ?? "",
+                  contactPerson: agency.contactPerson ?? "",
+                  phone: agency.phone ?? "",
+                  whatsapp: agency.whatsapp ?? "",
+                  officialEmail: agency.officialEmail ?? "",
+                  website: agency.website ?? "",
+                  officeAddress: agency.officeAddress ?? "",
+                }}
+              />
+            ) : (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Website</span>
+                  <span>{agency.website}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Official Email</span>
+                  <span>{agency.officialEmail}</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Verified by KAI</CardTitle>
+            <CardDescription>
+              Managed by KAI. These are what make your verification QR trustworthy, so an agency
+              cannot edit them.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Website</span>
-              <span>{agency.website}</span>
+              <span className="text-muted-foreground">Agency name</span>
+              <span>{agency.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Official Email</span>
-              <span>{agency.officialEmail}</span>
+              <span className="text-muted-foreground">MEA licence number</span>
+              <span>{agency.registrationNumber}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status</span>
+              <AgencyStatusBadge status={agency.status} />
             </div>
           </CardContent>
         </Card>

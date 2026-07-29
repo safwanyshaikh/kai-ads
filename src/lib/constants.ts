@@ -66,6 +66,7 @@ export const AUDIT_ACTIONS = {
   agencyRejected: "agency.rejected",
   agencySuspended: "agency.suspended",
   agencyActivated: "agency.activated",
+  agencyProfileUpdated: "agency.profile_updated",
   joinRequestCreated: "join_request.created",
   joinRequestApproved: "join_request.approved",
   joinRequestRejected: "join_request.rejected",

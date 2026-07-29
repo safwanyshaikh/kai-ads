@@ -106,7 +106,8 @@ export const advertisementGenerationService = {
         qrPng: qrResult.png,
         agencyName: agency.name,
         registrationNumber: agency.registrationNumber,
-        contactLine: buildContactLine(facts.contact),
+        contactLine: buildContactLine(facts.contact, agency),
+        addressLine: buildAddressLine(agency),
       });
       pngBuffer = result.imagePng;
 
@@ -152,7 +153,17 @@ export const advertisementGenerationService = {
       agencyName: agency.name,
       raLicenseId: agency.registrationNumber,
       qrDecodable: qrResult.decodable,
-      contactPresent: Boolean(facts.contact.phone || facts.contact.email || facts.contact.whatsapp),
+      // Profile-supplied contact details are printed on the advertisement
+      // too, so an agency that filled in its profile must not be flagged
+      // for a missing contact.
+      contactPresent: Boolean(
+        facts.contact.phone ||
+          facts.contact.email ||
+          facts.contact.whatsapp ||
+          agency.phone ||
+          agency.whatsapp ||
+          agency.officialEmail,
+      ),
       advertisementTexts: [advertisement.header, advertisement.footer, "MEA REGISTERED AGENCY", "VERIFY AGENCY"],
     });
 
@@ -238,7 +249,27 @@ async function fetchImageBuffer(url: string | null | undefined): Promise<Buffer 
 }
 
 /** A single "email | phone" line for the Branding Overlay's footer band — omits whichever fields are absent rather than showing a blank. */
-function buildContactLine(contact: { phone?: string; email?: string; whatsapp?: string }): string | null {
-  const parts = [contact.email, contact.phone].filter((v): v is string => Boolean(v));
+/**
+ * Contact details come from the Agency Profile — the single source of
+ * truth — so a recruiter never retypes their own phone and email for each
+ * campaign, and a typo cannot ship on the artwork.
+ *
+ * An advertisement-level value still wins when one is present: that is a
+ * deliberate per-campaign override (a dedicated hotline for one drive),
+ * not the default path.
+ */
+function buildContactLine(
+  contact: { phone?: string; email?: string; whatsapp?: string },
+  agency: { phone?: string | null; whatsapp?: string | null; officialEmail?: string | null },
+): string | null {
+  const phone = contact.phone ?? agency.phone ?? agency.whatsapp ?? undefined;
+  const email = contact.email ?? agency.officialEmail ?? undefined;
+  const parts = [email, phone].filter((v): v is string => Boolean(v));
   return parts.length > 0 ? parts.join(" | ") : null;
+}
+
+/** Office address and website for the branding band, from the profile. */
+function buildAddressLine(agency: { officeAddress?: string | null; website?: string | null }): string | null {
+  const parts = [agency.officeAddress, agency.website].filter((v): v is string => Boolean(v));
+  return parts.length > 0 ? parts.join("  ·  ") : null;
 }

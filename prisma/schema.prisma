@@ -148,6 +148,19 @@ model Agency {
   secondaryLogoUrl   String?
   status             AgencyStatus @default(PENDING)
 
+  // Agency Profile — the single source of truth for branding on every
+  // advertisement. Agency-editable; the recruiter never retypes these per
+  // campaign. Nullable so existing agencies keep working before they
+  // complete their profile.
+  contactPerson String?
+  phone         String?
+  whatsapp      String?
+  officeAddress String?
+  /** Optional brand accents, e.g. { "primary": "#0B1F33" }. */
+  brandColours  Json?
+  /** Optional handles, e.g. { "facebook": "https://..." }. */
+  socialLinks   Json?
+
   domains      Domain[]
   users        User[]
   joinRequests JoinRequest[]

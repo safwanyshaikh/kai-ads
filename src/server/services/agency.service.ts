@@ -8,6 +8,7 @@ import { assertBusinessEmail } from "@/server/services/email-validation.service"
 import { assertDomainIsAvailable } from "@/server/services/domain-validation.service";
 import { AUDIT_ACTIONS } from "@/lib/constants";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import type { UpdateAgencyProfileInput } from "@/lib/validations/agency";
 import { createLogger } from "@/lib/logger";
 import { paginate, toSkipTake, type PaginationParams, type Paginated } from "@/lib/pagination";
 import type { RegisterAgencyInput } from "@/lib/validations/agency";
@@ -108,6 +109,43 @@ export const agencyService = {
     const agency = await agencyRepository.findById(id);
     if (!agency) throw new NotFoundError("Agency");
     return agency;
+  },
+
+  /**
+   * Agency Profile update — the single source of truth every
+   * advertisement's branding is drawn from. Scoped to the caller's own
+   * agency and to profile fields only: name, MEA licence, verification
+   * status and QR destination stay admin-controlled.
+   */
+  async updateProfile(agencyId: string, actorId: string, input: UpdateAgencyProfileInput) {
+    // Empty strings mean "cleared", not "unchanged" — store null so the
+    // branding engine's presence checks stay truthful.
+    const blank = (v?: string) => (v === undefined ? undefined : v.trim() === "" ? null : v.trim());
+
+    const updated = await db.agency.update({
+      where: { id: agencyId },
+      data: {
+        logoUrl: input.logoUrl?.trim() ? input.logoUrl.trim() : undefined,
+        officialEmail: input.officialEmail?.trim() ? input.officialEmail.trim() : undefined,
+        website: input.website?.trim() ? input.website.trim() : undefined,
+        contactPerson: blank(input.contactPerson),
+        phone: blank(input.phone),
+        whatsapp: blank(input.whatsapp),
+        officeAddress: blank(input.officeAddress),
+        brandColours: input.brandColours ?? undefined,
+        socialLinks: input.socialLinks ?? undefined,
+      },
+    });
+
+    await auditLogService.record({
+      action: AUDIT_ACTIONS.agencyProfileUpdated,
+      agencyId,
+      actorId,
+      entity: "Agency",
+      entityId: agencyId,
+    });
+
+    return updated;
   },
 
   async approve(agencyId: string, actorId: string, reason?: string) {

@@ -46,6 +46,28 @@ export const registerAgencySchema = z.object({
 
 export type RegisterAgencyInput = z.infer<typeof registerAgencySchema>;
 
+/**
+ * Agency Profile — the fields an agency owns and edits itself.
+ *
+ * Deliberately excludes name, registrationNumber (MEA licence),
+ * verification status and QR destination: those are admin-controlled and
+ * are what make the verification QR trustworthy. An agency that could
+ * edit its own licence number could publish a false one.
+ */
+export const updateAgencyProfileSchema = z.object({
+  logoUrl: z.string().url().optional().or(z.literal("")),
+  contactPerson: z.string().trim().max(120).optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  whatsapp: z.string().trim().max(40).optional().or(z.literal("")),
+  officialEmail: z.string().trim().email().optional().or(z.literal("")),
+  website: z.string().trim().max(200).optional().or(z.literal("")),
+  officeAddress: z.string().trim().max(300).optional().or(z.literal("")),
+  brandColours: z.record(z.string(), z.string()).optional(),
+  socialLinks: z.record(z.string(), z.string()).optional(),
+});
+
+export type UpdateAgencyProfileInput = z.infer<typeof updateAgencyProfileSchema>;
+
 export const approveAgencySchema = z.object({
   agencyId: z.string().min(1),
   reason: z.string().max(500).optional(),
