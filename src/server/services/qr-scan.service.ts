@@ -17,10 +17,22 @@ interface ScanContext {
 }
 
 interface ScanResolution {
+  /** The official government destination, when the agency is verified. */
   destinationUrl: string | null;
   agencyName: string | null;
   raLicenseId: string | null;
   verificationStatus: string | null;
+  /** Agency identity shown on the KAI verification page. */
+  agencyLogoUrl: string | null;
+  agencyPhone: string | null;
+  agencyWhatsapp: string | null;
+  agencyEmail: string | null;
+  agencyWebsite: string | null;
+  agencyOfficeAddress: string | null;
+  /** Which advertisement was scanned, so a candidate can cite it. */
+  advertisementId: string | null;
+  advertisementHeader: string | null;
+  advertisementPublishedAt: Date | null;
 }
 
 /**
@@ -44,7 +56,21 @@ export const qrScanService = {
 
     if (!verification) {
       log.warn({ agencyVerificationId }, "QR scan for unknown agency verification ID");
-      return { destinationUrl: null, agencyName: null, raLicenseId: null, verificationStatus: null };
+      return {
+        destinationUrl: null,
+        agencyName: null,
+        raLicenseId: null,
+        verificationStatus: null,
+        agencyLogoUrl: null,
+        agencyPhone: null,
+        agencyWhatsapp: null,
+        agencyEmail: null,
+        agencyWebsite: null,
+        agencyOfficeAddress: null,
+        advertisementId: null,
+        advertisementHeader: null,
+        advertisementPublishedAt: null,
+      };
     }
 
     const agency = await agencyRepository.findById(verification.agencyId);
@@ -79,6 +105,15 @@ export const qrScanService = {
       agencyName: agency?.name ?? null,
       raLicenseId: agency?.registrationNumber ?? null,
       verificationStatus: verification.status,
+      agencyLogoUrl: agency?.logoUrl ?? null,
+      agencyPhone: agency?.phone ?? null,
+      agencyWhatsapp: agency?.whatsapp ?? null,
+      agencyEmail: agency?.officialEmail ?? null,
+      agencyWebsite: agency?.website ?? null,
+      agencyOfficeAddress: agency?.officeAddress ?? null,
+      advertisementId: advertisement?.id ?? null,
+      advertisementHeader: advertisement?.header ?? null,
+      advertisementPublishedAt: advertisement?.updatedAt ?? null,
     };
   },
 };
