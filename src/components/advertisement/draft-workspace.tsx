@@ -53,6 +53,16 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const started = useRef(false);
+  // Extraction is only retryable when there is source material to re-read.
+  const canRetryExtraction = hasRawText || sourceType !== "PASTE_TEXT";
+
+  function handleRetryExtraction() {
+    setFallbackReason(null);
+    setError(null);
+    started.current = false;
+    setPipelineMessage("Analyzing the requirement…");
+    setStep("extracting");
+  }
 
   useEffect(() => {
     if (step !== "extracting" || started.current) return;
@@ -192,7 +202,18 @@ export function DraftWorkspace({ draftId, sourceType, hasRawText, initialStatus 
           {fallbackReason && (
             <Alert>
               <AlertTitle>A few details are needed</AlertTitle>
-              <AlertDescription>{fallbackReason}</AlertDescription>
+              <AlertDescription className="space-y-3">
+                <p>{fallbackReason}</p>
+                {canRetryExtraction && (
+                  // Extraction failing is usually transient. Retrying re-runs
+                  // KAI Intelligence in place; anything already typed into the
+                  // form below is untouched, because the form owns its own
+                  // state and only `manualDefaults` is replaced on success.
+                  <Button type="button" variant="outline" size="sm" onClick={handleRetryExtraction}>
+                    Try again
+                  </Button>
+                )}
+              </AlertDescription>
             </Alert>
           )}
           <AdvertisementContentForm

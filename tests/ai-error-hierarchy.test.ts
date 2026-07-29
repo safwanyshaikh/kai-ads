@@ -28,10 +28,35 @@ describe("AI error hierarchy — Error Handling", () => {
     expect(error.code).toBe("AI_RATE_LIMITED");
   });
 
-  it("AiInvalidResponseError maps to 502 (malformed structured output)", () => {
+  it("AiInvalidResponseError maps to 502 and keeps details out of the user message", () => {
     const error = new AiInvalidResponseError("schema mismatch");
     expect(error.statusCode).toBe(502);
-    expect(error.message).toContain("schema mismatch");
+    // The diagnostic goes to the operator channel, not the browser: this
+    // argument has carried raw upstream payloads naming provider models.
+    expect(error.operatorDetail).toContain("schema mismatch");
+    expect(error.message).not.toContain("schema mismatch");
+  });
+
+  it("never names a provider, model, or environment variable in a user-facing message", () => {
+    const messages = [
+      new AiNotConfiguredError().message,
+      new AiTimeoutError().message,
+      new AiRateLimitError().message,
+      new AiRateLimitError("insufficient_quota").message,
+      new AiInvalidResponseError('{"error":{"message":"models/gemini-2.5-flash is gone"}}').message,
+    ];
+    for (const m of messages) {
+      expect(m, m).not.toMatch(/openai|gemini|gpt|anthropic|claude/i);
+      expect(m, m).not.toMatch(/API_KEY|quota\/credit|billing/i);
+    }
+  });
+
+  it("preserves the quota-vs-throttle distinction for operators without exposing it", () => {
+    const quota = new AiRateLimitError("insufficient_quota");
+    const throttle = new AiRateLimitError();
+    expect(quota.code).toBe("AI_QUOTA_EXHAUSTED");
+    expect(throttle.code).toBe("AI_RATE_LIMITED");
+    expect(quota.operatorDetail).toMatch(/quota/i);
   });
 
   it("UnsupportedDocumentError maps to 422 with a caller-supplied reason", () => {

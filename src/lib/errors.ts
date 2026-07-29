@@ -78,6 +78,13 @@ export function handleApiError(error: unknown): NextResponse<ApiErrorBody> {
   }
 
   if (error instanceof AppError) {
+    // `operatorDetail`, where present, carries the diagnostic text (raw
+    // upstream payloads, provider/billing state) that must stay out of the
+    // response body. Log it, serialize only the user-facing message.
+    const operatorDetail = (error as AppError & { operatorDetail?: string }).operatorDetail;
+    if (operatorDetail) {
+      log.error({ err: error, code: error.code, operatorDetail }, "Handled application error");
+    }
     return NextResponse.json(
       { error: { code: error.code, message: error.message } },
       { status: error.statusCode },
@@ -85,9 +92,12 @@ export function handleApiError(error: unknown): NextResponse<ApiErrorBody> {
   }
 
   if (error instanceof Error) {
+    // An unhandled error's message is arbitrary upstream text — it has
+    // leaked provider and model names to the browser before. Log it in
+    // full; tell the client nothing beyond that it failed.
     log.error({ err: error }, "Unhandled API error");
     return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message: error.message } },
+      { error: { code: "INTERNAL_ERROR", message: "Something went wrong. Please try again." } },
       { status: 500 },
     );
   }
