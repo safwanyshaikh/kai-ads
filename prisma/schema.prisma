@@ -14,6 +14,19 @@ datasource db {
 // Enums
 // ---------------------------------------------------------------------------
 
+/**
+ * Agency-owned footer styles. These are brand furniture — the equivalent
+ * of a letterhead — not advertisement templates: they never touch the
+ * creative above the branding strip.
+ */
+enum FooterStyle {
+  CLASSIC_CORPORATE
+  TRADITIONAL_DTP
+  INDUSTRIAL_PREMIUM
+  MODERN_MINIMAL
+  AI_PREMIUM
+}
+
 enum AgencyStatus {
   PENDING
   APPROVED
@@ -160,6 +173,13 @@ model Agency {
   brandColours  Json?
   /** Optional handles, e.g. { "facebook": "https://..." }. */
   socialLinks   Json?
+  /** Up to three permanent branding claims, e.g. ["Since 1984", "ISO Certified"]. */
+  brandBadges   Json?
+  /**
+   * The agency's preferred footer. Null means KAI picks the style that
+   * best matches each generated advertisement.
+   */
+  footerStyle   FooterStyle?
 
   domains      Domain[]
   users        User[]

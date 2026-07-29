@@ -40,6 +40,11 @@ export function DashboardShell({
                 </Link>
               )}
               {can(user, "agency:view_all") && (
+                <Link href={APP_ROUTES.adminIntelligence} className="hover:text-foreground">
+                  Intelligence
+                </Link>
+              )}
+              {can(user, "agency:view_all") && (
                 <Link href={APP_ROUTES.adminAgencies} className="hover:text-foreground">
                   Agency Approvals
                 </Link>

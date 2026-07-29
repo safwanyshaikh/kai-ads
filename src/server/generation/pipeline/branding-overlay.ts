@@ -1,5 +1,6 @@
 import "../font-config"; // FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
+import { footerTheme, normaliseBadges, type FooterStyle } from "./footer-styles";
 
 export interface BrandingOverlayInput {
   imagePng: Buffer;
@@ -16,6 +17,13 @@ export interface BrandingOverlayInput {
    * renders exactly as before.
    */
   addressLine?: string | null;
+  /**
+   * Agency-owned footer style. Brand furniture only — it re-dresses the
+   * trust strip and never touches the creative above it.
+   */
+  footerStyle?: FooterStyle | null;
+  /** Up to three permanent branding claims, e.g. "Since 1984". */
+  brandBadges?: string[] | null;
 }
 
 /**
@@ -91,12 +99,6 @@ const WATERMARK_TILE_WIDTH_PCT = 0.16;
 const WATERMARK_TILE_SPACING_FACTOR = 1.7;
 const WATERMARK_ROTATION_DEGREES = 30;
 
-const BAND_BACKGROUND = "#F3EEE3";
-const BAND_TEXT = "#0B1F33";
-const BAND_MUTED_TEXT = "#4A5A6C";
-const BAND_DIVIDER = "#C9C0AB";
-const CONTACT_ROW_BACKGROUND = "#0B1F33";
-const CONTACT_ROW_TEXT = "#F3D98B";
 
 export async function applyBrandingOverlay(input: BrandingOverlayInput): Promise<Buffer> {
   const { widthPx, heightPx } = input;
@@ -185,6 +187,8 @@ async function fadeLogo(logoPng: Buffer, size: number, opacity: number): Promise
  */
 async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buffer; height: number }> {
   const { widthPx, heightPx } = input;
+  const theme = footerTheme(input.footerStyle);
+  const badges = normaliseBadges(input.brandBadges);
   const bandHeight = brandingBandHeight(widthPx, heightPx);
   const contactRowHeight = brandingContactRowHeight(widthPx, heightPx, Boolean(input.contactLine));
   const totalHeight = bandHeight + contactRowHeight;
@@ -206,13 +210,41 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
 
   if (input.contactLine) {
     const contactSize = fitFontSize(input.contactLine, widthPx - pad * 2, Math.round(contactRowHeight * 0.5), Math.round(contactRowHeight * 0.28));
-    parts.push(`<rect x="0" y="0" width="${widthPx}" height="${contactRowHeight}" fill="${CONTACT_ROW_BACKGROUND}"/>`);
+    parts.push(`<rect x="0" y="0" width="${widthPx}" height="${contactRowHeight}" fill="${theme.contactRowBackground}"/>`);
     parts.push(
-      `<text x="${Math.round(widthPx / 2)}" y="${Math.round(contactRowHeight * 0.66)}" font-family="KaiSans, sans-serif" font-size="${contactSize}" fill="${CONTACT_ROW_TEXT}" text-anchor="middle">${escapeXml(input.contactLine)}</text>`,
+      `<text x="${Math.round(widthPx / 2)}" y="${Math.round(contactRowHeight * 0.66)}" font-family="KaiSans, sans-serif" font-size="${contactSize}" fill="${theme.contactRowText}" text-anchor="middle">${escapeXml(input.contactLine)}</text>`,
     );
   }
 
-  parts.push(`<rect x="0" y="${contactRowHeight}" width="${widthPx}" height="${bandHeight}" fill="${BAND_BACKGROUND}"/>`);
+  parts.push(`<rect x="0" y="${contactRowHeight}" width="${widthPx}" height="${bandHeight}" fill="${theme.background}"/>`);
+
+  // Style rule across the top of the band (0 for styles that omit it).
+  if (theme.topRulePx > 0) {
+    parts.push(
+      `<rect x="0" y="${contactRowHeight}" width="${widthPx}" height="${theme.topRulePx}" fill="${theme.topRuleColour}"/>`,
+    );
+  }
+
+  // Brand badges — permanent agency claims ("Since 1984"), never
+  // advertisement content, so they live in the trust strip and are drawn
+  // from the profile rather than from anything the AI produced.
+  if (badges.length > 0) {
+    const badgeH = Math.round(bandHeight * 0.14);
+    const badgeSize = Math.round(badgeH * 0.62);
+    let bx = textLeft;
+    const by = contactRowHeight + Math.round(bandHeight * 0.04);
+    for (const badge of badges) {
+      const bw = Math.round(badge.length * badgeSize * 0.62 + badgeH);
+      if (bx + bw > dividerX) break; // never collide with the QR column
+      parts.push(
+        `<rect x="${bx}" y="${by}" width="${bw}" height="${badgeH}" rx="${Math.round(badgeH / 2)}" fill="${theme.badgeBackground}"/>`,
+      );
+      parts.push(
+        `<text x="${bx + Math.round(bw / 2)}" y="${by + Math.round(badgeH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${badgeSize}" font-weight="700" fill="${theme.badgeText}" text-anchor="middle">${escapeXml(badge.toUpperCase())}</text>`,
+      );
+      bx += bw + Math.round(pad * 0.4);
+    }
+  }
 
   if (input.agencyLogoPng) {
     const logoDataUri = await toPngDataUri(input.agencyLogoPng, logoSize);
@@ -223,9 +255,12 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
 
   if (input.agencyName) {
     const nameSize = fitFontSize(input.agencyName, textMaxWidth, Math.round(bandHeight * NAME_SIZE_PCT_OF_BAND), Math.round(bandHeight * 0.16));
-    const nameY = contactRowHeight + (input.registrationNumber ? Math.round(bandHeight * 0.46) : Math.round(bandHeight * 0.58));
+    const hasBadges = badges.length > 0;
+    const nameY =
+      contactRowHeight +
+      Math.round(bandHeight * (hasBadges ? 0.6 : input.registrationNumber ? 0.46 : 0.58));
     parts.push(
-      `<text x="${textLeft}" y="${nameY}" font-family="KaiSans, sans-serif" font-size="${nameSize}" font-weight="700" fill="${BAND_TEXT}">${escapeXml(input.agencyName)}</text>`,
+      `<text x="${textLeft}" y="${nameY}" font-family="KaiSans, sans-serif" font-size="${nameSize}" font-weight="700" fill="${theme.text}">${escapeXml(theme.uppercaseName ? input.agencyName.toUpperCase() : input.agencyName)}</text>`,
     );
   }
 
@@ -235,9 +270,10 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
     // Lift the registration line slightly when an address line follows, so
     // the two share the space below the agency name without colliding.
     const regY =
-      contactRowHeight + Math.round(bandHeight * (input.addressLine ? ADDRESS_REG_Y_PCT : 0.76));
+      contactRowHeight +
+      Math.round(bandHeight * (badges.length > 0 ? 0.79 : input.addressLine ? ADDRESS_REG_Y_PCT : 0.76));
     parts.push(
-      `<text x="${textLeft}" y="${regY}" font-family="KaiSans, sans-serif" font-size="${regSize}" fill="${BAND_MUTED_TEXT}">${escapeXml(regText)}</text>`,
+      `<text x="${textLeft}" y="${regY}" font-family="KaiSans, sans-serif" font-size="${regSize}" fill="${theme.mutedText}">${escapeXml(regText)}</text>`,
     );
   }
 
@@ -248,23 +284,24 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
       Math.round(bandHeight * ADDRESS_SIZE_PCT_OF_BAND),
       Math.round(bandHeight * 0.08),
     );
-    const addressY = contactRowHeight + Math.round(bandHeight * ADDRESS_Y_PCT);
+    const addressY =
+      contactRowHeight + Math.round(bandHeight * (badges.length > 0 ? 0.94 : ADDRESS_Y_PCT));
     parts.push(
-      `<text x="${textLeft}" y="${addressY}" font-family="KaiSans, sans-serif" font-size="${addressSize}" fill="${BAND_MUTED_TEXT}">${escapeXml(input.addressLine)}</text>`,
+      `<text x="${textLeft}" y="${addressY}" font-family="KaiSans, sans-serif" font-size="${addressSize}" fill="${theme.mutedText}">${escapeXml(input.addressLine)}</text>`,
     );
   }
 
   if (input.qrPng) {
     if (input.agencyLogoPng || input.agencyName || input.registrationNumber) {
       parts.push(
-        `<line x1="${dividerX}" y1="${contactRowHeight + Math.round(bandHeight * 0.14)}" x2="${dividerX}" y2="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.14)}" stroke="${BAND_DIVIDER}" stroke-width="2"/>`,
+        `<line x1="${dividerX}" y1="${contactRowHeight + Math.round(bandHeight * 0.14)}" x2="${dividerX}" y2="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.14)}" stroke="${theme.divider}" stroke-width="2"/>`,
       );
     }
     const qrDataUri = await toPngDataUri(input.qrPng, qrSize);
     parts.push(`<image href="${qrDataUri}" x="${qrLeft}" y="${qrTop}" width="${qrSize}" height="${qrSize}"/>`);
     const captionSize = Math.round(bandHeight * 0.09);
     parts.push(
-      `<text x="${qrLeft + qrSize / 2}" y="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.03)}" font-family="KaiSans, sans-serif" font-size="${captionSize}" fill="${BAND_MUTED_TEXT}" text-anchor="middle">SCAN TO VERIFY</text>`,
+      `<text x="${qrLeft + qrSize / 2}" y="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.03)}" font-family="KaiSans, sans-serif" font-size="${captionSize}" fill="${theme.mutedText}" text-anchor="middle">SCAN TO VERIFY</text>`,
     );
   }
 

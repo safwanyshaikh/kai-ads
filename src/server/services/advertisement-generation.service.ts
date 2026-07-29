@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { advertisementRepository } from "@/server/repositories/advertisement.repository";
 import { agencyRepository } from "@/server/repositories/agency.repository";
+import { normaliseBadges } from "@/server/generation/pipeline/footer-styles";
 import { agencyVerificationRepository } from "@/server/repositories/agency-verification.repository";
 import { auditLogService } from "@/server/services/audit-log.service";
 import { costTrackingService } from "@/server/services/cost-tracking.service";
@@ -108,6 +109,10 @@ export const advertisementGenerationService = {
         registrationNumber: agency.registrationNumber,
         contactLine: buildContactLine(facts.contact, agency),
         addressLine: buildAddressLine(agency),
+        // Footer style and badges are agency brand furniture, read from the
+        // verified profile — never from the advertisement or the AI.
+        footerStyle: agency.footerStyle,
+        brandBadges: normaliseBadges(agency.brandBadges),
       });
       pngBuffer = result.imagePng;
 

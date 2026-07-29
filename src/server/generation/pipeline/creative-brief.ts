@@ -44,6 +44,12 @@ export async function buildCreativeBrief(
       "protective equipment, real site conditions, real climate. Photographic realism, editorial quality, " +
       "natural light. No stock-photo handshakes, no posed studio portraits, no corporate abstractions, no " +
       "flags or national symbols. " +
+      "\n\nThese advertisements are published mainly to Instagram, Facebook, LinkedIn, WhatsApp and " +
+      "Telegram, and are read on a phone before anywhere else. Favour a modern, clean, social-first " +
+      "composition over a print-first one: strong immediate focal point, generous whitespace, high " +
+      "contrast that survives feed compression, and nothing so fine or busy that it disappears at " +
+      "thumbnail size. It must still hold up when downloaded, printed or exported to PDF. " +
+      "This is an objective, not a layout — decide the composition yourself. " +
       "\n\nWrite one paragraph of visual direction. Do not list facts. Do not write advertising copy.",
     input: JSON.stringify({
       industry: facts.industry,

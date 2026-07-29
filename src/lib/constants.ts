@@ -12,6 +12,7 @@ export const APP_ROUTES = {
   dashboard: "/dashboard",
   dashboardAgency: "/dashboard/agency",
   adminBeta: "/admin/beta",
+  adminIntelligence: "/admin/intelligence",
   adminAgencies: "/admin/agencies",
   adminAgencyVerifications: "/admin/agency-verifications",
   advertisements: "/dashboard/advertisements",

@@ -1,5 +1,7 @@
 import { buildCreativeBrief } from "./creative-brief";
 import { renderFactLayer } from "./fact-layer";
+import { selectFooterStyle } from "./footer-selection";
+import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import sharp from "sharp";
@@ -19,12 +21,17 @@ export interface GeneratePipelineInput {
   contactLine?: string | null;
   /** Agency address/website line for the branding band. */
   addressLine?: string | null;
+  /** Agency's saved footer preference; when absent KAI selects one. */
+  footerStyle?: FooterStyle | null;
+  brandBadges?: string[] | null;
 }
 
 export interface GeneratePipelineResult {
   imagePng: Buffer;
   brief: string;
   usage: { model: string; latencyMs: number; estimatedCostUsd: number | null };
+  /** Which footer was used and why — surfaced to the recruiter and analytics. */
+  footerSelection: Awaited<ReturnType<typeof selectFooterStyle>>;
 }
 
 /**
@@ -68,6 +75,10 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     .png()
     .toBuffer();
 
+  // Branding compatibility only: this reads the artwork to choose a
+  // footer and never modifies it.
+  const footerSelection = await selectFooterStyle(imagePng, input.footerStyle);
+
   const finalPng = await applyBrandingOverlay({
     imagePng,
     widthPx: input.widthPx,
@@ -78,7 +89,9 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     registrationNumber: input.registrationNumber,
     contactLine: input.contactLine,
     addressLine: input.addressLine,
+    footerStyle: footerSelection.style,
+    brandBadges: input.brandBadges,
   });
 
-  return { imagePng: finalPng, brief, usage };
+  return { imagePng: finalPng, brief, usage, footerSelection };
 }
