@@ -178,7 +178,12 @@ async function main() {
   console.log(JSON.stringify(output, null, 2));
 }
 
-main().catch((error: unknown) => {
-  console.error("FAILED:", (error as Error).message);
-  process.exit(1);
-});
+// Only run standalone (e.g. `npx tsx creative-director.ts`), not when
+// imported by full-pipeline.ts — otherwise the import alone would trigger
+// a second, conflicting generation using full-pipeline's own argv.
+if (process.argv[1]?.endsWith("creative-director.ts")) {
+  main().catch((error: unknown) => {
+    console.error("FAILED:", (error as Error).message);
+    process.exit(1);
+  });
+}
