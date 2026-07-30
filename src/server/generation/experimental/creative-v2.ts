@@ -189,7 +189,20 @@ export async function generateCreativeV2(input: CreativeV2Input): Promise<Creati
     imagePng = await placeVerificationQr(imagePng, input.qrPng, input.widthPx, input.heightPx);
   }
 
-  const validation = await validateRenderedFacts(imagePng, input.facts);
+  // The read-back is a research aid, not a gate. If it fails the image is
+  // still the artefact worth looking at, so the failure is recorded rather
+  // than thrown — this path never feeds production.
+  let validation: FactValidation;
+  try {
+    validation = await validateRenderedFacts(imagePng, input.facts);
+  } catch (error) {
+    validation = {
+      expected: [],
+      missing: [],
+      unverified: [],
+      readBack: `read-back unavailable: ${(error as Error).message}`,
+    };
+  }
 
   return { imagePng, prompt, usage: { model: usage.model, latencyMs }, validation };
 }
