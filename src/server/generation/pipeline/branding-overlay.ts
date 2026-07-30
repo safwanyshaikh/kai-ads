@@ -254,13 +254,22 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
   }
 
   if (input.agencyName) {
-    const nameSize = fitFontSize(input.agencyName, textMaxWidth, Math.round(bandHeight * NAME_SIZE_PCT_OF_BAND), Math.round(bandHeight * 0.16));
+    // Measure the exact glyphs that get painted: uppercase styles render a
+    // materially wider string than the name as stored.
+    const paintedName = theme.uppercaseName ? input.agencyName.toUpperCase() : input.agencyName;
+    const nameSize = fitFontSize(
+      paintedName,
+      textMaxWidth,
+      Math.round(bandHeight * NAME_SIZE_PCT_OF_BAND),
+      Math.round(bandHeight * 0.16),
+      true, // font-weight 700
+    );
     const hasBadges = badges.length > 0;
     const nameY =
       contactRowHeight +
       Math.round(bandHeight * (hasBadges ? 0.6 : input.registrationNumber ? 0.46 : 0.58));
     parts.push(
-      `<text x="${textLeft}" y="${nameY}" font-family="KaiSans, sans-serif" font-size="${nameSize}" font-weight="700" fill="${theme.text}">${escapeXml(theme.uppercaseName ? input.agencyName.toUpperCase() : input.agencyName)}</text>`,
+      `<text x="${textLeft}" y="${nameY}" font-family="KaiSans, sans-serif" font-size="${nameSize}" font-weight="700" fill="${theme.text}">${escapeXml(paintedName)}</text>`,
     );
   }
 
@@ -310,9 +319,35 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
   return { png, height: totalHeight };
 }
 
+/**
+ * Average glyph width as a fraction of font size. Regular sentence case is
+ * the narrowest case; bold is wider; capitals are wider still, and bold
+ * capitals are the widest a footer ever renders.
+ *
+ * This must be measured against the string that is actually painted. When
+ * it was a flat 0.56 the agency name overflowed the QR column on every
+ * uppercase footer style: "AL YOUSUF ENTERPRISES LLP" was measured as
+ * mixed-case regular, fitted at 51px, then drawn bold and uppercased at a
+ * real width ~140px past the divider — clipping the final letter under the
+ * QR on live output.
+ */
+function widthFactor(text: string, bold: boolean): number {
+  const upper = text === text.toUpperCase() && /[A-Z]/.test(text);
+  if (bold && upper) return 0.68;
+  if (bold) return 0.6;
+  return upper ? 0.62 : 0.56;
+}
+
 /** Shrinks font size (down to minSize) until the text's estimated width fits maxWidth — guarantees no clipped text. */
-function fitFontSize(text: string, maxWidth: number, preferredSize: number, minSize: number): number {
-  const estimateWidth = (size: number) => text.length * size * 0.56;
+function fitFontSize(
+  text: string,
+  maxWidth: number,
+  preferredSize: number,
+  minSize: number,
+  bold = false,
+): number {
+  const factor = widthFactor(text, bold);
+  const estimateWidth = (size: number) => text.length * size * factor;
   let size = preferredSize;
   while (size > minSize && estimateWidth(size) > maxWidth) size -= 1;
   return Math.max(size, minSize);
