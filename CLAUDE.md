@@ -71,6 +71,15 @@ recorded there as roadmap. Update it when a capability ships.
 - `docs/` numbered series — functional spec, schema, API, UI/UX, AI engine, deployment, charter.
 - `decisions/` — ADRs; `architecture/` — system architecture.
 
+## Working-style preference (all sessions)
+
+Whenever a task produces text output meant for reuse — prompts, JSON
+blueprints, critiques, model configs, generated copy — always also print
+it as plain text directly in the reply, in a copy-pasteable code block, not
+only as an attached file or image. Images/files are still sent when the
+deliverable is visual, but any accompanying text artifact must appear
+inline as well.
+
 ## Non-negotiable engineering laws
 
 - Truth Brain: every advertisement fact must be source-grounded; never fabricate
