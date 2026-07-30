@@ -137,6 +137,18 @@ const envSchema = z.object({
   KAI_IMAGE_QUALITY: z.enum(["low", "medium", "high"]).default("high"),
   KAI_IMAGE_SIZE: z.string().default("1024x1024"),
 
+  /**
+   * KAI Creative V2 — EXPERIMENT ONLY, default off.
+   *
+   * Gates a parallel generation path in which the image model composes the
+   * complete advertisement, including the text. That is the opposite of
+   * the Factual Integrity Law (docs/010 Amendment 1), which is why this
+   * flag is not read by any production route: it exists so the two
+   * approaches can be generated side by side and judged. Turning it on
+   * enables the experimental script, never the agency-facing pipeline.
+   */
+  ENABLE_CREATIVE_V2: z.string().optional(),
+
   // Public domain the unified verification QR badge points at
   // (https://{KAI_PUBLIC_DOMAIN}/v/{agencyVerificationId}?a={advertisementId}).
   KAI_PUBLIC_DOMAIN: z.string().default("http://localhost:3000"),
