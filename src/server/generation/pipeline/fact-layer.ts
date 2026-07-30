@@ -164,6 +164,12 @@ export interface FactLayerResult {
   png: Buffer;
   /** Actual height used — grows past the request for dense requirements. */
   heightPx: number;
+  /**
+   * Height of the hero/artwork region. Below this line the canvas is the
+   * fact layer — positions, salary, benefits, contact — so nothing
+   * decorative may be painted there.
+   */
+  artworkHeightPx: number;
 }
 
 type Plan = ReturnType<typeof planBody>;
@@ -427,7 +433,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   parts.push(`</svg>`);
 
   const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
-  return { png, heightPx: H };
+  return { png, heightPx: H, artworkHeightPx: heroPx };
 }
 
 function renderBody(

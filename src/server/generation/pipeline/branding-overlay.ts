@@ -24,6 +24,13 @@ export interface BrandingOverlayInput {
   footerStyle?: FooterStyle | null;
   /** Up to three permanent branding claims, e.g. "Since 1984". */
   brandBadges?: string[] | null;
+  /**
+   * Height of the hero/artwork region. The watermark is confined to it.
+   * Everything below is the fact layer and the branding band, which must
+   * stay clean. Omitted (or 0) means no watermark is painted at all —
+   * without a known artwork boundary there is nowhere safe to put it.
+   */
+  artworkHeightPx?: number | null;
 }
 
 /**
@@ -94,7 +101,13 @@ const ADDRESS_SIZE_PCT_OF_BAND = 0.13; // quieter than the registration line
 const ADDRESS_REG_Y_PCT = 0.68; // registration lifts to here when an address follows
 const ADDRESS_Y_PCT = 0.88; // address sits below it, still inside the band
 const LOGO_TEXT_GAP_FACTOR = 1.0; // horizontal whitespace between logo and text, as a multiple of `pad`
-const WATERMARK_OPACITY = 0.07;
+/**
+ * Barely perceptible. At 0.07, tiled across the whole canvas, the repeating
+ * diagonal logo sat over the positions list and read as a pirated document
+ * rather than a published advertisement. It is now confined to the artwork
+ * and faint enough to survive only as an attribution trace.
+ */
+const WATERMARK_OPACITY = 0.04;
 const WATERMARK_TILE_WIDTH_PCT = 0.16;
 const WATERMARK_TILE_SPACING_FACTOR = 1.7;
 const WATERMARK_ROTATION_DEGREES = 30;
@@ -104,8 +117,11 @@ export async function applyBrandingOverlay(input: BrandingOverlayInput): Promise
   const { widthPx, heightPx } = input;
   const layers: { input: Buffer; left: number; top: number }[] = [];
 
-  if (input.agencyLogoPng) {
-    layers.push(...(await buildWatermarkTiles(input.agencyLogoPng, widthPx, heightPx)));
+  // Confined to the artwork region: never over positions, salary, benefits,
+  // contact, the branding band, the QR or the logo.
+  const artworkHeight = Math.max(0, Math.min(input.artworkHeightPx ?? 0, heightPx));
+  if (input.agencyLogoPng && artworkHeight > 0) {
+    layers.push(...(await buildWatermarkTiles(input.agencyLogoPng, widthPx, artworkHeight)));
   }
 
   const hasFooterContent = Boolean(
@@ -134,7 +150,7 @@ export async function applyBrandingOverlay(input: BrandingOverlayInput): Promise
 async function buildWatermarkTiles(
   logoPng: Buffer,
   widthPx: number,
-  heightPx: number,
+  regionHeightPx: number,
 ): Promise<{ input: Buffer; left: number; top: number }[]> {
   const tileSize = Math.round(widthPx * WATERMARK_TILE_WIDTH_PCT);
   const faded = await fadeLogo(logoPng, tileSize, WATERMARK_OPACITY);
@@ -149,7 +165,7 @@ async function buildWatermarkTiles(
   const spacingY = Math.round(th * WATERMARK_TILE_SPACING_FACTOR);
 
   const cols = Math.ceil(widthPx / spacingX) + 2;
-  const rows = Math.ceil(heightPx / spacingY) + 2;
+  const rows = Math.ceil(regionHeightPx / spacingY) + 2;
 
   const tiles: { input: Buffer; left: number; top: number }[] = [];
   for (let r = 0; r < rows; r++) {
@@ -157,7 +173,10 @@ async function buildWatermarkTiles(
     for (let c = -1; c < cols; c++) {
       const left = c * spacingX + rowOffset;
       const top = r * spacingY - Math.round(th / 2);
-      if (left < 0 || top < 0 || left >= widthPx || top >= heightPx) continue;
+      if (left < 0 || top < 0 || left >= widthPx) continue;
+      // A tile must fit entirely inside the artwork — a partially
+      // overlapping one would bleed across the boundary onto the facts.
+      if (top + th > regionHeightPx) continue;
       tiles.push({ input: rotated, left, top });
     }
   }

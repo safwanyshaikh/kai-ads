@@ -91,6 +91,7 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     addressLine: input.addressLine,
     footerStyle: footerSelection.style,
     brandBadges: input.brandBadges,
+    artworkHeightPx: factLayer.artworkHeightPx,
   });
 
   return { imagePng: finalPng, brief, usage, footerSelection };
