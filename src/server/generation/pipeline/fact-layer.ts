@@ -458,12 +458,17 @@ function renderBody(
     const colX = margin + c * (colW + gutter);
     let cy = startY;
     for (const p of facts.positions.slice(c * perCol, (c + 1) * perCol)) {
+      // Each role is a card. SVG paints in document order, so the row's
+      // marks are collected first and the card is emitted beneath them
+      // once its true height is known.
+      const rowParts: string[] = [];
+      const rowTop = cy - Math.round(titleSize * 0.92);
       if (p.count != null) {
         const bs = Math.round(titleSize * 0.78);
-        parts.push(
+        rowParts.push(
           `<rect x="${colX}" y="${cy - Math.round(titleSize * 0.82)}" width="${px(0.042)}" height="${Math.round(titleSize * 1.06)}" rx="3" fill="${GOLD}"/>`,
         );
-        parts.push(
+        rowParts.push(
           `<text x="${colX + Math.round(px(0.042) / 2)}" y="${cy - Math.round(titleSize * 0.1)}" font-family="KaiSans, sans-serif" font-size="${bs}" font-weight="700" fill="${NAVY}" text-anchor="middle">${esc(String(p.count))}</text>`,
         );
       }
@@ -473,7 +478,7 @@ function renderBody(
       const lines = wrap(p.title, tw, titleSize, plan.maxLines);
       for (const line of lines) {
         const ls = fit(line, tw, titleSize, floor);
-        parts.push(
+        rowParts.push(
           `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${NAVY}">${esc(line)}</text>`,
         );
         cy += Math.round(titleSize * plan.lineFactor);
@@ -482,16 +487,21 @@ function renderBody(
         const d = roleDetail(p);
         if (d) {
           const ds = fit(d, tw, detailSize, floor);
-          parts.push(
+          rowParts.push(
             `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${SLATE}">${esc(d)}</text>`,
           );
           cy += Math.round(detailSize * 1.3);
         }
       }
-      cy += rowGap;
+      // The card fills the row's own space — no extra height is consumed,
+      // so density tiers, column planning and capacity checks are unchanged.
+      const inset = Math.round(rowGap * 0.3);
+      const cardH = cy - rowTop + inset;
       parts.push(
-        `<line x1="${colX}" y1="${cy - Math.round(rowGap * 0.55)}" x2="${colX + colW}" y2="${cy - Math.round(rowGap * 0.55)}" stroke="${DIVIDER}" stroke-width="1" opacity="0.55"/>`,
+        `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(0.008)}" fill="${WHITE}" stroke="${DIVIDER}" stroke-width="1"/>`,
       );
+      parts.push(...rowParts);
+      cy += rowGap;
     }
   }
 
