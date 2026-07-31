@@ -23,7 +23,6 @@ const NAVY = "#0B1F33";
 const GOLD = "#F3D98B";
 const SLATE = "#4A5A6C";
 const WHITE = "#FFFFFF";
-const DIVIDER = "#C9C0AB";
 
 /**
  * KDL §4 — the branding strip owns the bottom of the canvas. Its exact
@@ -33,7 +32,6 @@ const DIVIDER = "#C9C0AB";
  */
 const RESERVED_TOP = 0.8;
 void RESERVED_TOP;
-const HEADER_H = 0.11;
 
 /** KDL §3.2 — type scale as fractions of W. */
 const T = {
@@ -319,14 +317,27 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // relationship is piecewise — settle it with a short fixed-point loop
   // rather than assuming which regime applies.
   const hasContact = Boolean(facts.contact.phone || facts.contact.email);
+
+  // DTP chrome consumed outside the body: agency rule bar (0.062W), gold
+  // strap (0.055W) and the reversed section bar (0.045W). These are drawn
+  // by the composition and were invisible to the height solve, which is
+  // why the last rows of a seven-role list ran underneath the benefits
+  // strap and were clipped.
+  const dtpChromeH = Math.round(W * (0.062 + 0.055 + 0.045));
+
+  // The DTP masthead is tight: exactly its measured content plus a modest
+  // band of artwork. Information-maximal is the convention here — a
+  // masthead occupying half the page reads as having less on offer.
+  const mastheadH = Math.round(W * 0.062) + hero.contentH + Math.round(W * 0.02);
+
   let H = input.heightPx;
   for (let i = 0; i < 6; i++) {
-    const heroAt = Math.max(
-      Math.min(Math.round(heroFrac * H), heroCap),
-      Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W)) + hero.contentH,
-    );
     const stripAt = brandingStripHeight(W, H, hasContact) + Math.round(0.025 * H);
-    const need = Math.max(input.heightPx, heroAt + plan.bodyH + pad + stripAt);
+    // plan.bodyH still counts planBody()'s own "POSITIONS" heading, which
+    // the DTP section bar replaces — counting both left a band of dead
+    // white above the contact bar.
+    const bodyH = plan.bodyH - plan.headingH;
+    const need = Math.max(input.heightPx, mastheadH + dtpChromeH + bodyH + pad + stripAt);
     if (need <= H) break;
     H = need;
   }
@@ -337,99 +348,107 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     ]);
   }
 
-  // The hero box always holds its measured content — the cap only trims
-  // decorative slack, it never clips a fact.
-  let heroPx = Math.max(
-    Math.min(Math.round(heroFrac * H), heroCap),
-    Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W)) + hero.contentH,
-  );
-
-  // A short requirement on a square canvas left a large dead band of cream
-  // below the last line. Give the slack to the artwork instead: a one-role
-  // advertisement should be photo-led, not half-empty. Capped so the hero
-  // never crowds out the facts.
-  const strip = brandingStripHeight(W, H, hasContact);
-  const slack = H - strip - heroPx - plan.bodyH - px(0.05);
-  if (slack > 0) {
-    heroPx = Math.min(heroPx + slack, Math.round(0.55 * H));
-  }
-  const margin = plan.margin;
-  const contentW = plan.contentW;
+  // The masthead always holds its measured content, and no more. The old
+  // rule donated all leftover height to the artwork, which on a DTP page
+  // produced a near-empty half-canvas above a clipped table.
+  const heroPx = Math.min(mastheadH, heroCap);
+  void heroFrac;
   const parts: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`];
 
-  // ---- Hero scrim (KDL §4.3): a known contrast floor over unknown artwork.
+  // ---- DTP composition ------------------------------------------------
+  // Benchmarked against Assignment Abroad Times classified advertisements
+  // (M. Gheewala, Al-Yousuf). That trade convention is information-maximal,
+  // not whitespace-led: a hard outer frame, full-bleed reversed banners,
+  // ruled tables, and every fact boxed. Candidates in this market read
+  // these pages expecting density — a spacious "campaign" layout reads as
+  // having less on offer.
+  const FRAME = Math.max(3, Math.round(W * 0.004));
+  const inset = Math.round(W * 0.012);
+
+  // Paper: the printed surface stops where the branding strip begins. The
+  // strip is the Rendering Engine's own territory and the fact layer must
+  // draw nothing inside it.
+  const stripH = brandingStripHeight(W, H, hasContact);
+  const paperH = H - stripH;
+  parts.push(`<rect x="0" y="0" width="${W}" height="${paperH}" fill="${WHITE}"/>`);
+
+  // Masthead band — the only place the background artwork shows, behind a
+  // near-opaque scrim that guarantees the headline's contrast.
   parts.push(
     `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">` +
-      `<stop offset="0" stop-color="${NAVY}" stop-opacity="0.94"/>` +
-      `<stop offset="0.75" stop-color="${NAVY}" stop-opacity="0.82"/>` +
-      `<stop offset="1" stop-color="${NAVY}" stop-opacity="0.35"/>` +
+      `<stop offset="0" stop-color="${NAVY}" stop-opacity="0.92"/>` +
+      `<stop offset="1" stop-color="${NAVY}" stop-opacity="0.80"/>` +
       `</linearGradient></defs>`,
   );
-  parts.push(`<rect x="0" y="0" width="${W}" height="${heroPx}" fill="url(#s)"/>`);
-  // Body surface: cream, so factual text sits on a known background.
+
+  // Outer frame — the single most recognisable DTP signal.
   parts.push(
-    `<rect x="0" y="${heroPx}" width="${W}" height="${H - brandingStripHeight(W, H, hasContact) - heroPx}" fill="#F3EEE3"/>`,
+    `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${paperH - inset * 2}" ` +
+      `fill="none" stroke="${NAVY}" stroke-width="${FRAME}"/>`,
   );
 
-  // ---- Header (KDL §4.2) ----
-  // Capped like the hero: on a tall directory poster a height-proportional
-  // header becomes a large empty navy slab.
-  const headH = Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W));
-  parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${NAVY}"/>`);
-  const baseY = headH - Math.round(headH * 0.34);
-  const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor);
+  const edge = inset + FRAME;
+  const innerW = W - edge * 2;
+  const bandPad = Math.round(W * 0.022);
+  const colX = edge + bandPad;
+  const colW2 = innerW - bandPad * 2;
+
+  // ---- Band 1: agency rule bar (reversed) ----
+  const barH = Math.round(W * 0.062);
+  parts.push(`<rect x="${edge}" y="${edge}" width="${innerW}" height="${barH}" fill="${NAVY}"/>`);
+  const agencySize = fit(facts.agencyName.toUpperCase(), colW2 * 0.62, Math.round(barH * 0.42), plan.floor, true);
   parts.push(
-    `<text x="${margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${agencySize}" font-weight="700" fill="${WHITE}">${esc(facts.agencyName)}</text>`,
+    `<text x="${colX}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+      `font-size="${agencySize}" font-weight="700" fill="${WHITE}" letter-spacing="1">${esc(facts.agencyName.toUpperCase())}</text>`,
   );
-  if (facts.country) {
+  if (facts.raLicenseId) {
     parts.push(
-      `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${GOLD}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
+      `<text x="${W - edge - bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+        `font-size="${px(T.Caption)}" fill="${GOLD}" text-anchor="end">${esc(facts.raLicenseId)}</text>`,
     );
   }
-  parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${GOLD}"/>`);
 
-  // ---- Hero (KDL §4.4 ranks 1–4) ----
-  let y = headH + px(0.055);
+  // ---- Band 2: masthead headline, reversed over artwork ----
+  const mastTop = edge + barH;
+  const mastH = Math.max(heroPx - mastTop, Math.round(W * 0.2));
+  parts.push(`<rect x="${edge}" y="${mastTop}" width="${innerW}" height="${mastH}" fill="url(#s)"/>`);
+
+  let y = mastTop + Math.round(mastH * 0.1) + hero.headlineSize;
   for (const l of hero.headlineLines) {
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.headlineSize}" font-weight="800" fill="${WHITE}" letter-spacing="-1">${esc(l)}</text>`,
+      `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.headlineSize}" ` +
+        `font-weight="800" fill="${WHITE}" text-anchor="middle" letter-spacing="-1">${esc(l.toUpperCase())}</text>`,
     );
-    y += Math.round(hero.headlineSize * 1.14);
+    y += Math.round(hero.headlineSize * 1.1);
   }
   if (facts.employer && hero.employerSize) {
-    y += px(0.01);
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.employerSize}" font-weight="700" fill="${GOLD}">${esc(facts.employer)}</text>`,
+      `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.employerSize}" ` +
+        `font-weight="700" fill="${GOLD}" text-anchor="middle">${esc(facts.employer.toUpperCase())}</text>`,
     );
-    y += Math.round(hero.employerSize * 1.08);
-  }
-  if (hero.sub && hero.subSize) {
-    y += px(0.006);
-    parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.subSize}" fill="${WHITE}" opacity="0.9">${esc(hero.sub)}</text>`,
-    );
-    y += Math.round(hero.subSize * 1.15);
+    y += Math.round(hero.employerSize * 1.15);
   }
   if (hero.meta && hero.metaSize) {
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.metaSize}" fill="${WHITE}" opacity="0.75">${esc(hero.meta)}</text>`,
+      `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.metaSize}" ` +
+        `fill="${WHITE}" text-anchor="middle" opacity="0.85">${esc(hero.meta)}</text>`,
     );
-    y += Math.round(hero.metaSize * 1.3);
   }
 
-  // Total badge — always the true, verified total.
-  const label = headlineCountLabel(facts);
-  const bS = px(T.Caption);
-  const bW = Math.round(textWidth(label, bS) + px(0.045));
-  y += px(0.008);
+  // ---- Band 3: gold strap — the verified count, black on gold ----
+  const strapY = mastTop + mastH;
+  const strapH = Math.round(W * 0.055);
+  parts.push(`<rect x="${edge}" y="${strapY}" width="${innerW}" height="${strapH}" fill="${GOLD}"/>`);
+  const strapBits = [headlineCountLabel(facts), facts.country?.toUpperCase(), facts.industry?.toUpperCase()]
+    .filter(Boolean)
+    .join("   •   ");
+  const strapSize = fit(strapBits, colW2, Math.round(strapH * 0.4), plan.floor, true);
   parts.push(
-    `<rect x="${margin}" y="${y}" width="${bW}" height="${hero.badgeH}" rx="${Math.round(hero.badgeH / 2)}" fill="${GOLD}"/>`,
-  );
-  parts.push(
-    `<text x="${margin + Math.round(bW / 2)}" y="${y + Math.round(hero.badgeH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${bS}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(label)}</text>`,
+    `<text x="${Math.round(W / 2)}" y="${strapY + Math.round(strapH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+      `font-size="${strapSize}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
   );
 
-  parts.push(renderBody(facts, W, heroPx, plan));
+  parts.push(renderBody(facts, W, strapY + strapH, plan, edge, innerW));
   parts.push(`</svg>`);
 
   const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
@@ -441,82 +460,106 @@ function renderBody(
   W: number,
   heroPx: number,
   plan: Plan,
+  edge = 0,
+  innerW = W,
 ): string {
   const px = (f: number) => Math.round(f * W);
-  const { margin, colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
+  const { cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
   const parts: string[] = [];
+  const pad = Math.round(W * 0.022);
+  const tableX = edge + pad;
+  const tableW = innerW - pad * 2;
 
-  let y = heroPx + px(0.035) + px(T.H2);
+  // ---- Section rule bar, reversed. DTP convention: sections are declared
+  // by a solid bar across the measure, not by a heading floating in space.
+  const secH = Math.round(W * 0.045);
+  let y = heroPx + px(0.018);
+  parts.push(`<rect x="${edge}" y="${y}" width="${innerW}" height="${secH}" fill="${NAVY}"/>`);
   parts.push(
-    `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${NAVY}">POSITIONS</text>`,
+    `<text x="${Math.round(W / 2)}" y="${y + Math.round(secH * 0.68)}" font-family="KaiSans, sans-serif" ` +
+      `font-size="${Math.round(secH * 0.44)}" font-weight="700" fill="${WHITE}" text-anchor="middle" ` +
+      `letter-spacing="3">POSITIONS AVAILABLE</text>`,
   );
-  parts.push(`<rect x="${margin}" y="${y + px(0.009)}" width="${px(0.075)}" height="3" fill="${GOLD}"/>`);
-  y += plan.headingH - px(T.H2) + px(0.012);
+  y += secH;
 
+  // ---- Ruled position table. Every row is boxed and separated by a rule;
+  // alternating tint keeps a long list scannable across the measure.
   const startY = y;
+  const colPitch = Math.round((tableW - gutter * (cols - 1)) / cols);
   for (let c = 0; c < cols; c++) {
-    const colX = margin + c * (colW + gutter);
+    const colX = tableX + c * (colPitch + gutter);
     let cy = startY;
+    let index = c * perCol;
     for (const p of facts.positions.slice(c * perCol, (c + 1) * perCol)) {
-      // Each role is a card. SVG paints in document order, so the row's
-      // marks are collected first and the card is emitted beneath them
-      // once its true height is known.
       const rowParts: string[] = [];
-      const rowTop = cy - Math.round(titleSize * 0.92);
-      if (p.count != null) {
-        const bs = Math.round(titleSize * 0.78);
-        rowParts.push(
-          `<rect x="${colX}" y="${cy - Math.round(titleSize * 0.82)}" width="${px(0.042)}" height="${Math.round(titleSize * 1.06)}" rx="3" fill="${GOLD}"/>`,
-        );
-        rowParts.push(
-          `<text x="${colX + Math.round(px(0.042) / 2)}" y="${cy - Math.round(titleSize * 0.1)}" font-family="KaiSans, sans-serif" font-size="${bs}" font-weight="700" fill="${NAVY}" text-anchor="middle">${esc(String(p.count))}</text>`,
-        );
-      }
-      const tx = colX + badgeW;
-      const tw = colW - badgeW;
-      // Titles wrap; they are never truncated and never shrunk below the floor.
+      const rowTop = cy;
+      // The row occupies exactly the height the planner reserved for it.
+      // Drawing that consumed more than planBody() predicted is what let
+      // the benefits strap land in the middle of the table.
+      const rowH = plan.rowHeights[index] ?? Math.round(titleSize * plan.lineFactor + rowGap);
+
+      const tx = colX + badgeW + Math.round(pad * 0.4);
+      const tw = colPitch - badgeW - pad;
       const lines = wrap(p.title, tw, titleSize, plan.maxLines);
+      let baseline = rowTop + Math.round(titleSize * 0.95);
       for (const line of lines) {
         const ls = fit(line, tw, titleSize, floor);
         rowParts.push(
-          `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${NAVY}">${esc(line)}</text>`,
+          `<text x="${tx}" y="${baseline}" font-family="KaiSans, sans-serif" font-size="${ls}" ` +
+            `font-weight="700" fill="${NAVY}">${esc(line.toUpperCase())}</text>`,
         );
-        cy += Math.round(titleSize * plan.lineFactor);
+        baseline += Math.round(titleSize * plan.lineFactor);
       }
       if (showDetail) {
         const d = roleDetail(p);
         if (d) {
           const ds = fit(d, tw, detailSize, floor);
           rowParts.push(
-            `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${SLATE}">${esc(d)}</text>`,
+            `<text x="${tx}" y="${baseline}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${SLATE}">${esc(d)}</text>`,
           );
-          cy += Math.round(detailSize * 1.3);
         }
       }
-      // The card fills the row's own space — no extra height is consumed,
-      // so density tiers, column planning and capacity checks are unchanged.
-      const inset = Math.round(rowGap * 0.3);
-      const cardH = cy - rowTop + inset;
-      parts.push(
-        `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(0.008)}" fill="${WHITE}" stroke="${DIVIDER}" stroke-width="1"/>`,
-      );
+      cy = rowTop + rowH;
+
+      // Row tint, then the vacancy-count cell, then a full-measure rule.
+      if (index % 2 === 1) {
+        parts.push(
+          `<rect x="${colX}" y="${rowTop}" width="${colPitch}" height="${rowH - Math.round(rowGap * 0.4)}" fill="#F3EEE3"/>`,
+        );
+      }
+      if (p.count != null) {
+        const cellH = rowH - Math.round(rowGap * 0.4);
+        parts.push(
+          `<rect x="${colX}" y="${rowTop}" width="${badgeW}" height="${cellH}" fill="${GOLD}"/>`,
+        );
+        parts.push(
+          `<text x="${colX + Math.round(badgeW / 2)}" y="${rowTop + Math.round(cellH / 2) + Math.round(titleSize * 0.34)}" ` +
+            `font-family="KaiSans, sans-serif" font-size="${Math.round(titleSize * 0.84)}" font-weight="700" ` +
+            `fill="${NAVY}" text-anchor="middle">${esc(String(p.count))}</text>`,
+        );
+      }
       parts.push(...rowParts);
-      cy += rowGap;
+      parts.push(
+        `<line x1="${colX}" y1="${cy - Math.round(rowGap * 0.4)}" x2="${colX + colPitch}" ` +
+          `y2="${cy - Math.round(rowGap * 0.4)}" stroke="${NAVY}" stroke-width="1.5" opacity="0.5"/>`,
+      );
+      index++;
     }
   }
 
   let sy = startY + plan.listH + px(0.016);
 
-  // Benefits — omitted entirely when absent (KDL §4.5.1).
+  // ---- Benefits: reversed strap across the full measure, gold on navy.
   if (facts.benefits.length) {
-    const text = facts.benefits.map((b) => (b.detail ? `${b.label}: ${b.detail}` : b.label)).join("   ·   ");
-    const s = fit(text, plan.contentW, px(T.Caption), floor);
-    const barH = Math.round(s * 2.4);
-    parts.push(`<rect x="0" y="${sy - Math.round(s * 1.1)}" width="${W}" height="${barH}" fill="${NAVY}"/>`);
+    const text = facts.benefits.map((b) => (b.detail ? `${b.label}: ${b.detail}` : b.label)).join("   •   ");
+    const s = fit(text.toUpperCase(), tableW, px(T.Caption), floor, true);
+    const barH = Math.round(s * 2.6);
+    parts.push(`<rect x="${edge}" y="${sy - Math.round(s * 1.2)}" width="${innerW}" height="${barH}" fill="${NAVY}"/>`);
     parts.push(
-      `<text x="${margin}" y="${sy + Math.round(s * 0.42)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${GOLD}">${esc(text)}</text>`,
+      `<text x="${Math.round(W / 2)}" y="${sy + Math.round(s * 0.46)}" font-family="KaiSans, sans-serif" ` +
+        `font-size="${s}" font-weight="700" fill="${GOLD}" text-anchor="middle" letter-spacing="1">${esc(text.toUpperCase())}</text>`,
     );
-    sy += Math.round(s * 2.7);
+    sy += Math.round(s * 2.9);
   }
 
   // Interview — omitted entirely when absent.
@@ -526,10 +569,10 @@ function renderBody(
     if (detail) {
       const s = fit(`INTERVIEW   ${detail}`, plan.contentW, px(T.Caption), floor);
       parts.push(
-        `<text x="${margin}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${NAVY}">INTERVIEW</text>`,
+        `<text x="${tableX}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${NAVY}">INTERVIEW</text>`,
       );
       parts.push(
-        `<text x="${margin + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${SLATE}">${esc(detail)}</text>`,
+        `<text x="${tableX + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${SLATE}">${esc(detail)}</text>`,
       );
     }
   }
