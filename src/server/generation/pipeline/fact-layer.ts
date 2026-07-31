@@ -144,6 +144,29 @@ export function selectTheme(
   };
 }
 
+/**
+ * The true minimum and maximum of the verified per-role salaries, printed
+ * once when the slot cannot carry a salary column. Only figures that were
+ * actually supplied are considered; nothing is interpolated.
+ */
+function salaryRangeLabel(facts: AdvertisementFacts): string | null {
+  const nums: number[] = [];
+  let currency = "";
+  for (const p of facts.positions) {
+    if (!p.salary) continue;
+    const m = p.salary.match(/([A-Z]{2,4})?\s*([\d,]+)/);
+    if (!m) continue;
+    if (m[1] && !currency) currency = m[1];
+    const n = Number(m[2].replace(/,/g, ""));
+    if (Number.isFinite(n)) nums.push(n);
+  }
+  if (nums.length === 0) return null;
+  const lo = Math.min(...nums);
+  const hi = Math.max(...nums);
+  const fmt = (n: number) => n.toLocaleString("en-US");
+  return lo === hi ? `${currency} ${fmt(lo)}`.trim() : `${currency} ${fmt(lo)}\u2013${fmt(hi)}`.trim();
+}
+
 type Tier = "T1" | "T2" | "T3" | "T4";
 
 function tierFor(count: number): Tier {
@@ -231,6 +254,13 @@ export interface FactLayerInput {
   facts: AdvertisementFacts;
   widthPx: number;
   heightPx: number;
+  /**
+   * Output resolution. Supplied for print, where the legibility floor must
+   * be a PHYSICAL size: the floor is otherwise a fraction of canvas width,
+   * so a narrow newspaper column rendered type at under 2pt and reported
+   * that it fitted ninety roles.
+   */
+  dpi?: number;
   /** Recruiter override. Omitted means KAI selects the theme itself. */
   theme?: AdTheme | null;
   /** Explicit print / newspaper destination — forces the AAT/DTP language. */
@@ -258,15 +288,23 @@ type Plan = ReturnType<typeof planBody>;
  * chosen so the longest verified title fits at the legibility floor, which
  * is what makes truncation impossible.
  */
-function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = false) {
+function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = false, forceCols?: number, suppressSalaryCol = false, dpi?: number) {
   const px = (f: number) => Math.round(f * W);
   const margin = px(MARGIN);
   const contentW = W - margin * 2;
   const gutter = px(GUTTER);
-  const floor = px(LEGIBILITY_FLOOR);
+  // 7pt is the smallest a Gulf recruitment classified sets a trade name.
+  // Below it the advertisement is unreadable in print no matter how well
+  // it fits.
+  const MIN_PRINT_PT = 7;
+  const floor = Math.max(px(LEGIBILITY_FLOOR), dpi ? Math.round((MIN_PRINT_PT / 72) * dpi) : 0);
 
-  const titleSize = tier === "T1" ? px(T.H3) : tier === "T2" ? px(T.BodyL) : px(T.Body);
-  const detailSize = px(T.Caption);
+  // Never plan below the floor. fit() clamps UP to the floor when drawing,
+  // so a tier size smaller than the floor made the planner measure rows at
+  // 10px that the renderer then drew at 29px — every print slot overflowed
+  // or left white, and a 4.3cm column claimed to hold ninety roles.
+  const titleSize = Math.max(floor, tier === "T1" ? px(T.H3) : tier === "T2" ? px(T.BodyL) : px(T.Body));
+  const detailSize = Math.max(floor, px(T.Caption));
   const showDetail = tier === "T1" || tier === "T2";
   // T3/T4 tighten the rhythm: past a dozen roles the list is scanned, not read.
   const rowGap = px(tier === "T1" ? 0.02 : tier === "T2" ? 0.014 : tier === "T3" ? 0.009 : 0.007);
@@ -275,23 +313,26 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
   // High Density promotes salary into its own right-hand column. That
   // width must be reserved before titles are wrapped, or a long title
   // wraps as if it owned the full measure and then collides with the figure.
-  const salaryW =
-    dense && facts.positions.some((p) => p.salary)
-      ? Math.round((W - margin * 2) * (maxColumnsFor(tier) > 1 ? 0.13 : 0.22))
-      : 0;
+  const hasSalary = dense && !suppressSalaryCol && facts.positions.some((p) => p.salary);
 
   // A long title wraps inside its column; it never truncates and never
   // collapses the grid. Only a title that still needs more than MAX_LINES
   // at the floor forces a narrower column count.
   const MAX_LINES = 3;
-  let cols = maxColumnsFor(tier);
+  // The salary gutter is a fraction of its OWN column, not of the page.
+  // Taken off the full measure it reserved the same wide gutter in every
+  // column, which at four columns left 62px for a job title and forced the
+  // grid to collapse back to two.
+  let cols = forceCols ?? maxColumnsFor(tier);
   let colW = Math.round((contentW - gutter * (cols - 1)) / cols);
+  let salaryW = hasSalary ? Math.round(colW * 0.34) : 0;
   while (
     cols > 1 &&
     facts.positions.some((p) => wrapLines(p.title, colW - badgeW - salaryW, floor).length > MAX_LINES)
   ) {
     cols -= 1;
     colW = Math.round((contentW - gutter * (cols - 1)) / cols);
+    salaryW = hasSalary ? Math.round(colW * 0.34) : 0;
   }
 
   const anyDetail = showDetail && facts.positions.some((p) => roleDetail(p));
@@ -318,7 +359,7 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
 
   return {
     cols, colW, margin, contentW, gutter, titleSize, detailSize, showDetail,
-    rowGap, badgeW, salaryW, perCol, rowH, rowHeights, listH, headingH, extraH, floor, lineFactor,
+    rowGap, badgeW, salaryW, hasSalary, perCol, rowH, rowHeights, listH, headingH, extraH, floor, lineFactor,
     maxLines: MAX_LINES,
     bodyH: headingH + listH + extraH,
   };
@@ -330,10 +371,14 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
  * pushed the subtitle onto the cream body surface (white on cream) and
  * collided the total badge with the first position row.
  */
-function planHero(facts: AdvertisementFacts, W: number) {
+function planHero(facts: AdvertisementFacts, W: number, dpi?: number) {
   const px = (f: number) => Math.round(f * W);
   const contentW = W - px(MARGIN) * 2;
-  const floor = px(LEGIBILITY_FLOOR);
+  // 7pt is the smallest a Gulf recruitment classified sets a trade name.
+  // Below it the advertisement is unreadable in print no matter how well
+  // it fits.
+  const MIN_PRINT_PT = 7;
+  const floor = Math.max(px(LEGIBILITY_FLOOR), dpi ? Math.round((MIN_PRINT_PT / 72) * dpi) : 0);
 
   const headline = (facts.header || `Hiring — ${facts.country}`).toUpperCase();
   const headlineSize = fit(headline, contentW, px(T.D1), px(T.H3), true);
@@ -400,8 +445,8 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // The hero is capped in absolute terms so a tall directory poster does not
   // spend a third of its height on artwork it does not need.
   const heroCap = Math.round((dense ? 0.3 : tier === "T1" || tier === "T2" ? 0.62 : 0.5) * W);
-  const plan = planBody(facts, tier, W, dense);
-  const hero = planHero(facts, W);
+  let plan = planBody(facts, tier, W, dense, undefined, false, input.dpi);
+  const hero = planHero(facts, W, input.dpi);
   const pad = px(0.06);
 
   // Solve for the canvas height that holds every fact at the floor. The
@@ -412,11 +457,26 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // DTP chrome drawn outside the body: agency rule bar, gold strap and the
   // reversed section bar. Invisible to the solve, these once let the last
   // rows of a long table run under the benefits strap and be clipped.
-  const dtpChromeH = Math.round(W * (0.062 + 0.055 + 0.045));
-  const dtpMastheadH = Math.round(W * 0.062) + hero.contentH + Math.round(W * 0.02);
+  // Bar heights are width-proportional, which on a short wide slot spent a
+  // quarter of the column on chrome before a single role was placed. In a
+  // bought slot the bars scale to the depth too.
+  const dtpChromeBase = Math.round(W * (0.062 + 0.055 + 0.045));
+  const dtpScale = input.printOrNewspaper
+    ? Math.min(1, (input.heightPx * 0.13) / dtpChromeBase)
+    : 1;
+  const dtpChromeH = Math.round(dtpChromeBase * dtpScale);
+  let dtpMastheadH = Math.round(W * 0.062) + hero.contentH + Math.round(W * 0.02);
 
+  // A newspaper slot is bought at a fixed size. AAT's golden rule is that
+  // an advertisement fills its slot exactly — it never overruns it and it
+  // never leaves white. So in print mode the height is FIXED: leftover
+  // space is distributed back into the rows, and a requirement that cannot
+  // fit fails loudly so the agency buys a larger slot instead of receiving
+  // an image the paper will reject.
+  const fillSlot = Boolean(input.printOrNewspaper);
   let H = input.heightPx;
   for (let i = 0; i < 6; i++) {
+    if (fillSlot) break;
     const heroAt = Math.max(
       Math.min(Math.round(heroFrac * H), heroCap),
       Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W)) + hero.contentH,
@@ -431,7 +491,66 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     H = need;
   }
 
-  if (H > W * MAX_ASPECT) {
+  if (fillSlot) {
+    H = input.heightPx;
+    const stripFixed = brandingStripHeight(W, H, hasContact);
+    // In a bought slot the masthead scales to the column, not the other way
+    // round. Sized off width alone it ate an entire 8.5cm slot before a
+    // single role was placed. A classified gives at most a quarter of its
+    // depth to the headline.
+    const mastCap = Math.round(H * 0.22);
+    if (dtpMastheadH > mastCap) {
+      const k = mastCap / dtpMastheadH;
+      hero.headlineSize = Math.max(plan.floor, Math.round(hero.headlineSize * k));
+      if (hero.employerSize) hero.employerSize = Math.max(plan.floor, Math.round(hero.employerSize * k));
+      if (hero.subSize) hero.subSize = Math.max(plan.floor, Math.round(hero.subSize * k));
+      if (hero.metaSize) hero.metaSize = Math.max(plan.floor, Math.round(hero.metaSize * k));
+      dtpMastheadH = mastCap;
+    }
+    // A classified fits its slot by adding sub-columns, not by overflowing.
+    // AAT's own densest advertisement runs three trade columns inside 6.1cm.
+    const chromeFor = (pl: typeof plan) =>
+      dtpMastheadH + dtpChromeH + stripFixed + (pl.bodyH - pl.headingH - pl.listH);
+    for (let c = plan.cols + 1; c <= 6 && H - chromeFor(plan) < plan.listH; c++) {
+      const wider = planBody(facts, tier, W, dense, c, false, input.dpi);
+      if (wider.cols !== c) break; // the title stopped fitting; stop widening
+      plan = wider;
+    }
+
+    // Still short: state the salary ONCE as a range and list bare trades,
+    // which is what the paper itself does on a tight slot. Nothing is
+    // invented — the range is the true minimum and maximum of the verified
+    // per-role figures.
+    if (H - chromeFor(plan) < plan.listH) {
+      let best = planBody(facts, tier, W, dense, undefined, true, input.dpi);
+      for (let c = best.cols + 1; c <= 6 && H - chromeFor(best) < best.listH; c++) {
+        const wider = planBody(facts, tier, W, dense, c, true, input.dpi);
+        if (wider.cols !== c) break;
+        best = wider;
+      }
+      if (H - chromeFor(best) >= best.listH) plan = best;
+    }
+
+    const chrome = chromeFor(plan);
+    const available = H - chrome;
+    if (available < plan.listH) {
+      throw new LayoutCapacityError([
+        `${total} positions need ${chrome + plan.listH}px of depth at minimum readability; the booked slot is ` +
+          `${H}px. Short by ${plan.listH - available}px — book a taller slot or split the requirement.`,
+      ]);
+    }
+    // Distribute the slack evenly across the rows of the tallest column so
+    // the table reaches the trust strip with no white band under it.
+    const rowsPerCol = Math.max(1, plan.perCol);
+    const add = Math.floor((available - plan.listH) / rowsPerCol);
+    if (add > 0) {
+      for (let r = 0; r < plan.rowHeights.length; r++) plan.rowHeights[r] += add;
+      plan.listH += add * rowsPerCol;
+      plan.bodyH += add * rowsPerCol;
+    }
+  }
+
+  if (H > W * MAX_ASPECT && !fillSlot) {
     throw new LayoutCapacityError([
       `${total} positions need a ${H}px canvas at minimum readability, beyond the ${Math.round(W * MAX_ASPECT)}px publishable limit`,
     ]);
@@ -453,7 +572,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // The DTP masthead holds its measured content and no more. Donating
     // leftover height to artwork produced a near-empty half-canvas above
     // the table — the opposite of what a classified is for.
-    heroPx = Math.min(dtpMastheadH, heroCap);
+    heroPx = fillSlot ? dtpMastheadH : Math.min(dtpMastheadH, heroCap);
   } else {
     const slack = H - strip - heroPx - plan.bodyH - px(0.05);
     if (slack > 0) {
@@ -491,25 +610,32 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const innerW = W - edge * 2;
     const bandPad = Math.round(W * 0.022);
 
-    // Agency rule bar, reversed.
-    const barH = Math.round(W * 0.062);
+    // Top rule bar. The agency's identity block — logo, legal name,
+    // licence, address — is set once by the branding strip at the foot,
+    // the way a classified does it. Repeating the name here printed it
+    // three times on one advertisement.
+    const barH = Math.round(W * 0.062 * dtpScale);
     parts.push(`<rect x="${edge}" y="${edge}" width="${innerW}" height="${barH}" fill="${NAVY}"/>`);
-    const agName = facts.agencyName.toUpperCase();
-    const agSize = fit(agName, innerW * 0.6, Math.round(barH * 0.42), plan.floor, true);
+    const urgency = "URGENT REQUIREMENT";
+    const uSize = fit(urgency, innerW * 0.55, Math.round(barH * 0.4), plan.floor, true);
     parts.push(
       `<text x="${edge + bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
-        `font-size="${agSize}" font-weight="700" fill="${WHITE}" letter-spacing="1">${esc(agName)}</text>`,
+        `font-size="${uSize}" font-weight="700" fill="${WHITE}" letter-spacing="2">${esc(urgency)}</text>`,
     );
-    if (facts.raLicenseId) {
+    const interviewBit = facts.interview[0]?.date
+      ? `INTERVIEW ${facts.interview[0].date}`
+      : facts.raLicenseId ?? "";
+    if (interviewBit) {
+      const iSize = fit(interviewBit, innerW * 0.42, Math.round(barH * 0.32), plan.floor, true);
       parts.push(
         `<text x="${W - edge - bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
-          `font-size="${px(T.Caption)}" fill="${GOLD}" text-anchor="end">${esc(facts.raLicenseId)}</text>`,
+          `font-size="${iSize}" font-weight="700" fill="${GOLD}" text-anchor="end">${esc(interviewBit.toUpperCase())}</text>`,
       );
     }
 
     // Masthead — the only region where artwork shows, behind a scrim.
     const mastTop = edge + barH;
-    const mastH = Math.max(heroPx - mastTop, Math.round(W * 0.16));
+    const mastH = Math.max(heroPx - mastTop, Math.round(W * 0.14));
     parts.push(`<rect x="${edge}" y="${mastTop}" width="${innerW}" height="${mastH}" fill="url(#s)"/>`);
 
     let my = mastTop + Math.round(mastH * 0.12) + hero.headlineSize;
@@ -537,9 +663,14 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 
     // Gold strap — the verified count, destination and industry.
     const strapY = mastTop + mastH;
-    const strapH = Math.round(W * 0.055);
+    const strapH = Math.round(W * 0.055 * dtpScale);
     parts.push(`<rect x="${edge}" y="${strapY}" width="${innerW}" height="${strapH}" fill="${GOLD}"/>`);
-    const strapBits = [headlineCountLabel(facts), facts.country?.toUpperCase(), facts.industry?.toUpperCase()]
+    const strapBits = [
+      headlineCountLabel(facts),
+      plan.hasSalary ? null : salaryRangeLabel(facts),
+      facts.country?.toUpperCase(),
+      facts.industry?.toUpperCase(),
+    ]
       .filter(Boolean)
       .join("   \u2022   ");
     const strapSize = fit(strapBits, innerW - bandPad * 2, Math.round(strapH * 0.4), plan.floor, true);
@@ -548,7 +679,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         `font-size="${strapSize}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
     );
 
-    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW));
+    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale));
     parts.push(`</svg>`);
     const dtpPng = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
     return { png: dtpPng, heightPx: H, artworkHeightPx: heroPx, themeSelection };
@@ -641,6 +772,7 @@ function renderBody(
   dense = false,
   edge = 0,
   innerW = W,
+  chromeScale = 1,
 ): string {
   const px = (f: number) => Math.round(f * W);
   const { colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
@@ -651,7 +783,7 @@ function renderBody(
   if (dense) {
     // DTP declares a section with a solid bar across the measure, not a
     // heading floating in space.
-    const secH = Math.round(W * 0.045);
+    const secH = Math.round(W * 0.045 * chromeScale);
     y = heroPx + px(0.012);
     parts.push(`<rect x="${edge}" y="${y}" width="${innerW}" height="${secH}" fill="${NAVY}"/>`);
     parts.push(
@@ -671,7 +803,7 @@ function renderBody(
 
   // High Density: a column header rules the table, so a candidate scanning
   // forty roles knows what the right-hand figure means without re-reading.
-  if (dense && facts.positions.some((p) => p.salary)) {
+  if (dense && plan.hasSalary) {
     const hs = Math.max(floor, Math.round(px(T.Caption) * 0.85));
     parts.push(
       `<text x="${margin}" y="${y - px(0.004)}" font-family="KaiSans, sans-serif" font-size="${hs}" ` +
@@ -733,7 +865,7 @@ function renderBody(
         );
         cy += Math.round(titleSize * plan.lineFactor);
       }
-      if (dense && p.salary) {
+      if (dense && p.salary && plan.hasSalary) {
         // Salary is the conversion driver: promoted to its own right-hand
         // column at title weight, on the row's first baseline.
         const ss = fit(p.salary, plan.salaryW, titleSize, floor, true);
