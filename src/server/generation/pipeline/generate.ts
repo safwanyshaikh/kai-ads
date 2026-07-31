@@ -28,6 +28,8 @@ export interface GeneratePipelineInput {
   /** Recruiter override of the design language. Omitted means KAI selects it.
    *  Distinct from `theme` above, which is a colour hint for the artwork. */
   designTheme?: AdTheme | null;
+  /** Explicit print / newspaper destination — forces the AAT/DTP language. */
+  printOrNewspaper?: boolean;
 }
 
 export interface GeneratePipelineResult {
@@ -76,6 +78,7 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     widthPx: input.widthPx,
     heightPx: input.heightPx,
     theme: input.designTheme,
+    printOrNewspaper: input.printOrNewspaper,
   });
   const canvasHeight = factLayer.heightPx;
   const imagePng = await sharp(backgroundPng)

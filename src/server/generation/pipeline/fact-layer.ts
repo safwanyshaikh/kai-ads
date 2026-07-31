@@ -90,7 +90,7 @@ export class LayoutCapacityError extends Error {
  * evolution of that format: a candidate recognises it instantly, but it
  * still looks like KAI.
  */
-export type AdTheme = "PREMIUM_CAMPAIGN" | "HIGH_DENSITY";
+export type AdTheme = "PREMIUM_CAMPAIGN" | "AAT_DTP";
 
 export interface ThemeSelection {
   theme: AdTheme;
@@ -106,28 +106,30 @@ export interface ThemeSelection {
  * actually carries, because twelve roles each with salary, qualification
  * and certifications is a denser page than twenty bare titles.
  */
-export function selectTheme(facts: AdvertisementFacts, override?: AdTheme | null): ThemeSelection {
+export function selectTheme(
+  facts: AdvertisementFacts,
+  override?: AdTheme | null,
+  intent?: { printOrNewspaper?: boolean } | null,
+): ThemeSelection {
   if (override) {
     return { theme: override, reason: "The recruiter selected this theme.", fromOverride: true };
   }
 
-  const roles = facts.positions.length;
-  if (roles >= 20) {
+  // An explicit print or newspaper destination decides it outright — a
+  // campaign layout is the wrong artefact for a newsprint column.
+  if (intent?.printOrNewspaper) {
     return {
-      theme: "HIGH_DENSITY",
-      reason: `${roles} positions — a structured table carries them legibly; a campaign layout could not.`,
+      theme: "AAT_DTP",
+      reason: "This advertisement is destined for print or newspaper circulation.",
       fromOverride: false,
     };
   }
 
-  // Detail load: a role carrying salary/qualification/certifications needs
-  // materially more room than a bare title.
-  const detailed = facts.positions.filter((p) => roleDetail(p)).length;
-  const detailLoad = roles === 0 ? 0 : detailed / roles;
-  if (roles >= 13 && detailLoad > 0.6) {
+  const roles = facts.positions.length;
+  if (roles > 15) {
     return {
-      theme: "HIGH_DENSITY",
-      reason: `${roles} positions, most carrying salary and qualification detail — density serves the candidate better.`,
+      theme: "AAT_DTP",
+      reason: `${roles} positions — a ruled table carries them legibly; a campaign layout could not.`,
       fromOverride: false,
     };
   }
@@ -231,6 +233,8 @@ export interface FactLayerInput {
   heightPx: number;
   /** Recruiter override. Omitted means KAI selects the theme itself. */
   theme?: AdTheme | null;
+  /** Explicit print / newspaper destination — forces the AAT/DTP language. */
+  printOrNewspaper?: boolean;
 }
 
 export interface FactLayerResult {
@@ -387,8 +391,8 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const { facts, widthPx: W } = input;
   const px = (f: number) => Math.round(f * W);
   const total = facts.positions.length;
-  const themeSelection = selectTheme(facts, input.theme);
-  const dense = themeSelection.theme === "HIGH_DENSITY";
+  const themeSelection = selectTheme(facts, input.theme, { printOrNewspaper: input.printOrNewspaper });
+  const dense = themeSelection.theme === "AAT_DTP";
   const tier = tierFor(total);
   // High Density trades hero height for information: minimal artwork, and
   // the page belongs to the table.
@@ -405,6 +409,12 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // relationship is piecewise — settle it with a short fixed-point loop
   // rather than assuming which regime applies.
   const hasContact = Boolean(facts.contact.phone || facts.contact.email);
+  // DTP chrome drawn outside the body: agency rule bar, gold strap and the
+  // reversed section bar. Invisible to the solve, these once let the last
+  // rows of a long table run under the benefits strap and be clipped.
+  const dtpChromeH = Math.round(W * (0.062 + 0.055 + 0.045));
+  const dtpMastheadH = Math.round(W * 0.062) + hero.contentH + Math.round(W * 0.02);
+
   let H = input.heightPx;
   for (let i = 0; i < 6; i++) {
     const heroAt = Math.max(
@@ -412,7 +422,11 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W)) + hero.contentH,
     );
     const stripAt = brandingStripHeight(W, H, hasContact) + Math.round(0.025 * H);
-    const need = Math.max(input.heightPx, heroAt + plan.bodyH + pad + stripAt);
+    // The DTP section bar replaces planBody()'s own heading; counting both
+    // left a band of dead white above the contact bar.
+    const need = dense
+      ? Math.max(input.heightPx, dtpMastheadH + dtpChromeH + (plan.bodyH - plan.headingH) + pad + stripAt)
+      : Math.max(input.heightPx, heroAt + plan.bodyH + pad + stripAt);
     if (need <= H) break;
     H = need;
   }
@@ -435,13 +449,110 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // advertisement should be photo-led, not half-empty. Capped so the hero
   // never crowds out the facts.
   const strip = brandingStripHeight(W, H, hasContact);
-  const slack = H - strip - heroPx - plan.bodyH - px(0.05);
-  if (slack > 0) {
-    heroPx = Math.min(heroPx + slack, Math.round(0.55 * H));
+  if (dense) {
+    // The DTP masthead holds its measured content and no more. Donating
+    // leftover height to artwork produced a near-empty half-canvas above
+    // the table — the opposite of what a classified is for.
+    heroPx = Math.min(dtpMastheadH, heroCap);
+  } else {
+    const slack = H - strip - heroPx - plan.bodyH - px(0.05);
+    if (slack > 0) {
+      heroPx = Math.min(heroPx + slack, Math.round(0.55 * H));
+    }
   }
   const margin = plan.margin;
   const contentW = plan.contentW;
   const parts: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`];
+
+  // ---- THEME 02 — AAT / DTP composition -------------------------------
+  // The trade convention of Gulf recruitment classifieds: a hard outer
+  // frame, full-measure reversed banners, ruled tables, every fact boxed.
+  // Composition principles only — no masthead, mark or artwork belonging
+  // to any publication is reproduced.
+  if (dense) {
+    const FRAME = Math.max(3, Math.round(W * 0.004));
+    const inset = Math.round(W * 0.012);
+    const stripHere = brandingStripHeight(W, H, hasContact);
+    const paperH = H - stripHere;
+
+    parts.push(`<rect x="0" y="0" width="${W}" height="${paperH}" fill="${WHITE}"/>`);
+    parts.push(
+      `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="${NAVY}" stop-opacity="0.92"/>` +
+        `<stop offset="1" stop-color="${NAVY}" stop-opacity="0.80"/>` +
+        `</linearGradient></defs>`,
+    );
+    parts.push(
+      `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${paperH - inset * 2}" ` +
+        `fill="none" stroke="${NAVY}" stroke-width="${FRAME}"/>`,
+    );
+
+    const edge = inset + FRAME;
+    const innerW = W - edge * 2;
+    const bandPad = Math.round(W * 0.022);
+
+    // Agency rule bar, reversed.
+    const barH = Math.round(W * 0.062);
+    parts.push(`<rect x="${edge}" y="${edge}" width="${innerW}" height="${barH}" fill="${NAVY}"/>`);
+    const agName = facts.agencyName.toUpperCase();
+    const agSize = fit(agName, innerW * 0.6, Math.round(barH * 0.42), plan.floor, true);
+    parts.push(
+      `<text x="${edge + bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+        `font-size="${agSize}" font-weight="700" fill="${WHITE}" letter-spacing="1">${esc(agName)}</text>`,
+    );
+    if (facts.raLicenseId) {
+      parts.push(
+        `<text x="${W - edge - bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+          `font-size="${px(T.Caption)}" fill="${GOLD}" text-anchor="end">${esc(facts.raLicenseId)}</text>`,
+      );
+    }
+
+    // Masthead — the only region where artwork shows, behind a scrim.
+    const mastTop = edge + barH;
+    const mastH = Math.max(heroPx - mastTop, Math.round(W * 0.16));
+    parts.push(`<rect x="${edge}" y="${mastTop}" width="${innerW}" height="${mastH}" fill="url(#s)"/>`);
+
+    let my = mastTop + Math.round(mastH * 0.12) + hero.headlineSize;
+    for (const l of hero.headlineLines) {
+      parts.push(
+        `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
+          `font-size="${hero.headlineSize}" font-weight="800" fill="${WHITE}" text-anchor="middle" ` +
+          `letter-spacing="-1">${esc(l.toUpperCase())}</text>`,
+      );
+      my += Math.round(hero.headlineSize * 1.1);
+    }
+    if (facts.employer && hero.employerSize) {
+      parts.push(
+        `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
+          `font-size="${hero.employerSize}" font-weight="700" fill="${GOLD}" text-anchor="middle">${esc(facts.employer.toUpperCase())}</text>`,
+      );
+      my += Math.round(hero.employerSize * 1.15);
+    }
+    if (hero.meta && hero.metaSize) {
+      parts.push(
+        `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
+          `font-size="${hero.metaSize}" fill="${WHITE}" text-anchor="middle" opacity="0.85">${esc(hero.meta)}</text>`,
+      );
+    }
+
+    // Gold strap — the verified count, destination and industry.
+    const strapY = mastTop + mastH;
+    const strapH = Math.round(W * 0.055);
+    parts.push(`<rect x="${edge}" y="${strapY}" width="${innerW}" height="${strapH}" fill="${GOLD}"/>`);
+    const strapBits = [headlineCountLabel(facts), facts.country?.toUpperCase(), facts.industry?.toUpperCase()]
+      .filter(Boolean)
+      .join("   \u2022   ");
+    const strapSize = fit(strapBits, innerW - bandPad * 2, Math.round(strapH * 0.4), plan.floor, true);
+    parts.push(
+      `<text x="${Math.round(W / 2)}" y="${strapY + Math.round(strapH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+        `font-size="${strapSize}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
+    );
+
+    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW));
+    parts.push(`</svg>`);
+    const dtpPng = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
+    return { png: dtpPng, heightPx: H, artworkHeightPx: heroPx, themeSelection };
+  }
 
   // ---- Hero scrim (KDL §4.3): a known contrast floor over unknown artwork.
   parts.push(
@@ -528,18 +639,35 @@ function renderBody(
   heroPx: number,
   plan: Plan,
   dense = false,
+  edge = 0,
+  innerW = W,
 ): string {
   const px = (f: number) => Math.round(f * W);
-  const { margin, colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
+  const { colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
+  const margin = dense ? edge + Math.round(W * 0.022) : plan.margin;
   const parts: string[] = [];
 
-  let y = heroPx + px(0.035) + px(T.H2);
-  const heading = dense ? "POSITIONS & SALARY" : "POSITIONS";
-  parts.push(
-    `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${NAVY}">${esc(heading)}</text>`,
-  );
-  parts.push(`<rect x="${margin}" y="${y + px(0.009)}" width="${px(0.075)}" height="3" fill="${GOLD}"/>`);
-  y += plan.headingH - px(T.H2) + px(0.012);
+  let y: number;
+  if (dense) {
+    // DTP declares a section with a solid bar across the measure, not a
+    // heading floating in space.
+    const secH = Math.round(W * 0.045);
+    y = heroPx + px(0.012);
+    parts.push(`<rect x="${edge}" y="${y}" width="${innerW}" height="${secH}" fill="${NAVY}"/>`);
+    parts.push(
+      `<text x="${Math.round(W / 2)}" y="${y + Math.round(secH * 0.68)}" font-family="KaiSans, sans-serif" ` +
+        `font-size="${Math.round(secH * 0.44)}" font-weight="700" fill="${WHITE}" text-anchor="middle" ` +
+        `letter-spacing="3">POSITIONS AVAILABLE</text>`,
+    );
+    y += secH + px(0.012) + titleSize;
+  } else {
+    y = heroPx + px(0.035) + px(T.H2);
+    parts.push(
+      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${NAVY}">POSITIONS</text>`,
+    );
+    parts.push(`<rect x="${margin}" y="${y + px(0.009)}" width="${px(0.075)}" height="3" fill="${GOLD}"/>`);
+    y += plan.headingH - px(T.H2) + px(0.012);
+  }
 
   // High Density: a column header rules the table, so a candidate scanning
   // forty roles knows what the right-hand figure means without re-reading.
@@ -558,16 +686,25 @@ function renderBody(
 
   const startY = y;
   for (let c = 0; c < cols; c++) {
-    const colX = margin + c * (colW + gutter);
+    const measureW = dense ? innerW - Math.round(W * 0.044) : plan.contentW;
+    const colPitch = Math.round((measureW - gutter * (cols - 1)) / cols);
+    const colX = margin + c * (colPitch + gutter);
+    const colWHere = dense ? colPitch : colW;
     let cy = startY;
+    // Track the row box explicitly. Deriving rowTop from the drawing cursor
+    // and then advancing the cursor to the row's BOTTOM made each row's box
+    // drift up by ~0.92x titleSize against its own text — cumulative, so by
+    // row nine the vacancy-count cell no longer matched its role.
+    let rowTopCursor = startY - Math.round(titleSize * 0.92);
     let rowIndex = c * perCol;
     for (const p of facts.positions.slice(c * perCol, (c + 1) * perCol)) {
       // Each role is a card. SVG paints in document order, so the row's
       // marks are collected first and the card is emitted beneath them
       // once its true height is known.
       const rowParts: string[] = [];
-      const rowTop = cy - Math.round(titleSize * 0.92);
-      if (p.count != null) {
+      const rowTop = rowTopCursor;
+      cy = rowTop + Math.round(titleSize * 0.92);
+      if (p.count != null && !dense) {
         const bs = Math.round(titleSize * 0.78);
         rowParts.push(
           `<rect x="${colX}" y="${cy - Math.round(titleSize * 0.82)}" width="${px(0.042)}" height="${Math.round(titleSize * 1.06)}" rx="3" fill="${GOLD}"/>`,
@@ -576,8 +713,16 @@ function renderBody(
           `<text x="${colX + Math.round(px(0.042) / 2)}" y="${cy - Math.round(titleSize * 0.1)}" font-family="KaiSans, sans-serif" font-size="${bs}" font-weight="700" fill="${NAVY}" text-anchor="middle">${esc(String(p.count))}</text>`,
         );
       }
-      const tx = colX + badgeW;
-      const tw = colW - badgeW - plan.salaryW;
+      if (p.count != null && dense && badgeW > 0) {
+        const rh = plan.rowHeights[rowIndex] ?? Math.round(titleSize * 1.6);
+        rowParts.push(
+          `<text x="${colX + Math.round(badgeW / 2)}" y="${rowTop + Math.round(rh / 2) + Math.round(titleSize * 0.32)}" ` +
+            `font-family="KaiSans, sans-serif" font-size="${Math.round(titleSize * 0.82)}" font-weight="700" ` +
+            `fill="${NAVY}" text-anchor="middle">${esc(String(p.count))}</text>`,
+        );
+      }
+      const tx = colX + badgeW + (dense ? Math.round(W * 0.008) : 0);
+      const tw = colWHere - badgeW - plan.salaryW;
       // Titles wrap; they are never truncated and never shrunk below the floor.
       const lines = wrap(p.title, tw, titleSize, plan.maxLines);
       const firstBaseline = cy;
@@ -593,7 +738,7 @@ function renderBody(
         // column at title weight, on the row's first baseline.
         const ss = fit(p.salary, plan.salaryW, titleSize, floor, true);
         rowParts.push(
-          `<text x="${colX + colW}" y="${firstBaseline}" font-family="KaiSans, sans-serif" ` +
+          `<text x="${colX + colWHere}" y="${firstBaseline}" font-family="KaiSans, sans-serif" ` +
             `font-size="${ss}" font-weight="700" fill="${NAVY}" text-anchor="end">${esc(p.salary)}</text>`,
         );
       }
@@ -615,16 +760,18 @@ function renderBody(
       // which is why the separator rules struck through the next row's text.
       const cardH = (plan.rowHeights[rowIndex] ?? cy - rowTop + inset) - 1;
       if (dense) {
-        // Modern structured table: zebra banding and a hairline rule, no
-        // card chrome. Chrome around forty rows is what makes a page read
-        // as a document instead of a campaign.
+        // Ruled DTP row: alternating tint, a gold vacancy-count cell down
+        // the left edge, and a rule across the measure.
         if (rowIndex % 2 === 1) {
           parts.push(
-            `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" fill="${WHITE}" opacity="0.55"/>`,
+            `<rect x="${colX}" y="${rowTop}" width="${colWHere}" height="${cardH}" fill="#F3EEE3"/>`,
           );
         }
+        if (p.count != null && badgeW > 0) {
+          parts.push(`<rect x="${colX}" y="${rowTop}" width="${badgeW}" height="${cardH}" fill="${GOLD}"/>`);
+        }
         parts.push(
-          `<rect x="${colX - inset}" y="${rowTop + cardH}" width="${colW + inset * 2}" height="1" fill="${DIVIDER}"/>`,
+          `<rect x="${colX}" y="${rowTop + cardH}" width="${colWHere}" height="1.5" fill="${NAVY}" opacity="0.45"/>`,
         );
       } else {
         parts.push(
@@ -632,8 +779,8 @@ function renderBody(
         );
       }
       parts.push(...rowParts);
+      rowTopCursor += plan.rowHeights[rowIndex] ?? cardH + 1;
       rowIndex++;
-      cy += rowGap;
     }
   }
 
