@@ -664,8 +664,8 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     parts.push(`<rect x="0" y="0" width="${W}" height="${paperH}" fill="${pal.paper}"/>`);
     parts.push(
       `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.92"/>` +
-        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.80"/>` +
+        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.55"/>` +
+        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.30"/>` +
         `</linearGradient></defs>`,
     );
     parts.push(
@@ -683,11 +683,14 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // three times on one advertisement.
     const barH = Math.round(W * 0.062 * dtpScale);
     parts.push(`<rect x="${edge}" y="${edge}" width="${innerW}" height="${barH}" fill="${pal.ink}"/>`);
-    const urgency = "URGENT REQUIREMENT";
-    const uSize = fit(urgency, innerW * 0.55, Math.round(barH * 0.4), plan.floor, true);
+    // Destination first — the single strongest filter for a candidate
+    // scanning a page of classifieds. "URGENT REQUIREMENT" is stated once,
+    // on the strap; printing it here as well said it twice.
+    const destination = (facts.country ?? facts.industry ?? "OVERSEAS").toUpperCase();
+    const uSize = fit(destination, innerW * 0.55, Math.round(barH * 0.46), plan.floor, true);
     parts.push(
-      `<text x="${edge + bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
-        `font-size="${uSize}" font-weight="700" fill="${pal.reversed}" letter-spacing="2">${esc(urgency)}</text>`,
+      `<text x="${edge + bandPad}" y="${edge + Math.round(barH * 0.68)}" font-family="KaiSans, sans-serif" ` +
+        `font-size="${uSize}" font-weight="700" fill="${pal.reversed}" letter-spacing="3">${esc(destination)}</text>`,
     );
     const interviewBit = facts.interview[0]?.date
       ? `INTERVIEW ${facts.interview[0].date}`
@@ -705,21 +708,37 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const mastH = Math.max(heroPx - mastTop, Math.round(W * 0.14));
     parts.push(`<rect x="${edge}" y="${mastTop}" width="${innerW}" height="${mastH}" fill="url(#s)"/>`);
 
-    let my = mastTop + Math.round(mastH * 0.12) + hero.headlineSize;
+    // Contrast is guaranteed by a solid plate sized to the text block, so the
+    // rest of the band keeps its plant photograph instead of reading as dead
+    // canvas. Measured from the same hero metrics the planner used.
+    const plateH =
+      hero.headlineLines.length * Math.round(hero.headlineSize * 1.1) +
+      (facts.employer && hero.employerSize ? Math.round(hero.employerSize * 1.15) : 0) +
+      (hero.meta && hero.metaSize ? Math.round(hero.metaSize * 1.25) : 0) +
+      Math.round(hero.headlineSize * 0.7);
+    const artworkSlack = mastH - plateH;
+    const showArtwork = artworkSlack >= Math.round(H * 0.06);
+    const plateTop = showArtwork ? mastTop + Math.round(artworkSlack / 2) : mastTop;
+    parts.push(
+      `<rect x="${edge}" y="${plateTop}" width="${innerW}" height="${showArtwork ? plateH : mastH}" ` +
+        `fill="${pal.ink}" fill-opacity="${showArtwork ? 0.88 : 1}"/>`,
+    );
+
+    let my = plateTop + Math.round(hero.headlineSize * 0.95) + hero.headlineSize * 0;
     for (const l of hero.headlineLines) {
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
           `font-size="${hero.headlineSize}" font-weight="800" fill="${pal.reversed}" text-anchor="middle" ` +
           `letter-spacing="-1">${esc(l.toUpperCase())}</text>`,
       );
-      my += Math.round(hero.headlineSize * 1.1);
+      my += Math.round(hero.headlineSize * 1.06);
     }
     if (facts.employer && hero.employerSize) {
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
           `font-size="${hero.employerSize}" font-weight="700" fill="${pal.accentText === "#FFFFFF" ? pal.reversed : pal.accent}" text-anchor="middle">${esc(facts.employer.toUpperCase())}</text>`,
       );
-      my += Math.round(hero.employerSize * 1.15);
+      my += Math.round(hero.employerSize * 1.08);
     }
     if (hero.meta && hero.metaSize) {
       parts.push(
@@ -733,9 +752,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const strapH = Math.round(W * 0.055 * dtpScale);
     parts.push(`<rect x="${edge}" y="${strapY}" width="${innerW}" height="${strapH}" fill="${pal.accent}"/>`);
     const strapBits = [
+      "URGENT REQUIREMENT",
       headlineCountLabel(facts),
       plan.hasSalary ? null : sharedSalaryLabel(facts),
-      facts.country?.toUpperCase(),
       facts.industry?.toUpperCase(),
     ]
       .filter(Boolean)
@@ -935,10 +954,12 @@ function renderBody(
       if (dense && p.salary && plan.hasSalary) {
         // Salary is the conversion driver: promoted to its own right-hand
         // column at title weight, on the row's first baseline.
-        const ss = fit(p.salary, plan.salaryW, titleSize, floor, true);
+        // Role reads first, salary second. Set at the same weight the two
+        // competed and the eye had nowhere to land.
+        const ss = fit(p.salary, plan.salaryW, Math.round(titleSize * 0.92), floor, false);
         rowParts.push(
           `<text x="${colX + colWHere}" y="${firstBaseline}" font-family="KaiSans, sans-serif" ` +
-            `font-size="${ss}" font-weight="700" fill="${pal.ink}" text-anchor="end">${esc(p.salary)}</text>`,
+            `font-size="${ss}" font-weight="600" fill="${pal.muted}" text-anchor="end">${esc(p.salary)}</text>`,
         );
       }
       if (showDetail) {
@@ -998,7 +1019,7 @@ function renderBody(
   }
 
   // Interview — omitted entirely when absent.
-  const ev = facts.interview[0];
+  const ev = dense ? undefined : facts.interview[0];
   if (ev) {
     const detail = [ev.date, ev.location].filter(Boolean).join(" · ");
     if (detail) {

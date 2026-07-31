@@ -217,7 +217,6 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
 
   const qrSize = input.qrPng ? Math.round(bandHeight * QR_SIZE_PCT_OF_BAND) : 0;
   const qrLeft = widthPx - qrSize - pad;
-  const qrTop = contactRowHeight + Math.round((bandHeight - qrSize) / 2);
 
   const logoSize = input.agencyLogoPng ? Math.round(bandHeight * LOGO_SIZE_PCT_OF_BAND) : 0;
   const logoLeft = pad;
@@ -323,15 +322,22 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
 
   if (input.qrPng) {
     if (input.agencyLogoPng || input.agencyName || input.registrationNumber) {
+      // Full-height rule, so the QR reads as the last CELL of the legal
+      // block rather than a mark floating beside it.
       parts.push(
-        `<line x1="${dividerX}" y1="${contactRowHeight + Math.round(bandHeight * 0.14)}" x2="${dividerX}" y2="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.14)}" stroke="${theme.divider}" stroke-width="2"/>`,
+        `<line x1="${dividerX}" y1="${contactRowHeight + Math.round(bandHeight * 0.06)}" x2="${dividerX}" y2="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.06)}" stroke="${theme.divider}" stroke-width="2"/>`,
       );
     }
-    const qrDataUri = await toPngDataUri(input.qrPng, qrSize);
-    parts.push(`<image href="${qrDataUri}" x="${qrLeft}" y="${qrTop}" width="${qrSize}" height="${qrSize}"/>`);
     const captionSize = Math.round(bandHeight * 0.09);
+    // The cell is set as a unit: caption, then code, sharing one optical
+    // centre with the registration lines to its left.
+    const capBaseline = contactRowHeight + Math.round(bandHeight * 0.2);
     parts.push(
-      `<text x="${qrLeft + qrSize / 2}" y="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.03)}" font-family="KaiSans, sans-serif" font-size="${captionSize}" fill="${theme.mutedText}" text-anchor="middle">SCAN TO VERIFY</text>`,
+      `<text x="${qrLeft + qrSize / 2}" y="${capBaseline}" font-family="KaiSans, sans-serif" font-size="${captionSize}" font-weight="700" fill="${theme.mutedText}" text-anchor="middle" letter-spacing="1">SCAN TO VERIFY</text>`,
+    );
+    const qrDataUri = await toPngDataUri(input.qrPng, qrSize);
+    parts.push(
+      `<image href="${qrDataUri}" x="${qrLeft}" y="${capBaseline + Math.round(captionSize * 0.5)}" width="${qrSize}" height="${qrSize}"/>`,
     );
   }
 
