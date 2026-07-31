@@ -524,7 +524,17 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     ? Math.min(1, (input.heightPx * 0.13) / dtpChromeBase)
     : 1;
   const dtpChromeH = Math.round(dtpChromeBase * dtpScale);
-  let dtpMastheadH = Math.round(W * 0.062) + hero.contentH + Math.round(W * 0.02);
+  // A compact banner height built from the same measured hero fields
+  // (headline lines, employer, meta) rather than hero.contentH, which
+  // bakes in Premium Campaign's badge and padding that the flat DTP
+  // masthead never draws — using it left a large empty band beneath the
+  // text, exactly the "unused canvas" defect the flat banner was meant to
+  // remove.
+  const dtpTextH =
+    hero.headlineLines.length * Math.round(hero.headlineSize * 1.06) +
+    (hero.employerSize ? Math.round(hero.employerSize * 1.08) : 0) +
+    (hero.metaSize ? Math.round(hero.metaSize * 1.25) : 0);
+  let dtpMastheadH = Math.round(W * 0.062) + dtpTextH + Math.round(W * 0.03);
 
   // A newspaper slot is bought at a fixed size. AAT's golden rule is that
   // an advertisement fills its slot exactly — it never overruns it and it
@@ -563,9 +573,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       // Scale only the CONTENT to the budget. Scaling the whole masthead —
       // bar and padding included — left the headline smaller than the box
       // reserved for it, and the difference showed as an empty band.
-      const fixed = Math.round(W * 0.062) + Math.round(W * 0.02);
+      const fixed = Math.round(W * 0.062) + Math.round(W * 0.03);
       const contentBudget = Math.max(1, mastCap - fixed);
-      const k = Math.min(1, contentBudget / Math.max(1, hero.contentH));
+      const k = Math.min(1, contentBudget / Math.max(1, dtpTextH));
       hero.headlineSize = Math.max(plan.floor, Math.round(hero.headlineSize * k));
       if (hero.employerSize) hero.employerSize = Math.max(plan.floor, Math.round(hero.employerSize * k));
       if (hero.subSize) hero.subSize = Math.max(plan.floor, Math.round(hero.subSize * k));
@@ -703,28 +713,20 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       );
     }
 
-    // Masthead — the only region where artwork shows, behind a scrim.
+    // Masthead. Both real reference advertisements at this density — a
+    // 7-row and a 4-row Gulf recruitment classified — carry ZERO
+    // photography: every band is flat solid colour, stacked flush, no
+    // gradient, no scrim. A photographic hero is a premium/modern
+    // technique (Theme 01's job); showing one here was the single biggest
+    // tell that Theme 02 was AI-composed rather than DTP-typeset. The
+    // masthead is now a flat ink banner, full stop — no artwork input is
+    // read or composited into it.
     const mastTop = edge + barH;
     const mastH = Math.max(heroPx - mastTop, Math.round(W * 0.14));
-    parts.push(`<rect x="${edge}" y="${mastTop}" width="${innerW}" height="${mastH}" fill="url(#s)"/>`);
+    parts.push(`<rect x="${edge}" y="${mastTop}" width="${innerW}" height="${mastH}" fill="${pal.ink}"/>`);
 
-    // Contrast is guaranteed by a solid plate sized to the text block, so the
-    // rest of the band keeps its plant photograph instead of reading as dead
-    // canvas. Measured from the same hero metrics the planner used.
-    const plateH =
-      hero.headlineLines.length * Math.round(hero.headlineSize * 1.1) +
-      (facts.employer && hero.employerSize ? Math.round(hero.employerSize * 1.15) : 0) +
-      (hero.meta && hero.metaSize ? Math.round(hero.metaSize * 1.25) : 0) +
-      Math.round(hero.headlineSize * 0.7);
-    const artworkSlack = mastH - plateH;
-    const showArtwork = artworkSlack >= Math.round(H * 0.06);
-    const plateTop = showArtwork ? mastTop + Math.round(artworkSlack / 2) : mastTop;
-    parts.push(
-      `<rect x="${edge}" y="${plateTop}" width="${innerW}" height="${showArtwork ? plateH : mastH}" ` +
-        `fill="${pal.ink}" fill-opacity="${showArtwork ? 0.88 : 1}"/>`,
-    );
-
-    let my = plateTop + Math.round(hero.headlineSize * 0.95) + hero.headlineSize * 0;
+    const plateTop = mastTop;
+    let my = plateTop + Math.round(mastH / 2 - (hero.headlineLines.length - 1) * hero.headlineSize * 0.53);
     for (const l of hero.headlineLines) {
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
@@ -932,22 +934,28 @@ function renderBody(
         );
       }
       if (p.count != null && dense && badgeW > 0) {
+        // A plain black numeral, no coloured cell behind it — neither real
+        // reference indexes its rows with a filled badge.
         const rh = plan.rowHeights[rowIndex] ?? Math.round(titleSize * 1.6);
         rowParts.push(
           `<text x="${colX + Math.round(badgeW / 2)}" y="${rowTop + Math.round(rh / 2) + Math.round(titleSize * 0.32)}" ` +
             `font-family="KaiSans, sans-serif" font-size="${Math.round(titleSize * 0.82)}" font-weight="700" ` +
-            `fill="${dense ? pal.accentText : pal.ink}" text-anchor="middle">${esc(String(p.count))}</text>`,
+            `fill="${pal.ink}" text-anchor="middle">${esc(String(p.count))}</text>`,
         );
       }
       const tx = colX + badgeW + (dense ? Math.round(W * 0.008) : 0);
       const tw = colWHere - badgeW - plan.salaryW;
       // Titles wrap; they are never truncated and never shrunk below the floor.
+      // Wrapped and measured on the true text — only the drawn glyphs are
+      // uppercased in dense mode, matching how both real classifieds set
+      // every trade name in the table.
       const lines = wrap(p.title, tw, titleSize, plan.maxLines);
       const firstBaseline = cy;
       for (const line of lines) {
-        const ls = fit(line, tw, titleSize, floor);
+        const drawn = dense ? line.toUpperCase() : line;
+        const ls = fit(drawn, tw, titleSize, floor);
         rowParts.push(
-          `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${pal.ink}">${esc(line)}</text>`,
+          `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${pal.ink}">${esc(drawn)}</text>`,
         );
         cy += Math.round(titleSize * plan.lineFactor);
       }
@@ -980,18 +988,20 @@ function renderBody(
       // which is why the separator rules struck through the next row's text.
       const cardH = (plan.rowHeights[rowIndex] ?? cy - rowTop + inset) - 1;
       if (dense) {
-        // Ruled DTP row: alternating tint, a gold vacancy-count cell down
-        // the left edge, and a rule across the measure.
-        if (rowIndex % 2 === 1) {
+        // Ruled DTP row: plain paper field, a hairline rule beneath each
+        // row, and a hairline dividing the title from the salary figure.
+        // Both real Gulf classifieds studied for this composition are
+        // built this way — pure ruled rows on white, no card chrome, no
+        // alternating tint, no coloured vacancy badge. Colour on a table
+        // row is exactly the "AI-designed poster" signature this theme
+        // must not have.
+        if (plan.hasSalary) {
           parts.push(
-            `<rect x="${colX}" y="${rowTop}" width="${colWHere}" height="${cardH}" fill="${pal.tint}"/>`,
+            `<rect x="${colX + colWHere - plan.salaryW}" y="${rowTop}" width="1" height="${cardH}" fill="${pal.ink}" opacity="0.4"/>`,
           );
         }
-        if (p.count != null && badgeW > 0) {
-          parts.push(`<rect x="${colX}" y="${rowTop}" width="${badgeW}" height="${cardH}" fill="${pal.accent}"/>`);
-        }
         parts.push(
-          `<rect x="${colX}" y="${rowTop + cardH}" width="${colWHere}" height="1.5" fill="${pal.ink}" opacity="0.45"/>`,
+          `<rect x="${colX}" y="${rowTop + cardH}" width="${colWHere}" height="1" fill="${pal.ink}" opacity="0.5"/>`,
         );
       } else {
         parts.push(
