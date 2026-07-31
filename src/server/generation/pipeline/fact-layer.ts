@@ -618,8 +618,17 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     }
     // Distribute the slack evenly across the rows of the tallest column so
     // the table reaches the trust strip with no white band under it.
+    //
+    // `available` already has extraH (benefits/interview) budgeted into it
+    // via chromeFor(). Handing 100% of (available - listH) to the rows ate
+    // that budget too: the table grew tall enough that the benefits strap,
+    // drawn immediately after at `startY + listH`, landed past paperH and
+    // into the branding strip, where the trust band later painted over it
+    // — the strap wasn't clipped, it was silently overwritten. Only the
+    // slack beyond extraH's own requirement belongs to the rows.
+    const extraH = plan.bodyH - plan.headingH - plan.listH;
     const rowsPerCol = Math.max(1, plan.perCol);
-    const add = Math.floor((available - plan.listH) / rowsPerCol);
+    const add = Math.floor((available - plan.listH - extraH) / rowsPerCol);
     if (add > 0) {
       for (let r = 0; r < plan.rowHeights.length; r++) plan.rowHeights[r] += add;
       plan.listH += add * rowsPerCol;
