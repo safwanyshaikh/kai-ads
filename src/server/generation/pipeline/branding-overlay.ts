@@ -31,6 +31,8 @@ export interface BrandingOverlayInput {
    * without a known artwork boundary there is nowhere safe to put it.
    */
   artworkHeightPx?: number | null;
+  /** One black plate, for newspaper printing. */
+  singleInk?: boolean;
 }
 
 /**
@@ -206,7 +208,7 @@ async function fadeLogo(logoPng: Buffer, size: number, opacity: number): Promise
  */
 async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buffer; height: number }> {
   const { widthPx, heightPx } = input;
-  const theme = footerTheme(input.footerStyle);
+  const theme = footerTheme(input.footerStyle, input.singleInk);
   const badges = normaliseBadges(input.brandBadges);
   const bandHeight = brandingBandHeight(widthPx, heightPx);
   const contactRowHeight = brandingContactRowHeight(widthPx, heightPx, Boolean(input.contactLine));

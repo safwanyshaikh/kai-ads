@@ -149,7 +149,29 @@ export const FOOTER_THEMES: Record<FooterStyle, FooterTheme> = {
 
 export const DEFAULT_FOOTER_STYLE: FooterStyle = "CLASSIC_CORPORATE";
 
-export function footerTheme(style?: FooterStyle | null): FooterTheme {
+/**
+ * One black plate. A newspaper prints single-ink; leaving the trust strip
+ * in navy under an otherwise black advertisement looked like a printing
+ * fault. Same marks, one ink.
+ */
+const SINGLE_INK_FOOTER: FooterTheme = {
+  background: "#FFFFFF",
+  text: "#000000",
+  mutedText: "#333333",
+  divider: "#000000",
+  contactRowBackground: "#000000",
+  contactRowText: "#FFFFFF",
+  badgeBackground: "#000000",
+  badgeText: "#FFFFFF",
+  topRulePx: 4,
+  topRuleColour: "#000000",
+  uppercaseName: true,
+  label: "Single Ink (Newsprint)",
+  description: "One black plate, for newspaper printing.",
+};
+
+export function footerTheme(style?: FooterStyle | null, singleInk = false): FooterTheme {
+  if (singleInk) return SINGLE_INK_FOOTER;
   return FOOTER_THEMES[style ?? DEFAULT_FOOTER_STYLE];
 }
 

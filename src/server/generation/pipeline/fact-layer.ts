@@ -26,6 +26,47 @@ const WHITE = "#FFFFFF";
 const DIVIDER = "#C9C0AB";
 
 /**
+ * Ink. Colour is KDL. Single-ink is what a newspaper actually prints: one
+ * black plate on newsprint, tints achieved by halftone screen rather than
+ * by a second colour. Greyscaling a colour render is not the same thing —
+ * it turns gold into a muddy mid-grey with no contrast against cream.
+ *
+ * This is a palette substitution, not a second rendering path: the same
+ * marks are drawn either way.
+ */
+export type AdInk = "COLOUR" | "SINGLE_INK";
+
+interface Palette {
+  /** Bars, rules, headings. */
+  ink: string;
+  /** The strap and the vacancy-count cell. */
+  accent: string;
+  /** Text sitting on `accent`. */
+  accentText: string;
+  /** Secondary detail text. */
+  muted: string;
+  /** Paper. */
+  paper: string;
+  /** Alternating row band. */
+  tint: string;
+  /** Hairlines. */
+  rule: string;
+  /** Text sitting on `ink`. */
+  reversed: string;
+}
+
+const COLOUR_PALETTE: Palette = {
+  ink: NAVY, accent: GOLD, accentText: NAVY, muted: SLATE,
+  paper: WHITE, tint: "#F3EEE3", rule: DIVIDER, reversed: WHITE,
+};
+
+/** 100% / 15% / 0% of one black plate — the three tones newsprint gives you. */
+const SINGLE_INK_PALETTE: Palette = {
+  ink: "#000000", accent: "#000000", accentText: "#FFFFFF", muted: "#333333",
+  paper: "#FFFFFF", tint: "#E4E4E4", rule: "#000000", reversed: "#FFFFFF",
+};
+
+/**
  * KDL §4 — the branding strip owns the bottom of the canvas. Its exact
  * height comes from the Rendering Engine itself (brandingStripHeight), so
  * the two can never drift apart; this fraction is the fallback bound used
@@ -145,26 +186,22 @@ export function selectTheme(
 }
 
 /**
- * The true minimum and maximum of the verified per-role salaries, printed
- * once when the slot cannot carry a salary column. Only figures that were
- * actually supplied are considered; nothing is interpolated.
+ * A single stated salary, allowed ONLY when every role carries the SAME
+ * one.
+ *
+ * An earlier version printed the minimum and maximum as a range whenever
+ * the slot was tight. That merged genuinely different salaries into one
+ * figure, and a candidate reading it could not tell which role paid what \u2014
+ * a factual defect, not a layout economy. When salaries differ the column
+ * stays and the advertisement fails on capacity instead.
  */
-function salaryRangeLabel(facts: AdvertisementFacts): string | null {
-  const nums: number[] = [];
-  let currency = "";
-  for (const p of facts.positions) {
-    if (!p.salary) continue;
-    const m = p.salary.match(/([A-Z]{2,4})?\s*([\d,]+)/);
-    if (!m) continue;
-    if (m[1] && !currency) currency = m[1];
-    const n = Number(m[2].replace(/,/g, ""));
-    if (Number.isFinite(n)) nums.push(n);
-  }
-  if (nums.length === 0) return null;
-  const lo = Math.min(...nums);
-  const hi = Math.max(...nums);
-  const fmt = (n: number) => n.toLocaleString("en-US");
-  return lo === hi ? `${currency} ${fmt(lo)}`.trim() : `${currency} ${fmt(lo)}\u2013${fmt(hi)}`.trim();
+function sharedSalaryLabel(facts: AdvertisementFacts): string | null {
+  const stated = facts.positions.map((p) => p.salary?.trim()).filter((v): v is string => Boolean(v));
+  if (stated.length === 0) return null;
+  // A salary stated for some roles but not others is not shared.
+  if (stated.length !== facts.positions.length) return null;
+  const distinct = new Set(stated.map((v) => v.replace(/\s+/g, " ").toUpperCase()));
+  return distinct.size === 1 ? stated[0] : null;
 }
 
 type Tier = "T1" | "T2" | "T3" | "T4";
@@ -265,6 +302,8 @@ export interface FactLayerInput {
   theme?: AdTheme | null;
   /** Explicit print / newspaper destination — forces the AAT/DTP language. */
   printOrNewspaper?: boolean;
+  /** Ink. Single-ink is one black plate, the way a newspaper prints. */
+  ink?: AdInk;
 }
 
 export interface FactLayerResult {
@@ -325,14 +364,34 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
   // grid to collapse back to two.
   let cols = forceCols ?? maxColumnsFor(tier);
   let colW = Math.round((contentW - gutter * (cols - 1)) / cols);
-  let salaryW = hasSalary ? Math.round(colW * 0.34) : 0;
-  while (
-    cols > 1 &&
-    facts.positions.some((p) => wrapLines(p.title, colW - badgeW - salaryW, floor).length > MAX_LINES)
-  ) {
+  // Reserve what the widest salary genuinely measures at the floor, using
+  // the same metric the renderer draws with. A flat fraction of the column
+  // reserved 86px for a figure that renders 158px wide, so salaries ran
+  // straight through the job titles at five columns.
+  const salaryNeed = hasSalary
+    ? Math.ceil(Math.max(...facts.positions.map((p) => (p.salary ? textWidth(p.salary, floor, true) : 0))))
+    : 0;
+  let salaryW = hasSalary ? Math.max(Math.round(colW * 0.34), salaryNeed + Math.round(gutter / 2)) : 0;
+  // A column must be wide enough for the widest UNBREAKABLE word. Testing
+  // line count alone was not enough: with the badge and salary reserved, the
+  // width left for a title could go negative and a two-word title still
+  // reported "2 lines", so the grid never collapsed and the salary figures
+  // printed straight through the job titles.
+  const widestWord = Math.ceil(
+    Math.max(
+      ...facts.positions.flatMap((p) => p.title.split(/\s+/).map((w) => textWidth(w, floor, true))),
+      0,
+    ),
+  );
+  const titleFits = () => {
+    const avail = colW - badgeW - salaryW;
+    return avail >= widestWord &&
+      !facts.positions.some((p) => wrapLines(p.title, avail, floor).length > MAX_LINES);
+  };
+  while (cols > 1 && !titleFits()) {
     cols -= 1;
     colW = Math.round((contentW - gutter * (cols - 1)) / cols);
-    salaryW = hasSalary ? Math.round(colW * 0.34) : 0;
+    salaryW = hasSalary ? Math.max(Math.round(colW * 0.34), salaryNeed + Math.round(gutter / 2)) : 0;
   }
 
   const anyDetail = showDetail && facts.positions.some((p) => roleDetail(p));
@@ -474,6 +533,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // fit fails loudly so the agency buys a larger slot instead of receiving
   // an image the paper will reject.
   const fillSlot = Boolean(input.printOrNewspaper);
+  const pal: Palette = input.ink === "SINGLE_INK" ? SINGLE_INK_PALETTE : COLOUR_PALETTE;
   let H = input.heightPx;
   for (let i = 0; i < 6; i++) {
     if (fillSlot) break;
@@ -500,7 +560,12 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // depth to the headline.
     const mastCap = Math.round(H * 0.22);
     if (dtpMastheadH > mastCap) {
-      const k = mastCap / dtpMastheadH;
+      // Scale only the CONTENT to the budget. Scaling the whole masthead —
+      // bar and padding included — left the headline smaller than the box
+      // reserved for it, and the difference showed as an empty band.
+      const fixed = Math.round(W * 0.062) + Math.round(W * 0.02);
+      const contentBudget = Math.max(1, mastCap - fixed);
+      const k = Math.min(1, contentBudget / Math.max(1, hero.contentH));
       hero.headlineSize = Math.max(plan.floor, Math.round(hero.headlineSize * k));
       if (hero.employerSize) hero.employerSize = Math.max(plan.floor, Math.round(hero.employerSize * k));
       if (hero.subSize) hero.subSize = Math.max(plan.floor, Math.round(hero.subSize * k));
@@ -517,11 +582,13 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       plan = wider;
     }
 
-    // Still short: state the salary ONCE as a range and list bare trades,
-    // which is what the paper itself does on a tight slot. Nothing is
-    // invented — the range is the true minimum and maximum of the verified
-    // per-role figures.
-    if (H - chromeFor(plan) < plan.listH) {
+    // Still short: state the salary ONCE and list bare trades, which is what
+    // the paper itself does on a tight slot. Permitted ONLY when every role
+    // carries the same salary — merging different figures into one would
+    // leave a candidate unable to tell which role pays what, which is a
+    // factual defect, not a layout economy. Otherwise the column stays and
+    // the advertisement fails on capacity below.
+    if (H - chromeFor(plan) < plan.listH && sharedSalaryLabel(facts) !== null) {
       let best = planBody(facts, tier, W, dense, undefined, true, input.dpi);
       for (let c = best.cols + 1; c <= 6 && H - chromeFor(best) < best.listH; c++) {
         const wider = planBody(facts, tier, W, dense, c, true, input.dpi);
@@ -594,16 +661,16 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const stripHere = brandingStripHeight(W, H, hasContact);
     const paperH = H - stripHere;
 
-    parts.push(`<rect x="0" y="0" width="${W}" height="${paperH}" fill="${WHITE}"/>`);
+    parts.push(`<rect x="0" y="0" width="${W}" height="${paperH}" fill="${pal.paper}"/>`);
     parts.push(
       `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="${NAVY}" stop-opacity="0.92"/>` +
-        `<stop offset="1" stop-color="${NAVY}" stop-opacity="0.80"/>` +
+        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.92"/>` +
+        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.80"/>` +
         `</linearGradient></defs>`,
     );
     parts.push(
       `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${paperH - inset * 2}" ` +
-        `fill="none" stroke="${NAVY}" stroke-width="${FRAME}"/>`,
+        `fill="none" stroke="${pal.ink}" stroke-width="${FRAME}"/>`,
     );
 
     const edge = inset + FRAME;
@@ -615,12 +682,12 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // the way a classified does it. Repeating the name here printed it
     // three times on one advertisement.
     const barH = Math.round(W * 0.062 * dtpScale);
-    parts.push(`<rect x="${edge}" y="${edge}" width="${innerW}" height="${barH}" fill="${NAVY}"/>`);
+    parts.push(`<rect x="${edge}" y="${edge}" width="${innerW}" height="${barH}" fill="${pal.ink}"/>`);
     const urgency = "URGENT REQUIREMENT";
     const uSize = fit(urgency, innerW * 0.55, Math.round(barH * 0.4), plan.floor, true);
     parts.push(
       `<text x="${edge + bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
-        `font-size="${uSize}" font-weight="700" fill="${WHITE}" letter-spacing="2">${esc(urgency)}</text>`,
+        `font-size="${uSize}" font-weight="700" fill="${pal.reversed}" letter-spacing="2">${esc(urgency)}</text>`,
     );
     const interviewBit = facts.interview[0]?.date
       ? `INTERVIEW ${facts.interview[0].date}`
@@ -629,7 +696,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       const iSize = fit(interviewBit, innerW * 0.42, Math.round(barH * 0.32), plan.floor, true);
       parts.push(
         `<text x="${W - edge - bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
-          `font-size="${iSize}" font-weight="700" fill="${GOLD}" text-anchor="end">${esc(interviewBit.toUpperCase())}</text>`,
+          `font-size="${iSize}" font-weight="700" fill="${pal.accentText === "#FFFFFF" ? pal.reversed : pal.accent}" text-anchor="end">${esc(interviewBit.toUpperCase())}</text>`,
       );
     }
 
@@ -642,7 +709,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     for (const l of hero.headlineLines) {
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
-          `font-size="${hero.headlineSize}" font-weight="800" fill="${WHITE}" text-anchor="middle" ` +
+          `font-size="${hero.headlineSize}" font-weight="800" fill="${pal.reversed}" text-anchor="middle" ` +
           `letter-spacing="-1">${esc(l.toUpperCase())}</text>`,
       );
       my += Math.round(hero.headlineSize * 1.1);
@@ -650,24 +717,24 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     if (facts.employer && hero.employerSize) {
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
-          `font-size="${hero.employerSize}" font-weight="700" fill="${GOLD}" text-anchor="middle">${esc(facts.employer.toUpperCase())}</text>`,
+          `font-size="${hero.employerSize}" font-weight="700" fill="${pal.accentText === "#FFFFFF" ? pal.reversed : pal.accent}" text-anchor="middle">${esc(facts.employer.toUpperCase())}</text>`,
       );
       my += Math.round(hero.employerSize * 1.15);
     }
     if (hero.meta && hero.metaSize) {
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
-          `font-size="${hero.metaSize}" fill="${WHITE}" text-anchor="middle" opacity="0.85">${esc(hero.meta)}</text>`,
+          `font-size="${hero.metaSize}" fill="${pal.reversed}" text-anchor="middle" opacity="0.85">${esc(hero.meta)}</text>`,
       );
     }
 
     // Gold strap — the verified count, destination and industry.
     const strapY = mastTop + mastH;
     const strapH = Math.round(W * 0.055 * dtpScale);
-    parts.push(`<rect x="${edge}" y="${strapY}" width="${innerW}" height="${strapH}" fill="${GOLD}"/>`);
+    parts.push(`<rect x="${edge}" y="${strapY}" width="${innerW}" height="${strapH}" fill="${pal.accent}"/>`);
     const strapBits = [
       headlineCountLabel(facts),
-      plan.hasSalary ? null : salaryRangeLabel(facts),
+      plan.hasSalary ? null : sharedSalaryLabel(facts),
       facts.country?.toUpperCase(),
       facts.industry?.toUpperCase(),
     ]
@@ -676,10 +743,10 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const strapSize = fit(strapBits, innerW - bandPad * 2, Math.round(strapH * 0.4), plan.floor, true);
     parts.push(
       `<text x="${Math.round(W / 2)}" y="${strapY + Math.round(strapH * 0.66)}" font-family="KaiSans, sans-serif" ` +
-        `font-size="${strapSize}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
+        `font-size="${strapSize}" font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
     );
 
-    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale));
+    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale, pal));
     parts.push(`</svg>`);
     const dtpPng = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
     return { png: dtpPng, heightPx: H, artworkHeightPx: heroPx, themeSelection };
@@ -757,7 +824,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     `<text x="${margin + Math.round(bW / 2)}" y="${y + Math.round(hero.badgeH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${bS}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(label)}</text>`,
   );
 
-  parts.push(renderBody(facts, W, heroPx, plan, dense));
+  parts.push(renderBody(facts, W, heroPx, plan, dense, 0, W, 1, pal));
   parts.push(`</svg>`);
 
   const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
@@ -773,10 +840,11 @@ function renderBody(
   edge = 0,
   innerW = W,
   chromeScale = 1,
+  pal: Palette = COLOUR_PALETTE,
 ): string {
   const px = (f: number) => Math.round(f * W);
   const { colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
-  const margin = dense ? edge + Math.round(W * 0.022) : plan.margin;
+  const margin = plan.margin;
   const parts: string[] = [];
 
   let y: number;
@@ -785,19 +853,19 @@ function renderBody(
     // heading floating in space.
     const secH = Math.round(W * 0.045 * chromeScale);
     y = heroPx + px(0.012);
-    parts.push(`<rect x="${edge}" y="${y}" width="${innerW}" height="${secH}" fill="${NAVY}"/>`);
+    parts.push(`<rect x="${edge}" y="${y}" width="${innerW}" height="${secH}" fill="${pal.ink}"/>`);
     parts.push(
       `<text x="${Math.round(W / 2)}" y="${y + Math.round(secH * 0.68)}" font-family="KaiSans, sans-serif" ` +
-        `font-size="${Math.round(secH * 0.44)}" font-weight="700" fill="${WHITE}" text-anchor="middle" ` +
+        `font-size="${Math.round(secH * 0.44)}" font-weight="700" fill="${pal.reversed}" text-anchor="middle" ` +
         `letter-spacing="3">POSITIONS AVAILABLE</text>`,
     );
     y += secH + px(0.012) + titleSize;
   } else {
     y = heroPx + px(0.035) + px(T.H2);
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${NAVY}">POSITIONS</text>`,
+      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${pal.ink}">POSITIONS</text>`,
     );
-    parts.push(`<rect x="${margin}" y="${y + px(0.009)}" width="${px(0.075)}" height="3" fill="${GOLD}"/>`);
+    parts.push(`<rect x="${margin}" y="${y + px(0.009)}" width="${px(0.075)}" height="3" fill="${pal.accent}"/>`);
     y += plan.headingH - px(T.H2) + px(0.012);
   }
 
@@ -807,21 +875,20 @@ function renderBody(
     const hs = Math.max(floor, Math.round(px(T.Caption) * 0.85));
     parts.push(
       `<text x="${margin}" y="${y - px(0.004)}" font-family="KaiSans, sans-serif" font-size="${hs}" ` +
-        `font-weight="700" fill="${SLATE}" letter-spacing="1">POSITION</text>`,
+        `font-weight="700" fill="${pal.muted}" letter-spacing="1">POSITION</text>`,
     );
     parts.push(
       `<text x="${margin + plan.contentW}" y="${y - px(0.004)}" font-family="KaiSans, sans-serif" font-size="${hs}" ` +
-        `font-weight="700" fill="${SLATE}" text-anchor="end" letter-spacing="1">MONTHLY SALARY</text>`,
+        `font-weight="700" fill="${pal.muted}" text-anchor="end" letter-spacing="1">MONTHLY SALARY</text>`,
     );
     y += Math.round(hs * 1.2);
   }
 
   const startY = y;
   for (let c = 0; c < cols; c++) {
-    const measureW = dense ? innerW - Math.round(W * 0.044) : plan.contentW;
-    const colPitch = Math.round((measureW - gutter * (cols - 1)) / cols);
-    const colX = margin + c * (colPitch + gutter);
-    const colWHere = dense ? colPitch : colW;
+    // Planner and renderer share one column geometry, always.
+    const colX = plan.margin + c * (colW + gutter);
+    const colWHere = colW;
     let cy = startY;
     // Track the row box explicitly. Deriving rowTop from the drawing cursor
     // and then advancing the cursor to the row's BOTTOM made each row's box
@@ -839,10 +906,10 @@ function renderBody(
       if (p.count != null && !dense) {
         const bs = Math.round(titleSize * 0.78);
         rowParts.push(
-          `<rect x="${colX}" y="${cy - Math.round(titleSize * 0.82)}" width="${px(0.042)}" height="${Math.round(titleSize * 1.06)}" rx="3" fill="${GOLD}"/>`,
+          `<rect x="${colX}" y="${cy - Math.round(titleSize * 0.82)}" width="${px(0.042)}" height="${Math.round(titleSize * 1.06)}" rx="3" fill="${pal.accent}"/>`,
         );
         rowParts.push(
-          `<text x="${colX + Math.round(px(0.042) / 2)}" y="${cy - Math.round(titleSize * 0.1)}" font-family="KaiSans, sans-serif" font-size="${bs}" font-weight="700" fill="${NAVY}" text-anchor="middle">${esc(String(p.count))}</text>`,
+          `<text x="${colX + Math.round(px(0.042) / 2)}" y="${cy - Math.round(titleSize * 0.1)}" font-family="KaiSans, sans-serif" font-size="${bs}" font-weight="700" fill="${pal.ink}" text-anchor="middle">${esc(String(p.count))}</text>`,
         );
       }
       if (p.count != null && dense && badgeW > 0) {
@@ -850,7 +917,7 @@ function renderBody(
         rowParts.push(
           `<text x="${colX + Math.round(badgeW / 2)}" y="${rowTop + Math.round(rh / 2) + Math.round(titleSize * 0.32)}" ` +
             `font-family="KaiSans, sans-serif" font-size="${Math.round(titleSize * 0.82)}" font-weight="700" ` +
-            `fill="${NAVY}" text-anchor="middle">${esc(String(p.count))}</text>`,
+            `fill="${dense ? pal.accentText : pal.ink}" text-anchor="middle">${esc(String(p.count))}</text>`,
         );
       }
       const tx = colX + badgeW + (dense ? Math.round(W * 0.008) : 0);
@@ -861,7 +928,7 @@ function renderBody(
       for (const line of lines) {
         const ls = fit(line, tw, titleSize, floor);
         rowParts.push(
-          `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${NAVY}">${esc(line)}</text>`,
+          `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${pal.ink}">${esc(line)}</text>`,
         );
         cy += Math.round(titleSize * plan.lineFactor);
       }
@@ -871,7 +938,7 @@ function renderBody(
         const ss = fit(p.salary, plan.salaryW, titleSize, floor, true);
         rowParts.push(
           `<text x="${colX + colWHere}" y="${firstBaseline}" font-family="KaiSans, sans-serif" ` +
-            `font-size="${ss}" font-weight="700" fill="${NAVY}" text-anchor="end">${esc(p.salary)}</text>`,
+            `font-size="${ss}" font-weight="700" fill="${pal.ink}" text-anchor="end">${esc(p.salary)}</text>`,
         );
       }
       if (showDetail) {
@@ -879,7 +946,7 @@ function renderBody(
         if (d) {
           const ds = fit(d, tw, detailSize, floor);
           rowParts.push(
-            `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${SLATE}">${esc(d)}</text>`,
+            `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.muted}">${esc(d)}</text>`,
           );
           cy += Math.round(detailSize * 1.3);
         }
@@ -896,18 +963,18 @@ function renderBody(
         // the left edge, and a rule across the measure.
         if (rowIndex % 2 === 1) {
           parts.push(
-            `<rect x="${colX}" y="${rowTop}" width="${colWHere}" height="${cardH}" fill="#F3EEE3"/>`,
+            `<rect x="${colX}" y="${rowTop}" width="${colWHere}" height="${cardH}" fill="${pal.tint}"/>`,
           );
         }
         if (p.count != null && badgeW > 0) {
-          parts.push(`<rect x="${colX}" y="${rowTop}" width="${badgeW}" height="${cardH}" fill="${GOLD}"/>`);
+          parts.push(`<rect x="${colX}" y="${rowTop}" width="${badgeW}" height="${cardH}" fill="${pal.accent}"/>`);
         }
         parts.push(
-          `<rect x="${colX}" y="${rowTop + cardH}" width="${colWHere}" height="1.5" fill="${NAVY}" opacity="0.45"/>`,
+          `<rect x="${colX}" y="${rowTop + cardH}" width="${colWHere}" height="1.5" fill="${pal.ink}" opacity="0.45"/>`,
         );
       } else {
         parts.push(
-          `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(0.008)}" fill="${WHITE}" stroke="${DIVIDER}" stroke-width="1"/>`,
+          `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(0.008)}" fill="${pal.paper}" stroke="${DIVIDER}" stroke-width="1"/>`,
         );
       }
       parts.push(...rowParts);
@@ -923,9 +990,9 @@ function renderBody(
     const text = facts.benefits.map((b) => (b.detail ? `${b.label}: ${b.detail}` : b.label)).join("   ·   ");
     const s = fit(text, plan.contentW, px(T.Caption), floor);
     const barH = Math.round(s * 2.4);
-    parts.push(`<rect x="0" y="${sy - Math.round(s * 1.1)}" width="${W}" height="${barH}" fill="${NAVY}"/>`);
+    parts.push(`<rect x="0" y="${sy - Math.round(s * 1.1)}" width="${W}" height="${barH}" fill="${pal.ink}"/>`);
     parts.push(
-      `<text x="${margin}" y="${sy + Math.round(s * 0.42)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${GOLD}">${esc(text)}</text>`,
+      `<text x="${margin}" y="${sy + Math.round(s * 0.42)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.accent}">${esc(text)}</text>`,
     );
     sy += Math.round(s * 2.7);
   }
@@ -937,10 +1004,10 @@ function renderBody(
     if (detail) {
       const s = fit(`INTERVIEW   ${detail}`, plan.contentW, px(T.Caption), floor);
       parts.push(
-        `<text x="${margin}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${NAVY}">INTERVIEW</text>`,
+        `<text x="${margin}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${pal.ink}">INTERVIEW</text>`,
       );
       parts.push(
-        `<text x="${margin + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${SLATE}">${esc(detail)}</text>`,
+        `<text x="${margin + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.muted}">${esc(detail)}</text>`,
       );
     }
   }

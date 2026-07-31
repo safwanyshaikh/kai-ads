@@ -1,5 +1,5 @@
 import { buildCreativeBrief } from "./creative-brief";
-import { renderFactLayer, type AdTheme, type ThemeSelection } from "./fact-layer";
+import { renderFactLayer, type AdTheme, type AdInk, type ThemeSelection } from "./fact-layer";
 import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
@@ -30,6 +30,10 @@ export interface GeneratePipelineInput {
   designTheme?: AdTheme | null;
   /** Explicit print / newspaper destination — forces the AAT/DTP language. */
   printOrNewspaper?: boolean;
+  /** Output resolution; required for print so the type floor is physical. */
+  dpi?: number;
+  /** Ink: single-ink is one black plate, the way a newspaper prints. */
+  ink?: AdInk;
 }
 
 export interface GeneratePipelineResult {
@@ -79,6 +83,8 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     heightPx: input.heightPx,
     theme: input.designTheme,
     printOrNewspaper: input.printOrNewspaper,
+    dpi: input.dpi,
+    ink: input.ink,
   });
   const canvasHeight = factLayer.heightPx;
   const imagePng = await sharp(backgroundPng)
