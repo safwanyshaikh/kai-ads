@@ -3,6 +3,7 @@ import { renderFactLayer } from "./fact-layer";
 import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
+import { runVisionQa, VisionQaRejectedError, type VisionQaResult } from "./vision-qa";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import sharp from "sharp";
 import { getEnv } from "@/lib/env";
@@ -32,6 +33,8 @@ export interface GeneratePipelineResult {
   usage: { model: string; latencyMs: number; estimatedCostUsd: number | null };
   /** Which footer was used and why — surfaced to the recruiter and analytics. */
   footerSelection: Awaited<ReturnType<typeof selectFooterStyle>>;
+  /** Final gate: every verified fact read back off the rendered pixels. */
+  visionQa: VisionQaResult;
 }
 
 /**
@@ -94,5 +97,12 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     artworkHeightPx: factLayer.artworkHeightPx,
   });
 
-  return { imagePng: finalPng, brief, usage, footerSelection };
+  // Final gate. The advertisement is verified against its own pixels
+  // before it can be returned, and a mismatch rejects it outright — KAI
+  // never silently corrects a rendered advertisement, because the
+  // corrected version would say something the recruiter never wrote.
+  const visionQa = await runVisionQa({ imagePng: finalPng, facts: input.facts });
+  if (!visionQa.passed) throw new VisionQaRejectedError(visionQa);
+
+  return { imagePng: finalPng, brief, usage, footerSelection, visionQa };
 }

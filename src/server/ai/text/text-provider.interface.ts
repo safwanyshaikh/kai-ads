@@ -17,6 +17,13 @@ export interface TextGenerationInput {
   instructions: string;
   /** The user-role payload the model reasons over. */
   input: string;
+  /**
+   * Optional PNG the model must look at as well as read. Used by Vision QA
+   * to transcribe a finished advertisement back off its own pixels. Sent as
+   * native image input by each provider — never base64 pasted into `input`,
+   * which exceeds the token limit on any real advertisement.
+   */
+  imagePng?: Buffer;
 }
 
 export interface TextGenerationUsage {
