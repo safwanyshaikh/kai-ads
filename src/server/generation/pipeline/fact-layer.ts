@@ -71,6 +71,77 @@ export class LayoutCapacityError extends Error {
   }
 }
 
+/**
+ * The two KAI design languages. A theme is a visual language, not an
+ * engine — both are rendered by this one Rendering Engine, from the same
+ * verified facts, through the same QR, verification and Vision QA. Only
+ * the design language changes.
+ *
+ * THEME_01 Premium Campaign  — maximum attention. Hero photography, large
+ *   type, spacious. For LinkedIn, Facebook, Instagram, WhatsApp, employer
+ *   branding. Recommended 1–20 positions.
+ *
+ * THEME_02 High Density      — maximum information. A modern structured
+ *   table, minimal artwork, dense but readable on a phone, brand and QR
+ *   retained. For shutdowns, mega hiring, bulk and contractor campaigns.
+ *   Recommended 20+ positions.
+ *
+ * THEME_02 is explicitly NOT a newspaper classified. It is the modern
+ * evolution of that format: a candidate recognises it instantly, but it
+ * still looks like KAI.
+ */
+export type AdTheme = "PREMIUM_CAMPAIGN" | "HIGH_DENSITY";
+
+export interface ThemeSelection {
+  theme: AdTheme;
+  /** Why this theme was chosen — surfaced to the recruiter and analytics. */
+  reason: string;
+  /** True when the caller supplied the theme instead of KAI choosing it. */
+  fromOverride: boolean;
+}
+
+/**
+ * Recruiters never choose a theme. KAI reads the shape of the requirement
+ * and picks — position count first, then how much information each role
+ * actually carries, because twelve roles each with salary, qualification
+ * and certifications is a denser page than twenty bare titles.
+ */
+export function selectTheme(facts: AdvertisementFacts, override?: AdTheme | null): ThemeSelection {
+  if (override) {
+    return { theme: override, reason: "The recruiter selected this theme.", fromOverride: true };
+  }
+
+  const roles = facts.positions.length;
+  if (roles >= 20) {
+    return {
+      theme: "HIGH_DENSITY",
+      reason: `${roles} positions — a structured table carries them legibly; a campaign layout could not.`,
+      fromOverride: false,
+    };
+  }
+
+  // Detail load: a role carrying salary/qualification/certifications needs
+  // materially more room than a bare title.
+  const detailed = facts.positions.filter((p) => roleDetail(p)).length;
+  const detailLoad = roles === 0 ? 0 : detailed / roles;
+  if (roles >= 13 && detailLoad > 0.6) {
+    return {
+      theme: "HIGH_DENSITY",
+      reason: `${roles} positions, most carrying salary and qualification detail — density serves the candidate better.`,
+      fromOverride: false,
+    };
+  }
+
+  return {
+    theme: "PREMIUM_CAMPAIGN",
+    reason:
+      roles <= 3
+        ? `${roles} position${roles === 1 ? "" : "s"} — a hero-led campaign gives each role full weight.`
+        : `${roles} positions — a campaign layout keeps attention while holding every role.`,
+    fromOverride: false,
+  };
+}
+
 type Tier = "T1" | "T2" | "T3" | "T4";
 
 function tierFor(count: number): Tier {
@@ -158,6 +229,8 @@ export interface FactLayerInput {
   facts: AdvertisementFacts;
   widthPx: number;
   heightPx: number;
+  /** Recruiter override. Omitted means KAI selects the theme itself. */
+  theme?: AdTheme | null;
 }
 
 export interface FactLayerResult {
@@ -170,6 +243,8 @@ export interface FactLayerResult {
    * decorative may be painted there.
    */
   artworkHeightPx: number;
+  /** Which design language was used, and why. */
+  themeSelection: ThemeSelection;
 }
 
 type Plan = ReturnType<typeof planBody>;
@@ -179,7 +254,7 @@ type Plan = ReturnType<typeof planBody>;
  * chosen so the longest verified title fits at the legibility floor, which
  * is what makes truncation impossible.
  */
-function planBody(facts: AdvertisementFacts, tier: Tier, W: number) {
+function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = false) {
   const px = (f: number) => Math.round(f * W);
   const margin = px(MARGIN);
   const contentW = W - margin * 2;
@@ -193,6 +268,13 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number) {
   const rowGap = px(tier === "T1" ? 0.02 : tier === "T2" ? 0.014 : tier === "T3" ? 0.009 : 0.007);
   const lineFactor = tier === "T4" ? 1.15 : 1.25;
   const badgeW = facts.positions.some((p) => p.count != null) ? px(0.05) : 0;
+  // High Density promotes salary into its own right-hand column. That
+  // width must be reserved before titles are wrapped, or a long title
+  // wraps as if it owned the full measure and then collides with the figure.
+  const salaryW =
+    dense && facts.positions.some((p) => p.salary)
+      ? Math.round((W - margin * 2) * (maxColumnsFor(tier) > 1 ? 0.13 : 0.22))
+      : 0;
 
   // A long title wraps inside its column; it never truncates and never
   // collapses the grid. Only a title that still needs more than MAX_LINES
@@ -202,7 +284,7 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number) {
   let colW = Math.round((contentW - gutter * (cols - 1)) / cols);
   while (
     cols > 1 &&
-    facts.positions.some((p) => wrapLines(p.title, colW - badgeW, floor).length > MAX_LINES)
+    facts.positions.some((p) => wrapLines(p.title, colW - badgeW - salaryW, floor).length > MAX_LINES)
   ) {
     cols -= 1;
     colW = Math.round((contentW - gutter * (cols - 1)) / cols);
@@ -212,7 +294,7 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number) {
   const rowHeights = facts.positions.map((p) => {
     const lines = Math.min(
       MAX_LINES,
-      wrapLines(p.title, colW - badgeW, titleSize).length,
+      wrapLines(p.title, colW - badgeW - salaryW, titleSize).length,
     );
     return Math.round(
       titleSize * lineFactor * lines + (anyDetail && roleDetail(p) ? detailSize * 1.3 : 0) + rowGap,
@@ -232,7 +314,7 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number) {
 
   return {
     cols, colW, margin, contentW, gutter, titleSize, detailSize, showDetail,
-    rowGap, badgeW, perCol, rowH, rowHeights, listH, headingH, extraH, floor, lineFactor,
+    rowGap, badgeW, salaryW, perCol, rowH, rowHeights, listH, headingH, extraH, floor, lineFactor,
     maxLines: MAX_LINES,
     bodyH: headingH + listH + extraH,
   };
@@ -305,12 +387,16 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const { facts, widthPx: W } = input;
   const px = (f: number) => Math.round(f * W);
   const total = facts.positions.length;
+  const themeSelection = selectTheme(facts, input.theme);
+  const dense = themeSelection.theme === "HIGH_DENSITY";
   const tier = tierFor(total);
-  const heroFrac = tier === "T1" || tier === "T2" ? 0.42 : 0.3;
+  // High Density trades hero height for information: minimal artwork, and
+  // the page belongs to the table.
+  const heroFrac = dense ? 0.16 : tier === "T1" || tier === "T2" ? 0.42 : 0.3;
   // The hero is capped in absolute terms so a tall directory poster does not
   // spend a third of its height on artwork it does not need.
-  const heroCap = Math.round((tier === "T1" || tier === "T2" ? 0.62 : 0.5) * W);
-  const plan = planBody(facts, tier, W);
+  const heroCap = Math.round((dense ? 0.3 : tier === "T1" || tier === "T2" ? 0.62 : 0.5) * W);
+  const plan = planBody(facts, tier, W, dense);
   const hero = planHero(facts, W);
   const pad = px(0.06);
 
@@ -429,11 +515,11 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     `<text x="${margin + Math.round(bW / 2)}" y="${y + Math.round(hero.badgeH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${bS}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(label)}</text>`,
   );
 
-  parts.push(renderBody(facts, W, heroPx, plan));
+  parts.push(renderBody(facts, W, heroPx, plan, dense));
   parts.push(`</svg>`);
 
   const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
-  return { png, heightPx: H, artworkHeightPx: heroPx };
+  return { png, heightPx: H, artworkHeightPx: heroPx, themeSelection };
 }
 
 function renderBody(
@@ -441,22 +527,40 @@ function renderBody(
   W: number,
   heroPx: number,
   plan: Plan,
+  dense = false,
 ): string {
   const px = (f: number) => Math.round(f * W);
   const { margin, colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
   const parts: string[] = [];
 
   let y = heroPx + px(0.035) + px(T.H2);
+  const heading = dense ? "POSITIONS & SALARY" : "POSITIONS";
   parts.push(
-    `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${NAVY}">POSITIONS</text>`,
+    `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${NAVY}">${esc(heading)}</text>`,
   );
   parts.push(`<rect x="${margin}" y="${y + px(0.009)}" width="${px(0.075)}" height="3" fill="${GOLD}"/>`);
   y += plan.headingH - px(T.H2) + px(0.012);
+
+  // High Density: a column header rules the table, so a candidate scanning
+  // forty roles knows what the right-hand figure means without re-reading.
+  if (dense && facts.positions.some((p) => p.salary)) {
+    const hs = Math.max(floor, Math.round(px(T.Caption) * 0.85));
+    parts.push(
+      `<text x="${margin}" y="${y - px(0.004)}" font-family="KaiSans, sans-serif" font-size="${hs}" ` +
+        `font-weight="700" fill="${SLATE}" letter-spacing="1">POSITION</text>`,
+    );
+    parts.push(
+      `<text x="${margin + plan.contentW}" y="${y - px(0.004)}" font-family="KaiSans, sans-serif" font-size="${hs}" ` +
+        `font-weight="700" fill="${SLATE}" text-anchor="end" letter-spacing="1">MONTHLY SALARY</text>`,
+    );
+    y += Math.round(hs * 1.2);
+  }
 
   const startY = y;
   for (let c = 0; c < cols; c++) {
     const colX = margin + c * (colW + gutter);
     let cy = startY;
+    let rowIndex = c * perCol;
     for (const p of facts.positions.slice(c * perCol, (c + 1) * perCol)) {
       // Each role is a card. SVG paints in document order, so the row's
       // marks are collected first and the card is emitted beneath them
@@ -473,15 +577,25 @@ function renderBody(
         );
       }
       const tx = colX + badgeW;
-      const tw = colW - badgeW;
+      const tw = colW - badgeW - plan.salaryW;
       // Titles wrap; they are never truncated and never shrunk below the floor.
       const lines = wrap(p.title, tw, titleSize, plan.maxLines);
+      const firstBaseline = cy;
       for (const line of lines) {
         const ls = fit(line, tw, titleSize, floor);
         rowParts.push(
           `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${NAVY}">${esc(line)}</text>`,
         );
         cy += Math.round(titleSize * plan.lineFactor);
+      }
+      if (dense && p.salary) {
+        // Salary is the conversion driver: promoted to its own right-hand
+        // column at title weight, on the row's first baseline.
+        const ss = fit(p.salary, plan.salaryW, titleSize, floor, true);
+        rowParts.push(
+          `<text x="${colX + colW}" y="${firstBaseline}" font-family="KaiSans, sans-serif" ` +
+            `font-size="${ss}" font-weight="700" fill="${NAVY}" text-anchor="end">${esc(p.salary)}</text>`,
+        );
       }
       if (showDetail) {
         const d = roleDetail(p);
@@ -493,14 +607,32 @@ function renderBody(
           cy += Math.round(detailSize * 1.3);
         }
       }
-      // The card fills the row's own space — no extra height is consumed,
+      // The row fills its own planned space — no extra height is consumed,
       // so density tiers, column planning and capacity checks are unchanged.
       const inset = Math.round(rowGap * 0.3);
-      const cardH = cy - rowTop + inset;
-      parts.push(
-        `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(0.008)}" fill="${WHITE}" stroke="${DIVIDER}" stroke-width="1"/>`,
-      );
+      // The row box is the planner's own row height. Deriving it from the
+      // drawing cursor made consecutive boxes overlap by ~0.9x titleSize,
+      // which is why the separator rules struck through the next row's text.
+      const cardH = (plan.rowHeights[rowIndex] ?? cy - rowTop + inset) - 1;
+      if (dense) {
+        // Modern structured table: zebra banding and a hairline rule, no
+        // card chrome. Chrome around forty rows is what makes a page read
+        // as a document instead of a campaign.
+        if (rowIndex % 2 === 1) {
+          parts.push(
+            `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" fill="${WHITE}" opacity="0.55"/>`,
+          );
+        }
+        parts.push(
+          `<rect x="${colX - inset}" y="${rowTop + cardH}" width="${colW + inset * 2}" height="1" fill="${DIVIDER}"/>`,
+        );
+      } else {
+        parts.push(
+          `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(0.008)}" fill="${WHITE}" stroke="${DIVIDER}" stroke-width="1"/>`,
+        );
+      }
       parts.push(...rowParts);
+      rowIndex++;
       cy += rowGap;
     }
   }

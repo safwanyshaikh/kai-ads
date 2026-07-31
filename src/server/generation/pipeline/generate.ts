@@ -1,5 +1,5 @@
 import { buildCreativeBrief } from "./creative-brief";
-import { renderFactLayer } from "./fact-layer";
+import { renderFactLayer, type AdTheme, type ThemeSelection } from "./fact-layer";
 import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
@@ -25,6 +25,9 @@ export interface GeneratePipelineInput {
   /** Agency's saved footer preference; when absent KAI selects one. */
   footerStyle?: FooterStyle | null;
   brandBadges?: string[] | null;
+  /** Recruiter override of the design language. Omitted means KAI selects it.
+   *  Distinct from `theme` above, which is a colour hint for the artwork. */
+  designTheme?: AdTheme | null;
 }
 
 export interface GeneratePipelineResult {
@@ -35,6 +38,8 @@ export interface GeneratePipelineResult {
   footerSelection: Awaited<ReturnType<typeof selectFooterStyle>>;
   /** Final gate: every verified fact read back off the rendered pixels. */
   visionQa: VisionQaResult;
+  /** Which of the two design languages was used, and why. */
+  themeSelection: ThemeSelection;
 }
 
 /**
@@ -70,6 +75,7 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
     facts: input.facts,
     widthPx: input.widthPx,
     heightPx: input.heightPx,
+    theme: input.designTheme,
   });
   const canvasHeight = factLayer.heightPx;
   const imagePng = await sharp(backgroundPng)
@@ -104,5 +110,5 @@ export async function generateAdvertisement(input: GeneratePipelineInput): Promi
   const visionQa = await runVisionQa({ imagePng: finalPng, facts: input.facts });
   if (!visionQa.passed) throw new VisionQaRejectedError(visionQa);
 
-  return { imagePng: finalPng, brief, usage, footerSelection, visionQa };
+  return { imagePng: finalPng, brief, usage, footerSelection, visionQa, themeSelection: factLayer.themeSelection };
 }
