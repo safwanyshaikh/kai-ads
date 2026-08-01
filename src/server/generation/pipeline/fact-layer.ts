@@ -412,9 +412,15 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
   const rowH = rowHeights[0] ?? 0;
 
   const headingH = Math.round(px(T.H2) * 1.6);
-  const extraH =
-    (facts.benefits.length ? Math.round(px(T.Caption) * 2.6) : 0) +
-    (facts.interview.length ? Math.round(px(T.Caption) * 2.8) : 0);
+  // Must match what renderBody actually draws, or the canvas-height solve
+  // under-reserves and the real content overruns the branding strip below
+  // it. Premium's benefits are an icon-led bar (KDL trust/icon rebuild),
+  // materially taller than High Density's single caption line.
+  const extraH = dense
+    ? (facts.benefits.length ? Math.round(px(T.Caption) * 2.6) : 0) +
+      (facts.interview.length ? Math.round(px(T.Caption) * 2.8) : 0)
+    : (facts.benefits.length ? Math.round(px(0.052) * 2) + px(0.02) : 0) +
+      (facts.interview.length ? Math.round(px(T.Caption) * 2.2) : 0);
 
   return {
     cols, colW, margin, contentW, gutter, titleSize, detailSize, showDetail,
@@ -451,9 +457,15 @@ function planHero(facts: AdvertisementFacts, W: number, dpi?: number) {
   const meta = [facts.visaType, facts.dutyHours, facts.rotation].filter(Boolean).join("  ·  ");
   const metaSize = meta ? fit(meta, contentW, px(T.Caption), floor) : 0;
   const badgeH = Math.round(px(T.Caption) * 2.2);
+  // Reserves the ribbon banner drawn above the headline in the Premium
+  // composition (dense ignores this — it never draws a ribbon). Omitting
+  // it under-reserved the hero by exactly the ribbon's height, and the
+  // real content ran past the branding strip below it.
+  const ribbonH = Math.round(px(T.Caption) * 2.1);
+  const ribbonReserve = px(0.02) + ribbonH + px(0.045);
 
   const h =
-    px(0.055) +
+    ribbonReserve +
     headlineLines.length * Math.round(headlineSize * 1.14) +
     (employerSize ? px(0.01) + Math.round(employerSize * 1.08) : 0) +
     (subSize ? px(0.006) + Math.round(subSize * 1.15) : 0) +
@@ -489,6 +501,137 @@ function headlineCountLabel(facts: AdvertisementFacts): string {
     }
   }
   return `${roles} POSITION${roles === 1 ? "" : "S"} AVAILABLE`;
+}
+
+/**
+ * The verified vacancy count as a hero-scale graphic, not a caption. Real
+ * LLM-composed recruitment ads make the number the dominant visual element
+ * ("100 NOS", "20 VACANCIES") rather than a small pill — this is the exact
+ * fact `headlineCountLabel` already computes, split so it can be set at
+ * display size with its unit beneath it.
+ */
+function heroNumeral(facts: AdvertisementFacts): { num: string; caption: string } | null {
+  const roles = facts.positions.length;
+  if (roles === 0) return null;
+  const allCounted = roles > 0 && facts.positions.every((p) => typeof p.count === "number");
+  if (allCounted) {
+    const vacancies = facts.positions.reduce((sum, p) => sum + (p.count ?? 0), 0);
+    if (vacancies > 0) return { num: String(vacancies), caption: vacancies === 1 ? "VACANCY" : "VACANCIES" };
+  }
+  return { num: String(roles), caption: roles === 1 ? "POSITION" : "POSITIONS" };
+}
+
+/** A notched ribbon/flag shape — a banner cut, not a rounded pill. */
+function ribbonPath(x: number, y: number, w: number, h: number, notchOnRight: boolean): string {
+  const n = Math.round(h * 0.55);
+  return notchOnRight
+    ? `M ${x} ${y} L ${x + w} ${y} L ${x + w - n} ${y + h / 2} L ${x + w} ${y + h} L ${x} ${y + h} Z`
+    : `M ${x + n} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x + n} ${y + h} L ${x} ${y + h / 2} Z`;
+}
+
+type IconKind = "food" | "bed" | "medical" | "flight" | "phone" | "chat" | "check" | "calendar" | "briefcase" | "star";
+
+/**
+ * A small, self-contained icon system — plain strokes and fills only, no
+ * external glyphs or fonts, so it rasterizes identically anywhere this
+ * engine runs. Real social-media recruitment ads lean on iconography to
+ * scan benefits at a glance; a bullet-joined caption string does not.
+ */
+function iconGlyph(kind: IconKind, cx: number, cy: number, r: number, color: string): string {
+  const s = r;
+  const sw = Math.max(1, r * 0.16);
+  switch (kind) {
+    case "food":
+      return (
+        `<g stroke="${color}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round">` +
+        `<line x1="${cx - s * 0.55}" y1="${cy - s * 0.75}" x2="${cx - s * 0.55}" y2="${cy + s * 0.75}"/>` +
+        `<line x1="${cx - s * 0.75}" y1="${cy - s * 0.75}" x2="${cx - s * 0.75}" y2="${cy - s * 0.1}"/>` +
+        `<line x1="${cx - s * 0.35}" y1="${cy - s * 0.75}" x2="${cx - s * 0.35}" y2="${cy - s * 0.1}"/>` +
+        `<path d="M ${cx + s * 0.35} ${cy - s * 0.75} q ${s * 0.4} ${s * 0.35} 0 ${s * 0.7} l 0 ${s * 0.8}"/>` +
+        `</g>`
+      );
+    case "bed":
+      return (
+        `<g stroke="${color}" stroke-width="${sw}" fill="none" stroke-linecap="round" stroke-linejoin="round">` +
+        `<path d="M ${cx - s * 0.85} ${cy + s * 0.65} L ${cx - s * 0.85} ${cy - s * 0.15} L ${cx + s * 0.85} ${cy - s * 0.15} L ${cx + s * 0.85} ${cy + s * 0.65}"/>` +
+        `<line x1="${cx - s * 0.85}" y1="${cy + s * 0.15}" x2="${cx + s * 0.85}" y2="${cy + s * 0.15}"/>` +
+        `<circle cx="${cx - s * 0.5}" cy="${cy - s * 0}" r="${s * 0.18}" fill="${color}" stroke="none"/>` +
+        `</g>`
+      );
+    case "medical":
+      return (
+        `<g fill="${color}">` +
+        `<rect x="${cx - s * 0.18}" y="${cy - s * 0.75}" width="${s * 0.36}" height="${s * 1.5}" rx="${s * 0.08}"/>` +
+        `<rect x="${cx - s * 0.75}" y="${cy - s * 0.18}" width="${s * 1.5}" height="${s * 0.36}" rx="${s * 0.08}"/>` +
+        `</g>`
+      );
+    case "flight":
+      return (
+        `<g fill="${color}">` +
+        `<path d="M ${cx - s * 0.9} ${cy + s * 0.2} L ${cx - s * 0.05} ${cy - s * 0.05} L ${cx + s * 0.2} ${cy - s * 0.85} ` +
+        `L ${cx + s * 0.42} ${cy - s * 0.8} L ${cx + s * 0.32} ${cy - s * 0.02} L ${cx + s * 0.9} ${cy + s * 0.28} ` +
+        `L ${cx + s * 0.9} ${cy + s * 0.48} L ${cx + s * 0.28} ${cy + s * 0.26} L ${cx + s * 0.14} ${cy + s * 0.75} ` +
+        `L ${cx + s * 0.36} ${cy + s * 0.85} L ${cx + s * 0.36} ${cy + s * 1.0} L ${cx - s * 0.34} ${cy + s * 0.85} ` +
+        `L ${cx - s * 0.12} ${cy + s * 0.75} L ${cx - s * 0.26} ${cy + s * 0.26} L ${cx - s * 0.9} ${cy + s * 0.48} Z"/>` +
+        `</g>`
+      );
+    case "phone":
+      return (
+        `<g fill="${color}">` +
+        `<path d="M ${cx - s * 0.65} ${cy - s * 0.85} q ${s * 0.35} -${s * 0.15} ${s * 0.55} ${s * 0.1} ` +
+        `l ${s * 0.18} ${s * 0.32} q ${s * 0.08} ${s * 0.15} -${s * 0.05} ${s * 0.25} l -${s * 0.18} ${s * 0.16} ` +
+        `q ${s * 0.2} ${s * 0.42} ${s * 0.55} ${s * 0.62} l ${s * 0.2} -${s * 0.14} q ${s * 0.1} -${s * 0.08} ${s * 0.24} -${s * 0.02} ` +
+        `l ${s * 0.32} ${s * 0.2} q ${s * 0.12} ${s * 0.08} ${s * 0.03} ${s * 0.22} q -${s * 0.25} ${s * 0.4} -${s * 0.7} ${s * 0.28} ` +
+        `q -${s * 0.75} -${s * 0.2} -${s * 1.15} -${s * 0.9} q -${s * 0.3} -${s * 0.55} -${s * 0.08} -${s * 0.9} Z"/>` +
+        `</g>`
+      );
+    case "chat":
+      return (
+        `<g fill="none" stroke="${color}" stroke-width="${sw}" stroke-linejoin="round">` +
+        `<path d="M ${cx - s * 0.85} ${cy - s * 0.55} h ${s * 1.7} a ${s * 0.2} ${s * 0.2} 0 0 1 ${s * 0.2} ${s * 0.2} v ${s * 0.6} ` +
+        `a ${s * 0.2} ${s * 0.2} 0 0 1 -${s * 0.2} ${s * 0.2} h -${s * 1.1} l -${s * 0.35} ${s * 0.35} v -${s * 0.35} h -${s * 0.25} ` +
+        `a ${s * 0.2} ${s * 0.2} 0 0 1 -${s * 0.2} -${s * 0.2} v -${s * 0.6} a ${s * 0.2} ${s * 0.2} 0 0 1 ${s * 0.2} -${s * 0.2} Z"/>` +
+        `</g>`
+      );
+    case "check":
+      return (
+        `<g fill="none" stroke="${color}" stroke-linecap="round" stroke-linejoin="round">` +
+        `<circle cx="${cx}" cy="${cy}" r="${s}" stroke-width="${Math.max(1.5, r * 0.14)}"/>` +
+        `<path d="M ${cx - s * 0.45} ${cy} l ${s * 0.3} ${s * 0.32} l ${s * 0.55} -${s * 0.6}" stroke-width="${Math.max(1.5, r * 0.2)}"/>` +
+        `</g>`
+      );
+    case "calendar":
+      return (
+        `<g fill="none" stroke="${color}" stroke-width="${sw}" stroke-linejoin="round">` +
+        `<rect x="${cx - s * 0.85}" y="${cy - s * 0.65}" width="${s * 1.7}" height="${s * 1.5}" rx="${s * 0.15}"/>` +
+        `<line x1="${cx - s * 0.85}" y1="${cy - s * 0.15}" x2="${cx + s * 0.85}" y2="${cy - s * 0.15}"/>` +
+        `<line x1="${cx - s * 0.45}" y1="${cy - s * 0.9}" x2="${cx - s * 0.45}" y2="${cy - s * 0.45}"/>` +
+        `<line x1="${cx + s * 0.45}" y1="${cy - s * 0.9}" x2="${cx + s * 0.45}" y2="${cy - s * 0.45}"/>` +
+        `</g>`
+      );
+    case "briefcase":
+      return (
+        `<g fill="none" stroke="${color}" stroke-width="${sw}" stroke-linejoin="round">` +
+        `<rect x="${cx - s * 0.9}" y="${cy - s * 0.4}" width="${s * 1.8}" height="${s * 1.2}" rx="${s * 0.1}"/>` +
+        `<path d="M ${cx - s * 0.35} ${cy - s * 0.4} v -${s * 0.25} a ${s * 0.15} ${s * 0.15} 0 0 1 ${s * 0.15} -${s * 0.15} ` +
+        `h ${s * 0.4} a ${s * 0.15} ${s * 0.15} 0 0 1 ${s * 0.15} ${s * 0.15} v ${s * 0.25}"/>` +
+        `</g>`
+      );
+    case "star":
+    default:
+      return `<circle cx="${cx}" cy="${cy}" r="${s * 0.35}" fill="${color}"/>`;
+  }
+}
+
+function benefitIconKind(label: string): IconKind {
+  const l = label.toLowerCase();
+  if (/food|meal|catering/.test(l)) return "food";
+  if (/accommodat|housing|stay|room/.test(l)) return "bed";
+  if (/medical|insurance|health/.test(l)) return "medical";
+  if (/flight|ticket|air\s?fare/.test(l)) return "flight";
+  if (/visa/.test(l)) return "briefcase";
+  if (/transport|bus|pickup/.test(l)) return "briefcase";
+  return "star";
 }
 
 export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerResult> {
@@ -660,7 +803,12 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // the table — the opposite of what a classified is for.
     heroPx = fillSlot ? dtpMastheadH : Math.min(dtpMastheadH, heroCap);
   } else {
-    const slack = H - strip - heroPx - plan.bodyH - px(0.05);
+    // renderBody's actual draw cursor spends more than plan.headingH getting
+    // from heroPx to the first row (a fixed offset before the heading and a
+    // fixed gap after it) — donating slack computed against bodyH alone
+    // measured 46px short of the branding strip on a real render. px(0.08)
+    // covers that offset plus a rounding margin.
+    const slack = H - strip - heroPx - plan.bodyH - px(0.08);
     if (slack > 0) {
       heroPx = Math.min(heroPx + slack, Math.round(0.55 * H));
     }
@@ -776,11 +924,17 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         `font-size="${strapSize}" font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
     );
 
-    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale, pal));
+    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale, pal).svg);
     parts.push(`</svg>`);
     const dtpPng = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
     return { png: dtpPng, heightPx: H, artworkHeightPx: heroPx, themeSelection };
   }
+
+  // Two compositions, not one repeated template — same palette, different
+  // seam direction and ribbon corner, so a batch of ads does not read as
+  // the same document stamped twice. Deterministic on the facts, so a
+  // re-run of the same requirement is still byte-identical.
+  const variant = (facts.agencyName.length + facts.positions.length + (facts.header?.length ?? 0)) % 2;
 
   // ---- Hero scrim (KDL §4.3): a known contrast floor over unknown artwork.
   parts.push(
@@ -790,10 +944,19 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       `<stop offset="1" stop-color="${NAVY}" stop-opacity="0.35"/>` +
       `</linearGradient></defs>`,
   );
-  parts.push(`<rect x="0" y="0" width="${W}" height="${heroPx}" fill="url(#s)"/>`);
+  // A diagonal seam between the photo band and the cream body — a flat
+  // horizontal cut is the single strongest "this is a document" tell; a
+  // slanted one is what a hero-photo social ad actually does.
+  const diag = Math.round(W * 0.055);
+  const seamLeft = variant === 0 ? heroPx - diag : heroPx + diag;
+  const seamRight = variant === 0 ? heroPx + diag : heroPx - diag;
+  const stripH = brandingStripHeight(W, H, hasContact);
+  parts.push(
+    `<polygon points="0,0 ${W},0 ${W},${seamRight} 0,${seamLeft}" fill="url(#s)"/>`,
+  );
   // Body surface: cream, so factual text sits on a known background.
   parts.push(
-    `<rect x="0" y="${heroPx}" width="${W}" height="${H - brandingStripHeight(W, H, hasContact) - heroPx}" fill="#F3EEE3"/>`,
+    `<polygon points="0,${seamLeft} ${W},${seamRight} ${W},${H - stripH} 0,${H - stripH}" fill="#F3EEE3"/>`,
   );
 
   // ---- Header (KDL §4.2) ----
@@ -813,48 +976,125 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   }
   parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${GOLD}"/>`);
 
-  // ---- Hero (KDL §4.4 ranks 1–4) ----
-  let y = headH + px(0.055);
+  // ---- Ribbon banner (KDL palette only — a cut flag shape, not a pill) ----
+  // Marketing copy, not a fact — kept distinct from facts.header so the
+  // ribbon never echoes what the headline already states.
+  const ribbonText = "HIRING NOW";
+  const ribbonH = Math.round(px(T.Caption) * 2.1);
+  const ribbonS = fit(ribbonText, Math.round(contentW * 0.34), Math.round(ribbonH * 0.42), plan.floor, true);
+  const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
+  const ribbonY = headH + px(0.02);
+  const ribbonOnRight = variant === 1;
+  const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
+  parts.push(`<path d="${ribbonPath(ribbonX, ribbonY, ribbonW, ribbonH, !ribbonOnRight)}" fill="${GOLD}"/>`);
+  parts.push(
+    `<text x="${ribbonX + Math.round(ribbonW / 2)}" ` +
+      `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
+      `font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
+  );
+
+  // ---- Hero text (KDL §4.4 ranks 1–4) — reserves the right edge for the
+  // hero numeral so the two never collide. ----
+  const numeral = heroNumeral(facts);
+  const heroTextW = numeral ? Math.round(contentW * 0.6) : contentW;
+  let y = ribbonY + ribbonH + px(0.045);
   for (const l of hero.headlineLines) {
+    const ls = Math.min(hero.headlineSize, fit(l, heroTextW, hero.headlineSize, plan.floor, true));
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.headlineSize}" font-weight="800" fill="${WHITE}" letter-spacing="-1">${esc(l)}</text>`,
+      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" fill="${WHITE}" letter-spacing="-1">${esc(l)}</text>`,
     );
     y += Math.round(hero.headlineSize * 1.14);
   }
   if (facts.employer && hero.employerSize) {
     y += px(0.01);
+    const es = Math.min(hero.employerSize, fit(facts.employer, heroTextW, hero.employerSize, plan.floor, true));
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.employerSize}" font-weight="700" fill="${GOLD}">${esc(facts.employer)}</text>`,
+      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="700" fill="${GOLD}">${esc(facts.employer)}</text>`,
     );
     y += Math.round(hero.employerSize * 1.08);
   }
   if (hero.sub && hero.subSize) {
     y += px(0.006);
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.subSize}" fill="${WHITE}" opacity="0.9">${esc(hero.sub)}</text>`,
+      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.subSize, fit(hero.sub, heroTextW, hero.subSize, plan.floor))}" fill="${WHITE}" opacity="0.9">${esc(hero.sub)}</text>`,
     );
     y += Math.round(hero.subSize * 1.15);
   }
   if (hero.meta && hero.metaSize) {
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${hero.metaSize}" fill="${WHITE}" opacity="0.75">${esc(hero.meta)}</text>`,
+      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.metaSize, fit(hero.meta, heroTextW, hero.metaSize, plan.floor))}" fill="${WHITE}" opacity="0.75">${esc(hero.meta)}</text>`,
     );
     y += Math.round(hero.metaSize * 1.3);
   }
 
-  // Total badge — always the true, verified total.
-  const label = headlineCountLabel(facts);
-  const bS = px(T.Caption);
-  const bW = Math.round(textWidth(label, bS) + px(0.045));
-  y += px(0.008);
-  parts.push(
-    `<rect x="${margin}" y="${y}" width="${bW}" height="${hero.badgeH}" rx="${Math.round(hero.badgeH / 2)}" fill="${GOLD}"/>`,
-  );
-  parts.push(
-    `<text x="${margin + Math.round(bW / 2)}" y="${y + Math.round(hero.badgeH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${bS}" font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(label)}</text>`,
-  );
+  // ---- Hero numeral — the verified count as the dominant graphic, not a
+  // caption. This is what a real LLM-composed campaign ad leads with. ----
+  if (numeral) {
+    const numX = W - margin;
+    const numBaseline = Math.min(Math.round(heroPx * 0.86), heroPx - px(0.06));
+    const numSize = Math.min(Math.round(W * 0.24), Math.round(heroPx * 0.4));
+    const capSize = Math.max(plan.floor, Math.round(numSize * 0.2));
+    parts.push(
+      `<text x="${numX}" y="${numBaseline}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
+        `font-weight="800" fill="${GOLD}" text-anchor="end" letter-spacing="-2">${esc(numeral.num)}</text>`,
+    );
+    parts.push(
+      `<text x="${numX}" y="${numBaseline + Math.round(capSize * 1.3)}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
+        `font-weight="700" fill="${WHITE}" text-anchor="end" letter-spacing="2">${esc(numeral.caption)}</text>`,
+    );
+  }
 
-  parts.push(renderBody(facts, W, heroPx, plan, dense, 0, W, 1, pal));
+  const body = renderBody(facts, W, heroPx, plan, dense, 0, W, 1, pal);
+  parts.push(body.svg);
+
+  // ---- Trust callout — fills leftover depth above the branding strip
+  // instead of leaving it a dead cream gap, and doubles as a signature/
+  // trust element (verified chip + direct contact), which a stamped
+  // "document" layout never carried. ----
+  const calloutTop = body.endY + px(0.02);
+  const calloutBottom = H - stripH - px(0.03);
+  if (calloutBottom - calloutTop >= px(0.05)) {
+    const boxY = calloutTop;
+    const boxH = calloutBottom - calloutTop;
+    const boxX = margin;
+    const boxW = contentW;
+    parts.push(
+      `<rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" rx="${px(0.018)}" ` +
+        `fill="${WHITE}" stroke="${NAVY}" stroke-width="2" stroke-dasharray="9 7"/>`,
+    );
+    const midY = boxY + Math.round(boxH / 2);
+    const chipSize = Math.max(plan.floor, Math.round(px(T.Caption) * 0.95));
+    const chipR = Math.round(chipSize * 0.6);
+    const rowGapV = Math.round(boxH * 0.28);
+    const chipY = Math.max(boxY + Math.round(boxH * 0.24), midY - rowGapV);
+    parts.push(iconGlyph("check", boxX + px(0.04) + chipR, chipY, chipR, NAVY));
+    parts.push(
+      `<text x="${boxX + px(0.04) + chipR * 2 + px(0.012)}" y="${chipY + Math.round(chipSize * 0.32)}" ` +
+        `font-family="KaiSans, sans-serif" font-size="${chipSize}" font-weight="700" fill="${NAVY}" ` +
+        `letter-spacing="1">VERIFIED ADVERTISEMENT</text>`,
+    );
+    const contactRowY = Math.min(boxY + boxH - Math.round(boxH * 0.24), midY + rowGapV);
+    const cSize = Math.max(plan.floor, Math.round(px(T.BodyL)));
+    let cx = boxX + px(0.04);
+    if (facts.contact.phone) {
+      const r = Math.round(cSize * 0.6);
+      parts.push(iconGlyph("phone", cx + r, contactRowY, r, NAVY));
+      cx += r * 2 + px(0.01);
+      parts.push(
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" font-weight="700" fill="${NAVY}">${esc(facts.contact.phone)}</text>`,
+      );
+      cx += Math.round(textWidth(facts.contact.phone, cSize, true)) + px(0.035);
+    }
+    if (facts.contact.whatsapp) {
+      const r = Math.round(cSize * 0.6);
+      parts.push(iconGlyph("chat", cx + r, contactRowY, r, SLATE));
+      cx += r * 2 + px(0.01);
+      parts.push(
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" fill="${SLATE}">${esc(facts.contact.whatsapp)}</text>`,
+      );
+    }
+  }
+
   parts.push(`</svg>`);
 
   const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
@@ -871,7 +1111,7 @@ function renderBody(
   innerW = W,
   chromeScale = 1,
   pal: Palette = COLOUR_PALETTE,
-): string {
+): { svg: string; endY: number } {
   const px = (f: number) => Math.round(f * W);
   const { colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
   const margin = plan.margin;
@@ -1027,14 +1267,38 @@ function renderBody(
 
   // Benefits — omitted entirely when absent (KDL §4.5.1).
   if (facts.benefits.length) {
-    const text = facts.benefits.map((b) => (b.detail ? `${b.label}: ${b.detail}` : b.label)).join("   ·   ");
-    const s = fit(text, plan.contentW, px(T.Caption), floor);
-    const barH = Math.round(s * 2.4);
-    parts.push(`<rect x="0" y="${sy - Math.round(s * 1.1)}" width="${W}" height="${barH}" fill="${pal.ink}"/>`);
-    parts.push(
-      `<text x="${margin}" y="${sy + Math.round(s * 0.42)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.accent}">${esc(text)}</text>`,
-    );
-    sy += Math.round(s * 2.7);
+    if (dense) {
+      const text = facts.benefits.map((b) => (b.detail ? `${b.label}: ${b.detail}` : b.label)).join("   ·   ");
+      const s = fit(text, plan.contentW, px(T.Caption), floor);
+      const barH = Math.round(s * 2.4);
+      parts.push(`<rect x="0" y="${sy - Math.round(s * 1.1)}" width="${W}" height="${barH}" fill="${pal.ink}"/>`);
+      parts.push(
+        `<text x="${margin}" y="${sy + Math.round(s * 0.42)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.accent}">${esc(text)}</text>`,
+      );
+      sy += Math.round(s * 2.7);
+    } else {
+      // Premium: an icon-led benefit row, not a bullet-joined caption. A
+      // candidate scanning a feed reads icons before they read words.
+      const chipH = px(0.052);
+      const iconR = Math.round(chipH * 0.28);
+      const gap = px(0.018);
+      parts.push(`<rect x="0" y="${sy - Math.round(chipH * 0.72)}" width="${W}" height="${chipH * 2}" fill="${pal.ink}"/>`);
+      let bx = margin;
+      const rowMidY = sy - Math.round(chipH * 0.72) + chipH;
+      for (const b of facts.benefits) {
+        const label = b.detail ? `${b.label}: ${b.detail}` : b.label;
+        const s = Math.max(floor, Math.round(chipH * 0.34));
+        const kind = benefitIconKind(b.label);
+        parts.push(iconGlyph(kind, bx + iconR, rowMidY, iconR, pal.accent));
+        const tx = bx + iconR * 2 + Math.round(gap * 0.5);
+        parts.push(
+          `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="600" fill="${pal.reversed}">${esc(label)}</text>`,
+        );
+        bx = tx + Math.round(textWidth(label, s, true)) + gap * 2.2;
+        if (bx > margin + plan.contentW * 0.92) break; // never truncates a fact — overflow benefits still verified, just not iconised on this row
+      }
+      sy += chipH * 2 + px(0.02);
+    }
   }
 
   // Interview — omitted entirely when absent.
@@ -1043,14 +1307,18 @@ function renderBody(
     const detail = [ev.date, ev.location].filter(Boolean).join(" · ");
     if (detail) {
       const s = fit(`INTERVIEW   ${detail}`, plan.contentW, px(T.Caption), floor);
+      const iconR = Math.round(s * 0.55);
+      parts.push(iconGlyph("calendar", margin + iconR, sy + Math.round(s * 0.55), iconR, pal.ink));
+      const tx = margin + iconR * 2 + Math.round(px(0.012));
       parts.push(
-        `<text x="${margin}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${pal.ink}">INTERVIEW</text>`,
+        `<text x="${tx}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${pal.ink}">INTERVIEW</text>`,
       );
       parts.push(
-        `<text x="${margin + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.muted}">${esc(detail)}</text>`,
+        `<text x="${tx + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.muted}">${esc(detail)}</text>`,
       );
+      sy += Math.round(s * 2.2);
     }
   }
 
-  return parts.join("");
+  return { svg: parts.join(""), endY: sy };
 }
