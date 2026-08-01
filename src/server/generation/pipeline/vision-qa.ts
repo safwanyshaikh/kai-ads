@@ -1,5 +1,6 @@
 import { getTextGenerationProvider } from "@/server/ai/text";
 import { AppError } from "@/lib/errors";
+import type { AdvertisementDocument } from "./advertisement-document";
 import type { AdvertisementFacts } from "./types";
 
 /**
@@ -109,13 +110,49 @@ export function buildExpectations(facts: AdvertisementFacts): VisionQaExpectatio
   });
 }
 
+/**
+ * Expectations for an Advertisement JSON.
+ *
+ * The document knows things the facts alone do not: the agency's legal
+ * name and licence come from the verified Agency DNA, not from whatever
+ * was typed into the advertisement. Verifying against the document means
+ * verifying against the same source the renderer drew from, so a mismatch
+ * is genuinely a rendering-integrity failure rather than a disagreement
+ * between two copies of the truth.
+ */
+export function buildDocumentExpectations(document: AdvertisementDocument): VisionQaExpectation[] {
+  const out = buildExpectations(document.facts);
+  const push = (category: VisionQaCategory, value?: string | null) => {
+    const trimmed = value?.trim();
+    if (trimmed && normalise(trimmed).length >= 3) out.push({ category, value: trimmed });
+  };
+
+  push("agency", document.agency.name);
+  push("registration", document.agency.compactRegistrationId);
+  push("contact", document.agency.contact.phone);
+  push("contact", document.agency.contact.whatsapp);
+  push("contact", document.agency.contact.email);
+
+  const seen = new Set<string>();
+  return out.filter((e) => {
+    const key = `${e.category}:${normalise(e.value)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export interface VisionQaInput {
   imagePng: Buffer;
   facts: AdvertisementFacts;
+  /** When supplied, the document's own identity is verified too. */
+  document?: AdvertisementDocument | null;
 }
 
 export async function runVisionQa(input: VisionQaInput): Promise<VisionQaResult> {
-  const expectations = buildExpectations(input.facts);
+  const expectations = input.document
+    ? buildDocumentExpectations(input.document)
+    : buildExpectations(input.facts);
   const provider = getTextGenerationProvider();
   const startedAt = Date.now();
 

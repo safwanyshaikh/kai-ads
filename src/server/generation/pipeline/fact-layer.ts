@@ -1,7 +1,11 @@
 import "../font-config"; // FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
 import { brandingStripHeight } from "./branding-overlay";
-import type { AdvertisementFacts } from "./types";
+import { LEGIBILITY_FLOOR, type DesignDNA, type DnaPalette } from "../dna/design-dna";
+import { getDna } from "../dna/registry";
+import type { AdInk, AdvertisementFacts } from "./types";
+
+export type { AdInk } from "./types";
 
 /**
  * The Fact Layer — deterministic typesetting of every verified recruitment
@@ -18,53 +22,27 @@ import type { AdvertisementFacts } from "./types";
  * This is part of the one Rendering Engine; it holds no creative logic.
  */
 
-/** KDL §3.1 — locked palette. Nothing here may be changed or added to. */
-const NAVY = "#0B1F33";
-const GOLD = "#F3D98B";
-const SLATE = "#4A5A6C";
-const WHITE = "#FFFFFF";
-const DIVIDER = "#C9C0AB";
-
 /**
- * Ink. Colour is KDL. Single-ink is what a newspaper actually prints: one
- * black plate on newsprint, tints achieved by halftone screen rather than
- * by a second colour. Greyscaling a colour render is not the same thing —
- * it turns gold into a muddy mid-grey with no contrast against cream.
- *
- * This is a palette substitution, not a second rendering path: the same
- * marks are drawn either way.
+ * Colour arrives as a Design DNA palette (see `dna/design-dna.ts`), which
+ * the registry has already checked against the Contrast Law for exactly
+ * the foreground/background pairs painted below. This engine therefore
+ * never names a colour — it asks the palette for the ROLE it needs, which
+ * is what lets one renderer wear fifty looks without a single conditional.
  */
-export type AdInk = "COLOUR" | "SINGLE_INK";
-
-interface Palette {
-  /** Bars, rules, headings. */
-  ink: string;
-  /** The strap and the vacancy-count cell. */
-  accent: string;
-  /** Text sitting on `accent`. */
-  accentText: string;
-  /** Secondary detail text. */
-  muted: string;
-  /** Paper. */
-  paper: string;
-  /** Alternating row band. */
-  tint: string;
-  /** Hairlines. */
-  rule: string;
-  /** Text sitting on `ink`. */
-  reversed: string;
-}
-
-const COLOUR_PALETTE: Palette = {
-  ink: NAVY, accent: GOLD, accentText: NAVY, muted: SLATE,
-  paper: WHITE, tint: "#F3EEE3", rule: DIVIDER, reversed: WHITE,
-};
+type Palette = DnaPalette;
 
 /** 100% / 15% / 0% of one black plate — the three tones newsprint gives you. */
 const SINGLE_INK_PALETTE: Palette = {
   ink: "#000000", accent: "#000000", accentText: "#FFFFFF", muted: "#333333",
-  paper: "#FFFFFF", tint: "#E4E4E4", rule: "#000000", reversed: "#FFFFFF",
+  paper: "#FFFFFF", surface: "#FFFFFF", tint: "#E4E4E4", rule: "#000000", reversed: "#FFFFFF",
 };
+
+/**
+ * The DNAs that reproduce the engine's shipping look. A caller that does
+ * not name a DNA gets exactly what it got before Design DNA existed.
+ */
+const DEFAULT_PREMIUM_DNA_ID = "PS-01";
+const DEFAULT_DTP_DNA_ID = "AA-01";
 
 /**
  * KDL §4 — the branding strip owns the bottom of the canvas. Its exact
@@ -74,25 +52,14 @@ const SINGLE_INK_PALETTE: Palette = {
  */
 const RESERVED_TOP = 0.8;
 void RESERVED_TOP;
-const HEADER_H = 0.11;
 
-/** KDL §3.2 — type scale as fractions of W. */
-const T = {
-  D1: 0.072,
-  H1: 0.052,
-  H2: 0.038,
-  H3: 0.028,
-  BodyL: 0.024,
-  Body: 0.02,
-  Caption: 0.016,
-} as const;
-
-/** KDL §3.2 — no factual text renders below this. */
-const LEGIBILITY_FLOOR = 0.016;
-
-/** KDL §2 — grid. */
-const MARGIN = 0.065;
-const GUTTER = 0.02;
+/**
+ * Type scale, grid and hero proportions all come from the Design DNA now
+ * (`dna.type`, `dna.layout`). The legibility floor does NOT: a DNA may
+ * make type larger but can never make a fact smaller than a candidate can
+ * read, because that floor is what makes "no verified fact is ever
+ * omitted" a true statement rather than an aspiration.
+ */
 
 /**
  * Taller than this stops being publishable. A bulk drive of 100+ roles is
@@ -304,6 +271,19 @@ export interface FactLayerInput {
   printOrNewspaper?: boolean;
   /** Ink. Single-ink is one black plate, the way a newspaper prints. */
   ink?: AdInk;
+  /**
+   * The Design DNA to render in. Omitted means the engine uses the DNA
+   * that reproduces its shipping look for the composition it selects, so
+   * every caller that predates Design DNA keeps working unchanged.
+   */
+  dna?: DesignDNA | null;
+  /**
+   * The palette to paint with, after the agency's brand colours have been
+   * applied over the DNA's own (see `dna/agency-dna.ts`). Omitted means the
+   * DNA's palette is used as authored. Never accepted unvalidated — the
+   * caller is responsible for having run it through the Contrast Law.
+   */
+  palette?: DnaPalette | null;
 }
 
 export interface FactLayerResult {
@@ -327,11 +307,22 @@ type Plan = ReturnType<typeof planBody>;
  * chosen so the longest verified title fits at the legibility floor, which
  * is what makes truncation impossible.
  */
-function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = false, forceCols?: number, suppressSalaryCol = false, dpi?: number) {
+function planBody(
+  dna: DesignDNA,
+  facts: AdvertisementFacts,
+  tier: Tier,
+  W: number,
+  dense = false,
+  forceCols?: number,
+  suppressSalaryCol = false,
+  dpi?: number,
+) {
+  const T = dna.type;
+  const L = dna.layout;
   const px = (f: number) => Math.round(f * W);
-  const margin = px(MARGIN);
+  const margin = px(L.margin);
   const contentW = W - margin * 2;
-  const gutter = px(GUTTER);
+  const gutter = px(L.gutter);
   // 7pt is the smallest a Gulf recruitment classified sets a trade name.
   // Below it the advertisement is unreadable in print no matter how well
   // it fits.
@@ -346,7 +337,9 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
   const detailSize = Math.max(floor, px(T.Caption));
   const showDetail = tier === "T1" || tier === "T2";
   // T3/T4 tighten the rhythm: past a dozen roles the list is scanned, not read.
-  const rowGap = px(tier === "T1" ? 0.02 : tier === "T2" ? 0.014 : tier === "T3" ? 0.009 : 0.007);
+  // The DNA can loosen or tighten that rhythm, but it scales the tier — it
+  // does not replace it, so density still answers to the requirement first.
+  const rowGap = px((tier === "T1" ? 0.02 : tier === "T2" ? 0.014 : tier === "T3" ? 0.009 : 0.007) * L.rowGapScale);
   const lineFactor = tier === "T4" ? 1.15 : 1.25;
   const badgeW = facts.positions.some((p) => p.count != null) ? px(0.05) : 0;
   // High Density promotes salary into its own right-hand column. That
@@ -416,11 +409,18 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
   // under-reserves and the real content overruns the branding strip below
   // it. Premium's benefits are an icon-led bar (KDL trust/icon rebuild),
   // materially taller than High Density's single caption line.
-  const extraH = dense
-    ? (facts.benefits.length ? Math.round(px(T.Caption) * 2.6) : 0) +
-      (facts.interview.length ? Math.round(px(T.Caption) * 2.8) : 0)
-    : (facts.benefits.length ? Math.round(px(0.052) * 2) + px(0.02) : 0) +
-      (facts.interview.length ? Math.round(px(T.Caption) * 2.2) : 0);
+  // Keyed off the DNA's benefit motif, NOT off `dense`. When these two
+  // disagreed the solve reserved a caption line and the renderer drew a
+  // two-row icon bar, which landed the benefits band inside the branding
+  // strip and let the trust band paint over a verified benefit.
+  const benefitsH = facts.benefits.length
+    ? dna.motifs.benefitStyle === "TEXT_STRIP"
+      ? Math.round(px(T.Caption) * 2.6)
+      : Math.round(px(0.052) * 2) + px(0.02)
+    : 0;
+  const extraH =
+    benefitsH +
+    (facts.interview.length ? Math.round(px(T.Caption) * (dense ? 2.8 : 2.2)) : 0);
 
   return {
     cols, colW, margin, contentW, gutter, titleSize, detailSize, showDetail,
@@ -436,16 +436,18 @@ function planBody(facts: AdvertisementFacts, tier: Tier, W: number, dense = fals
  * pushed the subtitle onto the cream body surface (white on cream) and
  * collided the total badge with the first position row.
  */
-function planHero(facts: AdvertisementFacts, W: number, dpi?: number) {
+function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: number) {
+  const T = dna.type;
   const px = (f: number) => Math.round(f * W);
-  const contentW = W - px(MARGIN) * 2;
+  const contentW = W - px(dna.layout.margin) * 2;
   // 7pt is the smallest a Gulf recruitment classified sets a trade name.
   // Below it the advertisement is unreadable in print no matter how well
   // it fits.
   const MIN_PRINT_PT = 7;
   const floor = Math.max(px(LEGIBILITY_FLOOR), dpi ? Math.round((MIN_PRINT_PT / 72) * dpi) : 0);
 
-  const headline = (facts.header || `Hiring — ${facts.country}`).toUpperCase();
+  const stated = facts.header || `Hiring — ${facts.country}`;
+  const headline = dna.motifs.uppercaseHeadline ? stated.toUpperCase() : stated;
   const headlineSize = fit(headline, contentW, px(T.D1), px(T.H3), true);
   const headlineLines = wrapLines(headline, contentW, headlineSize);
 
@@ -461,18 +463,40 @@ function planHero(facts: AdvertisementFacts, W: number, dpi?: number) {
   // composition (dense ignores this — it never draws a ribbon). Omitting
   // it under-reserved the hero by exactly the ribbon's height, and the
   // real content ran past the branding strip below it.
-  const ribbonH = Math.round(px(T.Caption) * 2.1);
-  const ribbonReserve = px(0.02) + ribbonH + px(0.045);
+  // A DNA that draws no ribbon reserves no ribbon: leaving the reserve in
+  // place would open a band of dead colour above the headline exactly the
+  // height of a banner that never gets painted.
+  const ribbonH = dna.motifs.ribbon === "NONE" ? 0 : Math.round(px(T.Caption) * 2.1);
+  const ribbonReserve = dna.motifs.ribbon === "NONE" ? px(0.03) : px(0.02) + ribbonH + px(0.045);
+
+  // A centred hero cannot park the vacancy numeral in a right-hand column
+  // — centred text runs through that column. So a centred DNA sets the
+  // numeral INLINE, beneath the text, and the space it needs is reserved
+  // here. Sized off the type scale rather than off heroPx, because heroPx
+  // is solved from this measurement and cannot be an input to it.
+  const inlineNumeral = dna.motifs.heroAlign === "CENTRE" && dna.motifs.numeral !== "NONE" && heroNumeral(facts) !== null;
+  const numeralSize = inlineNumeral
+    ? Math.round(px(T.D1) * (dna.motifs.numeral === "DISPLAY" ? 1.6 : 0.9))
+    : 0;
+  const numeralCaptionSize = inlineNumeral ? Math.max(floor, Math.round(numeralSize * 0.22)) : 0;
+  const numeralReserve = inlineNumeral
+    ? px(0.012) + Math.round(numeralSize * 1.02) + Math.round(numeralCaptionSize * 1.5)
+    : 0;
 
   const h =
     ribbonReserve +
+    numeralReserve +
     headlineLines.length * Math.round(headlineSize * 1.14) +
     (employerSize ? px(0.01) + Math.round(employerSize * 1.08) : 0) +
     (subSize ? px(0.006) + Math.round(subSize * 1.15) : 0) +
     (metaSize ? Math.round(metaSize * 1.3) : 0) +
     px(0.008) + badgeH + px(0.03);
 
-  return { headline, headlineSize, headlineLines, employerSize, sub, subSize, meta, metaSize, badgeH, contentH: h };
+  return {
+    headline, headlineSize, headlineLines, employerSize, sub, subSize, meta, metaSize, badgeH,
+    inlineNumeral, numeralSize, numeralCaptionSize,
+    contentH: h,
+  };
 }
 
 /**
@@ -638,17 +662,44 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const { facts, widthPx: W } = input;
   const px = (f: number) => Math.round(f * W);
   const total = facts.positions.length;
-  const themeSelection = selectTheme(facts, input.theme, { printOrNewspaper: input.printOrNewspaper });
+  // The composition is a property of the REQUIREMENT (how many roles, and
+  // where it is going), so it is still decided exactly as before. The DNA
+  // decides how that composition looks — not which one is used. When the
+  // caller supplies a DNA, its own composition is authoritative, because
+  // choosing "Trade Directory" for 40 roles IS choosing the classified.
+  const themeSelection = input.dna
+    ? {
+        theme: input.dna.composition,
+        reason: `${input.dna.label} — ${input.dna.description}`,
+        fromOverride: true,
+      }
+    : selectTheme(facts, input.theme, { printOrNewspaper: input.printOrNewspaper });
   const dense = themeSelection.theme === "AAT_DTP";
+  const dna = input.dna ?? getDna(dense ? DEFAULT_DTP_DNA_ID : DEFAULT_PREMIUM_DNA_ID);
+  const T = dna.type;
+  const L = dna.layout;
+  const M = dna.motifs;
   const tier = tierFor(total);
   // High Density trades hero height for information: minimal artwork, and
   // the page belongs to the table.
-  const heroFrac = dense ? 0.16 : tier === "T1" || tier === "T2" ? 0.42 : 0.3;
+  //
+  // A DNA states the hero proportion it wants; the engine still tightens it
+  // as the requirement gets denser, because the roles are what the reader
+  // came for. These two factors are the engine's, not the DNA's — a design
+  // may not buy itself artwork space at the cost of the position list.
+  const MID_DENSITY_HERO_FACTOR = 0.71; // 13+ roles, campaign composition
+  const CLASSIFIED_HERO_FACTOR = 0.53; // the masthead of a ruled table
+  const spare = tier === "T1" || tier === "T2";
+  const heroFrac = dense
+    ? L.heroFractionDense * CLASSIFIED_HERO_FACTOR
+    : L.heroFractionSparse * (spare ? 1 : MID_DENSITY_HERO_FACTOR);
   // The hero is capped in absolute terms so a tall directory poster does not
   // spend a third of its height on artwork it does not need.
-  const heroCap = Math.round((dense ? 0.3 : tier === "T1" || tier === "T2" ? 0.62 : 0.5) * W);
-  let plan = planBody(facts, tier, W, dense, undefined, false, input.dpi);
-  const hero = planHero(facts, W, input.dpi);
+  const heroCap = Math.round(
+    (dense ? L.heroCapDense * 0.6 : L.heroCapSparse * (spare ? 1 : 0.81)) * W,
+  );
+  let plan = planBody(dna, facts, tier, W, dense, undefined, false, input.dpi);
+  const hero = planHero(dna, facts, W, input.dpi);
   const pad = px(0.06);
 
   // Solve for the canvas height that holds every fact at the floor. The
@@ -686,13 +737,13 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // fit fails loudly so the agency buys a larger slot instead of receiving
   // an image the paper will reject.
   const fillSlot = Boolean(input.printOrNewspaper);
-  const pal: Palette = input.ink === "SINGLE_INK" ? SINGLE_INK_PALETTE : COLOUR_PALETTE;
+  const pal: Palette = input.ink === "SINGLE_INK" ? SINGLE_INK_PALETTE : (input.palette ?? dna.palette);
   let H = input.heightPx;
   for (let i = 0; i < 6; i++) {
     if (fillSlot) break;
     const heroAt = Math.max(
       Math.min(Math.round(heroFrac * H), heroCap),
-      Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W)) + hero.contentH,
+      Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W)) + hero.contentH,
     );
     const stripAt = brandingStripHeight(W, H, hasContact) + Math.round(0.025 * H);
     // The DTP section bar replaces planBody()'s own heading; counting both
@@ -730,7 +781,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const chromeFor = (pl: typeof plan) =>
       dtpMastheadH + dtpChromeH + stripFixed + (pl.bodyH - pl.headingH - pl.listH);
     for (let c = plan.cols + 1; c <= 6 && H - chromeFor(plan) < plan.listH; c++) {
-      const wider = planBody(facts, tier, W, dense, c, false, input.dpi);
+      const wider = planBody(dna, facts, tier, W, dense, c, false, input.dpi);
       if (wider.cols !== c) break; // the title stopped fitting; stop widening
       plan = wider;
     }
@@ -742,9 +793,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // factual defect, not a layout economy. Otherwise the column stays and
     // the advertisement fails on capacity below.
     if (H - chromeFor(plan) < plan.listH && sharedSalaryLabel(facts) !== null) {
-      let best = planBody(facts, tier, W, dense, undefined, true, input.dpi);
+      let best = planBody(dna, facts, tier, W, dense, undefined, true, input.dpi);
       for (let c = best.cols + 1; c <= 6 && H - chromeFor(best) < best.listH; c++) {
-        const wider = planBody(facts, tier, W, dense, c, true, input.dpi);
+        const wider = planBody(dna, facts, tier, W, dense, c, true, input.dpi);
         if (wider.cols !== c) break;
         best = wider;
       }
@@ -789,7 +840,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // decorative slack, it never clips a fact.
   let heroPx = Math.max(
     Math.min(Math.round(heroFrac * H), heroCap),
-    Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W)) + hero.contentH,
+    Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W)) + hero.contentH,
   );
 
   // A short requirement on a square canvas left a large dead band of cream
@@ -835,12 +886,16 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.30"/>` +
         `</linearGradient></defs>`,
     );
-    parts.push(
-      `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${paperH - inset * 2}" ` +
-        `fill="none" stroke="${pal.ink}" stroke-width="${FRAME}"/>`,
-    );
+    // The hard outer frame is the classified convention, and a DNA can
+    // decline it — a bought half-page reads calmer without one.
+    if (M.outerFrame) {
+      parts.push(
+        `<rect x="${inset}" y="${inset}" width="${W - inset * 2}" height="${paperH - inset * 2}" ` +
+          `fill="none" stroke="${pal.ink}" stroke-width="${FRAME}"/>`,
+      );
+    }
 
-    const edge = inset + FRAME;
+    const edge = M.outerFrame ? inset + FRAME : inset;
     const innerW = W - edge * 2;
     const bandPad = Math.round(W * 0.022);
 
@@ -930,84 +985,118 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         `font-size="${strapSize}" font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
     );
 
-    parts.push(renderBody(facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale, pal).svg);
+    parts.push(renderBody(dna, facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale, pal).svg);
     parts.push(`</svg>`);
     const dtpPng = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
     return { png: dtpPng, heightPx: H, artworkHeightPx: heroPx, themeSelection };
   }
 
-  // Two compositions, not one repeated template — same palette, different
-  // seam direction and ribbon corner, so a batch of ads does not read as
-  // the same document stamped twice. Deterministic on the facts, so a
-  // re-run of the same requirement is still byte-identical.
-  const variant = (facts.agencyName.length + facts.positions.length + (facts.header?.length ?? 0)) % 2;
+  // Composition is set by the Design DNA's motifs — seam direction, ribbon
+  // corner, whether a vacancy numeral is drawn at all. These are VALUES,
+  // read below by the same drawing code for every DNA: there is one hero,
+  // one body, one callout, and a DNA only says how they are dressed.
 
   // ---- Hero scrim (KDL §4.3): a known contrast floor over unknown artwork.
   parts.push(
     `<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1">` +
-      `<stop offset="0" stop-color="${NAVY}" stop-opacity="0.94"/>` +
-      `<stop offset="0.75" stop-color="${NAVY}" stop-opacity="0.82"/>` +
-      `<stop offset="1" stop-color="${NAVY}" stop-opacity="0.35"/>` +
+      `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.94"/>` +
+      `<stop offset="0.75" stop-color="${pal.ink}" stop-opacity="0.82"/>` +
+      `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.35"/>` +
       `</linearGradient></defs>`,
   );
-  // A diagonal seam between the photo band and the cream body — a flat
-  // horizontal cut is the single strongest "this is a document" tell; a
-  // slanted one is what a hero-photo social ad actually does.
+  // The seam between the photo band and the body surface. A flat horizontal
+  // cut is the strongest "this is a document" tell, which is why most DNAs
+  // slant or step it — but a DNA that WANTS the document read (the corporate
+  // pack) asks for FLAT deliberately.
   const diag = Math.round(W * 0.055);
-  const seamLeft = variant === 0 ? heroPx - diag : heroPx + diag;
-  const seamRight = variant === 0 ? heroPx + diag : heroPx - diag;
+  const step = Math.round(W * 0.03);
+  const mid = Math.round(W * 0.52);
   const stripH = brandingStripHeight(W, H, hasContact);
-  parts.push(
-    `<polygon points="0,0 ${W},0 ${W},${seamRight} 0,${seamLeft}" fill="url(#s)"/>`,
-  );
-  // Body surface: cream, so factual text sits on a known background.
-  parts.push(
-    `<polygon points="0,${seamLeft} ${W},${seamRight} ${W},${H - stripH} 0,${H - stripH}" fill="#F3EEE3"/>`,
-  );
+  let seamLeft = heroPx;
+  let seamRight = heroPx;
+  if (M.seam === "DIAGONAL_LEFT") {
+    seamLeft = heroPx - diag;
+    seamRight = heroPx + diag;
+  } else if (M.seam === "DIAGONAL_RIGHT") {
+    seamLeft = heroPx + diag;
+    seamRight = heroPx - diag;
+  }
+  if (M.seam === "STEP") {
+    const top = heroPx - step;
+    const bottom = heroPx + step;
+    parts.push(`<polygon points="0,0 ${W},0 ${W},${bottom} ${mid},${bottom} ${mid},${top} 0,${top}" fill="url(#s)"/>`);
+    parts.push(
+      `<polygon points="0,${top} ${mid},${top} ${mid},${bottom} ${W},${bottom} ${W},${H - stripH} 0,${H - stripH}" ` +
+        `fill="${pal.surface}"/>`,
+    );
+    seamLeft = top;
+    seamRight = bottom;
+  } else {
+    parts.push(`<polygon points="0,0 ${W},0 ${W},${seamRight} 0,${seamLeft}" fill="url(#s)"/>`);
+    // Body surface: a known background, so factual text sits on a known
+    // contrast pair rather than on whatever the image model produced.
+    parts.push(
+      `<polygon points="0,${seamLeft} ${W},${seamRight} ${W},${H - stripH} 0,${H - stripH}" fill="${pal.surface}"/>`,
+    );
+  }
 
   // ---- Header (KDL §4.2) ----
   // Capped like the hero: on a tall directory poster a height-proportional
-  // header becomes a large empty navy slab.
-  const headH = Math.min(Math.round(HEADER_H * H), Math.round(0.15 * W));
-  parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${NAVY}"/>`);
+  // header becomes a large empty slab of ink.
+  const headH = Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W));
+  parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${pal.ink}"/>`);
   const baseY = headH - Math.round(headH * 0.34);
   const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor);
   parts.push(
-    `<text x="${margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${agencySize}" font-weight="700" fill="${WHITE}">${esc(facts.agencyName)}</text>`,
+    `<text x="${margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(facts.agencyName)}</text>`,
   );
   if (facts.country) {
     parts.push(
-      `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${GOLD}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
+      `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${pal.accent}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
     );
   }
-  parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${GOLD}"/>`);
+  parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${pal.accent}"/>`);
 
-  // ---- Ribbon banner (KDL palette only — a cut flag shape, not a pill) ----
+  // ---- Ribbon banner ----
   // Marketing copy, not a fact — kept distinct from facts.header so the
-  // ribbon never echoes what the headline already states.
-  const ribbonText = "HIRING NOW";
-  const ribbonH = Math.round(px(T.Caption) * 2.1);
-  const ribbonS = fit(ribbonText, Math.round(contentW * 0.34), Math.round(ribbonH * 0.42), plan.floor, true);
-  const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
+  // ribbon never echoes what the headline already states, and never states
+  // anything a candidate could act on.
+  const ribbonH = M.ribbon === "NONE" ? 0 : Math.round(px(T.Caption) * 2.1);
   const ribbonY = headH + px(0.02);
-  const ribbonOnRight = variant === 1;
-  const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
-  parts.push(`<path d="${ribbonPath(ribbonX, ribbonY, ribbonW, ribbonH, !ribbonOnRight)}" fill="${GOLD}"/>`);
-  parts.push(
-    `<text x="${ribbonX + Math.round(ribbonW / 2)}" ` +
-      `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
-      `font-weight="700" fill="${NAVY}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
-  );
+  if (M.ribbon !== "NONE" && M.ribbonText) {
+    const ribbonText = M.ribbonText;
+    const ribbonS = fit(ribbonText, Math.round(contentW * 0.5), Math.round(ribbonH * 0.42), plan.floor, true);
+    const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
+    const ribbonOnRight = M.ribbon === "NOTCHED_RIGHT";
+    const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
+    if (M.ribbon === "BAR") {
+      parts.push(`<rect x="${margin}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" fill="${pal.accent}"/>`);
+    } else {
+      parts.push(`<path d="${ribbonPath(ribbonX, ribbonY, ribbonW, ribbonH, !ribbonOnRight)}" fill="${pal.accent}"/>`);
+    }
+    const ribbonCentre = (M.ribbon === "BAR" ? margin : ribbonX) + Math.round(ribbonW / 2);
+    parts.push(
+      `<text x="${ribbonCentre}" ` +
+        `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
+        `font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
+    );
+  }
 
   // ---- Hero text (KDL §4.4 ranks 1–4) — reserves the right edge for the
   // hero numeral so the two never collide. ----
-  const numeral = heroNumeral(facts);
-  const heroTextW = numeral ? Math.round(contentW * 0.6) : contentW;
-  let y = ribbonY + ribbonH + px(0.045);
+  const numeral = M.numeral === "NONE" ? null : heroNumeral(facts);
+  const centred = M.heroAlign === "CENTRE";
+  // A centred hero cannot also reserve a right-hand column for the numeral:
+  // the two would fight over the same axis. Centred DNAs therefore set the
+  // numeral beneath the text, so the reserve is only taken when left-set.
+  const heroTextW = numeral && !centred ? Math.round(contentW * 0.6) : contentW;
+  const heroX = centred ? Math.round(W / 2) : margin;
+  const anchor = centred ? ` text-anchor="middle"` : "";
+  let y = ribbonY + ribbonH + (M.ribbon === "NONE" ? px(0.02) : px(0.045));
   for (const l of hero.headlineLines) {
     const ls = Math.min(hero.headlineSize, fit(l, heroTextW, hero.headlineSize, plan.floor, true));
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" fill="${WHITE}" letter-spacing="-1">${esc(l)}</text>`,
+      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" fill="${pal.reversed}"${anchor} letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
     );
     y += Math.round(hero.headlineSize * 1.14);
   }
@@ -1015,68 +1104,88 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     y += px(0.01);
     const es = Math.min(hero.employerSize, fit(facts.employer, heroTextW, hero.employerSize, plan.floor, true));
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="700" fill="${GOLD}">${esc(facts.employer)}</text>`,
+      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="700" fill="${pal.accent}"${anchor}>${esc(facts.employer)}</text>`,
     );
     y += Math.round(hero.employerSize * 1.08);
   }
   if (hero.sub && hero.subSize) {
     y += px(0.006);
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.subSize, fit(hero.sub, heroTextW, hero.subSize, plan.floor))}" fill="${WHITE}" opacity="0.9">${esc(hero.sub)}</text>`,
+      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.subSize, fit(hero.sub, heroTextW, hero.subSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.9">${esc(hero.sub)}</text>`,
     );
     y += Math.round(hero.subSize * 1.15);
   }
   if (hero.meta && hero.metaSize) {
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.metaSize, fit(hero.meta, heroTextW, hero.metaSize, plan.floor))}" fill="${WHITE}" opacity="0.75">${esc(hero.meta)}</text>`,
+      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.metaSize, fit(hero.meta, heroTextW, hero.metaSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.75">${esc(hero.meta)}</text>`,
     );
     y += Math.round(hero.metaSize * 1.3);
   }
 
-  // ---- Hero numeral — the verified count as the dominant graphic, not a
-  // caption. This is what a real LLM-composed campaign ad leads with. ----
+  // ---- Hero numeral — the verified count as a graphic rather than a
+  // caption. The value is exactly what headlineCountLabel already computes;
+  // the DNA only chooses how large it is set. ----
   if (numeral) {
-    const numX = W - margin;
-    const numBaseline = Math.min(Math.round(heroPx * 0.86), heroPx - px(0.06));
-    const numSize = Math.min(Math.round(W * 0.24), Math.round(heroPx * 0.4));
-    const capSize = Math.max(plan.floor, Math.round(numSize * 0.2));
-    parts.push(
-      `<text x="${numX}" y="${numBaseline}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
-        `font-weight="800" fill="${GOLD}" text-anchor="end" letter-spacing="-2">${esc(numeral.num)}</text>`,
-    );
-    parts.push(
-      `<text x="${numX}" y="${numBaseline + Math.round(capSize * 1.3)}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
-        `font-weight="700" fill="${WHITE}" text-anchor="end" letter-spacing="2">${esc(numeral.caption)}</text>`,
-    );
+    const display = M.numeral === "DISPLAY";
+    if (centred) {
+      // Inline, beneath the hero text, in the space planHero reserved.
+      const numSize = hero.numeralSize;
+      const capSize = hero.numeralCaptionSize;
+      y += px(0.012) + Math.round(numSize * 0.82);
+      parts.push(
+        `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
+          `font-weight="800" fill="${pal.accent}" text-anchor="middle" letter-spacing="-2">${esc(numeral.num)}</text>`,
+      );
+      y += Math.round(capSize * 1.5);
+      parts.push(
+        `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
+          `font-weight="700" fill="${pal.reversed}" text-anchor="middle" letter-spacing="2">${esc(numeral.caption)}</text>`,
+      );
+    } else {
+      const numX = W - margin;
+      const numBaseline = Math.min(Math.round(heroPx * 0.86), heroPx - px(0.06));
+      const numSize = display
+        ? Math.min(Math.round(W * 0.24), Math.round(heroPx * 0.4))
+        : Math.min(Math.round(W * 0.1), Math.round(heroPx * 0.18));
+      const capSize = Math.max(plan.floor, Math.round(numSize * (display ? 0.2 : 0.32)));
+      parts.push(
+        `<text x="${numX}" y="${numBaseline}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
+          `font-weight="800" fill="${pal.accent}" text-anchor="end" letter-spacing="-2">${esc(numeral.num)}</text>`,
+      );
+      parts.push(
+        `<text x="${numX}" y="${numBaseline + Math.round(capSize * 1.3)}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
+          `font-weight="700" fill="${pal.reversed}" text-anchor="end" letter-spacing="2">${esc(numeral.caption)}</text>`,
+      );
+    }
   }
 
-  const body = renderBody(facts, W, heroPx, plan, dense, 0, W, 1, pal);
+  const body = renderBody(dna, facts, W, heroPx, plan, dense, 0, W, 1, pal);
   parts.push(body.svg);
 
   // ---- Trust callout — fills leftover depth above the branding strip
-  // instead of leaving it a dead cream gap, and doubles as a signature/
-  // trust element (verified chip + direct contact), which a stamped
-  // "document" layout never carried. ----
+  // instead of leaving it a dead gap, and doubles as a signature/trust
+  // element (verified chip + direct contact). DNAs that want the quietest
+  // possible page switch it off. ----
   const calloutTop = body.endY + px(0.02);
   const calloutBottom = H - stripH - px(0.03);
-  if (calloutBottom - calloutTop >= px(0.05)) {
+  if (M.trustCallout && calloutBottom - calloutTop >= px(0.05)) {
     const boxY = calloutTop;
     const boxH = calloutBottom - calloutTop;
     const boxX = margin;
     const boxW = contentW;
     parts.push(
-      `<rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" rx="${px(0.018)}" ` +
-        `fill="${WHITE}" stroke="${NAVY}" stroke-width="2" stroke-dasharray="9 7"/>`,
+      `<rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" rx="${px(L.cornerRadius * 2.25)}" ` +
+        `fill="${pal.paper}" stroke="${pal.ink}" stroke-width="2" stroke-dasharray="9 7"/>`,
     );
     const midY = boxY + Math.round(boxH / 2);
     const chipSize = Math.max(plan.floor, Math.round(px(T.Caption) * 0.95));
     const chipR = Math.round(chipSize * 0.6);
     const rowGapV = Math.round(boxH * 0.28);
     const chipY = Math.max(boxY + Math.round(boxH * 0.24), midY - rowGapV);
-    parts.push(iconGlyph("check", boxX + px(0.04) + chipR, chipY, chipR, NAVY));
+    parts.push(iconGlyph("check", boxX + px(0.04) + chipR, chipY, chipR, pal.ink));
     parts.push(
       `<text x="${boxX + px(0.04) + chipR * 2 + px(0.012)}" y="${chipY + Math.round(chipSize * 0.32)}" ` +
-        `font-family="KaiSans, sans-serif" font-size="${chipSize}" font-weight="700" fill="${NAVY}" ` +
+        `font-family="KaiSans, sans-serif" font-size="${chipSize}" font-weight="700" fill="${pal.ink}" ` +
         `letter-spacing="1">VERIFIED ADVERTISEMENT</text>`,
     );
     const contactRowY = Math.min(boxY + boxH - Math.round(boxH * 0.24), midY + rowGapV);
@@ -1084,19 +1193,19 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     let cx = boxX + px(0.04);
     if (facts.contact.phone) {
       const r = Math.round(cSize * 0.6);
-      parts.push(iconGlyph("phone", cx + r, contactRowY, r, NAVY));
+      parts.push(iconGlyph("phone", cx + r, contactRowY, r, pal.ink));
       cx += r * 2 + px(0.01);
       parts.push(
-        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" font-weight="700" fill="${NAVY}">${esc(facts.contact.phone)}</text>`,
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" font-weight="700" fill="${pal.ink}">${esc(facts.contact.phone)}</text>`,
       );
       cx += Math.round(textWidth(facts.contact.phone, cSize, true)) + px(0.035);
     }
     if (facts.contact.whatsapp) {
       const r = Math.round(cSize * 0.6);
-      parts.push(iconGlyph("chat", cx + r, contactRowY, r, SLATE));
+      parts.push(iconGlyph("chat", cx + r, contactRowY, r, pal.muted));
       cx += r * 2 + px(0.01);
       parts.push(
-        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" fill="${SLATE}">${esc(facts.contact.whatsapp)}</text>`,
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" fill="${pal.muted}">${esc(facts.contact.whatsapp)}</text>`,
       );
     }
   }
@@ -1108,6 +1217,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 }
 
 function renderBody(
+  dna: DesignDNA,
   facts: AdvertisementFacts,
   W: number,
   heroPx: number,
@@ -1116,8 +1226,10 @@ function renderBody(
   edge = 0,
   innerW = W,
   chromeScale = 1,
-  pal: Palette = COLOUR_PALETTE,
+  pal: Palette = dna.palette,
 ): { svg: string; endY: number } {
+  const T = dna.type;
+  const M = dna.motifs;
   const px = (f: number) => Math.round(f * W);
   const { colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
   const margin = plan.margin;
@@ -1207,7 +1319,7 @@ function renderBody(
       const lines = wrap(p.title, tw, titleSize, plan.maxLines);
       const firstBaseline = cy;
       for (const line of lines) {
-        const drawn = dense ? line.toUpperCase() : line;
+        const drawn = M.uppercaseTitles ? line.toUpperCase() : line;
         const ls = fit(drawn, tw, titleSize, floor);
         rowParts.push(
           `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${pal.ink}">${esc(drawn)}</text>`,
@@ -1242,14 +1354,15 @@ function renderBody(
       // drawing cursor made consecutive boxes overlap by ~0.9x titleSize,
       // which is why the separator rules struck through the next row's text.
       const cardH = (plan.rowHeights[rowIndex] ?? cy - rowTop + inset) - 1;
-      if (dense) {
-        // Ruled DTP row: plain paper field, a hairline rule beneath each
-        // row, and a hairline dividing the title from the salary figure.
-        // Both real Gulf classifieds studied for this composition are
-        // built this way — pure ruled rows on white, no card chrome, no
-        // alternating tint, no coloured vacancy badge. Colour on a table
-        // row is exactly the "AI-designed poster" signature this theme
-        // must not have.
+      // How a row is dressed is a DNA motif, not a property of the
+      // composition. A ruled table on a light surface and a carded list are
+      // the same row, the same planned height and the same capacity solve —
+      // only the furniture drawn beneath the text differs.
+      if (M.rowStyle === "RULED") {
+        // A hairline rule beneath each row, and a hairline dividing the
+        // title from the salary figure. Both real Gulf classifieds studied
+        // for this composition are built this way — ruled rows on white, no
+        // card chrome, no alternating tint, no coloured vacancy badge.
         if (plan.hasSalary) {
           parts.push(
             `<rect x="${colX + colWHere - plan.salaryW}" y="${rowTop}" width="1" height="${cardH}" fill="${pal.ink}" opacity="0.4"/>`,
@@ -1258,11 +1371,25 @@ function renderBody(
         parts.push(
           `<rect x="${colX}" y="${rowTop + cardH}" width="${colWHere}" height="1" fill="${pal.ink}" opacity="0.5"/>`,
         );
-      } else {
+      } else if (M.rowStyle === "BANDED") {
+        // Alternating bands are easier to track than hairlines across a wide
+        // measure — the eye keeps its place on a forty-role table.
+        if (rowIndex % 2 === 0) {
+          parts.push(
+            `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" fill="${pal.tint}"/>`,
+          );
+        }
+        if (plan.hasSalary) {
+          parts.push(
+            `<rect x="${colX + colWHere - plan.salaryW}" y="${rowTop}" width="1" height="${cardH}" fill="${pal.ink}" opacity="0.25"/>`,
+          );
+        }
+      } else if (M.rowStyle === "CARD") {
         parts.push(
-          `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(0.008)}" fill="${pal.paper}" stroke="${DIVIDER}" stroke-width="1"/>`,
+          `<rect x="${colX - inset}" y="${rowTop}" width="${colW + inset * 2}" height="${cardH}" rx="${px(dna.layout.cornerRadius)}" fill="${pal.paper}" stroke="${pal.rule}" stroke-width="1"/>`,
         );
       }
+      // "PLAIN" draws no furniture at all — the type carries the row.
       parts.push(...rowParts);
       rowTopCursor += plan.rowHeights[rowIndex] ?? cardH + 1;
       rowIndex++;
@@ -1271,9 +1398,11 @@ function renderBody(
 
   let sy = startY + plan.listH + px(0.016);
 
-  // Benefits — omitted entirely when absent (KDL §4.5.1).
+  // Benefits — omitted entirely when absent (KDL §4.5.1). The style is a
+  // DNA motif; the reserved height is computed from the same motif in
+  // planBody, so the plan and the draw can never disagree.
   if (facts.benefits.length) {
-    if (dense) {
+    if (M.benefitStyle === "TEXT_STRIP") {
       const text = facts.benefits.map((b) => (b.detail ? `${b.label}: ${b.detail}` : b.label)).join("   ·   ");
       const s = fit(text, plan.contentW, px(T.Caption), floor);
       const barH = Math.round(s * 2.4);
@@ -1283,17 +1412,35 @@ function renderBody(
       );
       sy += Math.round(s * 2.7);
     } else {
-      // Premium: an icon-led benefit row, not a bullet-joined caption. A
-      // candidate scanning a feed reads icons before they read words.
+      // An icon- or chip-led benefit row, not a bullet-joined caption. A
+      // candidate scanning a feed reads shapes before they read words.
       const chipH = px(0.052);
       const iconR = Math.round(chipH * 0.28);
       const gap = px(0.018);
+      const chips = M.benefitStyle === "CHIPS";
       parts.push(`<rect x="0" y="${sy - Math.round(chipH * 0.72)}" width="${W}" height="${chipH * 2}" fill="${pal.ink}"/>`);
       let bx = margin;
       const rowMidY = sy - Math.round(chipH * 0.72) + chipH;
       for (const b of facts.benefits) {
         const label = b.detail ? `${b.label}: ${b.detail}` : b.label;
         const s = Math.max(floor, Math.round(chipH * 0.34));
+        if (chips) {
+          // A filled pill carrying the benefit, set in accent-on-ink.
+          const padX = Math.round(s * 0.7);
+          const pillW = Math.round(textWidth(label, s, true)) + padX * 2;
+          const pillH = Math.round(s * 2);
+          if (bx + pillW > margin + plan.contentW) break;
+          parts.push(
+            `<rect x="${bx}" y="${rowMidY - Math.round(pillH / 2)}" width="${pillW}" height="${pillH}" ` +
+              `rx="${Math.round(pillH / 2)}" fill="${pal.accent}"/>`,
+          );
+          parts.push(
+            `<text x="${bx + Math.round(pillW / 2)}" y="${rowMidY + Math.round(s * 0.34)}" font-family="KaiSans, sans-serif" ` +
+              `font-size="${s}" font-weight="700" fill="${pal.accentText}" text-anchor="middle">${esc(label)}</text>`,
+          );
+          bx += pillW + Math.round(gap);
+          continue;
+        }
         const kind = benefitIconKind(b.label);
         parts.push(iconGlyph(kind, bx + iconR, rowMidY, iconR, pal.accent));
         const tx = bx + iconR * 2 + Math.round(gap * 0.5);

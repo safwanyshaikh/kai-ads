@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { buildExpectations, VisionQaRejectedError } from "@/server/generation/pipeline/vision-qa";
+import {
+  buildDocumentExpectations,
+  buildExpectations,
+  VisionQaRejectedError,
+} from "@/server/generation/pipeline/vision-qa";
+import { buildAdvertisementDocument } from "@/server/generation/pipeline/advertisement-document";
+import { buildAgencyDna } from "@/server/generation/dna/agency-dna";
 import type { AdvertisementFacts } from "@/server/generation/pipeline/types";
 
 function factsFixture(overrides: Partial<AdvertisementFacts> = {}): AdvertisementFacts {
@@ -93,5 +99,60 @@ describe("Vision QA — rejection", () => {
 
     expect(error.operatorDetail).toContain("Bolt Technician");
     expect(error.operatorDetail).toContain("1 of 7");
+  });
+});
+
+describe("Vision QA verifies the Advertisement JSON, not a copy of it", () => {
+  it("checks the agency identity the renderer actually drew from", () => {
+    const facts: AdvertisementFacts = {
+      header: "Urgent Requirement — Saudi Arabia",
+      industry: "Oil & Gas",
+      country: "Saudi Arabia",
+      positions: [{ title: "TIG Welder 6G", salary: "SAR 2,500" }],
+      benefits: [{ label: "Free Food" }],
+      interview: [],
+      contact: {},
+      // Deliberately stale: the advertisement record carries an old name.
+      agencyName: "Old Trading Name",
+    };
+    const document = buildAdvertisementDocument({
+      advertisementId: "ad-1",
+      facts,
+      agency: buildAgencyDna({
+        id: "agency-1",
+        name: "Al Yousuf Enterprises LLP",
+        registrationNumber: "B-0655/MUM/PER/1000+/4-1/4/7914/2007",
+        phone: "+91 86559 60415",
+      }),
+      format: { key: "KAI-SQ", widthPx: 1080, heightPx: 1080, dpi: null, printOrNewspaper: false },
+    });
+
+    const values = buildDocumentExpectations(document).map((e) => e.value);
+    // The trust strip prints the VERIFIED profile, so that is what must be
+    // read back off the pixels.
+    expect(values).toContain("Al Yousuf Enterprises LLP");
+    expect(values).toContain("+91 86559 60415");
+    expect(values).toContain("TIG Welder 6G");
+  });
+
+  it("does not double-count a value that renders once", () => {
+    const facts: AdvertisementFacts = {
+      header: "Hiring",
+      industry: "Construction",
+      country: "Qatar",
+      positions: [{ title: "Mason" }],
+      benefits: [],
+      interview: [],
+      contact: { phone: "+91 90000 00000", whatsapp: "+91 90000 00000" },
+      agencyName: "Test Agency",
+    };
+    const document = buildAdvertisementDocument({
+      advertisementId: "ad-2",
+      facts,
+      agency: buildAgencyDna({ id: "a", name: "Test Agency", registrationNumber: "RC-1" }),
+      format: { key: "KAI-SQ", widthPx: 1080, heightPx: 1080, dpi: null, printOrNewspaper: false },
+    });
+    const phones = buildDocumentExpectations(document).filter((e) => e.value === "+91 90000 00000");
+    expect(phones).toHaveLength(1);
   });
 });
