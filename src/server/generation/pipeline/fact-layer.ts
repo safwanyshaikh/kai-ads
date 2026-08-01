@@ -893,6 +893,11 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       my += Math.round(hero.headlineSize * 1.06);
     }
     if (facts.employer && hero.employerSize) {
+      // A long header (fit() shrinks it hard to hold its full length) can
+      // end up SMALLER than a short employer name — advancing by the
+      // headline's own line height then left too little clearance for the
+      // employer's ascent, and its glyphs ran up into the header line above.
+      my += Math.max(0, Math.round((hero.employerSize - hero.headlineSize) * 0.8));
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
           `font-size="${hero.employerSize}" font-weight="700" fill="${pal.accentText === "#FFFFFF" ? pal.reversed : pal.accent}" text-anchor="middle">${esc(facts.employer.toUpperCase())}</text>`,
@@ -900,6 +905,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       my += Math.round(hero.employerSize * 1.08);
     }
     if (hero.meta && hero.metaSize) {
+      my += Math.max(0, Math.round((hero.metaSize - hero.headlineSize) * 0.8));
       parts.push(
         `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
           `font-size="${hero.metaSize}" fill="${pal.reversed}" text-anchor="middle" opacity="0.85">${esc(hero.meta)}</text>`,
