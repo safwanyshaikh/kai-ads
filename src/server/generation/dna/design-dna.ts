@@ -331,7 +331,11 @@ export const KDL_MOTIFS: DnaMotifs = {
   seam: "DIAGONAL_LEFT",
   ribbon: "NOTCHED_LEFT",
   ribbonText: "HIRING NOW",
-  numeral: "DISPLAY",
+  // The reference genre this composition targets never leads with a giant
+  // floating digit — it leads with the destination and a clean bullet
+  // list. NONE is the default; PS-09 "Numeral Lead" opts back into
+  // DISPLAY deliberately, by name, as the one variant built around it.
+  numeral: "NONE",
   rowStyle: "CARD",
   benefitStyle: "ICON_BAR",
   heroAlign: "LEFT",

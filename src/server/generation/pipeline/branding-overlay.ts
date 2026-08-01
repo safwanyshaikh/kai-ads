@@ -97,7 +97,11 @@ export const BRANDING_RESERVED_HEIGHT_PCT =
   Math.ceil(((BAND_HEIGHT_PCT + CONTACT_ROW_HEIGHT_PCT) * 100) / 5) * 5;
 const LOGO_SIZE_PCT_OF_BAND = 0.69; // ~25% larger absolute logo than the original 0.115 * 0.62 band
 const QR_SIZE_PCT_OF_BAND = 0.6; // ~12.5% smaller absolute QR than the original 0.115 * 0.78 band
-const NAME_SIZE_PCT_OF_BAND = 0.35; // more prominent than the original 0.115 * 0.3 band
+// A name this large, repeating the agency identity already shown in the
+// hero, read as a second letterhead pasted under the advertisement rather
+// than a trust strip — real reference recruitment posters keep this line
+// slim. Held well below the original 0.115 * 0.3 band on purpose.
+const NAME_SIZE_PCT_OF_BAND = 0.24;
 const REGISTRATION_SIZE_PCT_OF_BAND = 0.16;
 const ADDRESS_SIZE_PCT_OF_BAND = 0.13; // quieter than the registration line
 const ADDRESS_REG_Y_PCT = 0.68; // registration lifts to here when an address follows

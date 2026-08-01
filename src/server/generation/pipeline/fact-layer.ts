@@ -483,7 +483,13 @@ function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: nu
   // place would open a band of dead colour above the headline exactly the
   // height of a banner that never gets painted.
   const ribbonH = dna.motifs.ribbon === "NONE" ? 0 : Math.round(px(T.Caption) * 2.1);
-  const ribbonReserve = dna.motifs.ribbon === "NONE" ? px(0.03) : px(0.02) + ribbonH + px(0.045);
+  // The gap beneath the ribbon must clear the headline's own cap-height,
+  // not just a fixed margin — a short headline (a destination name) is
+  // never width-constrained the way a long free-text one is, so it renders
+  // at the full preferred size and a flat 0.045W gap that was tuned for a
+  // shrunk headline let its ascender overlap the ribbon above it.
+  const ribbonGap = Math.max(px(0.045), Math.round(headlineSize * 0.85));
+  const ribbonReserve = dna.motifs.ribbon === "NONE" ? px(0.03) : px(0.02) + ribbonH + ribbonGap;
 
   // A centred hero cannot park the vacancy numeral in a right-hand column
   // — centred text runs through that column. So a centred DNA sets the
@@ -695,6 +701,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const T = dna.type;
   const L = dna.layout;
   const M = dna.motifs;
+  const poster = !dense && M.layoutStyle === "POSTER";
   const tier = tierFor(total);
   // High Density trades hero height for information: minimal artwork, and
   // the page belongs to the table.
@@ -715,7 +722,15 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     (dense ? L.heroCapDense * 0.6 : L.heroCapSparse * (spare ? 1 : 0.81)) * W,
   );
   let plan = planBody(dna, facts, tier, W, dense, undefined, false, input.dpi);
-  const hero = planHero(dna, facts, W, input.dpi);
+  // Every reference recruitment poster leads with the DESTINATION, not
+  // with a free-text requirement headline — "SAUDI ARABIA" huge, the
+  // project/industry as a smaller line beneath it. Substituting the
+  // headline input only (employer/project/industry keep reading from the
+  // real facts, exactly as before) reproduces that hierarchy without a
+  // second hero-measurement path: planHero and every drawing line below
+  // it are untouched, they just measure and draw a different string.
+  const heroFacts = poster && facts.country ? { ...facts, header: facts.country } : facts;
+  const hero = planHero(dna, heroFacts, W, input.dpi);
   const pad = px(0.06);
 
   // Solve for the canvas height that holds every fact at the floor. The
@@ -1017,9 +1032,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // just dressing: POSTER runs the artwork the full height of the canvas
   // (down to the branding strip) and sets every fact directly on it, the
   // way a real social recruitment poster is built — no seam, no separate
-  // white body surface holding the position list.
-  const poster = !dense && M.layoutStyle === "POSTER";
-  const stripHForPoster = brandingStripHeight(W, H, hasContact);
+  // white body surface holding the position list. (`poster` itself is
+  // computed earlier, alongside `dna`, because it also decides what the
+  // hero headline reads before a single mark is drawn.)
 
   // ---- Hero scrim (KDL §4.3): a known contrast floor over unknown artwork.
   parts.push(
@@ -1036,7 +1051,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const diag = Math.round(W * 0.055);
   const step = Math.round(W * 0.03);
   const mid = Math.round(W * 0.52);
-  const stripH = stripHForPoster;
+  const stripH = brandingStripHeight(W, H, hasContact);
 
   if (poster) {
     // The artwork runs the full canvas, down to the branding strip. A
@@ -1092,7 +1107,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   parts.push(
     `<text x="${margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(facts.agencyName)}</text>`,
   );
-  if (facts.country) {
+  // A poster already leads with the destination as its headline (below) —
+  // repeating it top-right would be the same fact printed twice.
+  if (facts.country && !poster) {
     parts.push(
       `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${pal.accent}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
     );
@@ -1102,26 +1119,36 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // ---- Ribbon banner ----
   // Marketing copy, not a fact — kept distinct from facts.header so the
   // ribbon never echoes what the headline already states, and never states
-  // anything a candidate could act on.
+  // anything a candidate could act on. A poster whose headline is now the
+  // destination standardises this to the "WE ARE HIRING FOR" eyebrow the
+  // genre uses — a quiet translucent pill, not a coloured flag shape,
+  // which read as dated template furniture rather than a real caption.
   const ribbonH = M.ribbon === "NONE" ? 0 : Math.round(px(T.Caption) * 2.1);
   const ribbonY = headH + px(0.02);
-  if (M.ribbon !== "NONE" && M.ribbonText) {
-    const ribbonText = M.ribbonText;
-    const ribbonS = fit(ribbonText, Math.round(contentW * 0.5), Math.round(ribbonH * 0.42), plan.floor, true);
-    const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
-    const ribbonOnRight = M.ribbon === "NOTCHED_RIGHT";
-    const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
-    if (M.ribbon === "BAR") {
-      parts.push(`<rect x="${margin}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" fill="${pal.accent}"/>`);
-    } else {
-      parts.push(`<path d="${ribbonPath(ribbonX, ribbonY, ribbonW, ribbonH, !ribbonOnRight)}" fill="${pal.accent}"/>`);
+  if (M.ribbon !== "NONE") {
+    const ribbonText = poster ? "WE ARE HIRING FOR" : M.ribbonText;
+    if (ribbonText) {
+      const ribbonS = fit(ribbonText, Math.round(contentW * 0.5), Math.round(ribbonH * 0.42), plan.floor, true);
+      const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
+      const ribbonOnRight = !poster && M.ribbon === "NOTCHED_RIGHT";
+      const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
+      if (poster) {
+        parts.push(
+          `<rect x="${ribbonX}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" rx="${Math.round(ribbonH / 2)}" ` +
+            `fill="${pal.ink}" fill-opacity="0.5"/>`,
+        );
+      } else if (M.ribbon === "BAR") {
+        parts.push(`<rect x="${margin}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" fill="${pal.accent}"/>`);
+      } else {
+        parts.push(`<path d="${ribbonPath(ribbonX, ribbonY, ribbonW, ribbonH, !ribbonOnRight)}" fill="${pal.accent}"/>`);
+      }
+      const ribbonCentre = ribbonX + Math.round(ribbonW / 2);
+      parts.push(
+        `<text x="${ribbonCentre}" ` +
+          `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
+          `font-weight="700" fill="${poster ? pal.reversed : pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
+      );
     }
-    const ribbonCentre = (M.ribbon === "BAR" ? margin : ribbonX) + Math.round(ribbonW / 2);
-    parts.push(
-      `<text x="${ribbonCentre}" ` +
-        `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
-        `font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
-    );
   }
 
   // ---- Hero text (KDL §4.4 ranks 1–4) — reserves the right edge for the
@@ -1134,7 +1161,8 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const heroTextW = numeral && !centred ? Math.round(contentW * 0.6) : contentW;
   const heroX = centred ? Math.round(W / 2) : margin;
   const anchor = centred ? ` text-anchor="middle"` : "";
-  let y = ribbonY + ribbonH + (M.ribbon === "NONE" ? px(0.02) : px(0.045));
+  const heroRibbonGap = Math.max(px(0.045), Math.round(hero.headlineSize * 0.85));
+  let y = ribbonY + ribbonH + (M.ribbon === "NONE" ? px(0.02) : heroRibbonGap);
   for (const l of hero.headlineLines) {
     const ls = Math.min(hero.headlineSize, fit(l, heroTextW, hero.headlineSize, plan.floor, true));
     parts.push(
@@ -1317,7 +1345,12 @@ function renderPosterBody(
       const tx = colX + bs + px(0.014);
       const tw = colW - bs - px(0.014);
       let ly = cy;
-      const lines = wrap(p.title.toUpperCase(), tw, titleSize, plan.maxLines);
+      // The verified vacancy count per role — "(20 NOS)" — is the trade
+      // convention this genre actually uses. Folded into the wrapped
+      // title itself rather than a separate badge, so it can never be
+      // silently dropped and is measured exactly like the rest of the line.
+      const titleWithCount = p.count != null ? `${p.title.toUpperCase()} (${p.count} NOS)` : p.title.toUpperCase();
+      const lines = wrap(titleWithCount, tw, titleSize, plan.maxLines);
       for (const line of lines) {
         const ls = fit(line, tw, titleSize, floor, true);
         parts.push(

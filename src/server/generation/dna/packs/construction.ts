@@ -115,7 +115,7 @@ export const CONSTRUCTION: DesignDNA[] = [
     palette: NAVY_GOLD,
     industries: ["infrastructure", "civil", "road", "bridge", "rail", "utilities"],
     layout: { margin: 0.066, heroFractionSparse: 0.46, heroCapSparse: 0.62 },
-    motifs: { numeral: "DISPLAY", seam: "DIAGONAL_RIGHT", ribbon: "NONE" },
+    motifs: { numeral: "NONE", seam: "DIAGONAL_RIGHT", ribbon: "NONE" },
     artwork: {
       direction: "A long infrastructure corridor under construction — highway, viaduct, trench, pipeline right of way.",
       grade: "Wide, bright, deep perspective.",
@@ -150,7 +150,7 @@ export const CONSTRUCTION: DesignDNA[] = [
     industries: CONSTRUCTION_TRADES,
     type: { D1: 0.09, H1: 0.056 },
     layout: { margin: 0.06, heroFractionSparse: 0.48, heroCapSparse: 0.64, rowGapScale: 0.9 },
-    motifs: { numeral: "DISPLAY", ribbon: "BAR", ribbonText: "MASS MOBILISATION", uppercaseTitles: true },
+    motifs: { numeral: "NONE", ribbon: "BAR", ribbonText: "MASS MOBILISATION", uppercaseTitles: true },
     artwork: {
       direction: "A large crew at shift change or muster — many workers, honestly depicting scale of hiring.",
       grade: "Hard sun, long shadows, dust haze.",

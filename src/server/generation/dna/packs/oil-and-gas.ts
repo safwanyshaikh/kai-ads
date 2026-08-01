@@ -57,7 +57,7 @@ export const OIL_AND_GAS: DesignDNA[] = [
     industries: ENERGY_TRADES,
     type: { D1: 0.088, Caption: 0.018 },
     layout: { margin: 0.06, heroFractionSparse: 0.46, heroCapSparse: 0.64, rowGapScale: 1.1 },
-    motifs: { numeral: "DISPLAY", ribbon: "BAR", ribbonText: "SHUTDOWN CAMPAIGN", uppercaseTitles: true },
+    motifs: { numeral: "NONE", ribbon: "BAR", ribbonText: "SHUTDOWN CAMPAIGN", uppercaseTitles: true },
     artwork: {
       direction: "A turnaround in progress — scaffolding around plant, temporary lighting, a large crew on shift.",
       grade: "Dusk, artificial lighting, high contrast.",
@@ -129,7 +129,7 @@ export const OIL_AND_GAS: DesignDNA[] = [
     industries: ENERGY_TRADES,
     type: { D1: 0.08, H1: 0.054 },
     layout: { margin: 0.076, heroFractionSparse: 0.52, heroCapSparse: 0.7, cornerRadius: 0.004 },
-    motifs: { seam: "DIAGONAL_RIGHT", ribbon: "NONE", numeral: "DISPLAY", trustCallout: true },
+    motifs: { seam: "DIAGONAL_RIGHT", ribbon: "NONE", numeral: "NONE", trustCallout: true },
     artwork: {
       direction: "A refinery at night, process lighting picking out structure against a dark sky, no people.",
       grade: "Night, sodium and mercury light, deep blacks.",
