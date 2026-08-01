@@ -57,7 +57,7 @@ describe("Editable SVG — one document, background photo the only raster mark",
     // Every verified fact must be a real element, not baked into artwork.
     // XML-escaped (as any correct SVG serialiser must) and uppercased —
     // the poster row style sets trade names in caps, matching the genre.
-    expect(result.svg).toContain("Al Yousuf Enterprises LLP");
+    expect(result.svg).toContain("AL YOUSUF ENTERPRISES LLP");
     expect(result.svg).toContain("WELDERS - TIG &amp; MULTI");
     expect(result.svg).toContain("RC-B1487");
   });

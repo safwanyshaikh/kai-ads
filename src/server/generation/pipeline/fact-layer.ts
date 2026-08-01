@@ -721,6 +721,12 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const heroCap = Math.round(
     (dense ? L.heroCapDense * 0.6 : L.heroCapSparse * (spare ? 1 : 0.81)) * W,
   );
+  // POSTER's photo band is a fixed, modest proportion of WIDTH — not of
+  // the still-unsolved canvas height, and not derived from hero.contentH
+  // the way heroCap is. The panel beneath it is what actually needs to
+  // grow with content, so the photo band must be a stable, independent
+  // quantity the solve below can safely add to.
+  const posterPhotoBand = Math.round(0.34 * W);
   let plan = planBody(dna, facts, tier, W, dense, undefined, false, input.dpi);
   // Every reference recruitment poster leads with the DESTINATION, not
   // with a free-text requirement headline — "SAUDI ARABIA" huge, the
@@ -779,9 +785,15 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const stripAt = brandingStripHeight(W, H, hasContact) + Math.round(0.025 * H);
     // The DTP section bar replaces planBody()'s own heading; counting both
     // left a band of dead white above the contact bar.
+    // POSTER's hero text now lives INSIDE the panel, stacked before the
+    // position list rather than occupying a separate photo-bound box that
+    // ends where the list begins — so its reserve is ADDITIVE with the
+    // panel's own content, not folded into heroAt the way DOCUMENT's is.
     const need = dense
       ? Math.max(input.heightPx, dtpMastheadH + dtpChromeH + (plan.bodyH - plan.headingH) + pad + stripAt)
-      : Math.max(input.heightPx, heroAt + plan.bodyH + pad + stripAt);
+      : poster
+        ? Math.max(input.heightPx, posterPhotoBand + hero.contentH + plan.bodyH + pad + stripAt)
+        : Math.max(input.heightPx, heroAt + plan.bodyH + pad + stripAt);
     if (need <= H) break;
     H = need;
   }
@@ -1044,29 +1056,178 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.35"/>` +
       `</linearGradient></defs>`,
   );
-  // The seam between the photo band and the body surface. A flat horizontal
-  // cut is the strongest "this is a document" tell, which is why most DNAs
-  // slant or step it — but a DNA that WANTS the document read (the corporate
-  // pack) asks for FLAT deliberately.
   const diag = Math.round(W * 0.055);
   const step = Math.round(W * 0.03);
   const mid = Math.round(W * 0.52);
   const stripH = brandingStripHeight(W, H, hasContact);
 
+  // The vertical split point for POSTER — the exact same fixed quantity
+  // (`posterPhotoBand`) the canvas-height solve above already reserved
+  // room for, so the drawn seam and the solved capacity can never
+  // disagree about where the panel begins.
+  const panelTop = posterPhotoBand;
+
+  let headH = 0;
+  let ribbonY = 0;
+  let ribbonH = 0;
+  let numeral: ReturnType<typeof heroNumeral> = null;
+  let posterBodyEndY = 0;
+
   if (poster) {
-    // The artwork runs the full canvas, down to the branding strip. A
-    // single deeper gradient — not the shallower hero-only scrim above —
-    // is what keeps the position list legible directly over the photo
-    // with no separate surface beneath it.
+    // ============================================================
+    // SPLIT COMPOSITION — a confined photograph and a solid identity
+    // panel, not text laid over a picture. The photograph is a pure
+    // visual anchor: nothing is typeset on it, so nothing about its
+    // colour, business or lighting can ever threaten legibility.
+    // ============================================================
+
+    // A restrained duotone lift on the photo itself — the single frame
+    // reads as though it was graded FOR this advertisement's palette,
+    // not dropped in from a generic stock library.
     parts.push(
-      `<defs><linearGradient id="pb" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.7"/>` +
-        `<stop offset="0.32" stop-color="${pal.ink}" stop-opacity="0.28"/>` +
-        `<stop offset="0.6" stop-color="${pal.ink}" stop-opacity="0.42"/>` +
-        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.86"/>` +
+      `<defs><linearGradient id="pt" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.22"/>` +
+        `<stop offset="0.55" stop-color="${pal.ink}" stop-opacity="0.02"/>` +
+        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.4"/>` +
         `</linearGradient></defs>`,
     );
-    parts.push(`<rect x="0" y="0" width="${W}" height="${H - stripH}" fill="url(#pb)"/>`);
+
+    // The seam is never a flat cut — an off-axis line is the difference
+    // between "a template with a photo slot" and a composed page. Reuses
+    // the DNA's own seam language (the same motif DOCUMENT reads) so a
+    // recruiter's choice of DNA still visibly changes this composition,
+    // just applied to a smaller, quieter plane.
+    let edgeLeft = panelTop;
+    let edgeRight = panelTop;
+    if (M.seam === "DIAGONAL_LEFT") {
+      edgeLeft = panelTop - diag;
+      edgeRight = panelTop + diag;
+    } else if (M.seam === "DIAGONAL_RIGHT") {
+      edgeLeft = panelTop + diag;
+      edgeRight = panelTop - diag;
+    }
+    parts.push(`<polygon points="0,0 ${W},0 ${W},${edgeRight} 0,${edgeLeft}" fill="url(#pt)"/>`);
+    // A hairline of accent colour along the seam — the one recurring
+    // "premium detail" every reference mark shares: a deliberate edge,
+    // not an accident of where two layers happen to meet.
+    parts.push(
+      `<line x1="0" y1="${edgeLeft}" x2="${W}" y2="${edgeRight}" stroke="${pal.accent}" stroke-width="${Math.max(2, Math.round(W * 0.0028))}"/>`,
+    );
+    // The identity panel: solid brand ink, covering the photo beneath it
+    // entirely below the seam. Every fact from here to the trust strip
+    // sits on one known, flat, high-contrast surface.
+    parts.push(
+      `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" fill="${pal.ink}"/>`,
+    );
+    // The faintest lift toward the top of the panel gives it depth
+    // without ever being visible as a "gradient" — a matte surface, not
+    // a flat sticker.
+    parts.push(
+      `<defs><linearGradient id="pp" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="${pal.reversed}" stop-opacity="0.05"/>` +
+        `<stop offset="0.2" stop-color="${pal.reversed}" stop-opacity="0"/>` +
+        `</linearGradient></defs>`,
+    );
+    parts.push(
+      `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" fill="url(#pp)"/>`,
+    );
+
+    // A single quiet mark on the photograph itself: the agency's name,
+    // small, weightless, top-left — the only thing the reference genre
+    // consistently keeps ON the image. Everything else lives in the panel.
+    const markSize = Math.max(plan.floor, px(T.Caption));
+    parts.push(
+      `<text x="${margin}" y="${Math.round(margin * 0.9)}" font-family="KaiSans, sans-serif" font-size="${markSize}" ` +
+        `font-weight="600" fill="${pal.reversed}" letter-spacing="2" opacity="0.92">${esc(facts.agencyName.toUpperCase())}</text>`,
+    );
+    parts.push(
+      `<rect x="${margin}" y="${Math.round(margin * 0.9) + Math.round(markSize * 0.5)}" width="${px(0.09)}" height="2" fill="${pal.accent}" opacity="0.85"/>`,
+    );
+
+    // ---- Panel content: eyebrow, destination, employer, project — a
+    // true three-tier hierarchy (weight AND size, not size alone), set
+    // on one flat surface so contrast is never in question. ----
+    const panelX = margin;
+    const panelW = contentW;
+
+    if (M.ribbon !== "NONE") {
+      const ribbonText = "WE ARE HIRING FOR";
+      ribbonH = Math.round(px(T.Caption) * 1.7);
+      ribbonY = panelTop + px(0.05);
+      const ribbonS = Math.max(plan.floor, Math.round(ribbonH * 0.5));
+      parts.push(
+        `<text x="${panelX}" y="${ribbonY + Math.round(ribbonH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
+          `font-weight="700" fill="${pal.accent}" letter-spacing="3">${esc(ribbonText)}</text>`,
+      );
+    }
+
+    let y = ribbonY > 0 ? ribbonY + ribbonH + px(0.01) : panelTop + px(0.06);
+    for (const l of hero.headlineLines) {
+      const ls = Math.min(hero.headlineSize, fit(l, panelW, hero.headlineSize, plan.floor, true));
+      y += Math.round(ls * 0.86);
+      parts.push(
+        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" ` +
+          `fill="${pal.reversed}" letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
+      );
+      y += Math.round(ls * 0.28);
+    }
+    if (facts.employer && hero.employerSize) {
+      y += px(0.016);
+      const es = Math.min(hero.employerSize, fit(facts.employer, panelW, hero.employerSize, plan.floor, true));
+      y += Math.round(es * 0.78);
+      parts.push(
+        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="500" ` +
+          `fill="${pal.accent}">${esc(facts.employer)}</text>`,
+      );
+      y += Math.round(es * 0.3);
+    }
+    if (hero.sub && hero.subSize) {
+      y += px(0.014);
+      const ss = Math.min(hero.subSize, fit(hero.sub.toUpperCase(), panelW, hero.subSize, plan.floor));
+      y += Math.round(ss * 0.75);
+      parts.push(
+        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ss}" font-weight="400" ` +
+          `fill="${pal.reversed}" opacity="0.72" letter-spacing="2">${esc(hero.sub.toUpperCase())}</text>`,
+      );
+      y += Math.round(ss * 0.3);
+    }
+    if (hero.meta && hero.metaSize) {
+      y += px(0.01);
+      const ms = Math.min(hero.metaSize, fit(hero.meta, panelW, hero.metaSize, plan.floor));
+      y += Math.round(ms * 0.8);
+      parts.push(
+        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ms}" fill="${pal.reversed}" opacity="0.62">${esc(hero.meta)}</text>`,
+      );
+      y += Math.round(ms * 0.35);
+    }
+    // A short accent rule closes the identity block and opens the
+    // positions section — the one recurring "custom divider" a reader
+    // can learn to trust as "facts start here" across every advertisement.
+    y += px(0.024);
+    parts.push(`<rect x="${panelX}" y="${y}" width="${px(0.1)}" height="3" fill="${pal.accent}"/>`);
+    y += px(0.03);
+
+    const posterBody = renderPosterBody(facts, W, y - px(0.014) - Math.round(plan.headingH), plan, pal);
+    parts.push(posterBody.svg);
+    posterBodyEndY = posterBody.endY;
+
+    // A short requirement leaves real depth in the panel before the trust
+    // strip. Left empty it reads as an unfinished page; filled with a
+    // giant, near-invisible initial it reads as a considered brand mark
+    // claiming its own negative space — the "visual anchor" a flat colour
+    // field needs and a photograph never did. Never mistakeable for a
+    // fact: it is set at 5% opacity, purely typographic depth.
+    const panelFloor = Math.max(edgeLeft, edgeRight);
+    const leftoverTop = Math.max(posterBodyEndY, panelFloor) + px(0.02);
+    const leftover = H - stripH - leftoverTop;
+    if (leftover > px(0.14)) {
+      const markLetter = (facts.agencyName.trim().charAt(0) || facts.country?.charAt(0) || "K").toUpperCase();
+      const markSize = Math.min(Math.round(leftover * 1.55), Math.round(W * 0.68));
+      parts.push(
+        `<text x="${W - margin}" y="${H - stripH - Math.round(leftover * 0.06)}" font-family="KaiSans, sans-serif" ` +
+          `font-size="${markSize}" font-weight="800" fill="${pal.reversed}" opacity="0.05" text-anchor="end">${esc(markLetter)}</text>`,
+      );
+    }
   } else {
     let seamLeft = heroPx;
     let seamRight = heroPx;
@@ -1093,144 +1254,132 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         `<polygon points="0,${seamLeft} ${W},${seamRight} ${W},${H - stripH} 0,${H - stripH}" fill="${pal.surface}"/>`,
       );
     }
-  }
 
-  // ---- Header (KDL §4.2) ----
-  // Capped like the hero: on a tall directory poster a height-proportional
-  // header becomes a large empty slab of ink.
-  const headH = Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W));
-  // A poster reads its identity off the photo, not off an opaque ink slab
-  // — the slab is the single strongest "this is a document" tell there is.
-  if (!poster) parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${pal.ink}"/>`);
-  const baseY = headH - Math.round(headH * 0.34);
-  const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor);
-  parts.push(
-    `<text x="${margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(facts.agencyName)}</text>`,
-  );
-  // A poster already leads with the destination as its headline (below) —
-  // repeating it top-right would be the same fact printed twice.
-  if (facts.country && !poster) {
+    // ---- Header (KDL §4.2) ----
+    // Capped like the hero: on a tall directory poster a height-proportional
+    // header becomes a large empty slab of ink.
+    headH = Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W));
+    parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${pal.ink}"/>`);
+    const baseY = headH - Math.round(headH * 0.34);
+    const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor);
     parts.push(
-      `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${pal.accent}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
+      `<text x="${margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(facts.agencyName)}</text>`,
     );
-  }
-  if (!poster) parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${pal.accent}"/>`);
-
-  // ---- Ribbon banner ----
-  // Marketing copy, not a fact — kept distinct from facts.header so the
-  // ribbon never echoes what the headline already states, and never states
-  // anything a candidate could act on. A poster whose headline is now the
-  // destination standardises this to the "WE ARE HIRING FOR" eyebrow the
-  // genre uses — a quiet translucent pill, not a coloured flag shape,
-  // which read as dated template furniture rather than a real caption.
-  const ribbonH = M.ribbon === "NONE" ? 0 : Math.round(px(T.Caption) * 2.1);
-  const ribbonY = headH + px(0.02);
-  if (M.ribbon !== "NONE") {
-    const ribbonText = poster ? "WE ARE HIRING FOR" : M.ribbonText;
-    if (ribbonText) {
-      const ribbonS = fit(ribbonText, Math.round(contentW * 0.5), Math.round(ribbonH * 0.42), plan.floor, true);
-      const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
-      const ribbonOnRight = !poster && M.ribbon === "NOTCHED_RIGHT";
-      const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
-      if (poster) {
-        parts.push(
-          `<rect x="${ribbonX}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" rx="${Math.round(ribbonH / 2)}" ` +
-            `fill="${pal.ink}" fill-opacity="0.5"/>`,
-        );
-      } else if (M.ribbon === "BAR") {
-        parts.push(`<rect x="${margin}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" fill="${pal.accent}"/>`);
-      } else {
-        parts.push(`<path d="${ribbonPath(ribbonX, ribbonY, ribbonW, ribbonH, !ribbonOnRight)}" fill="${pal.accent}"/>`);
-      }
-      const ribbonCentre = ribbonX + Math.round(ribbonW / 2);
+    if (facts.country) {
       parts.push(
-        `<text x="${ribbonCentre}" ` +
-          `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
-          `font-weight="700" fill="${poster ? pal.reversed : pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
+        `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${pal.accent}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
       );
     }
-  }
+    parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${pal.accent}"/>`);
 
-  // ---- Hero text (KDL §4.4 ranks 1–4) — reserves the right edge for the
-  // hero numeral so the two never collide. ----
-  const numeral = M.numeral === "NONE" ? null : heroNumeral(facts);
-  const centred = M.heroAlign === "CENTRE";
-  // A centred hero cannot also reserve a right-hand column for the numeral:
-  // the two would fight over the same axis. Centred DNAs therefore set the
-  // numeral beneath the text, so the reserve is only taken when left-set.
-  const heroTextW = numeral && !centred ? Math.round(contentW * 0.6) : contentW;
-  const heroX = centred ? Math.round(W / 2) : margin;
-  const anchor = centred ? ` text-anchor="middle"` : "";
-  const heroRibbonGap = Math.max(px(0.045), Math.round(hero.headlineSize * 0.85));
-  let y = ribbonY + ribbonH + (M.ribbon === "NONE" ? px(0.02) : heroRibbonGap);
-  for (const l of hero.headlineLines) {
-    const ls = Math.min(hero.headlineSize, fit(l, heroTextW, hero.headlineSize, plan.floor, true));
-    parts.push(
-      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" fill="${pal.reversed}"${anchor} letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
-    );
-    y += Math.round(hero.headlineSize * 1.14);
-  }
-  if (facts.employer && hero.employerSize) {
-    y += px(0.01);
-    const es = Math.min(hero.employerSize, fit(facts.employer, heroTextW, hero.employerSize, plan.floor, true));
-    parts.push(
-      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="700" fill="${pal.accent}"${anchor}>${esc(facts.employer)}</text>`,
-    );
-    y += Math.round(hero.employerSize * 1.08);
-  }
-  if (hero.sub && hero.subSize) {
-    y += px(0.006);
-    parts.push(
-      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.subSize, fit(hero.sub, heroTextW, hero.subSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.9">${esc(hero.sub)}</text>`,
-    );
-    y += Math.round(hero.subSize * 1.15);
-  }
-  if (hero.meta && hero.metaSize) {
-    parts.push(
-      `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.metaSize, fit(hero.meta, heroTextW, hero.metaSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.75">${esc(hero.meta)}</text>`,
-    );
-    y += Math.round(hero.metaSize * 1.3);
-  }
+    // ---- Ribbon banner ----
+    // Marketing copy, not a fact — kept distinct from facts.header so the
+    // ribbon never echoes what the headline already states, and never states
+    // anything a candidate could act on.
+    ribbonH = M.ribbon === "NONE" ? 0 : Math.round(px(T.Caption) * 2.1);
+    ribbonY = headH + px(0.02);
+    if (M.ribbon !== "NONE") {
+      const ribbonText = M.ribbonText;
+      if (ribbonText) {
+        const ribbonS = fit(ribbonText, Math.round(contentW * 0.5), Math.round(ribbonH * 0.42), plan.floor, true);
+        const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
+        const ribbonOnRight = M.ribbon === "NOTCHED_RIGHT";
+        const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
+        if (M.ribbon === "BAR") {
+          parts.push(`<rect x="${margin}" y="${ribbonY}" width="${ribbonW}" height="${ribbonH}" fill="${pal.accent}"/>`);
+        } else {
+          parts.push(`<path d="${ribbonPath(ribbonX, ribbonY, ribbonW, ribbonH, !ribbonOnRight)}" fill="${pal.accent}"/>`);
+        }
+        const ribbonCentre = ribbonX + Math.round(ribbonW / 2);
+        parts.push(
+          `<text x="${ribbonCentre}" ` +
+            `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
+            `font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
+        );
+      }
+    }
 
-  // ---- Hero numeral — the verified count as a graphic rather than a
-  // caption. The value is exactly what headlineCountLabel already computes;
-  // the DNA only chooses how large it is set. ----
-  if (numeral) {
-    const display = M.numeral === "DISPLAY";
-    if (centred) {
-      // Inline, beneath the hero text, in the space planHero reserved.
-      const numSize = hero.numeralSize;
-      const capSize = hero.numeralCaptionSize;
-      y += px(0.012) + Math.round(numSize * 0.82);
+    // ---- Hero text (KDL §4.4 ranks 1–4) — reserves the right edge for the
+    // hero numeral so the two never collide. ----
+    numeral = M.numeral === "NONE" ? null : heroNumeral(facts);
+    const centred = M.heroAlign === "CENTRE";
+    // A centred hero cannot also reserve a right-hand column for the numeral:
+    // the two would fight over the same axis. Centred DNAs therefore set the
+    // numeral beneath the text, so the reserve is only taken when left-set.
+    const heroTextW = numeral && !centred ? Math.round(contentW * 0.6) : contentW;
+    const heroX = centred ? Math.round(W / 2) : margin;
+    const anchor = centred ? ` text-anchor="middle"` : "";
+    const heroRibbonGap = Math.max(px(0.045), Math.round(hero.headlineSize * 0.85));
+    let y = ribbonY + ribbonH + (M.ribbon === "NONE" ? px(0.02) : heroRibbonGap);
+    for (const l of hero.headlineLines) {
+      const ls = Math.min(hero.headlineSize, fit(l, heroTextW, hero.headlineSize, plan.floor, true));
       parts.push(
-        `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
-          `font-weight="800" fill="${pal.accent}" text-anchor="middle" letter-spacing="-2">${esc(numeral.num)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" fill="${pal.reversed}"${anchor} letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
       );
-      y += Math.round(capSize * 1.5);
+      y += Math.round(hero.headlineSize * 1.14);
+    }
+    if (facts.employer && hero.employerSize) {
+      y += px(0.01);
+      const es = Math.min(hero.employerSize, fit(facts.employer, heroTextW, hero.employerSize, plan.floor, true));
       parts.push(
-        `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
-          `font-weight="700" fill="${pal.reversed}" text-anchor="middle" letter-spacing="2">${esc(numeral.caption)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="700" fill="${pal.accent}"${anchor}>${esc(facts.employer)}</text>`,
       );
-    } else {
-      const numX = W - margin;
-      const numBaseline = Math.min(Math.round(heroPx * 0.86), heroPx - px(0.06));
-      const numSize = display
-        ? Math.min(Math.round(W * 0.24), Math.round(heroPx * 0.4))
-        : Math.min(Math.round(W * 0.1), Math.round(heroPx * 0.18));
-      const capSize = Math.max(plan.floor, Math.round(numSize * (display ? 0.2 : 0.32)));
+      y += Math.round(hero.employerSize * 1.08);
+    }
+    if (hero.sub && hero.subSize) {
+      y += px(0.006);
       parts.push(
-        `<text x="${numX}" y="${numBaseline}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
-          `font-weight="800" fill="${pal.accent}" text-anchor="end" letter-spacing="-2">${esc(numeral.num)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.subSize, fit(hero.sub, heroTextW, hero.subSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.9">${esc(hero.sub)}</text>`,
       );
+      y += Math.round(hero.subSize * 1.15);
+    }
+    if (hero.meta && hero.metaSize) {
       parts.push(
-        `<text x="${numX}" y="${numBaseline + Math.round(capSize * 1.3)}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
-          `font-weight="700" fill="${pal.reversed}" text-anchor="end" letter-spacing="2">${esc(numeral.caption)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.metaSize, fit(hero.meta, heroTextW, hero.metaSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.75">${esc(hero.meta)}</text>`,
       );
+      y += Math.round(hero.metaSize * 1.3);
+    }
+
+    // ---- Hero numeral — the verified count as a graphic rather than a
+    // caption. The value is exactly what headlineCountLabel already computes;
+    // the DNA only chooses how large it is set. ----
+    if (numeral) {
+      const display = M.numeral === "DISPLAY";
+      if (centred) {
+        // Inline, beneath the hero text, in the space planHero reserved.
+        const numSize = hero.numeralSize;
+        const capSize = hero.numeralCaptionSize;
+        y += px(0.012) + Math.round(numSize * 0.82);
+        parts.push(
+          `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
+            `font-weight="800" fill="${pal.accent}" text-anchor="middle" letter-spacing="-2">${esc(numeral.num)}</text>`,
+        );
+        y += Math.round(capSize * 1.5);
+        parts.push(
+          `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
+            `font-weight="700" fill="${pal.reversed}" text-anchor="middle" letter-spacing="2">${esc(numeral.caption)}</text>`,
+        );
+      } else {
+        const numX = W - margin;
+        const numBaseline = Math.min(Math.round(heroPx * 0.86), heroPx - px(0.06));
+        const numSize = display
+          ? Math.min(Math.round(W * 0.24), Math.round(heroPx * 0.4))
+          : Math.min(Math.round(W * 0.1), Math.round(heroPx * 0.18));
+        const capSize = Math.max(plan.floor, Math.round(numSize * (display ? 0.2 : 0.32)));
+        parts.push(
+          `<text x="${numX}" y="${numBaseline}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
+            `font-weight="800" fill="${pal.accent}" text-anchor="end" letter-spacing="-2">${esc(numeral.num)}</text>`,
+        );
+        parts.push(
+          `<text x="${numX}" y="${numBaseline + Math.round(capSize * 1.3)}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
+            `font-weight="700" fill="${pal.reversed}" text-anchor="end" letter-spacing="2">${esc(numeral.caption)}</text>`,
+        );
+      }
     }
   }
 
   const body = poster
-    ? renderPosterBody(facts, W, heroPx, plan, pal)
+    ? { svg: "", endY: posterBodyEndY }
     : renderBody(dna, facts, W, heroPx, plan, dense, 0, W, 1, pal);
   parts.push(body.svg);
 
@@ -1240,7 +1389,12 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // possible page switch it off. ----
   const calloutTop = body.endY + px(0.02);
   const calloutBottom = H - stripH - px(0.03);
-  if (M.trustCallout && calloutBottom - calloutTop >= px(0.05)) {
+  // The split panel already ends directly into the real trust strip
+  // (branding-overlay.ts) with no gap — stacking this decorative callout
+  // on top of it repeated the same phone number twice and read as two
+  // competing trust badges. DOCUMENT still uses it to fill the dead
+  // space its cream surface would otherwise leave above the strip.
+  if (!poster && M.trustCallout && calloutBottom - calloutTop >= px(0.05)) {
     const boxY = calloutTop;
     const boxH = calloutBottom - calloutTop;
     const boxX = margin;
@@ -1248,9 +1402,15 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // A poster keeps this translucent-on-photo, matching every other mark
     // in the composition — an opaque white card here is exactly the
     // "document patched onto a photo" tell the rest of POSTER removes.
-    const calloutFill = poster ? pal.ink : pal.paper;
-    const calloutOpacity = poster ? ' fill-opacity="0.55"' : "";
-    const calloutStroke = poster ? 'stroke="none"' : `stroke="${pal.ink}" stroke-width="2" stroke-dasharray="9 7"`;
+    // The callout now sits on the identity panel (solid ink), not on
+    // photography — a translucent-ink fill would nearly vanish against
+    // an ink background. A thin reversed hairline keeps it a distinct,
+    // deliberate card without ever competing with the panel it's on.
+    const calloutFill = poster ? pal.reversed : pal.paper;
+    const calloutOpacity = poster ? ' fill-opacity="0.06"' : "";
+    const calloutStroke = poster
+      ? `stroke="${pal.reversed}" stroke-width="1" stroke-opacity="0.35"`
+      : `stroke="${pal.ink}" stroke-width="2" stroke-dasharray="9 7"`;
     const calloutText = poster ? pal.reversed : pal.ink;
     const calloutMuted = poster ? pal.reversed : pal.muted;
     parts.push(
@@ -1294,11 +1454,10 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 
   const markup = parts.join("");
   const png = await sharp(Buffer.from(markup)).png().toBuffer();
-  // POSTER's artwork genuinely extends to the branding strip, not just to
-  // the hero-text cursor — reported accurately so the watermark (confined
-  // to "the artwork region") and the background composite both cover the
-  // photo's real extent instead of stopping partway down a poster.
-  const artworkHeightPx = poster ? H - stripH : heroPx;
+  // POSTER's artwork is the confined photo plane above the identity
+  // panel — reported accurately so the watermark (confined to "the
+  // artwork region") never tiles across the solid panel below it.
+  const artworkHeightPx = poster ? panelTop : heroPx;
   return { png, heightPx: H, artworkHeightPx, themeSelection, svgMarkup: innerSvg(markup) };
 }
 
