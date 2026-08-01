@@ -298,6 +298,22 @@ export interface FactLayerResult {
   artworkHeightPx: number;
   /** Which design language was used, and why. */
   themeSelection: ThemeSelection;
+  /**
+   * The same drawing, as live SVG markup instead of a flattened raster —
+   * every heading, rule, box and divider is a real `<text>`/`<rect>`/
+   * `<path>` element, editable in any SVG tool. This is the INNER content
+   * only (no wrapping `<svg>` tag), so `editable-svg.ts` can nest it
+   * inside one document alongside the background artwork and the
+   * branding band without a second drawing pass. `png` above is produced
+   * by rasterizing this exact markup — the two are never allowed to
+   * diverge because one is derived from the other, not drawn twice.
+   */
+  svgMarkup: string;
+}
+
+/** Strips the wrapping `<svg ...>...</svg>` tag pair, keeping only the inner marks. */
+function innerSvg(fullMarkup: string): string {
+  return fullMarkup.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 }
 
 type Plan = ReturnType<typeof planBody>;
@@ -987,8 +1003,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 
     parts.push(renderBody(dna, facts, W, strapY + strapH, plan, true, edge, innerW, dtpScale, pal).svg);
     parts.push(`</svg>`);
-    const dtpPng = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
-    return { png: dtpPng, heightPx: H, artworkHeightPx: heroPx, themeSelection };
+    const dtpMarkup = parts.join("");
+    const dtpPng = await sharp(Buffer.from(dtpMarkup)).png().toBuffer();
+    return { png: dtpPng, heightPx: H, artworkHeightPx: heroPx, themeSelection, svgMarkup: innerSvg(dtpMarkup) };
   }
 
   // Composition is set by the Design DNA's motifs — seam direction, ribbon
@@ -1212,8 +1229,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 
   parts.push(`</svg>`);
 
-  const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
-  return { png, heightPx: H, artworkHeightPx: heroPx, themeSelection };
+  const markup = parts.join("");
+  const png = await sharp(Buffer.from(markup)).png().toBuffer();
+  return { png, heightPx: H, artworkHeightPx: heroPx, themeSelection, svgMarkup: innerSvg(markup) };
 }
 
 function renderBody(

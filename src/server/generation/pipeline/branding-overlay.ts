@@ -206,7 +206,9 @@ async function fadeLogo(logoPng: Buffer, size: number, opacity: number): Promise
  * optional contact row sits above the band. Every size is a fraction of
  * bandHeight/widthPx — no fixed coordinates.
  */
-async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buffer; height: number }> {
+async function buildFooterBand(
+  input: BrandingOverlayInput,
+): Promise<{ png: Buffer; height: number; markup: string }> {
   const { widthPx, heightPx } = input;
   const theme = footerTheme(input.footerStyle, input.singleInk);
   const badges = normaliseBadges(input.brandBadges);
@@ -269,7 +271,7 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
   if (input.agencyLogoPng) {
     const logoDataUri = await toPngDataUri(input.agencyLogoPng, logoSize);
     parts.push(
-      `<image href="${logoDataUri}" x="${logoLeft}" y="${logoTop}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`,
+      `<image id="kai-agency-logo" href="${logoDataUri}" x="${logoLeft}" y="${logoTop}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`,
     );
   }
 
@@ -337,13 +339,33 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
     );
     const qrDataUri = await toPngDataUri(input.qrPng, qrSize);
     parts.push(
-      `<image href="${qrDataUri}" x="${qrLeft}" y="${capBaseline + Math.round(captionSize * 0.5)}" width="${qrSize}" height="${qrSize}"/>`,
+      `<image id="kai-verification-qr" href="${qrDataUri}" x="${qrLeft}" y="${capBaseline + Math.round(captionSize * 0.5)}" width="${qrSize}" height="${qrSize}"/>`,
     );
   }
 
   parts.push(`</svg>`);
-  const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
-  return { png, height: totalHeight };
+  const markup = parts.join("");
+  const png = await sharp(Buffer.from(markup)).png().toBuffer();
+  return { png, height: totalHeight, markup: markup.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "") };
+}
+
+/**
+ * The trust strip as live SVG markup instead of a flattened raster — logo
+ * and QR stay `<image>` elements with a swappable `href`, agency name,
+ * registration and contact remain real `<text>`. Used by
+ * `editable-svg.ts` to assemble one editable document; `applyBrandingOverlay`
+ * above keeps rasterizing for the production flattened-PNG output, and both
+ * come from this exact same draw — never a second implementation of the band.
+ */
+export async function buildFooterBandMarkup(
+  input: Omit<BrandingOverlayInput, "imagePng">,
+): Promise<{ markup: string; height: number } | null> {
+  const hasFooterContent = Boolean(
+    input.agencyLogoPng || input.agencyName || input.registrationNumber || input.contactLine || input.qrPng,
+  );
+  if (!hasFooterContent) return null;
+  const footer = await buildFooterBand({ ...input, imagePng: Buffer.alloc(0) });
+  return { markup: footer.markup, height: footer.height };
 }
 
 /**
@@ -380,7 +402,8 @@ function fitFontSize(
   return Math.max(size, minSize);
 }
 
-async function toPngDataUri(png: Buffer, size: number): Promise<string> {
+/** Exported for `editable-svg.ts`, which embeds the background artwork the same way. */
+export async function toPngDataUri(png: Buffer, size: number): Promise<string> {
   const resized = await sharp(png)
     .resize(size, size, { fit: "inside", withoutEnlargement: true })
     .png()
