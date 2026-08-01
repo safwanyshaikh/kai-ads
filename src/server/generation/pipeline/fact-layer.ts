@@ -1012,6 +1012,14 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // corner, whether a vacancy numeral is drawn at all. These are VALUES,
   // read below by the same drawing code for every DNA: there is one hero,
   // one body, one callout, and a DNA only says how they are dressed.
+  //
+  // layoutStyle is the one motif that changes DRAWING STRUCTURE rather than
+  // just dressing: POSTER runs the artwork the full height of the canvas
+  // (down to the branding strip) and sets every fact directly on it, the
+  // way a real social recruitment poster is built — no seam, no separate
+  // white body surface holding the position list.
+  const poster = !dense && M.layoutStyle === "POSTER";
+  const stripHForPoster = brandingStripHeight(W, H, hasContact);
 
   // ---- Hero scrim (KDL §4.3): a known contrast floor over unknown artwork.
   parts.push(
@@ -1028,40 +1036,57 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const diag = Math.round(W * 0.055);
   const step = Math.round(W * 0.03);
   const mid = Math.round(W * 0.52);
-  const stripH = brandingStripHeight(W, H, hasContact);
-  let seamLeft = heroPx;
-  let seamRight = heroPx;
-  if (M.seam === "DIAGONAL_LEFT") {
-    seamLeft = heroPx - diag;
-    seamRight = heroPx + diag;
-  } else if (M.seam === "DIAGONAL_RIGHT") {
-    seamLeft = heroPx + diag;
-    seamRight = heroPx - diag;
-  }
-  if (M.seam === "STEP") {
-    const top = heroPx - step;
-    const bottom = heroPx + step;
-    parts.push(`<polygon points="0,0 ${W},0 ${W},${bottom} ${mid},${bottom} ${mid},${top} 0,${top}" fill="url(#s)"/>`);
+  const stripH = stripHForPoster;
+
+  if (poster) {
+    // The artwork runs the full canvas, down to the branding strip. A
+    // single deeper gradient — not the shallower hero-only scrim above —
+    // is what keeps the position list legible directly over the photo
+    // with no separate surface beneath it.
     parts.push(
-      `<polygon points="0,${top} ${mid},${top} ${mid},${bottom} ${W},${bottom} ${W},${H - stripH} 0,${H - stripH}" ` +
-        `fill="${pal.surface}"/>`,
+      `<defs><linearGradient id="pb" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.7"/>` +
+        `<stop offset="0.32" stop-color="${pal.ink}" stop-opacity="0.28"/>` +
+        `<stop offset="0.6" stop-color="${pal.ink}" stop-opacity="0.42"/>` +
+        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.86"/>` +
+        `</linearGradient></defs>`,
     );
-    seamLeft = top;
-    seamRight = bottom;
+    parts.push(`<rect x="0" y="0" width="${W}" height="${H - stripH}" fill="url(#pb)"/>`);
   } else {
-    parts.push(`<polygon points="0,0 ${W},0 ${W},${seamRight} 0,${seamLeft}" fill="url(#s)"/>`);
-    // Body surface: a known background, so factual text sits on a known
-    // contrast pair rather than on whatever the image model produced.
-    parts.push(
-      `<polygon points="0,${seamLeft} ${W},${seamRight} ${W},${H - stripH} 0,${H - stripH}" fill="${pal.surface}"/>`,
-    );
+    let seamLeft = heroPx;
+    let seamRight = heroPx;
+    if (M.seam === "DIAGONAL_LEFT") {
+      seamLeft = heroPx - diag;
+      seamRight = heroPx + diag;
+    } else if (M.seam === "DIAGONAL_RIGHT") {
+      seamLeft = heroPx + diag;
+      seamRight = heroPx - diag;
+    }
+    if (M.seam === "STEP") {
+      const top = heroPx - step;
+      const bottom = heroPx + step;
+      parts.push(`<polygon points="0,0 ${W},0 ${W},${bottom} ${mid},${bottom} ${mid},${top} 0,${top}" fill="url(#s)"/>`);
+      parts.push(
+        `<polygon points="0,${top} ${mid},${top} ${mid},${bottom} ${W},${bottom} ${W},${H - stripH} 0,${H - stripH}" ` +
+          `fill="${pal.surface}"/>`,
+      );
+    } else {
+      parts.push(`<polygon points="0,0 ${W},0 ${W},${seamRight} 0,${seamLeft}" fill="url(#s)"/>`);
+      // Body surface: a known background, so factual text sits on a known
+      // contrast pair rather than on whatever the image model produced.
+      parts.push(
+        `<polygon points="0,${seamLeft} ${W},${seamRight} ${W},${H - stripH} 0,${H - stripH}" fill="${pal.surface}"/>`,
+      );
+    }
   }
 
   // ---- Header (KDL §4.2) ----
   // Capped like the hero: on a tall directory poster a height-proportional
   // header becomes a large empty slab of ink.
   const headH = Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W));
-  parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${pal.ink}"/>`);
+  // A poster reads its identity off the photo, not off an opaque ink slab
+  // — the slab is the single strongest "this is a document" tell there is.
+  if (!poster) parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${pal.ink}"/>`);
   const baseY = headH - Math.round(headH * 0.34);
   const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor);
   parts.push(
@@ -1072,7 +1097,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${pal.accent}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
     );
   }
-  parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${pal.accent}"/>`);
+  if (!poster) parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${pal.accent}"/>`);
 
   // ---- Ribbon banner ----
   // Marketing copy, not a fact — kept distinct from facts.header so the
@@ -1176,7 +1201,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     }
   }
 
-  const body = renderBody(dna, facts, W, heroPx, plan, dense, 0, W, 1, pal);
+  const body = poster
+    ? renderPosterBody(facts, W, heroPx, plan, pal)
+    : renderBody(dna, facts, W, heroPx, plan, dense, 0, W, 1, pal);
   parts.push(body.svg);
 
   // ---- Trust callout — fills leftover depth above the branding strip
@@ -1190,19 +1217,27 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const boxH = calloutBottom - calloutTop;
     const boxX = margin;
     const boxW = contentW;
+    // A poster keeps this translucent-on-photo, matching every other mark
+    // in the composition — an opaque white card here is exactly the
+    // "document patched onto a photo" tell the rest of POSTER removes.
+    const calloutFill = poster ? pal.ink : pal.paper;
+    const calloutOpacity = poster ? ' fill-opacity="0.55"' : "";
+    const calloutStroke = poster ? 'stroke="none"' : `stroke="${pal.ink}" stroke-width="2" stroke-dasharray="9 7"`;
+    const calloutText = poster ? pal.reversed : pal.ink;
+    const calloutMuted = poster ? pal.reversed : pal.muted;
     parts.push(
       `<rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" rx="${px(L.cornerRadius * 2.25)}" ` +
-        `fill="${pal.paper}" stroke="${pal.ink}" stroke-width="2" stroke-dasharray="9 7"/>`,
+        `fill="${calloutFill}"${calloutOpacity} ${calloutStroke}/>`,
     );
     const midY = boxY + Math.round(boxH / 2);
     const chipSize = Math.max(plan.floor, Math.round(px(T.Caption) * 0.95));
     const chipR = Math.round(chipSize * 0.6);
     const rowGapV = Math.round(boxH * 0.28);
     const chipY = Math.max(boxY + Math.round(boxH * 0.24), midY - rowGapV);
-    parts.push(iconGlyph("check", boxX + px(0.04) + chipR, chipY, chipR, pal.ink));
+    parts.push(iconGlyph("check", boxX + px(0.04) + chipR, chipY, chipR, poster ? pal.accent : pal.ink));
     parts.push(
       `<text x="${boxX + px(0.04) + chipR * 2 + px(0.012)}" y="${chipY + Math.round(chipSize * 0.32)}" ` +
-        `font-family="KaiSans, sans-serif" font-size="${chipSize}" font-weight="700" fill="${pal.ink}" ` +
+        `font-family="KaiSans, sans-serif" font-size="${chipSize}" font-weight="700" fill="${calloutText}" ` +
         `letter-spacing="1">VERIFIED ADVERTISEMENT</text>`,
     );
     const contactRowY = Math.min(boxY + boxH - Math.round(boxH * 0.24), midY + rowGapV);
@@ -1210,19 +1245,19 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     let cx = boxX + px(0.04);
     if (facts.contact.phone) {
       const r = Math.round(cSize * 0.6);
-      parts.push(iconGlyph("phone", cx + r, contactRowY, r, pal.ink));
+      parts.push(iconGlyph("phone", cx + r, contactRowY, r, calloutText));
       cx += r * 2 + px(0.01);
       parts.push(
-        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" font-weight="700" fill="${pal.ink}">${esc(facts.contact.phone)}</text>`,
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" font-weight="700" fill="${calloutText}">${esc(facts.contact.phone)}</text>`,
       );
       cx += Math.round(textWidth(facts.contact.phone, cSize, true)) + px(0.035);
     }
     if (facts.contact.whatsapp) {
       const r = Math.round(cSize * 0.6);
-      parts.push(iconGlyph("chat", cx + r, contactRowY, r, pal.muted));
+      parts.push(iconGlyph("chat", cx + r, contactRowY, r, calloutMuted));
       cx += r * 2 + px(0.01);
       parts.push(
-        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" fill="${pal.muted}">${esc(facts.contact.whatsapp)}</text>`,
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" fill="${calloutMuted}">${esc(facts.contact.whatsapp)}</text>`,
       );
     }
   }
@@ -1231,7 +1266,132 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 
   const markup = parts.join("");
   const png = await sharp(Buffer.from(markup)).png().toBuffer();
-  return { png, heightPx: H, artworkHeightPx: heroPx, themeSelection, svgMarkup: innerSvg(markup) };
+  // POSTER's artwork genuinely extends to the branding strip, not just to
+  // the hero-text cursor — reported accurately so the watermark (confined
+  // to "the artwork region") and the background composite both cover the
+  // photo's real extent instead of stopping partway down a poster.
+  const artworkHeightPx = poster ? H - stripH : heroPx;
+  return { png, heightPx: H, artworkHeightPx, themeSelection, svgMarkup: innerSvg(markup) };
+}
+
+/**
+ * POSTER row rendering: every position is a bullet directly on the photo
+ * scrim — no card, no fill, light/reversed text — matching the reference
+ * social-recruitment-poster genre. Shares `plan`'s row heights and column
+ * geometry with the DOCUMENT path (`renderBody`), so the same capacity
+ * solve and the same "never truncates, never omits a fact, fails loud
+ * past the legibility floor" guarantees hold here too — only the marks
+ * drawn in each row differ.
+ */
+function renderPosterBody(
+  facts: AdvertisementFacts,
+  W: number,
+  heroPx: number,
+  plan: Plan,
+  pal: Palette,
+): { svg: string; endY: number } {
+  const px = (f: number) => Math.round(f * W);
+  const { colW, cols, gutter, titleSize, detailSize, showDetail, perCol, floor, margin } = plan;
+  const parts: string[] = [];
+
+  // The heading rule and label stay unclaimed on a poster — a candidate
+  // scanning a feed does not need a section title to know a bullet list
+  // is the list of roles — but the vertical space `plan` reserved for it
+  // is still consumed, so the canvas-height solve (which budgeted for it)
+  // and the drawing never disagree about where content actually starts.
+  const startY = heroPx + plan.headingH + px(0.014);
+
+  for (let c = 0; c < cols; c++) {
+    const colX = margin + c * (colW + gutter);
+    let rowTopCursor = startY;
+    let rowIndex = c * perCol;
+    for (const p of facts.positions.slice(c * perCol, (c + 1) * perCol)) {
+      const rowTop = rowTopCursor;
+      const cy = rowTop + Math.round(titleSize * 0.92);
+      const bs = Math.round(titleSize * 0.42);
+      // A small triangular bullet — the trade convention this whole genre
+      // uses instead of a numbered badge or a card.
+      parts.push(
+        `<path d="M ${colX} ${cy - bs} L ${colX + bs} ${cy - Math.round(bs * 0.42)} L ${colX} ${cy + Math.round(bs * 0.16)} Z" fill="${pal.accent}"/>`,
+      );
+      const tx = colX + bs + px(0.014);
+      const tw = colW - bs - px(0.014);
+      let ly = cy;
+      const lines = wrap(p.title.toUpperCase(), tw, titleSize, plan.maxLines);
+      for (const line of lines) {
+        const ls = fit(line, tw, titleSize, floor, true);
+        parts.push(
+          `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="700" ` +
+            `fill="${pal.reversed}" letter-spacing="0.5">${esc(line)}</text>`,
+        );
+        ly += Math.round(titleSize * plan.lineFactor);
+      }
+      if (showDetail) {
+        const d = roleDetail(p);
+        if (d) {
+          const ds = fit(d, tw, detailSize, floor);
+          parts.push(
+            `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.reversed}" opacity="0.78">${esc(d)}</text>`,
+          );
+          ly += Math.round(detailSize * 1.3);
+        }
+      }
+      rowTopCursor += plan.rowHeights[rowIndex] ?? Math.max(ly - rowTop, 1);
+      rowIndex++;
+    }
+  }
+
+  let sy = startY + plan.listH + px(0.02);
+
+  // Benefits — a compact icon-chip row directly on the photo. Omitted
+  // entirely when absent (KDL §4.5.1).
+  if (facts.benefits.length) {
+    const chipH = px(0.038);
+    const iconR = Math.round(chipH * 0.3);
+    let bx = margin;
+    const rowMidY = sy + Math.round(chipH * 0.5);
+    for (const b of facts.benefits) {
+      const label = b.detail ? `${b.label}: ${b.detail}` : b.label;
+      const s = Math.max(floor, Math.round(chipH * 0.42));
+      const kind = benefitIconKind(b.label);
+      parts.push(iconGlyph(kind, bx + iconR, rowMidY, iconR, pal.accent));
+      const tx = bx + iconR * 2 + Math.round(px(0.008));
+      parts.push(
+        `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="600" fill="${pal.reversed}">${esc(label)}</text>`,
+      );
+      bx = tx + Math.round(textWidth(label, s, true)) + px(0.03);
+      if (bx > margin + plan.contentW * 0.94) break; // never truncates a fact — overflow benefits still verified, just not iconised on this row
+    }
+    sy += chipH + px(0.022);
+  }
+
+  // Interview — a small translucent pill directly on the photo. Omitted
+  // entirely when absent.
+  const ev = facts.interview[0];
+  if (ev) {
+    const detail = [ev.date, ev.location].filter(Boolean).join(" · ");
+    if (detail) {
+      const s = Math.max(floor, px(0.0185));
+      const label = `INTERVIEW   ${detail}`;
+      const boxH = Math.round(s * 2.5);
+      const boxW = Math.min(plan.contentW, Math.round(textWidth(label, s, true) + px(0.06)));
+      parts.push(
+        `<rect x="${margin}" y="${sy}" width="${boxW}" height="${boxH}" rx="${Math.round(boxH * 0.2)}" fill="${pal.ink}" fill-opacity="0.55"/>`,
+      );
+      const iconR = Math.round(s * 0.55);
+      parts.push(iconGlyph("calendar", margin + px(0.024) + iconR, sy + Math.round(boxH / 2), iconR, pal.accent));
+      const labelX = margin + px(0.024) + iconR * 2 + px(0.01);
+      parts.push(
+        `<text x="${labelX}" y="${sy + Math.round(boxH * 0.63)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${pal.accent}">INTERVIEW</text>`,
+      );
+      parts.push(
+        `<text x="${labelX + Math.round(textWidth("INTERVIEW  ", s, true))}" y="${sy + Math.round(boxH * 0.63)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.reversed}">${esc(detail)}</text>`,
+      );
+      sy += boxH + px(0.02);
+    }
+  }
+
+  return { svg: parts.join(""), endY: sy };
 }
 
 function renderBody(

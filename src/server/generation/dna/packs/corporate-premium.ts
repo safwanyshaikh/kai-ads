@@ -74,6 +74,7 @@ export const CORPORATE_PREMIUM: DesignDNA[] = [
     type: { D1: 0.062, H1: 0.044, H2: 0.032, BodyL: 0.023 },
     layout: { margin: 0.085, gutter: 0.024, heroFractionSparse: 0.3, cornerRadius: 0 },
     motifs: {
+      layoutStyle: "DOCUMENT",
       seam: "FLAT",
       ribbon: "NONE",
       numeral: "NONE",
@@ -99,7 +100,7 @@ export const CORPORATE_PREMIUM: DesignDNA[] = [
     industries: [],
     type: { H2: 0.036, BodyL: 0.027, Body: 0.022, Caption: 0.018 },
     layout: { margin: 0.09, heroFractionSparse: 0.32, rowGapScale: 1.35, cornerRadius: 0.006 },
-    motifs: { seam: "FLAT", ribbon: "NONE", numeral: "COMPACT", benefitStyle: "CHIPS" },
+    motifs: { layoutStyle: "DOCUMENT", seam: "FLAT", ribbon: "NONE", numeral: "COMPACT", benefitStyle: "CHIPS" },
     artwork: {
       direction: "A calm establishing view of the workplace, composed with a clear empty upper band.",
       grade: "Neutral and even; nothing that fights printed type.",

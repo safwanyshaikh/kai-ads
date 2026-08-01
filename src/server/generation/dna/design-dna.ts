@@ -131,7 +131,25 @@ export type DnaBenefitStyle = "ICON_BAR" | "TEXT_STRIP" | "CHIPS";
 /** Where the hero text sits. */
 export type DnaHeroAlign = "LEFT" | "CENTRE";
 
+/**
+ * POSTER — the artwork spans the full canvas (down to the branding strip);
+ * every fact is set directly on it, over a continuous scrim, the way a
+ * real social recruitment poster is built. No seam, no separate body
+ * surface, no white card holding the position list.
+ *
+ * DOCUMENT — the artwork occupies a bounded hero region; the position
+ * list, benefits and interview sit on a separate flat body surface below
+ * a seam. Reads as a typeset document with a photograph at the top —
+ * correct for the classified/print packs, wrong for a feed.
+ *
+ * PREMIUM_CAMPAIGN's engine default is POSTER, matching the reference
+ * recruitment-poster genre; a DNA can opt into DOCUMENT deliberately for
+ * a client-deck or print-adjacent feel.
+ */
+export type DnaLayoutStyle = "POSTER" | "DOCUMENT";
+
 export interface DnaMotifs {
+  layoutStyle: DnaLayoutStyle;
   seam: DnaSeam;
   ribbon: DnaRibbon;
   /** Ribbon copy. Marketing language, never a verified fact. */
@@ -309,6 +327,7 @@ export function validateDnaGeometry(dna: DesignDNA): string[] {
 
 /** The engine's shipping motifs — the Premium Campaign composition as built. */
 export const KDL_MOTIFS: DnaMotifs = {
+  layoutStyle: "POSTER",
   seam: "DIAGONAL_LEFT",
   ribbon: "NOTCHED_LEFT",
   ribbonText: "HIRING NOW",
@@ -325,6 +344,7 @@ export const KDL_MOTIFS: DnaMotifs = {
 
 /** The engine's shipping motifs for the classified composition. */
 export const KDL_DTP_MOTIFS: DnaMotifs = {
+  layoutStyle: "DOCUMENT",
   seam: "FLAT",
   ribbon: "NONE",
   ribbonText: "",
