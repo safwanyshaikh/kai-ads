@@ -407,6 +407,9 @@ model JobOrder {
   // Task 005 — Campaign Intelligence. Virtual back-relation only.
   campaignDeterminations CampaignDetermination[]
 
+  // Task 006 — Layout Intelligence. Virtual back-relation only.
+  layoutDeterminations LayoutDetermination[]
+
   createdById String
   createdBy   User   @relation("JobOrderCreatedBy", fields: [createdById], references: [id])
 
@@ -776,6 +779,62 @@ model CampaignDetermination {
   @@unique([jobOrderId, attribute])
   @@index([jobOrderId])
   @@map("campaign_determinations")
+}
+
+// ---------------------------------------------------------------------------
+// Layout Intelligence (Task 006)
+// ---------------------------------------------------------------------------
+
+/**
+ * One presentation decision for one requirement — the Publication
+ * Strategy.
+ *
+ * Decides HOW the campaign should be presented: publication type, layout
+ * family, information density, reading direction, visual hierarchy, hero
+ * image importance, text/image ratio, QR importance, logo importance,
+ * trust element priority, CTA priority, typography strategy (high-level
+ * only), language strategy, multi-language requirement, colour mood
+ * (high-level only), whitespace strategy, and mobile-first vs
+ * print-first.
+ *
+ * This engine renders nothing, generates no image, edits nothing and
+ * publishes nothing. No row in this table may hold a coordinate, a
+ * pixel value, a canvas size, a font name, or a colour value — those are
+ * Rendering Engine decisions and are enforced out of this table by
+ * tests, not by a database constraint (a strategic sentence and a
+ * pixel value are both TEXT, and the distinction is semantic).
+ *
+ * `dependsOn` records which Campaign Intelligence attributes produced
+ * the decision, so an UNKNOWN here is traceable to the exact upstream
+ * gap that caused it.
+ *
+ * Derived data: recomputed, never migrated.
+ */
+model LayoutDetermination {
+  id         String   @id @default(cuid())
+  jobOrderId String
+  jobOrder   JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+
+  /** Stable machine name, e.g. "publicationType", "layoutFamily", "colourMood". */
+  attribute String
+  /** The presentation decision, or the literal 'UNKNOWN'. */
+  value String @db.Text
+
+  /** 0–100. Zero whenever the value is UNKNOWN. Capped by the least certain Campaign Intelligence input. */
+  confidencePct Int
+  source        String
+  /** Plain-language explanation. Never empty. */
+  reason        String @db.Text
+
+  /** string[] — the Campaign Intelligence attributes this was derived from. */
+  dependsOn Json?
+
+  engineVersion String
+  computedAt    DateTime @default(now())
+
+  @@unique([jobOrderId, attribute])
+  @@index([jobOrderId])
+  @@map("layout_determinations")
 }
 
 model Advertisement {
