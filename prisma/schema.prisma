@@ -401,6 +401,9 @@ model JobOrder {
   // no column to job_orders.
   determinations JobOrderDetermination[]
 
+  // Task 004 — Compliance Intelligence. Virtual back-relation only.
+  complianceDeterminations ComplianceDetermination[]
+
   createdById String
   createdBy   User   @relation("JobOrderCreatedBy", fields: [createdById], references: [id])
 
@@ -633,6 +636,96 @@ model JobOrderDetermination {
   @@index([jobOrderId])
   @@index([attribute, value])
   @@map("job_order_determinations")
+}
+
+// ---------------------------------------------------------------------------
+// Compliance Intelligence (Task 004)
+// ---------------------------------------------------------------------------
+
+enum ComplianceCategory {
+  EMPLOYER_DISCLOSURE
+  AGENCY_DISCLOSURE
+  COUNTRY_RULE
+  CORRIDOR_RULE
+  MANDATORY_WARNING
+  LEGAL_STATEMENT
+  TRUST_ELEMENT
+  FORBIDDEN_CLAIM
+}
+
+enum ComplianceStatus {
+  /** The rule applies and is satisfied by what is on record. */
+  SATISFIED
+  /** The rule applies and something is still needed. */
+  REQUIRED
+  /** The rule applies and the record contradicts it. */
+  VIOLATED
+  /** No rule of this kind exists in the knowledge base for this corridor. */
+  NOT_IN_KNOWLEDGE_BASE
+  /** The corridor is outside the knowledge base's declared coverage. */
+  UNKNOWN
+}
+
+/**
+ * Whether a rule has been checked by a qualified reviewer.
+ *
+ * Stored per determination so the difference between "encoded from public
+ * sources by an engineer" and "confirmed by someone qualified to confirm
+ * it" survives into the database, instead of being lost the moment the
+ * determination is written.
+ */
+enum ComplianceReviewStatus {
+  REQUIRES_LEGAL_REVIEW
+  REVIEWED
+}
+
+/**
+ * One compliance requirement determined for one requirement.
+ *
+ * Every row carries Source, Confidence and Reason — the contract Tasks
+ * 002 and 003 established. `reason` is NOT NULL: the engine may answer
+ * UNKNOWN, but it may never assert a legal requirement it cannot explain.
+ *
+ * UNKNOWN is stored as a row rather than as absence, and that matters
+ * more here than anywhere else in the pipeline. "No requirements apply"
+ * and "we have no rules for this corridor" look identical as an empty
+ * list and are opposite answers in front of a regulator.
+ *
+ * Derived data: recomputed, never migrated.
+ */
+model ComplianceDetermination {
+  id         String   @id @default(cuid())
+  jobOrderId String
+  jobOrder   JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+
+  /** Rule id, or `CATEGORY:summary` for a category-level verdict. */
+  code     String
+  category ComplianceCategory
+  status   ComplianceStatus
+
+  /** The applicable requirement, or the literal 'UNKNOWN'. */
+  value String @db.Text
+
+  /** 0–100. Zero whenever the value is UNKNOWN. */
+  confidencePct Int
+  source        String
+  /** Plain-language explanation. Never empty. */
+  reason        String @db.Text
+
+  /** The legal instrument. Null for coverage-gap and record-gap rows. */
+  authority String?
+  /** Precise reference where genuinely known — never fabricated. */
+  citation  String?
+
+  reviewStatus ComplianceReviewStatus?
+
+  engineVersion String
+  computedAt    DateTime @default(now())
+
+  @@unique([jobOrderId, code])
+  @@index([jobOrderId])
+  @@index([category, status])
+  @@map("compliance_determinations")
 }
 
 model Advertisement {

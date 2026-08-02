@@ -3,7 +3,10 @@
  * in generated advertisement text or footer content — checked case-
  * insensitively, checked against every text-bearing section.
  */
-const PROHIBITED_PHRASES = [
+/** Exported (Task 004) so the Compliance knowledge base cites the same
+ * list the render-time scanner enforces. One definition, or the two drift
+ * and an advertisement passes a check the requirement never applied. */
+export const PROHIBITED_PHRASES = [
   "government approved",
   "mea approved",
   "government certified",
@@ -23,7 +26,7 @@ const PROHIBITED_PHRASES = [
 ];
 
 /** Government Branding Restriction — no imitation of official emblems/seals. */
-const PROHIBITED_BRANDING_TERMS = [
+export const PROHIBITED_BRANDING_TERMS = [
   "ashoka emblem",
   "government of india emblem",
   "official mea seal",
