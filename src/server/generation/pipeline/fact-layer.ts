@@ -434,9 +434,22 @@ function planBody(
       ? Math.round(px(T.Caption) * 2.6)
       : Math.round(px(0.052) * 2) + px(0.02)
     : 0;
+  // A recruiter-stated blanket eligibility note (e.g. "minimum 5 years
+  // experience") is a verified fact like any other — the budget must
+  // reserve room for it or the draw and the canvas-height solve disagree
+  // and it either overflows into the branding strip or gets silently
+  // painted over by it. Deliberately generous (9% of width, several times
+  // the note's own one-line height): in the AAT_DTP fillSlot path the
+  // chrome/masthead budget (dtpMastheadH + dtpChromeH) is itself a close
+  // estimate of the real drawn masthead, not exact, and a tightly-sized
+  // reservation here reproduced the exact defect this guards against —
+  // the note landed a few dozen px past the paper boundary and was
+  // overpainted by the branding strip despite "fitting" on paper.
+  const footerNoteH = facts.footer ? px(0.09) : 0;
   const extraH =
     benefitsH +
-    (facts.interview.length ? Math.round(px(T.Caption) * (dense ? 2.8 : 2.2)) : 0);
+    (facts.interview.length ? Math.round(px(T.Caption) * (dense ? 2.8 : 2.2)) : 0) +
+    footerNoteH;
 
   return {
     cols, colW, margin, contentW, gutter, titleSize, detailSize, showDetail,
@@ -1583,6 +1596,21 @@ function renderPosterBody(
     }
   }
 
+  // Eligibility footer note — a verified recruiter-stated requirement
+  // (e.g. minimum experience), never invented and never dropped silently
+  // (Factual Integrity Law, docs/010 Amendment 1). Wraps rather than
+  // truncates, the same rule the position list and benefits row follow.
+  if (facts.footer) {
+    const s = Math.max(floor, px(0.0135));
+    for (const line of wrapLines(facts.footer, plan.contentW, s)) {
+      sy += Math.round(s * 1.1);
+      parts.push(
+        `<text x="${margin}" y="${sy}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.reversed}" opacity="0.75">${esc(line)}</text>`,
+      );
+      sy += Math.round(s * 0.5);
+    }
+  }
+
   return { svg: parts.join(""), endY: sy };
 }
 
@@ -1840,6 +1868,20 @@ function renderBody(
         `<text x="${tx + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.muted}">${esc(detail)}</text>`,
       );
       sy += Math.round(s * 2.2);
+    }
+  }
+
+  // Eligibility footer note — a verified recruiter-stated requirement
+  // (e.g. minimum experience), never invented and never dropped silently
+  // (Factual Integrity Law, docs/010 Amendment 1).
+  if (facts.footer) {
+    const s = Math.max(floor, px(0.012));
+    for (const line of wrapLines(facts.footer, plan.contentW, s)) {
+      sy += Math.round(s * 1.1);
+      parts.push(
+        `<text x="${margin}" y="${sy}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.muted}">${esc(line)}</text>`,
+      );
+      sy += Math.round(s * 0.5);
     }
   }
 
