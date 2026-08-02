@@ -187,6 +187,8 @@ model Agency {
   approvals    Approval[]
   auditLogs    AuditLog[]
 
+  employers            Employer[]
+  jobOrders            JobOrder[]
   advertisements       Advertisement[]
   advertisementDrafts  AdvertisementDraft[]
   contacts             AgencyContact[]
@@ -235,6 +237,7 @@ model User {
   advertisementVersions AdvertisementVersion[] @relation("AdvertisementVersionCreatedBy")
   advertisementHistory  AdvertisementHistory[] @relation("AdvertisementHistoryActor")
   advertisementDrafts   AdvertisementDraft[]   @relation("AdvertisementDraftCreatedBy")
+  jobOrders             JobOrder[]             @relation("JobOrderCreatedBy")
   createdContacts       AgencyContact[]        @relation("AgencyContactCreatedBy")
   aiUsageLogs           AiUsageLog[]
   verifiedAgencies      AgencyVerification[]   @relation("AgencyVerificationVerifiedBy")
@@ -317,10 +320,142 @@ model AuditLog {
 // are built in later sprints.
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Permanent business domain (Task 001)
+// ---------------------------------------------------------------------------
+
+/**
+ * Employer — the foreign principal a JobOrder hires for.
+ *
+ * Before this existed, the employer was a free-text column on each
+ * advertisement, so "everything we have ever run for ABC Contracting"
+ * was not an answerable question at any speed. Promoting it to an entity
+ * is what makes employer memory possible at all.
+ *
+ * Scoped per agency: two agencies working with the same principal each
+ * keep their own record and their own history. `normalizedName` is the
+ * de-duplication key (see src/lib/normalize-entity-name.ts) so
+ * "ABC Contracting", "abc  contracting" and " ABC Contracting " resolve
+ * to one employer instead of three.
+ */
+model Employer {
+  id       String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  /** As written by the recruiter/source — displayed verbatim, never normalized for display. */
+  name String
+  /** Lowercased, whitespace-collapsed form. De-duplication key only; never rendered. */
+  normalizedName String
+
+  jobOrders JobOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([agencyId, normalizedName])
+  @@index([agencyId])
+  @@map("employers")
+}
+
+/**
+ * JobOrder — the root business entity.
+ *
+ * A JobOrder is one hiring requirement, from one employer, for one
+ * destination. The advertisement is an artifact OF the job order, not
+ * the other way round: one requirement can produce several
+ * advertisements over its life, and the requirement outlives all of them.
+ *
+ * Every existing advertisement was backfilled to exactly one JobOrder by
+ * the accompanying migration, so nothing is orphaned and no history is
+ * lost. Advertisement.jobOrderId stays nullable for backward
+ * compatibility — no existing read path is forced to join through here.
+ */
+model JobOrder {
+  id       String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  employerId String?
+  employer   Employer? @relation(fields: [employerId], references: [id], onDelete: SetNull)
+
+  /** Human-facing summary of the requirement — seeded from the advertisement header. */
+  title    String
+  industry String
+  country  String
+
+  /** Interview date/venue/mode for this requirement, same shape as Advertisement.interview. */
+  interview Json?
+
+  positions      Position[]
+  advertisements Advertisement[]
+
+  createdById String
+  createdBy   User   @relation("JobOrderCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agencyId, createdAt])
+  @@index([agencyId, country])
+  @@index([agencyId, industry])
+  @@index([employerId])
+  @@map("job_orders")
+}
+
+/**
+ * Position — one trade line within a JobOrder, as a queryable record.
+ *
+ * The same data continues to live in Advertisement.positions (Json),
+ * which remains the rendering pipeline's input and is untouched by this
+ * change. This table is the queryable projection of it: counting
+ * scaffolder demand across a year is a row scan here, and is impossible
+ * against one jsonb blob per advertisement.
+ *
+ * `normalizedTitle` groups trade spellings ("Rigger III", "rigger  iii")
+ * for aggregation; `title` is always what the source actually said.
+ */
+model Position {
+  id         String   @id @default(cuid())
+  jobOrderId String
+  jobOrder   JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+
+  title           String
+  /** Lowercased, whitespace-collapsed form. Aggregation key only; never rendered. */
+  normalizedTitle String
+
+  count      Int?
+  experience String?
+  /** Source-verbatim salary text, never a parsed number — same rule as the advertisement block. */
+  salary     String?
+  ageRange   String?
+  language   String?
+  /** string[] — qualifications exactly as stated in the requirement. */
+  qualifications Json?
+
+  /** Preserves the order the positions appeared in the requirement. */
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobOrderId, sortOrder])
+  @@index([normalizedTitle])
+  @@map("positions")
+}
+
 model Advertisement {
   id     String @id @default(cuid())
   agencyId String
   agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  /**
+   * The requirement this advertisement was produced for. Nullable so
+   * every existing read path, API response and test keeps working
+   * unchanged; the service layer always populates it on create.
+   */
+  jobOrderId String?
+  jobOrder   JobOrder? @relation(fields: [jobOrderId], references: [id], onDelete: SetNull)
 
   // --- Advertisement Schema (Sprint 002 brief) ---
   header   String
@@ -375,6 +510,7 @@ model Advertisement {
   @@index([agencyId, industry])
   @@index([agencyId, country])
   @@index([agencyId, createdAt])
+  @@index([jobOrderId])
   @@map("advertisements")
 }
 

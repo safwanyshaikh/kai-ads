@@ -7,6 +7,7 @@ import {
 import { advertisementVersionRepository } from "@/server/repositories/advertisement-version.repository";
 import { advertisementHistoryRepository } from "@/server/repositories/advertisement-history.repository";
 import { auditLogService } from "@/server/services/audit-log.service";
+import { jobOrderService } from "@/server/services/job-order.service";
 import { AUDIT_ACTIONS } from "@/lib/constants";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { paginate, toSkipTake, type PaginationParams } from "@/lib/pagination";
@@ -36,12 +37,25 @@ function contentFields(input: Partial<CreateAdvertisementInput>) {
 }
 
 export const advertisementService = {
-  /** Creates the Advertisement plus its v1 version snapshot in one transaction. */
+  /**
+   * Creates the JobOrder, the Advertisement and its v1 version snapshot
+   * in one transaction.
+   */
   async create(agencyId: string, actorId: string, input: CreateAdvertisementInput) {
     const advertisement = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+      // The requirement is recorded before the artifact that advertises
+      // it: an advertisement must never exist without the JobOrder it
+      // belongs to. Same transaction, so the two cannot diverge.
+      const jobOrderId = await jobOrderService.provisionForAdvertisement(tx, {
+        agencyId,
+        actorId,
+        input,
+      });
+
       const created = await tx.advertisement.create({
         data: {
           agencyId,
+          jobOrderId,
           createdById: actorId,
           status: "DRAFT",
           currentVersion: 1,
@@ -165,6 +179,15 @@ export const advertisementService = {
           metadata: { versionNumber: nextVersion },
           actorId,
         },
+      });
+
+      // Re-project the requirement so the queryable domain never lags
+      // the snapshot the recruiter just approved. No-ops for an
+      // advertisement that predates the domain and carries no job order.
+      await jobOrderService.syncFromAdvertisement(tx, {
+        jobOrderId: existing.jobOrderId,
+        agencyId,
+        content: merged as CreateAdvertisementInput,
       });
 
       return result;
@@ -302,9 +325,32 @@ export const advertisementService = {
     const source = await advertisementService.getById(id, agencyId);
 
     const duplicated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+      // A duplicate is an independently editable copy whose positions
+      // will diverge from the original's, so it gets its own JobOrder
+      // rather than sharing the source's. The relationship between the
+      // two stays recorded where it already was — duplicatedFromId.
+      const jobOrderId = await jobOrderService.provisionForAdvertisement(tx, {
+        agencyId,
+        actorId,
+        input: {
+          header: `${source.header} (Copy)`,
+          industry: source.industry,
+          country: source.country,
+          employer: source.employer ?? undefined,
+          positions: source.positions as CreateAdvertisementInput["positions"],
+          benefits: source.benefits as CreateAdvertisementInput["benefits"],
+          interview: source.interview as CreateAdvertisementInput["interview"],
+          contact: source.contact as CreateAdvertisementInput["contact"],
+          footer: source.footer ?? undefined,
+          theme: (source.theme ?? undefined) as CreateAdvertisementInput["theme"],
+          style: source.style,
+        },
+      });
+
       const created = await tx.advertisement.create({
         data: {
           agencyId,
+          jobOrderId,
           createdById: actorId,
           status: "DRAFT",
           currentVersion: 1,
