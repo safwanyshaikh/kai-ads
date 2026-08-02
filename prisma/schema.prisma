@@ -404,6 +404,9 @@ model JobOrder {
   // Task 004 — Compliance Intelligence. Virtual back-relation only.
   complianceDeterminations ComplianceDetermination[]
 
+  // Task 005 — Campaign Intelligence. Virtual back-relation only.
+  campaignDeterminations CampaignDetermination[]
+
   createdById String
   createdBy   User   @relation("JobOrderCreatedBy", fields: [createdById], references: [id])
 
@@ -726,6 +729,53 @@ model ComplianceDetermination {
   @@index([jobOrderId])
   @@index([category, status])
   @@map("compliance_determinations")
+}
+
+// ---------------------------------------------------------------------------
+// Campaign Intelligence (Task 005)
+// ---------------------------------------------------------------------------
+
+/**
+ * One communication decision for one requirement.
+ *
+ * Decides HOW the requirement should be communicated — objective,
+ * messages, motivation, trust posture, tone, audience, CTA, and what a
+ * hero image should depict. It decides nothing about layout, typography,
+ * colour or position: those belong to Layout Intelligence and the
+ * Rendering Engine, which run later.
+ *
+ * `dependsOn` records which upstream determinations the decision was
+ * derived from. That is what makes a campaign traceable: an UNKNOWN here
+ * points at the exact gap in JobOrder or Compliance Intelligence that
+ * caused it, rather than appearing as an unexplained blank.
+ *
+ * Derived data: recomputed, never migrated.
+ */
+model CampaignDetermination {
+  id         String   @id @default(cuid())
+  jobOrderId String
+  jobOrder   JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+
+  /** Stable machine name, e.g. "primaryCommunicationMessage", "heroImageIntent". */
+  attribute String
+  /** The communication decision, or the literal 'UNKNOWN'. */
+  value String @db.Text
+
+  /** 0–100. Zero whenever the value is UNKNOWN. Capped by the least certain input. */
+  confidencePct Int
+  source        String
+  /** Plain-language explanation. Never empty. */
+  reason        String @db.Text
+
+  /** string[] — the upstream attributes this was derived from. */
+  dependsOn Json?
+
+  engineVersion String
+  computedAt    DateTime @default(now())
+
+  @@unique([jobOrderId, attribute])
+  @@index([jobOrderId])
+  @@map("campaign_determinations")
 }
 
 model Advertisement {
