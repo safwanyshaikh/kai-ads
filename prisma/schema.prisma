@@ -197,6 +197,9 @@ model Agency {
   verification         AgencyVerification?
   generationQuota      AgencyGenerationQuota?
 
+  // Task 006.5 — Founder validation bridge. Not part of Tasks 001-006.
+  fatRuns FatRun[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -242,6 +245,9 @@ model User {
   createdContacts       AgencyContact[]        @relation("AgencyContactCreatedBy")
   aiUsageLogs           AiUsageLog[]
   verifiedAgencies      AgencyVerification[]   @relation("AgencyVerificationVerifiedBy")
+
+  // Task 006.5 — Founder validation bridge. Not part of Tasks 001-006.
+  fatRuns FatRun[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -409,6 +415,9 @@ model JobOrder {
 
   // Task 006 — Layout Intelligence. Virtual back-relation only.
   layoutDeterminations LayoutDetermination[]
+
+  // Task 006.5 — Founder validation bridge. Virtual back-relation only.
+  fatRuns FatRun[]
 
   createdById String
   createdBy   User   @relation("JobOrderCreatedBy", fields: [createdById], references: [id])
@@ -1215,4 +1224,47 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+// ---------------------------------------------------------------------------
+// Founder validation bridge (Task 006.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * One run of the internal FAT intake tool.
+ *
+ * NOT part of Tasks 001-006. Those six engines are unchanged by this
+ * model — it exists only so the Founder's own validation runs are
+ * listed somewhere ("Every run must be stored"), instead of requiring
+ * the Founder to open the database to find the JobOrder a given upload
+ * produced.
+ *
+ * `jobOrderId` is nullable because an unreadable source or a failed
+ * extraction never produces a JobOrder at all — the run is still
+ * recorded, with the reason captured in `summary`, so a failed test is
+ * exactly as visible as a successful one.
+ */
+model FatRun {
+  id       String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  jobOrderId String?
+  jobOrder   JobOrder? @relation(fields: [jobOrderId], references: [id], onDelete: SetNull)
+
+  /** What the Founder submitted: WHATSAPP_TEXT | PDF | IMAGE | EXCEL | WORD | GOOGLE_SHEET | WEBSITE | ... */
+  inputType String
+  /** CREATED | NO_READABLE_SOURCE | INSUFFICIENT_REQUIREMENT | EXTRACTION_FAILED | ERROR */
+  status String
+
+  /** Warnings, unreadable-source list, or an error message — whatever ingest() returned that isn't the JobOrder itself. */
+  summary Json?
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([agencyId, createdAt])
+  @@map("fat_runs")
 }

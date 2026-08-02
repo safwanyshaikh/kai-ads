@@ -14,6 +14,11 @@ import { APP_ROUTES } from "@/lib/constants";
 const PROTECTED_PREFIXES = [
   APP_ROUTES.dashboard,
   APP_ROUTES.adminAgencies,
+  // Task 006.5 — Founder validation bridge. Full RBAC (fat:access,
+  // KAI_SUPER_ADMIN only) is enforced server-side in each route/page;
+  // this is just the same edge-level "redirect to login" cheap check
+  // every other protected prefix gets.
+  "/internal",
 ];
 
 const PUBLIC_ONLY_PREFIXES = [APP_ROUTES.login];
@@ -46,6 +51,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/admin/:path*",
+    "/internal/:path*",
     "/login",
   ],
 };

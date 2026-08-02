@@ -25,7 +25,9 @@ export type Permission =
   | "advertisement:delete"
   | "advertisement:archive"
   | "advertisement:duplicate"
-  | "advertisement:generate";
+  | "advertisement:generate"
+  /** Task 006.5 — internal Founder validation bridge only. Never granted to agency roles. */
+  | "fat:access";
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   KAI_SUPER_ADMIN: [
@@ -37,6 +39,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "agency:verify",
     "agency:manage_quota",
     "dashboard:view",
+    "fat:access",
   ],
   AGENCY_ADMIN: [
     "agency:manage_own",
