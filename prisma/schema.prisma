@@ -189,6 +189,7 @@ model Agency {
 
   employers            Employer[]
   jobOrders            JobOrder[]
+  requirementSources   RequirementSource[]
   advertisements       Advertisement[]
   advertisementDrafts  AdvertisementDraft[]
   contacts             AgencyContact[]
@@ -390,6 +391,12 @@ model JobOrder {
   positions      Position[]
   advertisements Advertisement[]
 
+  // Task 002 — Requirement Intelligence. Virtual back-relations only:
+  // Prisma requires both sides of a relation to be declared, but these
+  // add NO column to job_orders. The Task 001 table is untouched.
+  requirementSources RequirementSource[]
+  requirementFacts   RequirementFact[]
+
   createdById String
   createdBy   User   @relation("JobOrderCreatedBy", fields: [createdById], references: [id])
 
@@ -442,6 +449,132 @@ model Position {
   @@index([jobOrderId, sortOrder])
   @@index([normalizedTitle])
   @@map("positions")
+}
+
+// ---------------------------------------------------------------------------
+// Requirement Intelligence (Task 002)
+// ---------------------------------------------------------------------------
+
+/** Every requirement channel the engine accepts. */
+enum RequirementSourceKind {
+  WHATSAPP_TEXT
+  WHATSAPP_SCREENSHOT
+  PDF
+  IMAGE
+  VOICE_NOTE
+  EMAIL
+  WORD
+  EXCEL
+  GOOGLE_SHEET
+  WEBSITE
+  PLAIN_TEXT
+}
+
+/** How a canonical value came to hold its form — the explainability axis. */
+enum ExtractionMethod {
+  /** A pure rule in requirement-normalization.ts produced it. Replayable. */
+  DETERMINISTIC
+  /** The model read it from the source; no canonicalization was needed. */
+  AI_EXTRACTION
+  /** The model read it, then a deterministic rule canonicalized it. */
+  AI_THEN_NORMALIZED
+  /** No source stated it. An explicit unknown, never a guess. */
+  ABSENT
+}
+
+enum ConfidenceBand {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+/**
+ * One inbound requirement artifact, exactly as received.
+ *
+ * Kept so that every fact can point at the thing it came from and a
+ * recruiter (or a regulator) can be shown the original. `extractedText`
+ * is what the engine actually read — the transcript of a voice note, the
+ * cell text of a workbook — so an extraction can be re-explained later
+ * without re-fetching a URL that may have changed.
+ */
+model RequirementSource {
+  id       String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  /** Set once the sources have produced a requirement. */
+  jobOrderId String?
+  jobOrder   JobOrder? @relation(fields: [jobOrderId], references: [id], onDelete: SetNull)
+
+  kind  RequirementSourceKind
+  /** Human label: file name, sheet name, or URL. */
+  label String
+
+  /** sha256 of the artifact — de-duplicates the same demand letter forwarded twice. */
+  contentHash String
+
+  /** Original location for link-based sources. Null for uploads and pasted text. */
+  uri      String?
+  mimeType String?
+
+  /** What the engine actually read out of this artifact. */
+  extractedText String? @db.Text
+
+  /** string[] — non-fatal notes about how it was read (skipped sheets, followed redirects). */
+  notes Json?
+
+  createdAt DateTime @default(now())
+
+  facts RequirementFact[]
+
+  @@index([agencyId, contentHash])
+  @@index([jobOrderId])
+  @@map("requirement_sources")
+}
+
+/**
+ * One extracted field, fully explained.
+ *
+ * Task 002's binding rule: every extracted field carries Source,
+ * Confidence and Reason. This table IS that rule — a field without a
+ * reason cannot be written, and absence is stored as a row with
+ * method = ABSENT rather than as a missing row, so "the requirement did
+ * not state a salary" is distinguishable from "nobody looked".
+ */
+model RequirementFact {
+  id         String   @id @default(cuid())
+  jobOrderId String
+  jobOrder   JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+
+  sourceId String?
+  source   RequirementSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  /** Canonical dotted path, e.g. "country", "positions.0.salary". */
+  field String
+
+  /** Canonical value as stored on the JobOrder, or null when absent. */
+  value String? @db.Text
+  /** Exactly what the source said, before canonicalization. */
+  rawValue String? @db.Text
+
+  sourceKind RequirementSourceKind
+  /** Where inside the source, e.g. "sheet 'Demand' row 12". */
+  sourceRef String?
+
+  /** 0–1, deterministic — see requirement-provenance.ts. */
+  confidence     Float
+  confidenceBand ConfidenceBand
+  method         ExtractionMethod
+
+  /** Plain-language explanation. Never empty. */
+  reason String @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([jobOrderId, field])
+  @@index([jobOrderId])
+  @@index([jobOrderId, confidenceBand])
+  @@map("requirement_facts")
 }
 
 model Advertisement {

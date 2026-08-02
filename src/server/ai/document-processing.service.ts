@@ -13,7 +13,14 @@ type DocumentProcessingResult =
   | { kind: "text"; text: string }
   | { kind: "image"; base64: string; mimeType: string };
 
-const PRIVATE_OR_LOOPBACK_HOSTNAME_PATTERNS = [
+/**
+ * Exported (Task 002) so the Requirement Intelligence engine's guard for
+ * fetching EXTERNAL requirement sources — public web pages and Google
+ * Sheets, which this module's own allowlist deliberately rejects — blocks
+ * exactly the same private ranges. A security control with two
+ * definitions is a security control with one of them out of date.
+ */
+export const PRIVATE_OR_LOOPBACK_HOSTNAME_PATTERNS = [
   /^localhost$/i,
   /^127\./,
   /^0\.0\.0\.0$/,

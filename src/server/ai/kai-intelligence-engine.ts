@@ -24,6 +24,25 @@ interface KaiIntelligenceEngineParams {
   attachments?: DraftAttachment[] | null;
   /** Dependency injection seam for tests — pass a fake toolkit instead of the real OpenAI-backed one. */
   toolkit?: AiExtractionToolkit;
+  /**
+   * Already-read source content (Task 002).
+   *
+   * The Requirement Intelligence engine accepts channels this module has
+   * no URL for — a voice note's transcript, a workbook's cell text, a
+   * scraped web page — and has already reduced them to text or an image
+   * via requirement-source.service.ts. When set, it is used verbatim and
+   * nothing is fetched.
+   *
+   * Additive: every existing caller passes rawText/sourceFileUrl/
+   * attachments exactly as before and takes byte-for-byte the same path.
+   * Without this seam, the alternative would be a second extraction
+   * implementation, which the architecture forbids.
+   */
+  preRead?: {
+    text?: string | null;
+    imageBase64?: string | null;
+    imageMimeType?: string | null;
+  } | null;
 }
 
 interface KaiIntelligenceEngineOutcome {
@@ -165,6 +184,25 @@ async function buildComposerExtractionInput(
 }
 
 async function buildExtractionInput(params: KaiIntelligenceEngineParams): Promise<BuiltExtractionInput> {
+  // Task 002: content already read from a channel this module cannot
+  // fetch. Checked first and returned as-is — no fetch, no re-parse.
+  if (params.preRead) {
+    if (params.preRead.text) {
+      return { input: { text: params.preRead.text, sourceType: params.sourceType }, mergeWarnings: [] };
+    }
+    if (params.preRead.imageBase64 && params.preRead.imageMimeType) {
+      return {
+        input: {
+          imageBase64: params.preRead.imageBase64,
+          imageMimeType: params.preRead.imageMimeType,
+          sourceType: params.sourceType,
+        },
+        mergeWarnings: [],
+      };
+    }
+    throw new ConflictError("None of this requirement's sources contained anything to extract from.");
+  }
+
   // Composer drafts (attachments and/or instructions) take the merged
   // multi-source path; everything else is the original single-source
   // behavior, byte for byte.

@@ -53,6 +53,7 @@ function fullEnv(overrides: Partial<Env>): Env {
     OPENAI_API_KEY: undefined,
     KAI_TEXT_MODEL: "gpt-4.1-mini",
     KAI_VISION_MODEL: "gpt-4.1-mini",
+    KAI_TRANSCRIPTION_MODEL: "whisper-1",
     KAI_IMAGE_MODEL: "gpt-image-1",
     KAI_IMAGE_QUALITY: "medium",
     KAI_IMAGE_SIZE: "1024x1024",

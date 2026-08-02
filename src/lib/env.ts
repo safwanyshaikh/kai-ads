@@ -131,6 +131,11 @@ const envSchema = z.object({
   KAI_OPENAI_TIMEOUT_MS: z.coerce.number().int().positive().default(240000),
   KAI_OPENAI_MAX_RETRIES: z.coerce.number().int().min(0).max(3).default(1),
 
+  // Requirement Intelligence (Task 002) — voice-note transcription.
+  // Same centralized-model-resolution rule as every model above: "Do not
+  // hardcode model names throughout the application."
+  KAI_TRANSCRIPTION_MODEL: z.string().default("whisper-1"),
+
   KAI_IMAGE_MODEL: z.string().default("gpt-image-1"),
   // Sprint 006: "high" by default — the background is the single most
   // visible quality lever on a Visual ad. Overridable via env.
