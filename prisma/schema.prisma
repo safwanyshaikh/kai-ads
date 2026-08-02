@@ -397,6 +397,10 @@ model JobOrder {
   requirementSources RequirementSource[]
   requirementFacts   RequirementFact[]
 
+  // Task 003 — JobOrder Intelligence. Virtual back-relation only; adds
+  // no column to job_orders.
+  determinations JobOrderDetermination[]
+
   createdById String
   createdBy   User   @relation("JobOrderCreatedBy", fields: [createdById], references: [id])
 
@@ -575,6 +579,60 @@ model RequirementFact {
   @@index([jobOrderId])
   @@index([jobOrderId, confidenceBand])
   @@map("requirement_facts")
+}
+
+// ---------------------------------------------------------------------------
+// JobOrder Intelligence (Task 003)
+// ---------------------------------------------------------------------------
+
+/**
+ * One understanding of one requirement, attached to the JobOrder.
+ *
+ * The engine determines industry, sector, plant type, plant status, trade
+ * categories, scarcity, complexity, urgency, hiring pattern, recruitment
+ * pattern and suggested channels — and records each with the evidence
+ * that produced it.
+ *
+ * Every row carries Source, Confidence and Reason, the same contract the
+ * Requirement Intelligence engine established. `reason` is NOT NULL: the
+ * engine may return UNKNOWN, but it may never return a value it cannot
+ * explain.
+ *
+ * UNKNOWN is stored as a row with value = 'UNKNOWN' rather than as a
+ * missing row, so "we looked and could not tell" stays distinguishable
+ * from "this was never assessed". Acting on the first is fine; acting on
+ * the second is how a wrong advertisement gets published.
+ *
+ * Derived data: it is recomputed, not migrated. `computedAt` and
+ * `engineVersion` make a stale set detectable.
+ */
+model JobOrderDetermination {
+  id         String   @id @default(cuid())
+  jobOrderId String
+  jobOrder   JobOrder @relation(fields: [jobOrderId], references: [id], onDelete: Cascade)
+
+  /** Stable machine name, e.g. "industry", "plantStatus", "recruitmentPattern". */
+  attribute String
+  /** The determined value, or the literal 'UNKNOWN'. */
+  value String @db.Text
+
+  /** 0–100. Zero whenever the value is UNKNOWN. */
+  confidencePct Int
+  /** Where the evidence came from, e.g. "position title, source text". */
+  source String
+  /** Plain-language explanation. Never empty. */
+  reason String @db.Text
+  /** string[] — the exact evidence that fired, for display and audit. */
+  signals Json?
+
+  /** Which build of the taxonomy produced this, so a re-run is comparable. */
+  engineVersion String
+  computedAt    DateTime @default(now())
+
+  @@unique([jobOrderId, attribute])
+  @@index([jobOrderId])
+  @@index([attribute, value])
+  @@map("job_order_determinations")
 }
 
 model Advertisement {
