@@ -6,8 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Deployment fix (2026-08-03): `prisma migrate deploy` needs a stable
+  // session to hold `pg_advisory_lock`. DATABASE_URL points at Neon's
+  // pooled (PgBouncer transaction-mode) endpoint, which has no stable
+  // session, so the lock request just times out (P1002) on every deploy.
+  // DIRECT_URL must be Neon's direct/unpooled connection string; the app
+  // itself keeps using the pooled DATABASE_URL at runtime, unaffected.
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------
