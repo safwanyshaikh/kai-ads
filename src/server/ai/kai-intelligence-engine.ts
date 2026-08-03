@@ -124,20 +124,56 @@ async function buildComposerExtractionInput(
     }
   }
 
+  // Founder-reported production defect (2026-08-03): this function only
+  // ever read `params.attachments`. A single-file upload (`sourceFileUrl`)
+  // takes this composer branch as soon as `params.instructions` is also
+  // set (see buildExtractionInput's routing condition below) — but
+  // `sourceFileUrl` was never read here, so the uploaded file was silently
+  // discarded and only the typed instructions text reached extraction.
+  // When there are no staged composer attachments, the single
+  // sourceFileUrl/sourceType is this draft's one real "attachment" and
+  // must be read the same way.
+  let singleFileText: AttachmentText | null = null;
+  let singleFileImage: { base64: string; mimeType: string } | null = null;
+  if (
+    attachments.length === 0 &&
+    params.sourceFileUrl &&
+    params.sourceType &&
+    params.sourceType !== "PASTE_TEXT"
+  ) {
+    const processed = await fetchAndProcessSourceFile(params.sourceFileUrl, params.sourceType);
+    if (processed.kind === "text") {
+      singleFileText = { fileName: "uploaded file", text: processed.text };
+    } else {
+      singleFileImage = { base64: processed.base64, mimeType: processed.mimeType };
+    }
+  }
+
   const mergedText = buildMergedExtractionText({
     instructions: params.instructions,
     rawText: params.rawText,
-    attachmentTexts,
+    attachmentTexts: singleFileText ? [...attachmentTexts, singleFileText] : attachmentTexts,
   });
 
   if (mergedText) {
+    const untranscribedImages = [
+      ...imageAttachments.map((a) => a.fileName),
+      ...(singleFileImage ? ["uploaded file"] : []),
+    ];
     const mergeWarnings =
-      imageAttachments.length > 0
+      untranscribedImages.length > 0
         ? [
-            `Image attachment(s) ${imageAttachments.map((a) => a.fileName).join(", ")} were noted but not transcribed — extraction used the text sources.`,
+            `Image attachment(s) ${untranscribedImages.join(", ")} were noted but not transcribed — extraction used the text sources.`,
           ]
         : [];
     return { input: { text: mergedText, sourceType: params.sourceType }, mergeWarnings };
+  }
+
+  if (singleFileImage) {
+    return {
+      input: { imageBase64: singleFileImage.base64, imageMimeType: singleFileImage.mimeType, sourceType: params.sourceType },
+      mergeWarnings: [],
+    };
   }
 
   if (imageAttachments.length > 0) {
