@@ -159,11 +159,26 @@ export async function processDocument(file: {
   }
 
   switch (file.mimeType) {
-    case "application/pdf":
-      // Sprint 006 Bug 006: malformed PDF text streams are a classic
-      // source of a stray NUL byte, which Postgres cannot store —
-      // stripped here so it never reaches extractedData downstream.
-      return { kind: "text", text: stripInvalidPostgresChars(await extractPdfText(file.data)) };
+    case "application/pdf": {
+      const parsed = await extractPdfText(file.data);
+      if (parsed.kind === "text") {
+        // Sprint 006 Bug 006: malformed PDF text streams are a classic
+        // source of a stray NUL byte, which Postgres cannot store —
+        // stripped here so it never reaches extractedData downstream.
+        return { kind: "text", text: stripInvalidPostgresChars(parsed.text) };
+      }
+      // Founder FAT defect (2026-08-03): a text layer that parses to nothing
+      // is a scanned/image-only PDF, not a corrupt one — failing here would
+      // reject a perfectly valid recruitment PDF. Route it through the same
+      // vision path IMAGE/WHATSAPP_SCREENSHOT already use, passing the
+      // original PDF bytes straight through: both configured providers read
+      // `application/pdf` as inline document input and OCR it natively
+      // (Gemini's inlineData, OpenAI's Responses API input_file), so no
+      // local page-rasterization is needed — see pdf-dommatrix-polyfill.ts
+      // for why local canvas-based rendering is NOT safe to add here (its
+      // native binary isn't resolvable in Vercel's serverless bundle).
+      return { kind: "image", base64: file.data.toString("base64"), mimeType: "application/pdf" };
+    }
 
     case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       return { kind: "text", text: stripInvalidPostgresChars(await extractDocxText(file.data)) };
@@ -197,26 +212,47 @@ export async function processDocument(file: {
  * "DOMMatrix is not defined" that bypasses the friendly error handling
  * below entirely. See pdf-dommatrix-polyfill.ts for the full trace.
  */
-async function extractPdfText(data: Buffer): Promise<string> {
+async function extractPdfText(
+  data: Buffer,
+): Promise<{ kind: "text"; text: string } | { kind: "no-text" }> {
   let parser: InstanceType<Awaited<typeof import("pdf-parse")>["PDFParse"]> | undefined;
+  let pdfParseModule: Awaited<typeof import("pdf-parse")> | undefined;
   try {
     await import("./pdf-dommatrix-polyfill");
-    const { PDFParse } = await import("pdf-parse");
-    parser = new PDFParse({ data });
-    const result = await parser.getText();
+    pdfParseModule = await import("pdf-parse");
+    parser = new pdfParseModule.PDFParse({ data });
+    // pageJoiner: "\n" — by default pdf-parse inserts a "-- N of M --"
+    // marker between every page, which is never empty even for a fully
+    // blank scanned page, so the emptiness check below would never fire
+    // (and the marker is noise the AI extraction model doesn't need).
+    const result = await parser.getText({ pageJoiner: "\n" });
     const text = result.text?.trim();
     if (!text) {
-      throw new UnsupportedDocumentError(
-        "No readable text was found in this PDF — it may be a scanned image. Try uploading it as an image instead.",
-      );
+      // Parsed cleanly but has no text layer — a scanned/image-only PDF,
+      // not a failure. The caller routes this to vision/OCR instead.
+      return { kind: "no-text" };
     }
-    return text.slice(0, MAX_EXTRACTED_CHARS);
+    return { kind: "text", text: text.slice(0, MAX_EXTRACTED_CHARS) };
   } catch (error) {
     if (error instanceof UnsupportedDocumentError) throw error;
+    if (pdfParseModule && error instanceof pdfParseModule.PasswordException) {
+      throw new UnsupportedDocumentError(
+        "This PDF is password-protected. Remove the password and re-upload it.",
+      );
+    }
+    if (pdfParseModule && error instanceof pdfParseModule.InvalidPDFException) {
+      throw new UnsupportedDocumentError(
+        "This PDF's structure is invalid or corrupt and could not be parsed.",
+      );
+    }
+    // A genuine, unclassified parser failure (e.g. a malformed stream or an
+    // encoding the parser doesn't recognize) — surface the parser's own
+    // technical reason instead of a generic message, per Founder FAT bug
+    // report (2026-08-03): a recruiter/founder debugging a rejected upload
+    // needs to know *why*, not just that it failed.
     log.warn({ err: error }, "PDF appears corrupt or unparseable");
-    throw new UnsupportedDocumentError(
-      "This PDF could not be read. It may be corrupt, password-protected, or in an unsupported format.",
-    );
+    const detail = error instanceof Error && error.message ? error.message : "unknown parser error";
+    throw new UnsupportedDocumentError(`This PDF could not be read: ${detail}`);
   } finally {
     await parser?.destroy();
   }

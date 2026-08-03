@@ -93,11 +93,22 @@ async function runTextExtraction(
   return outcome;
 }
 
+/**
+ * Handles both image (PNG/JPEG/WEBP) and, since the Founder FAT
+ * scanned-PDF fix (2026-08-03), raw `application/pdf` bytes. A PDF page
+ * has no `input_image` equivalent in the Responses API — OpenAI requires
+ * the separate `input_file` content part (`file_data`, a base64 data URL)
+ * for document input, which it OCRs/reads natively server-side. This is
+ * still the one existing vision call site, not a new capability: a
+ * scanned PDF with no text layer is functionally the same "read it
+ * visually" request as an uploaded image, just a different content type.
+ */
 async function runVisionExtraction(
   client: ReturnType<typeof getOpenAiClient>,
   input: KaiExtractionInput,
   startedAt: number,
 ): Promise<KaiExtractionOutcome> {
+  const isPdf = input.imageMimeType === "application/pdf";
   const response = await client.responses.parse({
     model: getKaiVisionModel(),
     instructions: buildKaiSystemPrompt() + buildKaiVisionPromptAddendum(),
@@ -105,19 +116,30 @@ async function runVisionExtraction(
       {
         role: "user",
         content: [
-          { type: "input_text", text: "Extract the recruitment requirement from this image." },
           {
-            type: "input_image",
-            image_url: `data:${input.imageMimeType ?? "image/png"};base64,${input.imageBase64}`,
-            detail: "auto",
+            type: "input_text",
+            text: isPdf
+              ? "Extract the recruitment requirement from this document. It is a scanned/image-only PDF with no text layer — read it visually, page by page."
+              : "Extract the recruitment requirement from this image.",
           },
+          isPdf
+            ? {
+                type: "input_file",
+                filename: "requirement.pdf",
+                file_data: `data:application/pdf;base64,${input.imageBase64}`,
+              }
+            : {
+                type: "input_image",
+                image_url: `data:${input.imageMimeType ?? "image/png"};base64,${input.imageBase64}`,
+                detail: "auto",
+              },
         ],
       },
     ],
     text: { format: zodTextFormat(extractionResultSchema, "kai_extraction_result") },
   });
 
-  return toOutcome(response, startedAt, "(image input)", getKaiVisionModel());
+  return toOutcome(response, startedAt, isPdf ? "(scanned PDF input)" : "(image input)", getKaiVisionModel());
 }
 
 /**

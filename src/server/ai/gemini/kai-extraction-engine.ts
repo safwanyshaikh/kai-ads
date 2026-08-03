@@ -93,12 +93,20 @@ async function runTextExtraction(
   return outcome;
 }
 
+/**
+ * Handles both image (PNG/JPEG/WEBP) and, since the Founder FAT
+ * scanned-PDF fix (2026-08-03), raw `application/pdf` bytes. Gemini's
+ * `inlineData` part is mimeType-generic and already reads a PDF as a
+ * multi-page document (native OCR) with no code change required here —
+ * only the prompt text is adjusted so the model knows what it's looking at.
+ */
 async function runVisionExtraction(
   client: ReturnType<typeof getGeminiTextClient>,
   input: KaiExtractionInput,
   startedAt: number,
 ): Promise<KaiExtractionOutcome> {
   const model = getKaiVisionModel();
+  const isPdf = input.imageMimeType === "application/pdf";
 
   const response = await client.models.generateContent({
     model,
@@ -106,7 +114,11 @@ async function runVisionExtraction(
       {
         role: "user",
         parts: [
-          { text: "Extract the recruitment requirement from this image." },
+          {
+            text: isPdf
+              ? "Extract the recruitment requirement from this document. It is a scanned/image-only PDF with no text layer — read it visually, page by page."
+              : "Extract the recruitment requirement from this image.",
+          },
           {
             inlineData: {
               data: input.imageBase64,
@@ -123,7 +135,7 @@ async function runVisionExtraction(
     },
   });
 
-  return toOutcome(response, startedAt, "(image input)", model);
+  return toOutcome(response, startedAt, isPdf ? "(scanned PDF input)" : "(image input)", model);
 }
 
 /** Same "no parsed output -> fall back to an empty result" resilience as the OpenAI engine's toOutcome(). */
