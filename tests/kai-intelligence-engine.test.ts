@@ -103,6 +103,48 @@ describe("runKaiIntelligenceEngine — with a real (fake) provider configured", 
     expect(outcome.result.positions[1].possibleDuplicateOfIndex).toBe(0);
   });
 
+  it("Founder FAT bug (2026-08-03): a single uploaded PDF is NOT dropped when typed instructions are also present", async () => {
+    // This is exactly FAT's real call shape: sourceFileUrl set (a single
+    // upload), instructions typed into the optional "Instructions" box,
+    // and no `attachments` array at all (FAT never populates it). Before
+    // the fix, `params.instructions` truthy alone routed to the composer
+    // builder, which only ever read `params.attachments` — so the PDF's
+    // real content never reached extraction, only the instructions text.
+    const content = "BT /F1 24 Tf 10 100 Td (Need 5 electricians Qatar) Tj ET";
+    const pdf = `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 400 200] /Contents 5 0 R >>\nendobj\n4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\nxref\n0 6\n0000000000 65535 f \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n0\n%%EOF`;
+
+    const originalFetch = global.fetch;
+    global.fetch = (async () =>
+      new Response(new Uint8Array(Buffer.from(pdf)), { status: 200 })) as typeof fetch;
+
+    const baseToolkit = buildFakeSuccessToolkit();
+    let capturedText: string | undefined;
+    const spyToolkit = {
+      ...baseToolkit,
+      composite: {
+        name: "fake-success",
+        async extractAll(input: Parameters<NonNullable<typeof baseToolkit.composite>["extractAll"]>[0]) {
+          capturedText = input.text;
+          return baseToolkit.composite!.extractAll(input);
+        },
+      },
+    };
+
+    try {
+      await runKaiIntelligenceEngine({
+        sourceType: "PDF",
+        sourceFileUrl: "https://storage.example.com/requirement.pdf",
+        instructions: "Email careers@testagency.com",
+        toolkit: spyToolkit,
+      });
+    } finally {
+      global.fetch = originalFetch;
+    }
+
+    expect(capturedText).toContain("Need 5 electricians Qatar");
+    expect(capturedText).toContain("Email careers@testagency.com");
+  });
+
   it("processes an uploaded PDF end-to-end (document processing -> extraction)", async () => {
     const content = "BT /F1 24 Tf 10 100 Td (Need 5 electricians Qatar) Tj ET";
     const pdf = `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 400 200] /Contents 5 0 R >>\nendobj\n4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\nxref\n0 6\n0000000000 65535 f \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n0\n%%EOF`;

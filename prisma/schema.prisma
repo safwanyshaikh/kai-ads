@@ -6,8 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Deployment fix (2026-08-03): `prisma migrate deploy` needs a stable
+  // session to hold `pg_advisory_lock`. DATABASE_URL points at Neon's
+  // pooled (PgBouncer transaction-mode) endpoint, which has no stable
+  // session, so the lock request just times out (P1002) on every deploy.
+  // DIRECT_URL must be Neon's direct/unpooled connection string; the app
+  // itself keeps using the pooled DATABASE_URL at runtime, unaffected.
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -686,4 +693,48 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+// ---------------------------------------------------------------------------
+// Task 006.5 — Founder Acceptance Testing (FAT) surface, /internal/fat
+// ---------------------------------------------------------------------------
+
+/**
+ * One audit record per RUN PIPELINE click on /internal/fat. Additive only —
+ * no existing table, column, or enum above this line is touched. Isolated
+ * from the tenant Agency/Advertisement lifecycle by design: FAT runs always
+ * write against a single reserved sandbox agency (see getOrCreateFatSandboxAgency),
+ * never a real tenant's data, and this table is never read by any Task
+ * 001-006 code path — it exists purely so the Founder can see what every
+ * pipeline run actually decided, expandable-card by expandable-card, and
+ * export the raw JSON.
+ *
+ * No FK to Advertisement/AdvertisementDraft: those rows can be deleted or
+ * belong to the sandbox agency's own lifecycle independently of this log,
+ * and a FAT run must remain inspectable even if its sandbox Advertisement
+ * is later cleaned up.
+ */
+model FatPipelineRun {
+  id String @id @default(cuid())
+
+  actorId    String
+  actorEmail String
+
+  sourceType   AdvertisementDraftSourceType
+  sourceLabel  String? // filename or "Pasted text", for the history list
+
+  draftId         String?
+  advertisementId String?
+
+  /** The 5-stage result, exactly as returned to the browser. Raw JSON viewer + exports read this and nothing else. */
+  stages Json
+
+  /** True only once all implemented stages completed without throwing. */
+  succeeded Boolean @default(false)
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("fat_pipeline_runs")
 }
