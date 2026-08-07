@@ -51,6 +51,15 @@ const nextConfig: NextConfig = {
     "/api/advertisements/[id]/generate": ["./src/server/generation/fonts/*"],
     "/api/advertisements/[id]/export": ["./src/server/generation/fonts/*"],
     "/api/advertisements/[id]/section": ["./src/server/generation/fonts/*"],
+    // Production bug (2026-08-07): /api/internal/fat/generate calls the
+    // exact same advertisementGenerationService.generate() as the route
+    // above, so it has the identical FIX-009/Sprint-006-Bug-005 font
+    // dependency — but this route was added after that fix and was never
+    // included here. Confirmed directly: this route's own .next trace
+    // manifest had fonts.conf but none of the .ttf files, unlike the route
+    // above's manifest (6 font files). "Generate Full Advertisement"
+    // failed with HTTP 500 the moment it tried to rasterize any text.
+    "/api/internal/fat/generate": ["./src/server/generation/fonts/*"],
     // Production bug (2026-08-07): marking pdf-parse external (above) stops
     // webpack from mangling its module code, but Next's file tracer still
     // only copies files it sees statically imported/required. pdf-parse's
