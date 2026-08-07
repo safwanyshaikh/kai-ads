@@ -19,6 +19,18 @@ const nextConfig: NextConfig = {
     "nodemailer",
     "@aws-sdk/client-s3",
     "sharp",
+    // Production bug (2026-08-07): pdf-parse's PDF text extraction sets up
+    // a Node "fake worker" via a runtime-relative path it resolves itself
+    // (`workerSrc ||= "./pdf.worker.mjs"`, relative to its OWN module file,
+    // not a static import) — webpack has no way to see that as a
+    // dependency, so it never copies pdf-parse's sibling pdf.worker.mjs
+    // into the chunk it relocates the code into, and every PDF upload in
+    // production failed with "Cannot find module
+    // '.../chunks/pdf.worker.mjs'". Marking it external stops webpack from
+    // relocating the code at all, so the relative path resolves against
+    // pdf-parse's own package directory (where its worker file already
+    // ships) exactly like it does locally.
+    "pdf-parse",
   ],
   experimental: {
     // Tree-shakes named imports from these packages instead of pulling
@@ -39,6 +51,23 @@ const nextConfig: NextConfig = {
     "/api/advertisements/[id]/generate": ["./src/server/generation/fonts/*"],
     "/api/advertisements/[id]/export": ["./src/server/generation/fonts/*"],
     "/api/advertisements/[id]/section": ["./src/server/generation/fonts/*"],
+    // Production bug (2026-08-07): marking pdf-parse external (above) stops
+    // webpack from mangling its module code, but Next's file tracer still
+    // only copies files it sees statically imported/required. pdf-parse's
+    // OWN pdf.worker.mjs is loaded via a runtime-computed relative path;
+    // pdf-parse's ESM build then also statically imports pdfjs-dist's
+    // "legacy" build directly, which does the exact same runtime-relative
+    // worker lookup a second time, against pdfjs-dist's OWN separate
+    // pdf.worker.mjs — verified by tracing the real failure one level
+    // deeper than the first fix reached. Both must be included.
+    "/api/advertisement-drafts/[id]/extract": [
+      "./node_modules/pdf-parse/dist/pdf-parse/**/pdf.worker.mjs",
+      "./node_modules/pdfjs-dist/**/pdf.worker.mjs",
+    ],
+    "/api/internal/fat/run": [
+      "./node_modules/pdf-parse/dist/pdf-parse/**/pdf.worker.mjs",
+      "./node_modules/pdfjs-dist/**/pdf.worker.mjs",
+    ],
   },
 };
 
