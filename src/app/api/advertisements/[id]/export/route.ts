@@ -43,11 +43,26 @@ export async function GET(
       );
     }
 
-    const base64 = advertisement.generatedAssetUrl.split(",")[1];
-    if (!base64) {
-      throw new AppError("This advertisement's generated asset is invalid — regenerate it.", 500);
+    // Production bug fix (2026-08-07): newly generated advertisements
+    // store a real storage URL here now, not an inline data: URI (see
+    // advertisement-generation.service.ts) — but rows generated before
+    // this fix still hold the old data: URI, so both are read correctly
+    // rather than requiring a data migration.
+    const assetUrl = advertisement.generatedAssetUrl;
+    let pngBuffer: Buffer;
+    if (assetUrl.startsWith("data:")) {
+      const base64 = assetUrl.split(",")[1];
+      if (!base64) {
+        throw new AppError("This advertisement's generated asset is invalid — regenerate it.", 500);
+      }
+      pngBuffer = Buffer.from(base64, "base64");
+    } else {
+      const response = await fetch(assetUrl);
+      if (!response.ok) {
+        throw new AppError("This advertisement's generated asset could not be retrieved — regenerate it.", 500);
+      }
+      pngBuffer = Buffer.from(await response.arrayBuffer());
     }
-    const pngBuffer = Buffer.from(base64, "base64");
 
     const platformFormat = getPlatformFormat(advertisement.platformFormat);
     const { buffer, mimeType } = await exportImage(pngBuffer, format, {

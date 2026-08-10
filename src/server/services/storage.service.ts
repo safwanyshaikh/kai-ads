@@ -93,4 +93,34 @@ export const storageService = {
       data: file.data,
     });
   },
+
+  /**
+   * Production bug fix (2026-08-07): the generation pipeline's rendered
+   * output was being stored as a base64 data: URI directly in the
+   * Advertisement row instead of using this same existing storage
+   * abstraction — a multi-MB string held in memory (the PNG buffer, then
+   * a full base64 copy of it) inside the same request that just ran
+   * several sharp/libvips compositing passes, then written into a
+   * Postgres transaction. Reuses the identical upload path
+   * uploadAdvertisementSource already uses; no new provider, no new
+   * module.
+   */
+  async uploadGeneratedAdvertisement(file: {
+    name: string;
+    data: Buffer;
+  }): Promise<{ url: string; key: string }> {
+    const provider = getStorageProvider();
+    if (!provider.isConfigured) {
+      throw new Error(
+        "File storage is not configured yet. Set STORAGE_PROVIDER and its credentials.",
+      );
+    }
+
+    return provider.upload({
+      path: "advertisement-generated",
+      fileName: file.name,
+      contentType: "image/png",
+      data: file.data,
+    });
+  },
 };

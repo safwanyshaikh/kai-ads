@@ -7,6 +7,7 @@ import { agencyVerificationRepository } from "@/server/repositories/agency-verif
 import { auditLogService } from "@/server/services/audit-log.service";
 import { costTrackingService } from "@/server/services/cost-tracking.service";
 import { generationQuotaService } from "@/server/services/generation-quota.service";
+import { storageService } from "@/server/services/storage.service";
 import { classifyDensity } from "@/server/generation/density-classification.service";
 import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
@@ -172,8 +173,20 @@ export const advertisementGenerationService = {
       advertisementTexts: [advertisement.header, advertisement.footer, "MEA REGISTERED AGENCY", "VERIFY AGENCY"],
     });
 
-    const generatedAssetUrl = `data:image/png;base64,${pngBuffer.toString("base64")}`;
     const nextVersion = advertisement.currentVersion + 1;
+
+    // Production bug fix (2026-08-07): this used to embed the entire
+    // rendered PNG as a base64 data: URI directly in the database row —
+    // a multi-MB string built and held in memory in the same request that
+    // just ran several sharp/libvips compositing passes, then written
+    // into the transaction below. Stored via the existing storage
+    // abstraction instead (same path uploadAdvertisementSource already
+    // uses), exactly like every other file this app persists.
+    const uploaded = await storageService.uploadGeneratedAdvertisement({
+      name: `${advertisementId}-v${nextVersion}.png`,
+      data: pngBuffer,
+    });
+    const generatedAssetUrl = uploaded.url;
 
     const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const result = await tx.advertisement.update({
