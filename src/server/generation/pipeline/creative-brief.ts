@@ -2,14 +2,33 @@ import { getTextGenerationProvider } from "@/server/ai/text";
 import type { AdvertisementFacts } from "./types";
 
 /**
- * KAI writes ONE creative brief for the BACKGROUND ARTWORK ONLY.
+ * KAI CREATIVE DIRECTOR
  *
- * The image model owns atmosphere, photography, industrial environment,
- * workers, lighting, depth and visual composition.
+ * Responsibility split:
  *
- * All trusted recruitment facts — headline, employer, job titles, counts,
- * salaries, benefits, dates, contacts, licence and QR — are rendered
- * deterministically by the Fact Layer / Branding Engine.
+ * CREATIVE LLM:
+ *   - campaign concept
+ *   - visual story
+ *   - hero subject
+ *   - emotional direction
+ *   - photography direction
+ *   - camera / perspective
+ *   - lighting
+ *   - colour mood
+ *   - environment
+ *   - visual hierarchy
+ *   - commercial attention strategy
+ *
+ * KAI:
+ *   - exact recruitment facts
+ *   - exact job titles
+ *   - exact counts
+ *   - exact salary/benefit information
+ *   - exact dates
+ *   - exact contact information
+ *   - exact registration / QR
+ *
+ * The LLM must never invent or render trusted recruitment text.
  */
 export async function buildCreativeBrief(
   facts: AdvertisementFacts,
@@ -25,106 +44,129 @@ export async function buildCreativeBrief(
     ? `Preferred colour theme: ${options.theme}. `
     : "";
 
+  const positions = facts.positions
+    .slice(0, 12)
+    .map((position) => ({
+      title: position.title,
+      count: position.count ?? null,
+    }));
+
+  const benefits = facts.benefits
+    .slice(0, 8)
+    .map((benefit) => ({
+      label: benefit.label,
+      detail: benefit.detail ?? null,
+    }));
+
+  const interview = facts.interview
+    .slice(0, 2)
+    .map((event) => ({
+      date: event.date ?? null,
+      location: event.location ?? null,
+    }));
+
+  const creativeContext = {
+    employer: facts.employer,
+    country: facts.country,
+    industry: facts.industry,
+    projectType: facts.projectType,
+    header: facts.header,
+    visaType: facts.visaType,
+    dutyHours: facts.dutyHours,
+    rotation: facts.rotation,
+    positions,
+    benefits,
+    interview,
+  };
+
   const { text } = await provider.generateText({
     instructions:
-      "You are the senior art director for a premium international recruitment " +
-      "advertisement for major Gulf industrial projects. " +
-      "The image you create is the BACKGROUND ARTWORK ONLY. " +
+      "You are KAI's senior commercial Creative Director for premium international " +
+      "recruitment campaigns in the GCC and overseas employment market. " +
 
-      "\n\nFACTUAL INTEGRITY LAW: " +
-      "Every trusted fact in the advertisement — headline, employer name, job titles, " +
-      "vacancy counts, salaries, benefits, dates, interview details, contact details, " +
-      "licence numbers, registration information and QR codes — is rendered separately " +
-      "and deterministically by the KAI Rendering Engine. " +
-      "The image model must NOT render those facts. " +
+      "\n\nYOUR JOB: " +
+      "Design the creative concept for the advertisement, not a generic background. " +
+      "Think like a top advertising art director, photographer, campaign strategist and " +
+      "visual storyteller working together. " +
 
-      "\n\nTherefore NEVER render readable text, letters, numbers, logos, badges, " +
-      "QR codes, signage, documents, screens containing text, watermarks or fake branding. " +
-      "Describe only the visual artwork: environment, workers, equipment, trade activity, " +
-      "architecture, machinery, lighting, atmosphere, depth, perspective and colour grade. " +
+      "\n\nTHE FINAL ADVERTISEMENT HAS TWO PARALLEL SYSTEMS: " +
+      "1. The creative system is controlled by the image model. " +
+      "2. The factual system is controlled deterministically by KAI. " +
+      "They must complement each other, never compete or duplicate one another. " +
+
+      "\n\nCREATIVE SYSTEM — YOU CONTROL: " +
+      "hero concept, visual story, emotional hook, primary subject, human presence, " +
+      "environment, camera perspective, depth, lighting, colour, atmosphere, realism, " +
+      "commercial energy, visual hierarchy and mobile attention. " +
+
+      "\n\nFACTUAL SYSTEM — KAI CONTROLS: " +
+      "headline text, employer name, job titles, vacancy counts, salaries, benefits, " +
+      "interview information, dates, contacts, registration details and QR. " +
+
+      "\n\nNEVER RENDER TRUSTED TEXT: " +
+      "Do not generate readable advertising copy, vacancy numbers, salaries, dates, " +
+      "phone numbers, email addresses, QR codes, registration numbers, fake company logos, " +
+      "watermarks, pseudo-text, fake UI, documents with readable writing or artificial signage. " +
+      "The final factual information will be added by KAI after the image is generated. " +
 
       styleHint +
       themeHint +
 
-      "\n\nCREATIVE DIRECTION: " +
-      "Create a strong, premium recruitment campaign hero — not a blank background. " +
-      "The first impression must immediately communicate the real industry, the scale of " +
-      "the project and the professional nature of the opportunity. " +
+      "\n\nCREATIVE STANDARD: " +
+      "The output must feel like a premium paid recruitment campaign created by an expert " +
+      "advertising agency for a major Gulf industrial employer. " +
+      "It must NOT resemble a generic stock photo, SaaS banner, corporate presentation, " +
+      "internal memo, poster template or empty background. " +
 
-      "\n\nHARD CONTENT REQUIREMENT: " +
-      "The artwork is invalid unless it contains at least one clearly visible human industrial worker. " +
-      "The worker must be in the foreground or midground, not a tiny distant figure, and should occupy " +
-      "approximately 20–30% of the hero height. " +
-      "The worker must be visibly wearing realistic industrial PPE appropriate to the trade. " +
-      "For oil-and-gas or maintenance requirements, show an actual maintenance worker actively working " +
-      "within a recognisable refinery, process plant or industrial maintenance environment. " +
-      "A refinery-only establishing shot without a clearly visible worker is NOT acceptable. " +
+      "\n\nPRIMARY VISUAL HOOK: " +
+      "Create one unmistakable dominant visual subject that communicates the opportunity " +
+      "within the first second on a phone screen. " +
+      "Where industrial workers are relevant, use an authentic worker as the hero subject " +
+      "and make that person clearly visible in the foreground or strong midground. " +
 
-      "\n\nFor oil-and-gas, energy, petrochemical, construction, marine or industrial " +
-      "requirements, show an authentic working environment: realistic industrial structures, " +
-      "process equipment, maintenance activity, workers in correct PPE, machinery, access " +
-      "systems and believable site conditions. " +
-      "Never use generic corporate abstractions or posed stock-photo behaviour. " +
+      "\n\nHUMAN AUTHENTICITY: " +
+      "Workers must look like real professionals performing believable industrial work. " +
+      "Use realistic PPE, equipment, posture, tools, environment and scale. " +
+      "Prefer authentic action such as inspection, maintenance, welding, fitting, operations, " +
+      "supervision or technical work rather than posing for a camera. " +
 
-      "\n\nCOMPOSITION: " +
-      "Keep approximately the upper 25% visually calm enough to support the deterministic " +
-      "headline overlay, but do NOT leave a large empty central area. " +
-      "Use the majority of the hero actively. " +
-      "Place the primary worker or industrial focal subject prominently in the right third " +
-      "or slightly right-of-centre. " +
-      "The worker must be clearly visible, large enough to read immediately on a phone, " +
-      "and must not be cropped awkwardly at the bottom. " +
+      "\n\nINDUSTRIAL AUTHENTICITY: " +
+      "The environment must visually match the actual industry, project type and destination. " +
+      "Use believable refinery/process equipment, construction systems, marine structures, " +
+      "workshops, shutdown environments, machinery, access systems and site conditions where appropriate. " +
 
-      "\n\nBuild visual depth using foreground, midground and background elements. " +
-      "Use cinematic but believable natural lighting, realistic scale, atmospheric depth, " +
-      "controlled contrast and premium editorial photography. " +
-      "The image should feel like a professionally art-directed campaign for a major Gulf " +
-      "industrial project, not a generic stock image. " +
+      "\n\nCOMMERCIAL COMPOSITION: " +
+      "Create a deliberate foreground, midground and background. " +
+      "Use cinematic depth, realistic perspective, strong subject separation and professional lighting. " +
+      "Do not create a giant empty sky or a large dead centre merely because KAI will add factual information. " +
+      "Negative space may exist only where it improves readability without weakening the advertisement. " +
 
-      "\n\nThe lowest approximately 15% should remain comparatively simple so the KAI Fact Layer " +
-      "can safely occupy that region, but there must be NO huge dead zone above it. " +
+      "\n\nMOBILE-FIRST ATTENTION: " +
+      "The advertisement will be consumed primarily through WhatsApp, Instagram, Facebook, LinkedIn " +
+      "and Telegram. The image must remain compelling when reduced to thumbnail size. " +
+      "Prioritise one dominant subject, clear silhouette, strong contrast, depth and immediate recognition. " +
 
-      "\n\nSOCIAL-FIRST QUALITY BAR: " +
-      "The advertisement will be viewed mainly on phones through WhatsApp, Instagram, " +
-      "Facebook, LinkedIn and Telegram. " +
-      "Create immediate visual impact, one dominant focal subject, strong depth, authentic " +
-      "industrial detail and a composition that remains compelling at thumbnail size. " +
-      "Avoid tiny details that disappear after compression. " +
+      "\n\nCAMPAIGN FEEL: " +
+      "The visual should communicate professionalism, scale, opportunity, technical competence, " +
+      "trust and ambition without relying on flags, generic national symbolism or clichéd corporate imagery. " +
 
-      "\n\nVISUAL AVOIDANCE: " +
-      "No stock-photo handshake, no posed office portrait, no smiling corporate team, " +
-      "no abstract blue technology background, no empty skyline, no giant empty sky, " +
-      "no refinery-only establishing shot, no worker reduced to a tiny background figure, " +
-      "no random construction cranes without context, no decorative fantasy machinery, " +
-      "no flags or national symbols, no generic businessman imagery. " +
+      "\n\nDO NOT DUPLICATE KAI: " +
+      "Do not design boxes, tables, vacancy lists, salary panels, QR areas, registration panels, " +
+      "agency footers or detailed textual layouts. KAI handles those facts after the image is produced. " +
 
-      "\n\nTRUTHFUL ENVIRONMENT: " +
-      "The artwork must match the industry, country and project type supplied below. " +
-      "Use realistic PPE, climate, site conditions, machinery and architecture appropriate " +
-      "to the described industry and destination. " +
+      "\n\nIMPORTANT: " +
+      "Do not interpret 'clean', 'premium' or 'professional' as instructions to remove people, " +
+      "industrial activity or visual energy. The creative must remain visually rich and commercially strong. " +
 
-      "\n\nSUBJECT PRIORITY: " +
-      "When a human worker is present, the worker is the primary visual subject and the " +
-      "industrial environment is the supporting context. " +
-      "Prefer authentic action — inspection, maintenance, welding, fitting, operations, " +
-      "supervision or another clearly believable task — rather than standing and posing. " +
+      "\n\nOUTPUT: " +
+      "Write ONE highly specific visual direction paragraph for the Gemini image model. " +
+      "Describe the campaign concept, hero subject, action, environment, camera perspective, " +
+      "lighting, depth, colour mood and emotional effect. " +
+      "Do not write advertising copy. " +
+      "Do not output lists. " +
+      "Do not repeat the factual recruitment information as prose.",
 
-      "\n\nDO NOT SOLVE THE ADVERTISEMENT WITH EMPTY SPACE: " +
-      "Whitespace is allowed only where it improves factual readability. " +
-      "Do not interpret 'clean' or 'premium' as an instruction to remove the worker, " +
-      "industrial activity or visual energy. " +
-
-      "\n\nThe output should be ONE concise paragraph of visual direction for the image model. " +
-      "Do not list facts. Do not write advertising copy. " +
-      "Do not describe layout coordinates for the factual text beyond the safe compositional " +
-      "guidance already provided.",
-
-    input: JSON.stringify({
-      industry: facts.industry,
-      country: facts.country,
-      projectType: facts.projectType,
-      trades: facts.positions.slice(0, 10).map((p) => p.title),
-    }),
+    input: JSON.stringify(creativeContext),
   });
 
   return text;
