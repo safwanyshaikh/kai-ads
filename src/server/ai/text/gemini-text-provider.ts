@@ -34,7 +34,17 @@ export class GeminiTextProvider implements TextGenerationProvider {
     try {
       const response = await client.models.generateContent({
         model,
-        contents: input.input,
+        contents: input.imagePng
+          ? [
+              {
+                role: "user",
+                parts: [
+                  { inlineData: { mimeType: "image/png", data: input.imagePng.toString("base64") } },
+                  { text: input.input },
+                ],
+              },
+            ]
+          : input.input,
         config: { systemInstruction: input.instructions },
       });
 

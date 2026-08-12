@@ -51,15 +51,20 @@ describe("Branding Engine reads the Agency Profile", () => {
     expect(service).toMatch(/agency\.officialEmail/);
   });
 
+  // The trust-strip lines are built by Agency DNA now, so the generation
+  // service and the renderer read them from one place instead of two.
+  // Behaviour is covered end-to-end in tests/agency-dna.test.ts.
+  const agencyDna = readFileSync("src/server/generation/dna/agency-dna.ts", "utf8");
+
   it("lets a per-campaign contact override the profile", () => {
     // Advertisement value first, profile second — an override, not the default.
-    expect(service).toMatch(/contact\.phone \?\? agency\.phone/);
-    expect(service).toMatch(/contact\.email \?\? agency\.officialEmail/);
+    expect(agencyDna).toMatch(/advertisementContact\?\.phone \?\? agency\.contact\.phone/);
+    expect(agencyDna).toMatch(/advertisementContact\?\.email \?\? agency\.contact\.email/);
   });
 
   it("prints office address and website from the profile", () => {
-    expect(service).toContain("buildAddressLine");
-    expect(service).toMatch(/agency\.officeAddress/);
+    expect(agencyDna).toContain("agencyAddressLine");
+    expect(agencyDna).toMatch(/agency\.contact\.officeAddress/);
   });
 
   it("counts profile contact details when checking the ad has a contact", () => {

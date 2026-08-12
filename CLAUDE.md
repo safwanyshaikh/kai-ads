@@ -50,6 +50,48 @@ No feature flag may route generation through a second engine. Quality
 issues are fixed by improving Requirement Intelligence, the Creative
 Brief, or the Rendering Engine only — never by adding architecture.
 
+### Design DNA, Agency DNA and Industry DNA are configuration data
+
+Product-owner ruling (August 2026), binding, no constitutional amendment
+required. There will always be exactly ONE Rendering Engine. Design DNA,
+Agency DNA and Industry DNA are **configuration data consumed by it** —
+palette roles, type scale, geometry, motifs, art direction. They contain no
+drawing code, no layout algorithm and no composition logic, so adding a DNA
+cannot add a rendering path: there is nowhere for one to live. No second
+composer, no second renderer, no second layout engine, no second pipeline.
+
+If a visual idea cannot be expressed as values in `dna/design-dna.ts`, widen
+that schema and teach the ONE engine to read it. Never add an engine.
+
+Every DNA palette must pass the Contrast Law (`dna/contrast.ts`) before the
+registry will accept it — an illegible fact is an omitted fact under the
+Factual Integrity Law, so this fails the build rather than the candidate.
+
+### Advertisement JSON and editing
+
+Every advertisement exists internally as structured JSON
+(`pipeline/advertisement-document.ts`, persisted as
+`advertisements.documentJson`). The renderer only converts JSON into
+output. **Editing never edits pixels and never calls AI**: an edit applies
+typed operations to the document (`pipeline/editing.ts`) and the renderer
+runs again over the artwork the advertisement already has. `editing.ts` has
+no AI import and no async function — that is how the law is enforced, not
+merely stated.
+
+AI may generate ONLY background artwork, photography, illustration and
+mood. Logo, QR, contact, licence, salary, position list, benefits,
+interview details, footer and agency information are deterministic, always.
+
+### Region Intelligence
+
+`dna/region-intelligence.ts` holds objective recruitment intelligence only:
+candidate supply geography, industry hiring corridors, trade popularity by
+state, language preference, seasonal availability, typical project
+background, industry imagery. **No psychological profiling, no behavioural
+targeting, no inference of emotion or literacy** — ever. The prohibition is
+structural (no type has a field that could carry such a value) and covered
+by a test that fails if one is added.
+
 `docs/008_ADVERTISEMENT_COMPOSITION_CONSTITUTION.md` is superseded for
 architecture by docs/010; its Articles I–IV and VI–VIII remain active as
 quality-evaluation criteria for GPT Image's output (candidate-first law,

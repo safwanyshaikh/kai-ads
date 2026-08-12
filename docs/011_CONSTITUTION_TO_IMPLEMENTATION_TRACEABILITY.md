@@ -10,7 +10,7 @@ which are roadmap.
 
 Owner: KAI Platform (product owner)
 
-Last Updated: July 2026
+Last Updated: August 2026
 
 ---
 
@@ -60,6 +60,12 @@ Legend:
 | Branding Overlay | ✅ | `src/server/generation/pipeline/branding-overlay.ts` | Production |
 | Zero fabrication rules | ✅ | Enforced in the Creative Brief instructions | Production |
 | Exactly one pipeline, zero routing flags | ✅ | Verified: single call graph, no generation flags in `src/lib/env.ts` | Production |
+| Advertisement JSON — every advertisement exists internally as structured data | ✅ | `pipeline/advertisement-document.ts`; persisted as `advertisements.documentJson` | Production |
+| Design DNA — 50 production designs as **configuration data** for the one engine | ✅ | `src/server/generation/dna/` (`design-dna.ts`, `registry.ts`, `packs/`) | Production |
+| Agency DNA — permanent agency identity resolved from the verified profile | ✅ | `src/server/generation/dna/agency-dna.ts` | Production |
+| Contrast Law — every palette proved legible before it can ship | ✅ | `dna/contrast.ts` + `validateDesignDna()`, enforced at registry load | Production |
+| Editing Engine — edits JSON, never pixels; never calls AI | ✅ | `pipeline/editing.ts`, `services/advertisement-editing.service.ts` | Production |
+| Region Intelligence — objective recruitment data only, no profiling | ✅ | `dna/region-intelligence.ts` | Production |
 
 ## 2. AI responsibilities & limitations — `docs/000` (Product Constitution)
 
@@ -73,9 +79,9 @@ Legend:
 | Never invent salary / employer / interview date / benefits / registration numbers | ✅ | Creative Brief zero-fabrication instructions + grounded `AdvertisementFacts` | Production |
 | Trust display: MEA Registered Agency, registration number, trust stamp | ✅ | Branding Overlay footer band + `trust-validation.service.ts` | Production |
 | Mark missing information as "Information Required" | ⚠️ | Missing facts are **omitted** rather than labelled. Constitutionally safe (never fabricates) but not the stated behaviour. | Phase 2 |
-| Section Regeneration | ⛔ | Superseded by `docs/009` Principle 2 / `docs/010`: GPT owns full composition; partial re-render no longer exists as an operation. | — |
-| Layout Recommendation | ⛔ | Superseded by `docs/010`: GPT Image owns all layout. | — |
-| Editable blocks, editing one never affects others | ⚠️ | Data-level block editing exists (`PATCH /api/advertisements/[id]`, `AdvertisementCanvas`). The *image* regenerates as a whole, by constitutional design. Clause needs re-scoping to data, not pixels. | Phase 2 |
+| Section Regeneration | ✅ | Restored, in the only form that is constitutionally safe: a **JSON** edit followed by a deterministic full re-render over the existing artwork (`pipeline/editing.ts`). No AI is involved and no pixel is edited, so the docs/009 Principle 2 objection — a model re-composing part of an approved advertisement — does not arise. | Production |
+| Layout Recommendation | ✅ | KAI recommends a **Design DNA** from the shape of the requirement (`dna/registry.ts` `selectDna`), and the recruiter may override it. This is not a second layout engine: a DNA is values consumed by the one Rendering Engine, which owns all layout. The image model owns artwork only, per docs/010 Amendment 1. | Production |
+| Editable blocks, editing one never affects others | ✅ | Typed edit operations over the Advertisement JSON (`pipeline/editing.ts`). Each operation writes one named section and returns a change record naming it, so isolation is a property of the type rather than a convention. The image is re-rendered deterministically from the edited document, over the artwork that already exists — so an edit is free, instant, and never changes the photograph. | Production |
 | Learning: every advertisement contributes structured recruitment intelligence | ❌ | No knowledge/learning code exists. | **Phase 3** |
 
 ## 3. Supreme principles — `docs/009`

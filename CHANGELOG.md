@@ -2,6 +2,63 @@
 
 All notable changes to KAI Ads are documented here.
 
+## [Unreleased] — Design DNA, Advertisement JSON, Editing Engine
+
+### Added
+
+- **Design DNA Engine** — 50 production designs across five packs (Premium
+  Social, Assignment Abroad/DTP, Corporate Premium, Construction, Oil &
+  Gas) as *configuration data* consumed by the one Rendering Engine:
+  palette roles, type scale, geometry, motifs and background art
+  direction. No drawing code, no layout algorithm, no second engine.
+- **Contrast Law** (`dna/contrast.ts`) — every DNA palette is checked at
+  module load against the exact foreground/background pairs the engine
+  paints. An illegible palette fails the build rather than the candidate's
+  eyes. KDL §3.1 Amendment 2 records the move from one locked palette to
+  many mechanically-proved ones.
+- **Agency DNA** (`dna/agency-dna.ts`) — the agency's permanent identity
+  resolved once from the verified profile. Brand colours are applied only
+  where they still satisfy the Contrast Law; a declined colour is reported
+  with the reason instead of silently ignored.
+- **Advertisement JSON** (`pipeline/advertisement-document.ts`) — every
+  advertisement now exists internally as structured data (facts + Design
+  DNA + Agency DNA + format + artwork reference), persisted as
+  `advertisements.documentJson` and validated on the way back in.
+- **Editing Engine** (`pipeline/editing.ts`) — typed edit operations over
+  the Advertisement JSON. Editing never edits pixels and never calls AI:
+  the module has no AI import and no async function, and a re-render
+  reuses the artwork the advertisement already has. Correcting a salary is
+  instant, free, and does not change the photograph.
+- **Region Intelligence** (`dna/region-intelligence.ts`) — objective
+  recruitment data only: candidate supply geography, hiring corridors,
+  trade popularity by state, language preference, seasonal availability,
+  typical project background. No psychological profiling, no behavioural
+  targeting, no inference of emotion or literacy; the prohibition is
+  structural and covered by a test.
+- `POST`-able Design DNA selection on generation (`designDnaId`,
+  `designPack`, `printOrNewspaper`), with KAI selecting deterministically
+  when the recruiter does not.
+- `scripts/adhoc/render-dna-library.ts` — renders the whole library
+  through the real engine, for visual regression.
+
+### Changed
+
+- The Rendering Engine reads palette, type scale, geometry and motifs from
+  the Design DNA instead of hardcoded constants. Every capacity solve,
+  legibility floor, anti-clipping rule and `LayoutCapacityError` is
+  unchanged; a caller that names no DNA gets byte-identical output to
+  before.
+- Vision QA verifies the Advertisement JSON, so the agency identity it
+  checks is the verified profile the renderer actually drew from.
+- Trust-strip contact and address lines moved to Agency DNA, so the
+  generation service and the renderer read them from one place.
+
+### Fixed
+
+- Centred hero compositions collided the verified vacancy numeral with the
+  visa/duty-hours line. The hero now reserves the numeral's block and sets
+  it inline. Found by rendering all 50 designs through the real engine.
+
 ## [0.5.0] — Sprint 005 — MVP Completion
 
 ### Added

@@ -147,6 +147,72 @@ brand; an opacity is the same brand at a different weight.
 > second gold. Where an accent is needed on cream, use `--kai-navy` at
 > display weight — emphasis through weight and size, not hue.
 
+### 3.1.1 Amendment 2 — Palette roles and the Contrast Law (Design DNA)
+
+> **Status.** Issued by the product owner alongside the Design DNA
+> directive, which requires five visually distinct production packs. It
+> supersedes §3.1's "no KDL revision may alter or add to these" as it
+> applies to the *number* of palettes, and only that. Everything else in
+> §3.1 stands.
+
+§3.1 locked four hexes because a locked list is a **provable** guarantee:
+every foreground/background pair was checked once, by hand, and could never
+drift. Design DNA introduces many palettes, so the guarantee moves from
+*"these four hexes"* to *"this property, checked mechanically, for every
+palette that ships"*. Nothing is relaxed; the proof is mechanised.
+
+**Palette roles.** The Rendering Engine never names a colour. It asks the
+palette for the ROLE it needs, and a Design DNA supplies the nine roles:
+
+| Role | What the engine paints with it |
+|---|---|
+| `ink` | Bars, rules, headings, primary factual text |
+| `accent` | Straps, vacancy cells, the hero numeral |
+| `accentText` | Text sitting on `accent` |
+| `muted` | Secondary factual text — role detail, salary column |
+| `paper` | Card and table-field fill |
+| `surface` | The body surface beneath the hero |
+| `tint` | Alternating band / soft fill |
+| `rule` | Hairlines and dividers |
+| `reversed` | Text sitting on `ink` |
+
+The KAI palette of §3.1 remains the **default** (`KDL_PALETTE`), and is
+what a caller gets when it names no DNA.
+
+**The Contrast Law.** Every DNA palette must satisfy these pairs — the
+exact pairs the engine actually paints, read off the drawing code — before
+the registry will accept it:
+
+| Pair | Minimum |
+|---|---|
+| `ink` on `surface`, `paper`, `tint` | 4.5:1 |
+| `muted` on `surface`, `paper` | 4.5:1 |
+| `reversed` on `ink` | 4.5:1 |
+| `accentText` on `accent` | 4.5:1 |
+| `accent` on `ink` (display marks only) | 3.0:1 |
+
+4.5:1 is WCAG AA for normal text. A recruitment fact rendered below it is
+a fact the candidate cannot act on, which the Factual Integrity Law treats
+as an omission — so a failing DNA is not a style problem, it is a truth
+problem.
+
+**Enforcement.** `validateDesignDna()` runs for every DNA at module load in
+`registry.ts`, and throws. An illegible palette fails the build, not the
+candidate's eyes. Agency brand colours go through the same law
+(`applyAgencyBrand()`): a brand colour that cannot carry factual text is
+declined, the DNA's own value stands, and the agency is told why.
+
+**What a DNA still may not do.** It may make type larger; it may not lower
+the legibility floor (§3.2). It may loosen or tighten the row rhythm; it
+may not buy itself artwork space at the cost of the position list. Every
+capacity solve, anti-clipping rule and `LayoutCapacityError` is unchanged
+and lives in the one Rendering Engine.
+
+Implementation: `src/server/generation/dna/contrast.ts`,
+`design-dna.ts`, `registry.ts`, `packs/palettes.ts`.
+
+---
+
 **Colour ratio:** 60% navy / 30% cream / 10% gold. Gold is *punctuation* —
 vacancy counts, the total badge, section rules, the QR caption. Never a
 background, never body text, never on cream.

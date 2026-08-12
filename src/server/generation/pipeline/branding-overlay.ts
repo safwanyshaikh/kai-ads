@@ -31,6 +31,8 @@ export interface BrandingOverlayInput {
    * without a known artwork boundary there is nowhere safe to put it.
    */
   artworkHeightPx?: number | null;
+  /** One black plate, for newspaper printing. */
+  singleInk?: boolean;
 }
 
 /**
@@ -95,7 +97,11 @@ export const BRANDING_RESERVED_HEIGHT_PCT =
   Math.ceil(((BAND_HEIGHT_PCT + CONTACT_ROW_HEIGHT_PCT) * 100) / 5) * 5;
 const LOGO_SIZE_PCT_OF_BAND = 0.69; // ~25% larger absolute logo than the original 0.115 * 0.62 band
 const QR_SIZE_PCT_OF_BAND = 0.6; // ~12.5% smaller absolute QR than the original 0.115 * 0.78 band
-const NAME_SIZE_PCT_OF_BAND = 0.35; // more prominent than the original 0.115 * 0.3 band
+// A name this large, repeating the agency identity already shown in the
+// hero, read as a second letterhead pasted under the advertisement rather
+// than a trust strip — real reference recruitment posters keep this line
+// slim. Held well below the original 0.115 * 0.3 band on purpose.
+const NAME_SIZE_PCT_OF_BAND = 0.24;
 const REGISTRATION_SIZE_PCT_OF_BAND = 0.16;
 const ADDRESS_SIZE_PCT_OF_BAND = 0.13; // quieter than the registration line
 const ADDRESS_REG_Y_PCT = 0.68; // registration lifts to here when an address follows
@@ -204,9 +210,11 @@ async function fadeLogo(logoPng: Buffer, size: number, opacity: number): Promise
  * optional contact row sits above the band. Every size is a fraction of
  * bandHeight/widthPx — no fixed coordinates.
  */
-async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buffer; height: number }> {
+async function buildFooterBand(
+  input: BrandingOverlayInput,
+): Promise<{ png: Buffer; height: number; markup: string }> {
   const { widthPx, heightPx } = input;
-  const theme = footerTheme(input.footerStyle);
+  const theme = footerTheme(input.footerStyle, input.singleInk);
   const badges = normaliseBadges(input.brandBadges);
   const bandHeight = brandingBandHeight(widthPx, heightPx);
   const contactRowHeight = brandingContactRowHeight(widthPx, heightPx, Boolean(input.contactLine));
@@ -215,7 +223,6 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
 
   const qrSize = input.qrPng ? Math.round(bandHeight * QR_SIZE_PCT_OF_BAND) : 0;
   const qrLeft = widthPx - qrSize - pad;
-  const qrTop = contactRowHeight + Math.round((bandHeight - qrSize) / 2);
 
   const logoSize = input.agencyLogoPng ? Math.round(bandHeight * LOGO_SIZE_PCT_OF_BAND) : 0;
   const logoLeft = pad;
@@ -268,7 +275,7 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
   if (input.agencyLogoPng) {
     const logoDataUri = await toPngDataUri(input.agencyLogoPng, logoSize);
     parts.push(
-      `<image href="${logoDataUri}" x="${logoLeft}" y="${logoTop}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`,
+      `<image id="kai-agency-logo" href="${logoDataUri}" x="${logoLeft}" y="${logoTop}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`,
     );
   }
 
@@ -321,21 +328,48 @@ async function buildFooterBand(input: BrandingOverlayInput): Promise<{ png: Buff
 
   if (input.qrPng) {
     if (input.agencyLogoPng || input.agencyName || input.registrationNumber) {
+      // Full-height rule, so the QR reads as the last CELL of the legal
+      // block rather than a mark floating beside it.
       parts.push(
-        `<line x1="${dividerX}" y1="${contactRowHeight + Math.round(bandHeight * 0.14)}" x2="${dividerX}" y2="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.14)}" stroke="${theme.divider}" stroke-width="2"/>`,
+        `<line x1="${dividerX}" y1="${contactRowHeight + Math.round(bandHeight * 0.06)}" x2="${dividerX}" y2="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.06)}" stroke="${theme.divider}" stroke-width="2"/>`,
       );
     }
-    const qrDataUri = await toPngDataUri(input.qrPng, qrSize);
-    parts.push(`<image href="${qrDataUri}" x="${qrLeft}" y="${qrTop}" width="${qrSize}" height="${qrSize}"/>`);
     const captionSize = Math.round(bandHeight * 0.09);
+    // The cell is set as a unit: caption, then code, sharing one optical
+    // centre with the registration lines to its left.
+    const capBaseline = contactRowHeight + Math.round(bandHeight * 0.2);
     parts.push(
-      `<text x="${qrLeft + qrSize / 2}" y="${contactRowHeight + bandHeight - Math.round(bandHeight * 0.03)}" font-family="KaiSans, sans-serif" font-size="${captionSize}" fill="${theme.mutedText}" text-anchor="middle">SCAN TO VERIFY</text>`,
+      `<text x="${qrLeft + qrSize / 2}" y="${capBaseline}" font-family="KaiSans, sans-serif" font-size="${captionSize}" font-weight="700" fill="${theme.mutedText}" text-anchor="middle" letter-spacing="1">SCAN TO VERIFY</text>`,
+    );
+    const qrDataUri = await toPngDataUri(input.qrPng, qrSize);
+    parts.push(
+      `<image id="kai-verification-qr" href="${qrDataUri}" x="${qrLeft}" y="${capBaseline + Math.round(captionSize * 0.5)}" width="${qrSize}" height="${qrSize}"/>`,
     );
   }
 
   parts.push(`</svg>`);
-  const png = await sharp(Buffer.from(parts.join(""))).png().toBuffer();
-  return { png, height: totalHeight };
+  const markup = parts.join("");
+  const png = await sharp(Buffer.from(markup)).png().toBuffer();
+  return { png, height: totalHeight, markup: markup.replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "") };
+}
+
+/**
+ * The trust strip as live SVG markup instead of a flattened raster — logo
+ * and QR stay `<image>` elements with a swappable `href`, agency name,
+ * registration and contact remain real `<text>`. Used by
+ * `editable-svg.ts` to assemble one editable document; `applyBrandingOverlay`
+ * above keeps rasterizing for the production flattened-PNG output, and both
+ * come from this exact same draw — never a second implementation of the band.
+ */
+export async function buildFooterBandMarkup(
+  input: Omit<BrandingOverlayInput, "imagePng">,
+): Promise<{ markup: string; height: number } | null> {
+  const hasFooterContent = Boolean(
+    input.agencyLogoPng || input.agencyName || input.registrationNumber || input.contactLine || input.qrPng,
+  );
+  if (!hasFooterContent) return null;
+  const footer = await buildFooterBand({ ...input, imagePng: Buffer.alloc(0) });
+  return { markup: footer.markup, height: footer.height };
 }
 
 /**
@@ -372,7 +406,8 @@ function fitFontSize(
   return Math.max(size, minSize);
 }
 
-async function toPngDataUri(png: Buffer, size: number): Promise<string> {
+/** Exported for `editable-svg.ts`, which embeds the background artwork the same way. */
+export async function toPngDataUri(png: Buffer, size: number): Promise<string> {
   const resized = await sharp(png)
     .resize(size, size, { fit: "inside", withoutEnlargement: true })
     .png()

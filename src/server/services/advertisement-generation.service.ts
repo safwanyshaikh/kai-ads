@@ -2,7 +2,6 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { advertisementRepository } from "@/server/repositories/advertisement.repository";
 import { agencyRepository } from "@/server/repositories/agency.repository";
-import { normaliseBadges } from "@/server/generation/pipeline/footer-styles";
 import { agencyVerificationRepository } from "@/server/repositories/agency-verification.repository";
 import { auditLogService } from "@/server/services/audit-log.service";
 import { costTrackingService } from "@/server/services/cost-tracking.service";
@@ -12,6 +11,10 @@ import { classifyDensity } from "@/server/generation/density-classification.serv
 import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
 import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
 import { buildAdvertisementFacts } from "@/server/generation/pipeline/requirement-intelligence";
+import { buildAdvertisementDocument } from "@/server/generation/pipeline/advertisement-document";
+import { buildAgencyDna } from "@/server/generation/dna/agency-dna";
+import { hasDna } from "@/server/generation/dna/registry";
+import { resolveRegionIntelligence } from "@/server/generation/dna/region-intelligence";
 import { generateAdvertisement } from "@/server/generation/pipeline/generate";
 import { runTrustCheck } from "@/server/generation/trust-validation.service";
 import { isValidThemeKey } from "@/server/generation/theme-recommendation.service";
@@ -45,6 +48,9 @@ export const advertisementGenerationService = {
     if (input.theme && !isValidThemeKey(input.theme)) {
       throw new AppError(`Unknown theme "${input.theme}".`, 400);
     }
+    if (input.designDnaId && !hasDna(input.designDnaId)) {
+      throw new AppError(`Unknown Design DNA "${input.designDnaId}".`, 400);
+    }
 
     await generationQuotaService.assertGenerationAllowed(agencyId);
 
@@ -66,6 +72,40 @@ export const advertisementGenerationService = {
     const style = input.style ?? "VISUAL";
 
     const agencyLogoPng = await fetchImageBuffer(agency.logoUrl);
+
+    // Agency DNA: the agency's permanent identity, resolved once from the
+    // verified profile. Nothing here is invented — an agency that has not
+    // filled in its profile gets fewer printed lines, never a substitute.
+    const agencyDna = buildAgencyDna(agency);
+
+    // Objective recruitment intelligence only: candidate supply geography,
+    // hiring corridors, language preference, typical project background.
+    // No profiling, no behavioural targeting, no inference about people.
+    const region = resolveRegionIntelligence({
+      country: advertisement.country,
+      industry: advertisement.industry,
+      positionTitles: positions.map((p) => p.title),
+    });
+
+    // The Advertisement JSON. From here on this document IS the
+    // advertisement: the renderer converts it to pixels, the Editing
+    // Engine edits it, and a re-render reproduces it exactly.
+    const document = buildAdvertisementDocument({
+      advertisementId,
+      facts,
+      agency: agencyDna,
+      format: {
+        key: input.platformFormat,
+        widthPx: platformFormat.widthPx,
+        heightPx: platformFormat.heightPx,
+        dpi: null,
+        printOrNewspaper: Boolean(input.printOrNewspaper),
+      },
+      region,
+      preferredDnaId: input.designDnaId ?? null,
+      preferredPack: input.designPack ?? null,
+      footerStyle: agency.footerStyle,
+    });
 
     const badge = selectBadgeConfig({ style, density, positionCount: positions.length, platformFormat });
 
@@ -97,8 +137,11 @@ export const advertisementGenerationService = {
     }
 
     let pngBuffer: Buffer;
+    let backgroundBuffer: Buffer;
+    let renderedDocument = document;
     try {
       const result = await generateAdvertisement({
+        document,
         facts,
         widthPx: platformFormat.widthPx,
         heightPx: platformFormat.heightPx,
@@ -106,16 +149,12 @@ export const advertisementGenerationService = {
         theme: input.theme ?? undefined,
         agencyLogoPng,
         qrPng: qrResult.png,
-        agencyName: agency.name,
-        registrationNumber: agency.registrationNumber,
-        contactLine: buildContactLine(facts.contact, agency),
-        addressLine: buildAddressLine(agency),
-        // Footer style and badges are agency brand furniture, read from the
-        // verified profile — never from the advertisement or the AI.
-        footerStyle: agency.footerStyle,
-        brandBadges: normaliseBadges(agency.brandBadges),
       });
       pngBuffer = result.imagePng;
+      // Persisted alongside the advertisement so an edit re-renders over
+      // this artwork instead of buying new artwork from the image model.
+      backgroundBuffer = result.backgroundPng;
+      renderedDocument = result.document;
 
       await costTrackingService.record({
         operationType: "FULL_AD_GENERATION",
@@ -200,6 +239,9 @@ export const advertisementGenerationService = {
           badgeConfig: badge as unknown as Prisma.InputJsonValue,
           trustStatus: trustCheck.status,
           trustWarnings: trustCheck.warnings as unknown as Prisma.InputJsonValue,
+          documentJson: renderedDocument as unknown as Prisma.InputJsonValue,
+          backgroundAssetUrl: `data:image/png;base64,${backgroundBuffer.toString("base64")}`,
+          designDnaId: renderedDocument.design.dnaId,
           currentVersion: nextVersion,
         },
       });
@@ -214,6 +256,8 @@ export const advertisementGenerationService = {
             style,
             badge,
             trustStatus: trustCheck.status,
+            designDnaId: renderedDocument.design.dnaId,
+            document: renderedDocument,
           } as unknown as Prisma.InputJsonValue,
           changeSummary: "Full advertisement generated",
           regenerationMethod: "AI_REGENERATED",
@@ -241,7 +285,7 @@ export const advertisementGenerationService = {
       entityId: advertisementId,
       agencyId,
       actorId,
-      metadata: { style, density, trustStatus: trustCheck.status },
+      metadata: { style, density, trustStatus: trustCheck.status, designDnaId: renderedDocument.design.dnaId },
     });
 
     log.info({ advertisementId, style, density, trustStatus: trustCheck.status }, "Advertisement generated");
@@ -266,28 +310,10 @@ async function fetchImageBuffer(url: string | null | undefined): Promise<Buffer 
   }
 }
 
-/** A single "email | phone" line for the Branding Overlay's footer band — omits whichever fields are absent rather than showing a blank. */
 /**
- * Contact details come from the Agency Profile — the single source of
- * truth — so a recruiter never retypes their own phone and email for each
- * campaign, and a typo cannot ship on the artwork.
- *
- * An advertisement-level value still wins when one is present: that is a
- * deliberate per-campaign override (a dedicated hotline for one drive),
- * not the default path.
+ * Contact and address lines now come from Agency DNA
+ * (`src/server/generation/dna/agency-dna.ts`), which the renderer reads
+ * off the document. They were duplicated here, which meant the trust
+ * strip could be built from a different source than the one the document
+ * recorded.
  */
-function buildContactLine(
-  contact: { phone?: string; email?: string; whatsapp?: string },
-  agency: { phone?: string | null; whatsapp?: string | null; officialEmail?: string | null },
-): string | null {
-  const phone = contact.phone ?? agency.phone ?? agency.whatsapp ?? undefined;
-  const email = contact.email ?? agency.officialEmail ?? undefined;
-  const parts = [email, phone].filter((v): v is string => Boolean(v));
-  return parts.length > 0 ? parts.join(" | ") : null;
-}
-
-/** Office address and website for the branding band, from the profile. */
-function buildAddressLine(agency: { officeAddress?: string | null; website?: string | null }): string | null {
-  const parts = [agency.officeAddress, agency.website].filter((v): v is string => Boolean(v));
-  return parts.length > 0 ? parts.join("  ·  ") : null;
-}

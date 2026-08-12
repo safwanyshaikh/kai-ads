@@ -1,0 +1,305 @@
+[
+  {
+    "code": "DTP-1",
+    "name": "Minimum display — 4 × 5 cm",
+    "surface": "print",
+    "canvas": "472×591px",
+    "capacity": 7,
+    "capacityNote": "fixed 2.40cm / row_pitch 0.32cm → 7 rows × 1 col = 7",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-1"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-1"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-1"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DTP-1.png"
+  },
+  {
+    "code": "DTP-2",
+    "name": "Standard medium — 10 × 10 cm",
+    "surface": "print",
+    "canvas": "1181×1181px",
+    "capacity": 26,
+    "capacityNote": "realistic figure per §8, derated from 32 raw slots for word-wrap",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-2"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-2"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-2"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DTP-2.png"
+  },
+  {
+    "code": "DTP-3",
+    "name": "Quarter page — 12 × 20 cm",
+    "surface": "print",
+    "canvas": "1417×2362px",
+    "capacity": 50,
+    "capacityNote": "realistic figure per §8, derated from 78 raw slots for word-wrap",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-3"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-3"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-3"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DTP-3.png"
+  },
+  {
+    "code": "DTP-4",
+    "name": "Half page, horizontal — 25 × 16 cm",
+    "surface": "print",
+    "canvas": "2953×1890px",
+    "capacity": 145,
+    "capacityNote": "5 internal cols (echoes AAT's own 4.576cm page-column pitch) × 29 rows",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-4"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-4"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DTP-4"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DTP-4.png"
+  },
+  {
+    "code": "DG-1",
+    "name": "Feed square — 1080 × 1080",
+    "surface": "digital",
+    "canvas": "1080×1080px",
+    "capacity": 16,
+    "capacityNote": "8 rows × 2 cols, per §8 two-column figure",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-1"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-1"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-1"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-1.png"
+  },
+  {
+    "code": "DG-2",
+    "name": "Portrait — the workhorse — 1080 × 1350",
+    "surface": "digital",
+    "canvas": "1080×1350px",
+    "capacity": 26,
+    "capacityNote": "13 rows × 2 cols, per §8 two-column figure",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-2"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-2"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-2"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-2.png"
+  },
+  {
+    "code": "DG-3",
+    "name": "Story — 1080 × 1920 (asymmetric safe area)",
+    "surface": "digital",
+    "canvas": "1080×1920px",
+    "capacity": 16,
+    "capacityNote": "max-density pitch (32px): 512px Z3 / 32px = 16 rows, 1 col",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-3"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-3"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-3"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-3.png"
+  },
+  {
+    "code": "DG-5",
+    "name": "LinkedIn / web banner — 1200 × 628 (unit keyed to height)",
+    "surface": "digital",
+    "canvas": "1200×628px",
+    "capacity": 32,
+    "capacityNote": "landscape split: left region Z3=515px / 32px pitch = 16 rows × 2 cols",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-5"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-5"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-5"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-5.png"
+  },
+  {
+    "code": "DG-6",
+    "name": "Mega-listing — 1600 × 900 (numbered category groups)",
+    "surface": "digital",
+    "canvas": "1600×900px",
+    "capacity": 70,
+    "capacityNote": "5 independent group grids, 7 cols each, 10 total rows across all groups (2+2+2+2+2) — reduced from the height-only 11-row/88-cap arithmetic on two counts: the 'CATEGORY 88' label wraps to a second line at 8 columns' width (7 cols is the real fit), and one row's worth of height was traded back for a bigger QR (16%V vs 9%V) once the 0.5×-scale phone-camera decode check kept failing at the smaller size — so capacity is 5 × (2×7) = 70, not 88",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-6"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-6"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-6"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-6.png"
+  },
+  {
+    "code": "DG-4 · Frame 1",
+    "name": "STOP",
+    "surface": "digital",
+    "canvas": "1080×1350px",
+    "capacity": 0,
+    "capacityNote": "hook only — no category block in this frame",
+    "auditFindings": [],
+    "qr": [],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-4_Frame_1.png"
+  },
+  {
+    "code": "DG-4 · Frame 2",
+    "name": "SELF-IDENTIFY",
+    "surface": "digital",
+    "canvas": "1080×1350px",
+    "capacity": 74,
+    "capacityNote": "this frame carries the full listing: 37 rows × 2 cols = 74",
+    "auditFindings": [],
+    "qr": [],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-4_Frame_2.png"
+  },
+  {
+    "code": "DG-4 · Frame 3",
+    "name": "QUALIFY",
+    "surface": "digital",
+    "canvas": "1080×1350px",
+    "capacity": 0,
+    "capacityNote": "eligibility detail, not category-capacity-bound",
+    "auditFindings": [],
+    "qr": [],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-4_Frame_3.png"
+  },
+  {
+    "code": "DG-4 · Frame 4",
+    "name": "ACT",
+    "surface": "digital",
+    "canvas": "1080×1350px",
+    "capacity": 0,
+    "capacityNote": "trust/response stack, generously spaced",
+    "auditFindings": [],
+    "qr": [
+      {
+        "scale": 1,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-4 · Frame 4"
+      },
+      {
+        "scale": 0.7,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-4 · Frame 4"
+      },
+      {
+        "scale": 0.5,
+        "decoded": true,
+        "payload": "https://verify.kai.example/demo/DG-4 · Frame 4"
+      }
+    ],
+    "file": "/home/user/kai-ads/scripts/layout-engine/out/DG-4_Frame_4.png"
+  }
+]

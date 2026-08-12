@@ -24,7 +24,21 @@ export class OpenAiTextProvider implements TextGenerationProvider {
     const response = await client.responses.create({
       model,
       instructions: input.instructions,
-      input: input.input,
+      input: input.imagePng
+        ? [
+            {
+              role: "user" as const,
+              content: [
+                { type: "input_text" as const, text: input.input },
+                {
+                  type: "input_image" as const,
+                  image_url: `data:image/png;base64,${input.imagePng.toString("base64")}`,
+                  detail: "high" as const,
+                },
+              ],
+            },
+          ]
+        : input.input,
     });
 
     return {
