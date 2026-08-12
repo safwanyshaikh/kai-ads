@@ -38,6 +38,7 @@ export const visualQaResultSchema = z.object({
   canvasUtilizationScore: score,
   ctaScore: score,
   trustScore: score,
+  /** PRESENTATION defects only — layout, spacing, imagery, contrast, composition. Never a factual claim. */
   defects: z.array(z.string()),
   /**
    * Catastrophic defects — a NON-EMPTY list here prevents PASS regardless
@@ -45,9 +46,42 @@ export const visualQaResultSchema = z.object({
    * model's verdict): unreadable/clipped/overlapping content, apparent
    * fabricated branding or signage inside imagery, generated gibberish
    * text damaging the advertisement, severe canvas misuse, or missing
-   * agency/verification identity.
+   * agency/verification identity. PRESENTATION only — a factual reading
+   * (e.g. "this role name looks wrong") belongs in factualMismatches /
+   * factualUncertain below, never here, because catastrophicDefects
+   * blocks PASS on the model's own say-so and a fact call is never the
+   * model's to make.
    */
   catastrophicDefects: z.array(z.string()),
+  /**
+   * Genuine mismatches between the canonical AdvertisementFacts supplied
+   * as expectedFacts and what the deterministic text actually shows on
+   * the rendered image — e.g. a rendering bug that clipped or garbled a
+   * role name. This is NEVER the model's own opinion that a canonical
+   * term should read differently (KAI's deterministic fact layer is the
+   * sole authority for recruitment text — see docs/010 Amendment 1); it
+   * is only ever a literal transcription disagreeing with the literal
+   * canonical string. FACTUAL_RENDER_MISMATCH in the ticket sense.
+   */
+  factualMismatches: z.array(
+    z.object({
+      expected: z.string(),
+      observed: z.string(),
+      location: z.string(),
+    }),
+  ),
+  /**
+   * Text that is visually ambiguous (blur, small size, low contrast) and
+   * cannot be confidently transcribed — reported here instead of guessed
+   * at and instead of silently treated as a mismatch.
+   * FACTUAL_TEXT_UNCERTAIN in the ticket sense.
+   */
+  factualUncertain: z.array(
+    z.object({
+      observed: z.string(),
+      location: z.string(),
+    }),
+  ),
   requiredCorrections: z.array(
     z.object({
       type: visualQaCorrectionTypeSchema,
@@ -60,6 +94,66 @@ export const visualQaResultSchema = z.object({
 export type VisualQaCorrectionType = z.infer<typeof visualQaCorrectionTypeSchema>;
 export type VisualQaResult = z.infer<typeof visualQaResultSchema>;
 
+/**
+ * The canonical, source-grounded facts Visual QA is allowed to check the
+ * render against. Built from the same AdvertisementFacts the deterministic
+ * Rendering Engine typeset the advertisement from (docs/010 Amendment 1) —
+ * never re-derived or re-interpreted, so the vision model has no room to
+ * "correct" a fact it merely finds unfamiliar (e.g. "Rotating equipment
+ * technician" is not a typo for "equipment technician" just because that
+ * reading is more common).
+ *
+ * Fields the source genuinely did not supply (salary, benefits, interview,
+ * contact) are represented by their *Provided flags being false, and their
+ * ABSENCE must never be scored as a defect — it is a source-data condition,
+ * not a generation error.
+ */
+export interface VisualQaExpectedFacts {
+  header: string;
+  /** Exact, verbatim canonical role titles — the sole authority for role-name text on the render. */
+  positions: string[];
+  country?: string | null;
+  industry?: string | null;
+  salaryProvided: boolean;
+  benefitsProvided: boolean;
+  interviewProvided: boolean;
+  /** True only when the source supplied a phone/email/whatsapp — a missing CTA is then a source condition, not a defect. */
+  contactProvided: boolean;
+  agencyName: string;
+  registrationNumber?: string | null;
+}
+
+/**
+ * Builds the expectedFacts payload from the same AdvertisementFacts the
+ * Rendering Engine already typeset from — a pure projection, no new facts
+ * invented or inferred.
+ */
+export function buildVisualQaExpectedFacts(input: {
+  header: string;
+  country?: string | null;
+  industry?: string | null;
+  positions: { title: string }[];
+  salaryProvided: boolean;
+  benefits: unknown[];
+  interview: unknown[];
+  contact: { phone?: string; email?: string; whatsapp?: string };
+  agencyName: string;
+  registrationNumber?: string | null;
+}): VisualQaExpectedFacts {
+  return {
+    header: input.header,
+    positions: input.positions.map((p) => p.title),
+    country: input.country ?? null,
+    industry: input.industry ?? null,
+    salaryProvided: input.salaryProvided,
+    benefitsProvided: input.benefits.length > 0,
+    interviewProvided: input.interview.length > 0,
+    contactProvided: Boolean(input.contact.phone || input.contact.email || input.contact.whatsapp),
+    agencyName: input.agencyName,
+    registrationNumber: input.registrationNumber ?? null,
+  };
+}
+
 export interface VisualQaInput {
   /** The final rasterized advertisement, exactly as it would be exported. */
   imagePngBase64: string;
@@ -67,6 +161,12 @@ export interface VisualQaInput {
   platformFormatKey: string;
   widthPx: number;
   heightPx: number;
+  /**
+   * The canonical source facts, supplied separately from the image so the
+   * model checks the render against KAI's own authoritative text instead
+   * of inferring correctness from vision/OCR alone.
+   */
+  expectedFacts: VisualQaExpectedFacts;
 }
 
 export interface VisualQaProvider {
