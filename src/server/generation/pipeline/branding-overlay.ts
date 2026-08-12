@@ -107,7 +107,7 @@ const LOGO_TEXT_GAP_FACTOR = 1.0; // horizontal whitespace between logo and text
  * rather than a published advertisement. It is now confined to the artwork
  * and faint enough to survive only as an attribution trace.
  */
-const WATERMARK_OPACITY = 0.05;
+const WATERMARK_OPACITY = 0.02;
 const WATERMARK_TILE_WIDTH_PCT = 0.16;
 const WATERMARK_TILE_SPACING_FACTOR = 1.7;
 const WATERMARK_ROTATION_DEGREES = 30;
