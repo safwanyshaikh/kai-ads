@@ -10,12 +10,22 @@ import { generationQuotaService } from "@/server/services/generation-quota.servi
 import { storageService } from "@/server/services/storage.service";
 import { classifyDensity } from "@/server/generation/density-classification.service";
 import { selectBadgeConfig } from "@/server/generation/badge-selection.service";
-import { buildQrTrackingUrl, generateAndVerifyQr } from "@/server/generation/qr-renderer";
+import {
+  buildQrTrackingUrl,
+  generateAndVerifyQr,
+} from "@/server/generation/qr-renderer";
 import { buildAdvertisementFacts } from "@/server/generation/pipeline/requirement-intelligence";
 import { generateAdvertisement } from "@/server/generation/pipeline/generate";
+import {
+  runVisualQaGate,
+  VisualQaGateError,
+} from "@/server/generation/visual-qa-gate";
 import { runTrustCheck } from "@/server/generation/trust-validation.service";
 import { isValidThemeKey } from "@/server/generation/theme-recommendation.service";
-import { getPlatformFormat, isValidPlatformFormatKey } from "@/lib/platform-formats";
+import {
+  getPlatformFormat,
+  isValidPlatformFormatKey,
+} from "@/lib/platform-formats";
 import { ImageProviderNotImplementedError } from "@/server/ai/image";
 import { getEnv } from "@/lib/env";
 import { AUDIT_ACTIONS } from "@/lib/constants";
@@ -27,11 +37,26 @@ const log = createLogger("advertisement-generation");
 
 export const advertisementGenerationService = {
   /**
-   * The one production advertisement pipeline: Requirement Intelligence ->
-   * Creative Brief -> one GPT Image call -> Minimal Branding Overlay ->
-   * persist. This is the exact same function the batch/benchmark scripts
-   * call — there is no other code path and no flag choosing a different
-   * engine.
+   * Production advertisement pipeline:
+   *
+   * Requirement Intelligence
+   *   ->
+   * Creative Brief
+   *   ->
+   * Gemini Creative Engine
+   *   ->
+   * KAI deterministic fact layer
+   *   ->
+   * KAI minimal branding / verification
+   *   ->
+   * FINAL RASTER
+   *   ->
+   * KAI Visual QA
+   *   ->
+   * persist only after QA PASS
+   *
+   * Gemini owns visual creativity.
+   * KAI owns factual precision, identity and publication gating.
    */
   async generate(
     advertisementId: string,
@@ -40,44 +65,99 @@ export const advertisementGenerationService = {
     input: GenerateAdvertisementInput,
   ) {
     if (!isValidPlatformFormatKey(input.platformFormat)) {
-      throw new AppError(`Unknown platform format "${input.platformFormat}".`, 400);
+      throw new AppError(
+        `Unknown platform format "${input.platformFormat}".`,
+        400,
+      );
     }
+
     if (input.theme && !isValidThemeKey(input.theme)) {
-      throw new AppError(`Unknown theme "${input.theme}".`, 400);
+      throw new AppError(
+        `Unknown theme "${input.theme}".`,
+        400,
+      );
     }
 
-    await generationQuotaService.assertGenerationAllowed(agencyId);
+    await generationQuotaService.assertGenerationAllowed(
+      agencyId,
+    );
 
-    const advertisement = await advertisementRepository.findById(advertisementId, agencyId);
-    if (!advertisement) throw new NotFoundError("Advertisement");
+    const advertisement =
+      await advertisementRepository.findById(
+        advertisementId,
+        agencyId,
+      );
 
-    const agency = await agencyRepository.findById(agencyId);
-    if (!agency) throw new NotFoundError("Agency");
+    if (!advertisement) {
+      throw new NotFoundError("Advertisement");
+    }
 
-    const verification = await agencyVerificationRepository.findByAgencyId(agencyId);
-    const platformFormat = getPlatformFormat(input.platformFormat);
+    const agency =
+      await agencyRepository.findById(agencyId);
 
-    // Requirement Intelligence: grounded facts assembled from the
-    // Advertisement/Agency records (currency-corrected, never fabricated).
-    const facts = buildAdvertisementFacts(advertisement, agency);
+    if (!agency) {
+      throw new NotFoundError("Agency");
+    }
 
-    const positions = advertisement.positions as unknown as { title: string; count?: number }[];
-    const density = classifyDensity(positions.map((p) => ({ title: p.title, count: p.count })));
+    const verification =
+      await agencyVerificationRepository.findByAgencyId(
+        agencyId,
+      );
+
+    const platformFormat =
+      getPlatformFormat(input.platformFormat);
+
+    /**
+     * Requirement Intelligence
+     *
+     * Facts are grounded in the advertisement + agency records.
+     */
+    const facts = buildAdvertisementFacts(
+      advertisement,
+      agency,
+    );
+
+    const positions =
+      advertisement.positions as unknown as Array<{
+        title: string;
+        count?: number;
+      }>;
+
+    const density = classifyDensity(
+      positions.map((position) => ({
+        title: position.title,
+        count: position.count,
+      })),
+    );
+
     const style = input.style ?? "VISUAL";
 
-    const agencyLogoPng = await fetchImageBuffer(agency.logoUrl);
+    const agencyLogoPng =
+      await fetchImageBuffer(agency.logoUrl);
 
-    const badge = selectBadgeConfig({ style, density, positionCount: positions.length, platformFormat });
+    const badge = selectBadgeConfig({
+      style,
+      density,
+      positionCount: positions.length,
+      platformFormat,
+    });
 
-    // If the agency has no verification record yet, the QR still
-    // generates — it simply points at a verification ID whose status is
-    // UNVERIFIED, which the public /v/ page reports honestly rather than
-    // claiming a verification that doesn't exist.
-    const verificationId = verification?.id ?? agencyId;
-    const qrUrl = buildQrTrackingUrl({ agencyVerificationId: verificationId, advertisementId });
+    /**
+     * QR verification is generated before creative generation
+     * because it is part of the final verified branding layer.
+     */
+    const verificationId =
+      verification?.id ?? agencyId;
+
+    const qrUrl = buildQrTrackingUrl({
+      agencyVerificationId: verificationId,
+      advertisementId,
+    });
 
     const startedAt = Date.now();
+
     let qrResult;
+
     try {
       qrResult = await generateAndVerifyQr(qrUrl);
     } catch (error) {
@@ -89,15 +169,26 @@ export const advertisementGenerationService = {
         outputTokens: null,
         latencyMs: Date.now() - startedAt,
         success: false,
-        errorMessage: error instanceof Error ? error.message : "QR generation failed",
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "QR generation failed",
         agencyId,
         userId: actorId,
       });
+
       throw error;
     }
 
     let pngBuffer: Buffer;
+    let generationModel = "unknown";
+    let generationLatencyMs = 0;
+
     try {
+      /**
+       * Gemini creates the visual advertisement.
+       * KAI adds the factual/verification layers internally.
+       */
       const result = await generateAdvertisement({
         facts,
         widthPx: platformFormat.widthPx,
@@ -107,61 +198,187 @@ export const advertisementGenerationService = {
         agencyLogoPng,
         qrPng: qrResult.png,
         agencyName: agency.name,
-        registrationNumber: agency.registrationNumber,
-        contactLine: buildContactLine(facts.contact, agency),
+        registrationNumber:
+          agency.registrationNumber,
+        contactLine: buildContactLine(
+          facts.contact,
+          agency,
+        ),
         addressLine: buildAddressLine(agency),
-        // Footer style and badges are agency brand furniture, read from the
-        // verified profile — never from the advertisement or the AI.
         footerStyle: agency.footerStyle,
-        brandBadges: normaliseBadges(agency.brandBadges),
+        brandBadges: normaliseBadges(
+          agency.brandBadges,
+        ),
       });
-      pngBuffer = result.imagePng;
 
+      pngBuffer = result.imagePng;
+      generationModel = result.usage.model;
+      generationLatencyMs = result.usage.latencyMs;
+
+      /**
+       * FINAL VISUAL QA
+       *
+       * The exact final raster that will be saved is inspected.
+       *
+       * Nothing is persisted before this gate passes.
+       */
+      const visualQa = await runVisualQaGate({
+        imagePng: pngBuffer,
+        platformFormatKey:
+          input.platformFormat,
+        widthPx: platformFormat.widthPx,
+        heightPx: platformFormat.heightPx,
+      });
+
+      /**
+       * Successful Gemini generation + successful Visual QA.
+       */
       await costTrackingService.record({
         operationType: "FULL_AD_GENERATION",
-        provider: "openai",
-        model: result.usage.model,
+        provider: "gemini",
+        model: generationModel,
         inputTokens: null,
         outputTokens: null,
-        latencyMs: result.usage.latencyMs,
+        latencyMs: generationLatencyMs,
         success: true,
         agencyId,
         userId: actorId,
         advertisementId,
         imageSize: `${platformFormat.widthPx}x${platformFormat.heightPx}`,
-        imageQuality: getEnv().KAI_IMAGE_QUALITY,
+        imageQuality:
+          getEnv().KAI_IMAGE_QUALITY,
       });
+
+      log.info(
+        {
+          advertisementId,
+          visualQaScore:
+            visualQa.overallScore,
+          visualQaVerdict:
+            visualQa.verdict,
+          visualQaDefects:
+            visualQa.defects,
+          visualQaCatastrophicDefects:
+            visualQa.catastrophicDefects,
+        },
+        "Final advertisement passed KAI Visual QA",
+      );
     } catch (error) {
-      if (error instanceof ImageProviderNotImplementedError) {
+      /**
+       * Visual QA rejection is a controlled generation failure.
+       * The image is NOT stored as a successful advertisement.
+       */
+      if (
+        error instanceof VisualQaGateError
+      ) {
+        await costTrackingService.record({
+          operationType: "FULL_AD_GENERATION",
+          provider: "gemini",
+          model: generationModel,
+          inputTokens: null,
+          outputTokens: null,
+          latencyMs:
+            Date.now() - startedAt,
+          success: false,
+          errorMessage: error.message,
+          agencyId,
+          userId: actorId,
+          advertisementId,
+          imageSize: `${platformFormat.widthPx}x${platformFormat.heightPx}`,
+          imageQuality:
+            getEnv().KAI_IMAGE_QUALITY,
+        });
+
+        const detail =
+          error.result.catastrophicDefects
+            .length > 0
+            ? error.result.catastrophicDefects.join(
+                "; ",
+              )
+            : error.result.defects.join(
+                "; ",
+              );
+
+        log.warn(
+          {
+            advertisementId,
+            visualQaScore:
+              error.result.overallScore,
+            visualQaVerdict:
+              error.result.verdict,
+            defects:
+              error.result.defects,
+            catastrophicDefects:
+              error.result.catastrophicDefects,
+          },
+          "Advertisement blocked by KAI Visual QA",
+        );
+
+        throw new AppError(
+          `KAI Visual QA rejected this advertisement (${error.result.overallScore}/100). ${detail}`,
+          422,
+        );
+      }
+
+      /**
+       * Image provider not configured.
+       */
+      if (
+        error instanceof
+        ImageProviderNotImplementedError
+      ) {
         throw new AppError(
           "The KAI Creative Engine must be configured to generate advertisements — there is no fallback renderer.",
           503,
         );
       }
+
+      /**
+       * Any other generation error.
+       */
       await costTrackingService.record({
         operationType: "FULL_AD_GENERATION",
-        provider: "openai",
-        model: "unknown",
+        provider: "gemini",
+        model:
+          generationModel ||
+          "unknown",
         inputTokens: null,
         outputTokens: null,
-        latencyMs: Date.now() - startedAt,
+        latencyMs:
+          Date.now() - startedAt,
         success: false,
-        errorMessage: error instanceof Error ? error.message : "Advertisement generation failed",
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "Advertisement generation failed",
         agencyId,
         userId: actorId,
         advertisementId,
       });
-      log.error({ advertisementId, err: error }, "Advertisement generation failed");
+
+      log.error(
+        {
+          advertisementId,
+          err: error,
+        },
+        "Advertisement generation failed",
+      );
+
       throw error;
     }
 
+    /**
+     * Trust validation runs after the final image has passed
+     * visual quality. It validates agency/verification state and
+     * supplied contact presence.
+     */
     const trustCheck = runTrustCheck({
       agencyName: agency.name,
-      raLicenseId: agency.registrationNumber,
-      qrDecodable: qrResult.decodable,
-      // Profile-supplied contact details are printed on the advertisement
-      // too, so an agency that filled in its profile must not be flagged
-      // for a missing contact.
+      raLicenseId:
+        agency.registrationNumber,
+      qrDecodable:
+        qrResult.decodable,
+
       contactPresent: Boolean(
         facts.contact.phone ||
           facts.contact.email ||
@@ -170,124 +387,238 @@ export const advertisementGenerationService = {
           agency.whatsapp ||
           agency.officialEmail,
       ),
-      advertisementTexts: [advertisement.header, advertisement.footer, "MEA REGISTERED AGENCY", "VERIFY AGENCY"],
+
+      advertisementTexts: [
+        advertisement.header,
+        advertisement.footer,
+        "MEA REGISTERED AGENCY",
+        "VERIFY AGENCY",
+      ],
     });
 
-    const nextVersion = advertisement.currentVersion + 1;
+    const nextVersion =
+      advertisement.currentVersion + 1;
 
-    // Production bug fix (2026-08-07): this used to embed the entire
-    // rendered PNG as a base64 data: URI directly in the database row —
-    // a multi-MB string built and held in memory in the same request that
-    // just ran several sharp/libvips compositing passes, then written
-    // into the transaction below. Stored via the existing storage
-    // abstraction instead (same path uploadAdvertisementSource already
-    // uses), exactly like every other file this app persists.
-    const uploaded = await storageService.uploadGeneratedAdvertisement({
-      name: `${advertisementId}-v${nextVersion}.png`,
-      data: pngBuffer,
-    });
-    const generatedAssetUrl = uploaded.url;
-
-    const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-      const result = await tx.advertisement.update({
-        where: { id: advertisementId },
-        data: {
-          platformFormat: input.platformFormat,
-          density,
-          style,
-          theme: (input.theme ? { key: input.theme } : advertisement.theme) as Prisma.InputJsonValue,
-          generatedAssetUrl,
-          badgeConfig: badge as unknown as Prisma.InputJsonValue,
-          trustStatus: trustCheck.status,
-          trustWarnings: trustCheck.warnings as unknown as Prisma.InputJsonValue,
-          currentVersion: nextVersion,
-        },
+    /**
+     * Storage happens ONLY after:
+     *
+     * Gemini generation
+     * + KAI fact rendering
+     * + branding
+     * + Visual QA
+     * + trust preparation
+     */
+    const uploaded =
+      await storageService.uploadGeneratedAdvertisement({
+        name: `${advertisementId}-v${nextVersion}.png`,
+        data: pngBuffer,
       });
 
-      await tx.advertisementVersion.create({
-        data: {
-          advertisementId,
-          versionNumber: nextVersion,
-          snapshot: {
-            platformFormat: input.platformFormat,
-            density,
-            style,
-            badge,
-            trustStatus: trustCheck.status,
-          } as unknown as Prisma.InputJsonValue,
-          changeSummary: "Full advertisement generated",
-          regenerationMethod: "AI_REGENERATED",
-          createdById: actorId,
+    const generatedAssetUrl =
+      uploaded.url;
+
+    /**
+     * Persist the approved generation.
+     */
+    const updated =
+      await db.$transaction(
+        async (
+          tx: Prisma.TransactionClient,
+        ) => {
+          const result =
+            await tx.advertisement.update({
+              where: {
+                id: advertisementId,
+              },
+              data: {
+                platformFormat:
+                  input.platformFormat,
+                density,
+                style,
+                theme: (
+                  input.theme
+                    ? { key: input.theme }
+                    : advertisement.theme
+                ) as Prisma.InputJsonValue,
+                generatedAssetUrl,
+                badgeConfig:
+                  badge as unknown as Prisma.InputJsonValue,
+                trustStatus:
+                  trustCheck.status,
+                trustWarnings:
+                  trustCheck.warnings as unknown as Prisma.InputJsonValue,
+                currentVersion:
+                  nextVersion,
+              },
+            });
+
+          await tx.advertisementVersion.create({
+            data: {
+              advertisementId,
+              versionNumber:
+                nextVersion,
+              snapshot: {
+                platformFormat:
+                  input.platformFormat,
+                density,
+                style,
+                badge,
+                trustStatus:
+                  trustCheck.status,
+              } as unknown as Prisma.InputJsonValue,
+              changeSummary:
+                "Full advertisement generated and passed KAI Visual QA",
+              regenerationMethod:
+                "AI_REGENERATED",
+              createdById:
+                actorId,
+            },
+          });
+
+          await tx.advertisementHistory.create({
+            data: {
+              advertisementId,
+              action: "generated",
+              metadata: {
+                platformFormat:
+                  input.platformFormat,
+                style,
+                density,
+                trustStatus:
+                  trustCheck.status,
+              },
+              actorId,
+            },
+          });
+
+          return result;
         },
-      });
+      );
 
-      await tx.advertisementHistory.create({
-        data: {
-          advertisementId,
-          action: "generated",
-          metadata: { platformFormat: input.platformFormat, style, density, trustStatus: trustCheck.status },
-          actorId,
-        },
-      });
-
-      return result;
-    });
-
-    await generationQuotaService.recordSuccessfulGeneration(agencyId);
+    await generationQuotaService.recordSuccessfulGeneration(
+      agencyId,
+    );
 
     await auditLogService.record({
-      action: AUDIT_ACTIONS.advertisementGenerated,
-      entity: "Advertisement",
-      entityId: advertisementId,
+      action:
+        AUDIT_ACTIONS.advertisementGenerated,
+      entity:
+        "Advertisement",
+      entityId:
+        advertisementId,
       agencyId,
       actorId,
-      metadata: { style, density, trustStatus: trustCheck.status },
+      metadata: {
+        style,
+        density,
+        trustStatus:
+          trustCheck.status,
+      },
     });
 
-    log.info({ advertisementId, style, density, trustStatus: trustCheck.status }, "Advertisement generated");
+    log.info(
+      {
+        advertisementId,
+        style,
+        density,
+        trustStatus:
+          trustCheck.status,
+      },
+      "Advertisement generated and published after KAI Visual QA",
+    );
 
     return updated;
   },
 };
 
 /**
- * Fetches an image (agency logo, always our own storage's URL) and returns
- * its raw bytes. Failure is non-fatal — a logo that can't be fetched just
- * means no logo on the advertisement, not a broken generation.
+ * Fetches an image from our storage and returns raw bytes.
+ * Failure is non-fatal — generation can continue without the
+ * agency logo.
  */
-async function fetchImageBuffer(url: string | null | undefined): Promise<Buffer | null> {
+async function fetchImageBuffer(
+  url: string | null | undefined,
+): Promise<Buffer | null> {
   if (!url) return null;
+
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    return Buffer.from(await response.arrayBuffer());
+    const response =
+      await fetch(url);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return Buffer.from(
+      await response.arrayBuffer(),
+    );
   } catch {
     return null;
   }
 }
 
-/** A single "email | phone" line for the Branding Overlay's footer band — omits whichever fields are absent rather than showing a blank. */
 /**
- * Contact details come from the Agency Profile — the single source of
- * truth — so a recruiter never retypes their own phone and email for each
- * campaign, and a typo cannot ship on the artwork.
- *
- * An advertisement-level value still wins when one is present: that is a
- * deliberate per-campaign override (a dedicated hotline for one drive),
- * not the default path.
+ * Contact details come from the Agency Profile, with an
+ * advertisement-level value taking precedence when supplied.
  */
 function buildContactLine(
-  contact: { phone?: string; email?: string; whatsapp?: string },
-  agency: { phone?: string | null; whatsapp?: string | null; officialEmail?: string | null },
+  contact: {
+    phone?: string;
+    email?: string;
+    whatsapp?: string;
+  },
+  agency: {
+    phone?: string | null;
+    whatsapp?: string | null;
+    officialEmail?: string | null;
+  },
 ): string | null {
-  const phone = contact.phone ?? agency.phone ?? agency.whatsapp ?? undefined;
-  const email = contact.email ?? agency.officialEmail ?? undefined;
-  const parts = [email, phone].filter((v): v is string => Boolean(v));
-  return parts.length > 0 ? parts.join(" | ") : null;
+  const phone =
+    contact.phone ??
+    agency.phone ??
+    agency.whatsapp ??
+    undefined;
+
+  const email =
+    contact.email ??
+    agency.officialEmail ??
+    undefined;
+
+  const parts = [
+    email,
+    phone,
+  ].filter(
+    (value): value is string =>
+      Boolean(value),
+  );
+
+  return parts.length > 0
+    ? parts.join(" | ")
+    : null;
 }
 
-/** Office address and website for the branding band, from the profile. */
-function buildAddressLine(agency: { officeAddress?: string | null; website?: string | null }): string | null {
-  const parts = [agency.officeAddress, agency.website].filter((v): v is string => Boolean(v));
-  return parts.length > 0 ? parts.join("  ·  ") : null;
+/**
+ * Office address and website from the agency profile.
+ */
+function buildAddressLine(
+  agency: {
+    officeAddress?:
+      | string
+      | null;
+    website?:
+      | string
+      | null;
+  },
+): string | null {
+  const parts = [
+    agency.officeAddress,
+    agency.website,
+  ].filter(
+    (value): value is string =>
+      Boolean(value),
+  );
+
+  return parts.length > 0
+    ? parts.join("  ·  ")
+    : null;
 }
