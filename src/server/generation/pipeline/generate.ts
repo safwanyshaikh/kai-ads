@@ -1,5 +1,4 @@
 import { buildCreativeBrief } from "./creative-brief";
-import { renderFactLayer } from "./fact-layer";
 import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
@@ -12,189 +11,201 @@ export interface GeneratePipelineInput {
   facts: AdvertisementFacts;
   widthPx: number;
   heightPx: number;
+
   style?: string;
   theme?: string;
+
   agencyLogoPng?: Buffer | null;
   qrPng?: Buffer | null;
+
   agencyName?: string | null;
   registrationNumber?: string | null;
   contactLine?: string | null;
   addressLine?: string | null;
+
   footerStyle?: FooterStyle | null;
   brandBadges?: string[] | null;
 }
 
 export interface GeneratePipelineResult {
   imagePng: Buffer;
+
   brief: string;
+
   usage: {
     model: string;
     latencyMs: number;
     estimatedCostUsd: number | null;
   };
-  footerSelection: Awaited<ReturnType<typeof selectFooterStyle>>;
+
+  footerSelection: Awaited<
+    ReturnType<typeof selectFooterStyle>
+  >;
 }
 
 /**
- * KAI FINAL GENERATION PIPELINE
+ * KAI ADS — ONE PRODUCTION PIPELINE
  *
- * Separation of responsibilities:
+ * Requirement Intelligence
+ *      ↓
+ * Creative Brief
+ *      ↓
+ * Gemini Image
+ *      ↓
+ * ONE KAI Rendering Engine
+ *      ↓
+ * Finished Advertisement
  *
- *   REQUIREMENT INTELLIGENCE
- *       ↓
- *   CREATIVE BRIEF
- *       ↓
- *   LLM / GPT IMAGE
- *       ↓
- *   FULL CREATIVE ARTWORK
- *       ↓
- *   KAI FACT LAYER
- *       ↓
- *   MINIMAL BRANDING / VERIFICATION
- *       ↓
- *   FINAL ADVERTISEMENT
+ * GEMINI:
+ *   Owns the advertisement's visual design,
+ *   composition, imagery, typography concept,
+ *   hierarchy, colour, CTA treatment and
+ *   commercial appearance.
  *
- * The image model is the creative artist.
+ * KAI:
+ *   Supplies grounded recruitment intelligence
+ *   and deterministically renders precision-critical
+ *   recruitment facts / verification.
  *
- * KAI does NOT redesign the image.
- * KAI does NOT replace the image with a poster template.
- * KAI only guarantees precision-critical recruitment information.
+ * There is NO separate fact-layer composer here.
  */
 export async function generateAdvertisement(
   input: GeneratePipelineInput,
 ): Promise<GeneratePipelineResult> {
   /**
-   * STEP A — Creative intelligence.
+   * STEP 1
    *
-   * This brief contains visual/commercial direction only.
-   * Recruitment facts remain grounded in `facts`.
+   * KAI understands the requirement and produces
+   * the creative direction.
    */
-  const brief = await buildCreativeBrief(input.facts, {
-    style: input.style,
-    theme: input.theme,
-  });
-
-  /**
-   * STEP B — Generate the primary creative artwork.
-   *
-   * This is now the dominant visual asset.
-   */
-  const provider = getImageGenerationProvider();
-
-  const { output, usage } = await provider.generate({
-    prompt: brief,
-    widthPx: input.widthPx,
-    heightPx: input.heightPx,
-    quality: getEnv().KAI_IMAGE_QUALITY,
-  });
-
-  const aiArtworkPng = Buffer.from(
-    output.imageBase64,
-    "base64",
-  );
-
-  /**
-   * STEP C — Build the deterministic fact layer.
-   *
-   * The Fact Layer decides only how much vertical room verified
-   * information needs. It does not own the creative artwork.
-   */
-  const factLayer = await renderFactLayer({
-    facts: input.facts,
-    widthPx: input.widthPx,
-    heightPx: input.heightPx,
-  });
-
-  const finalHeight = factLayer.heightPx;
-  const artworkHeight = factLayer.artworkHeightPx;
-
-  /**
-   * STEP D — Place the AI artwork across the complete creative region.
-   *
-   * This is fundamentally different from the old pipeline.
-   *
-   * OLD:
-   *   AI image → small hero region → deterministic poster dominates
-   *
-   * NEW:
-   *   AI image → complete creative canvas → factual layer occupies
-   *              only its necessary precision zone
-   *
-   * The image occupies every pixel above the factual overlay boundary.
-   */
-  const creativeArtworkPng = await sharp(aiArtworkPng)
-    .resize(input.widthPx, artworkHeight, {
-      fit: "cover",
-      position: "attention",
-    })
-    .png()
-    .toBuffer();
-
-  /**
-   * STEP E — Compose AI creativity + KAI facts.
-   *
-   * Fact layer already contains its own controlled factual panel.
-   * Its upper region is transparent, so the LLM artwork remains visible.
-   */
-  const canvas = await sharp({
-    create: {
-      width: input.widthPx,
-      height: finalHeight,
-      channels: 4,
-      background: {
-        r: 0,
-        g: 0,
-        b: 0,
-        alpha: 0,
-      },
-    },
-  })
-    .composite([
+  const brief =
+    await buildCreativeBrief(
+      input.facts,
       {
-        input: creativeArtworkPng,
-        left: 0,
-        top: 0,
+        style: input.style,
+        theme: input.theme,
       },
-      {
-        input: factLayer.png,
-        left: 0,
-        top: 0,
-      },
-    ])
-    .png()
-    .toBuffer();
+    );
 
   /**
-   * STEP F — Branding / verification.
+   * STEP 2
    *
-   * Branding is deliberately applied AFTER the creative/fact composition.
-   * It cannot influence the image model and cannot compete with the
-   * creative direction.
+   * Gemini creates the complete primary advertisement.
+   *
+   * No pre-cropping.
+   * No reserved hero area.
+   * No template canvas.
+   * No fact panel is created before Gemini.
    */
-  const footerSelection = await selectFooterStyle(
-    canvas,
-    input.footerStyle,
-  );
+  const provider =
+    getImageGenerationProvider();
 
-  const finalPng = await applyBrandingOverlay({
-    imagePng: canvas,
-    widthPx: input.widthPx,
-    heightPx: finalHeight,
-    agencyLogoPng: input.agencyLogoPng,
-    qrPng: input.qrPng,
-    agencyName: input.agencyName,
-    registrationNumber: input.registrationNumber,
-    contactLine: input.contactLine,
-    addressLine: input.addressLine,
-    footerStyle: footerSelection.style,
-    brandBadges: input.brandBadges,
-    artworkHeightPx: artworkHeight,
-  });
+  const {
+    output,
+    usage,
+  } =
+    await provider.generate({
+      prompt: brief,
+      widthPx: input.widthPx,
+      heightPx: input.heightPx,
+      quality:
+        getEnv()
+          .KAI_IMAGE_QUALITY,
+    });
+
+  const aiArtworkPng =
+    Buffer.from(
+      output.imageBase64,
+      "base64",
+    );
+
+  /**
+   * STEP 3
+   *
+   * Normalise only the physical image dimensions
+   * required by the selected platform format.
+   *
+   * The original Gemini composition remains intact
+   * as much as possible.
+   */
+  const normalizedArtwork =
+    await sharp(
+      aiArtworkPng,
+    )
+      .resize(
+        input.widthPx,
+        input.heightPx,
+        {
+          fit: "cover",
+          position: "attention",
+        },
+      )
+      .png()
+      .toBuffer();
+
+  /**
+   * STEP 4
+   *
+   * One and only one deterministic Rendering Engine.
+   *
+   * It receives the FULL AdvertisementFacts object.
+   *
+   * It is responsible only for precision-critical
+   * recruitment information and verification.
+   */
+  const footerSelection =
+    await selectFooterStyle(
+      normalizedArtwork,
+      input.footerStyle,
+    );
+
+  const finalPng =
+    await applyBrandingOverlay({
+      imagePng:
+        normalizedArtwork,
+
+      widthPx:
+        input.widthPx,
+
+      heightPx:
+        input.heightPx,
+
+      facts:
+        input.facts,
+
+      agencyLogoPng:
+        input.agencyLogoPng,
+
+      qrPng:
+        input.qrPng,
+
+      agencyName:
+        input.agencyName,
+
+      registrationNumber:
+        input.registrationNumber,
+
+      contactLine:
+        input.contactLine,
+
+      addressLine:
+        input.addressLine,
+
+      footerStyle:
+        footerSelection.style,
+
+      brandBadges:
+        input.brandBadges,
+    });
 
   return {
-    imagePng: finalPng,
+    imagePng:
+      finalPng,
+
     brief,
+
     usage,
+
     footerSelection,
   };
 }
