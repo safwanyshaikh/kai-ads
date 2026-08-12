@@ -9,60 +9,155 @@ import type {
 
 type SupportedAspectRatio = "1:1" | "4:3" | "3:4";
 
-/** Maps an arbitrary platform-format aspect ratio onto the nearest ratio Gemini image generation supports — same three-way split as the OpenAI provider's nearestSupportedSize(), adapted to Gemini's aspectRatio config instead of an explicit pixel size. */
-function nearestSupportedAspectRatio(widthPx: number, heightPx: number): SupportedAspectRatio {
+function nearestSupportedAspectRatio(
+  widthPx: number,
+  heightPx: number,
+): SupportedAspectRatio {
   if (widthPx === heightPx) return "1:1";
   return widthPx > heightPx ? "4:3" : "3:4";
 }
 
 /**
- * Real Gemini image implementation — the "KAI Creative Engine" product
- * name and everything in it are internal only; no route or component
- * surfaces "Gemini" or the model name to an agency user (see
- * getIntegrationStatus / env.ts). Independent of the OpenAI image
- * provider (Option A) — its own key, its own client, its own rollback.
+ * Gemini is KAI's active image-generation engine.
  *
- * GPT/Gemini is the primary advertisement designer — it generates the
- * complete commercial advertisement composition. KAI overlays only
- * precision-critical elements (exact logo, QR, registration) afterward,
- * unchanged by which image model produced the base artwork.
+ * Gemini owns the visual advertisement:
+ * - concept
+ * - people
+ * - environment
+ * - visual storytelling
+ * - composition
+ * - lighting
+ * - colour
+ * - atmosphere
+ * - commercial impact
+ *
+ * KAI owns precision:
+ * - verified recruitment facts
+ * - exact positions
+ * - exact vacancy counts
+ * - exact salary/benefit information
+ * - interview details
+ * - contact details
+ * - logo
+ * - QR
+ * - registration/verification
+ *
+ * The Gemini image must therefore be a strong commercial visual,
+ * not a generic blank poster background.
  */
-export class KaiGeminiImageProvider implements ImageGenerationProvider {
+function buildGeminiCreativePrompt(
+  creativeBrief: string,
+): string {
+  return [
+    "KAI CREATIVE ENGINE — GEMINI IMAGE GENERATION.",
+    "",
+    "Create the primary visual artwork for a premium international recruitment advertisement.",
+    "",
+    "You are the creative artist. Produce a commercially strong, professionally art-directed advertisement visual.",
+    "",
+    "The creative brief below is the authoritative creative direction.",
+    "",
+    "KAI will apply the verified recruitment information after the image is generated.",
+    "",
+    "Therefore DO NOT render:",
+    "- readable recruitment text",
+    "- salary figures",
+    "- vacancy numbers",
+    "- dates",
+    "- phone numbers",
+    "- email addresses",
+    "- QR codes",
+    "- registration numbers",
+    "- fake logos",
+    "- watermarks",
+    "- fake UI",
+    "- pseudo-text",
+    "- fabricated signage",
+    "",
+    "DO create:",
+    "- a strong visual concept",
+    "- a clear primary subject",
+    "- realistic people where appropriate",
+    "- authentic workplace/environment",
+    "- cinematic depth",
+    "- professional lighting",
+    "- believable materials and machinery",
+    "- strong colour direction",
+    "- premium commercial photography",
+    "- immediate mobile impact",
+    "",
+    "Do not produce an empty generic background merely because factual information will be overlaid later.",
+    "",
+    "Do not use large dead zones as a substitute for creativity.",
+    "",
+    "The composition must feel complete and intentional even before KAI adds the factual layer.",
+    "",
+    "Human subjects must be realistic, relevant to the occupation and actively engaged in believable work whenever the creative brief calls for workers.",
+    "",
+    "Industrial scenes must contain authentic equipment, PPE, architecture, scale, materials and working conditions appropriate to the specified industry and destination.",
+    "",
+    "Do not fabricate factual claims through visible text or logos.",
+    "",
+    "CREATIVE BRIEF:",
+    creativeBrief,
+  ].join("\n");
+}
+
+export class KaiGeminiImageProvider
+  implements ImageGenerationProvider
+{
   readonly name = "gemini";
 
   async generate(
     input: ImageGenerationInput,
-  ): Promise<{ output: ImageGenerationOutput; usage: ImageGenerationUsage }> {
+  ): Promise<{
+    output: ImageGenerationOutput;
+    usage: ImageGenerationUsage;
+  }> {
     const client = getGeminiImageClient();
     const env = getEnv();
     const startedAt = Date.now();
 
+    const prompt = buildGeminiCreativePrompt(input.prompt);
+
     const response = await client.models.generateContent({
       model: env.KAI_IMAGE_MODEL,
-      contents: input.prompt,
+      contents: prompt,
       config: {
         responseModalities: ["TEXT", "IMAGE"],
         imageConfig: {
-          aspectRatio: nearestSupportedAspectRatio(input.widthPx, input.heightPx),
+          aspectRatio: nearestSupportedAspectRatio(
+            input.widthPx,
+            input.heightPx,
+          ),
         },
       },
     });
 
     const latencyMs = Date.now() - startedAt;
-    const imagePart = response.candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data);
+
+    const imagePart =
+      response.candidates?.[0]?.content?.parts?.find(
+        (part) => part.inlineData?.data,
+      );
+
     if (!imagePart?.inlineData?.data) {
-      throw new Error("KAI Creative Engine returned no image data.");
+      throw new Error(
+        "KAI Creative Engine returned no image data.",
+      );
     }
 
-    // Gemini image billing is token-based, not a flat per-image price —
-    // left null here rather than guessed, same rule as the OpenAI provider
-    // (see src/server/services/cost-estimation.ts's "never guess" rule).
     return {
       output: {
         imageBase64: imagePart.inlineData.data,
-        mimeType: imagePart.inlineData.mimeType ?? "image/png",
+        mimeType:
+          imagePart.inlineData.mimeType ?? "image/png",
       },
-      usage: { model: env.KAI_IMAGE_MODEL, latencyMs, estimatedCostUsd: null },
+      usage: {
+        model: env.KAI_IMAGE_MODEL,
+        latencyMs,
+        estimatedCostUsd: null,
+      },
     };
   }
 }
