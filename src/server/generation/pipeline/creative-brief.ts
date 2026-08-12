@@ -2,18 +2,14 @@ import { getTextGenerationProvider } from "@/server/ai/text";
 import type { AdvertisementFacts } from "./types";
 
 /**
- * KAI writes ONE brief, and under the Factual Integrity Law (docs/010
- * Amendment 1) it briefs the BACKGROUND ARTWORK ONLY.
+ * KAI writes ONE creative brief for the BACKGROUND ARTWORK ONLY.
  *
- * Every word a candidate must be able to trust — headline, job titles,
- * salaries, benefits, dates, contacts, licence — is typeset deterministically
- * by the Rendering Engine (fact-layer.ts + branding-overlay.ts) on top of
- * this artwork. The image model is therefore instructed to render no text at
- * all, which removes the entire class of defects that model-rendered facts
- * produced: dropped roles, invented roles, broken numbering, garbled strings.
+ * The image model owns atmosphere, photography, industrial environment,
+ * workers, lighting, depth and visual composition.
  *
- * The facts are still passed as input, because the artwork must truthfully
- * depict the right industry, destination and work — but never to be printed.
+ * All trusted recruitment facts — headline, employer, job titles, counts,
+ * salaries, benefits, dates, contacts, licence and QR — are rendered
+ * deterministically by the Fact Layer / Branding Engine.
  */
 export async function buildCreativeBrief(
   facts: AdvertisementFacts,
@@ -21,41 +17,91 @@ export async function buildCreativeBrief(
 ): Promise<string> {
   const provider = getTextGenerationProvider();
 
-  const styleHint = options?.style ? `Preferred visual style: ${options.style}. ` : "";
-  const themeHint = options?.theme ? `Preferred colour theme: ${options.theme}. ` : "";
+  const styleHint = options?.style
+    ? `Preferred visual style: ${options.style}. `
+    : "";
+
+  const themeHint = options?.theme
+    ? `Preferred colour theme: ${options.theme}. `
+    : "";
 
   const { text } = await provider.generateText({
     instructions:
-      "You are an art director briefing a photographic image model for a professional overseas-recruitment " +
-      "advertisement in the Gulf/GCC market. " +
-      "\n\nCRITICAL: you are briefing the BACKGROUND ARTWORK ONLY. Every word of the advertisement — headline, " +
-      "job titles, salaries, benefits, dates, contact details, licence number — is typeset separately and " +
-      "deterministically on top of the artwork you describe. " +
-      "\n\nTherefore: instruct the image model to render NO text, NO letters, NO numbers, NO logos, NO badges, " +
-      "NO signage, NO documents, NO screens showing writing, and NO QR codes. Any text it renders is a defect " +
-      "and will be covered over. Describe only: the scene, the workers and their real trade activity, the " +
-      "environment, time of day, lighting, atmosphere, depth and colour grade. " +
-      styleHint + themeHint +
-      "\n\nComposition constraints, which exist because text is placed over this artwork: keep the upper 40% of " +
-      "the frame visually calm and uncluttered (open sky, haze, a clear horizon) so headline text stays legible " +
-      "over it; avoid any bright or high-contrast focal point in the lower 60%; keep the main subject toward " +
-      "the right third of the frame; and leave the bottom edge quiet. " +
-      "\n\nThe scene must truthfully depict the industry and destination in the data below — real work, real " +
-      "protective equipment, real site conditions, real climate. Photographic realism, editorial quality, " +
-      "natural light. No stock-photo handshakes, no posed studio portraits, no corporate abstractions, no " +
-      "flags or national symbols. " +
-      "\n\nThese advertisements are published mainly to Instagram, Facebook, LinkedIn, WhatsApp and " +
-      "Telegram, and are read on a phone before anywhere else. Favour a modern, clean, social-first " +
-      "composition over a print-first one: strong immediate focal point, generous whitespace, high " +
-      "contrast that survives feed compression, and nothing so fine or busy that it disappears at " +
-      "thumbnail size. It must still hold up when downloaded, printed or exported to PDF. " +
-      "This is an objective, not a layout — decide the composition yourself. " +
-      "\n\nWrite one paragraph of visual direction. Do not list facts. Do not write advertising copy.",
+      "You are the senior art director for a premium international recruitment " +
+      "advertisement for major Gulf industrial projects. " +
+      "The image you create is the BACKGROUND ARTWORK ONLY. " +
+
+      "\n\nFACTUAL INTEGRITY LAW: " +
+      "Every trusted fact in the advertisement — headline, employer name, job titles, " +
+      "vacancy counts, salaries, benefits, dates, interview details, contact details, " +
+      "licence numbers, registration information and QR codes — is rendered separately " +
+      "and deterministically by the KAI Rendering Engine. " +
+      "The image model must NOT render those facts. " +
+
+      "\n\nTherefore NEVER render readable text, letters, numbers, logos, badges, " +
+      "QR codes, signage, documents, screens containing text, watermarks or fake branding. " +
+      "Describe only the visual artwork: environment, workers, equipment, trade activity, " +
+      "architecture, machinery, lighting, atmosphere, depth, perspective and colour grade. " +
+
+      styleHint +
+      themeHint +
+
+      "\n\nCREATIVE DIRECTION: " +
+      "Create a strong, premium recruitment campaign hero — not a blank background. " +
+      "The first impression must immediately communicate the real industry, the scale of " +
+      "the project and the professional nature of the opportunity. " +
+
+      "\n\nFor oil-and-gas, energy, petrochemical, construction, marine or industrial " +
+      "requirements, show an authentic working environment: realistic industrial structures, " +
+      "process equipment, maintenance activity, workers in correct PPE, machinery, access " +
+      "systems and believable site conditions. " +
+      "Never use generic corporate abstractions or posed stock-photo behaviour. " +
+
+      "\n\nCOMPOSITION: " +
+      "Keep approximately the upper 25% visually calm enough to support the deterministic " +
+      "headline overlay, but do NOT leave a large empty central area. " +
+      "Use the majority of the hero actively. " +
+      "Create a clear focal subject, preferably a real worker or recognisable industrial " +
+      "activity, prominently in the right third or slightly right-of-centre. " +
+      "The subject must be clearly visible and must not be cropped awkwardly at the bottom. " +
+
+      "\n\nBuild visual depth using foreground, midground and background elements. " +
+      "Use cinematic but believable natural lighting, realistic scale, atmospheric depth, " +
+      "controlled contrast and premium editorial photography. " +
+      "The image should feel like a professionally art-directed campaign for a major Gulf " +
+      "industrial project, not a generic stock image. " +
+
+      "\n\nThe lowest approximately 15% should remain comparatively simple so the KAI Fact Layer " +
+      "can safely occupy that region, but there must be NO huge dead zone above it. " +
+
+      "\n\nSOCIAL-FIRST QUALITY BAR: " +
+      "The advertisement will be viewed mainly on phones through WhatsApp, Instagram, " +
+      "Facebook, LinkedIn and Telegram. " +
+      "Create immediate visual impact, one dominant focal subject, strong depth, authentic " +
+      "industrial detail and a composition that remains compelling at thumbnail size. " +
+      "Avoid tiny details that disappear after compression. " +
+
+      "\n\nVISUAL AVOIDANCE: " +
+      "No stock-photo handshake, no posed office portrait, no smiling corporate team, " +
+      "no abstract blue technology background, no empty skyline, no giant empty sky, " +
+      "no random construction cranes without context, no decorative fantasy machinery, " +
+      "no flags or national symbols, no generic businessman imagery. " +
+
+      "\n\nTRUTHFUL ENVIRONMENT: " +
+      "The artwork must match the industry, country and project type supplied below. " +
+      "Use realistic PPE, climate, site conditions, machinery and architecture appropriate " +
+      "to the described industry and destination. " +
+
+      "\n\nThe output should be ONE concise paragraph of visual direction for the image model. " +
+      "Do not list facts. Do not write advertising copy. " +
+      "Do not describe layout coordinates for the factual text beyond the safe compositional " +
+      "guidance already provided.",
+
     input: JSON.stringify({
       industry: facts.industry,
       country: facts.country,
       projectType: facts.projectType,
-      trades: facts.positions.slice(0, 8).map((p) => p.title),
+      trades: facts.positions.slice(0, 10).map((p) => p.title),
     }),
   });
 
