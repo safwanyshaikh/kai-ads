@@ -7,96 +7,156 @@ import type {
   ImageGenerationUsage,
 } from "./image-provider.interface";
 
-type SupportedAspectRatio = "1:1" | "4:3" | "3:4";
+type SupportedAspectRatio =
+  | "1:1"
+  | "4:3"
+  | "3:4";
 
 function nearestSupportedAspectRatio(
   widthPx: number,
   heightPx: number,
 ): SupportedAspectRatio {
-  if (widthPx === heightPx) return "1:1";
-  return widthPx > heightPx ? "4:3" : "3:4";
+  if (widthPx === heightPx) {
+    return "1:1";
+  }
+
+  return widthPx > heightPx
+    ? "4:3"
+    : "3:4";
 }
 
 /**
- * Gemini is KAI's active image-generation engine.
+ * GEMINI = CREATIVE ADVERTISING ENGINE
  *
- * Gemini owns the visual advertisement:
- * - concept
- * - people
- * - environment
- * - visual storytelling
- * - composition
- * - lighting
- * - colour
- * - atmosphere
- * - commercial impact
+ * Gemini is responsible for creating the actual visual
+ * advertising concept from KAI's recruitment intelligence.
  *
- * KAI owns precision:
- * - verified recruitment facts
- * - exact positions
- * - exact vacancy counts
- * - exact salary/benefit information
- * - interview details
- * - contact details
- * - logo
- * - QR
- * - registration/verification
- *
- * The Gemini image must therefore be a strong commercial visual,
- * not a generic blank poster background.
+ * KAI remains responsible for exact factual identity,
+ * verification and publication controls.
  */
 function buildGeminiCreativePrompt(
   creativeBrief: string,
 ): string {
   return [
-    "KAI CREATIVE ENGINE — GEMINI IMAGE GENERATION.",
+    "KAI CREATIVE ENGINE — GEMINI ADVERTISING DIRECTOR.",
     "",
-    "Create the primary visual artwork for a premium international recruitment advertisement.",
+    "Create the visual creative for a professional overseas recruitment advertisement.",
     "",
-    "You are the creative artist. Produce a commercially strong, professionally art-directed advertisement visual.",
+    "IMPORTANT:",
+    "This is a REAL recruitment advertisement, not a background image.",
+    "Think and create like a senior advertising creative director producing a finished commercial campaign visual for a serious international recruitment agency.",
     "",
-    "The creative brief below is the authoritative creative direction.",
+    "The creative brief contains the recruitment intelligence and campaign direction.",
+    "Use that intelligence to decide the strongest visual story.",
     "",
-    "KAI will apply the verified recruitment information after the image is generated.",
+    "YOUR CREATIVE RESPONSIBILITY:",
+    "Create the strongest possible visual advertisement concept.",
+    "Choose the appropriate environment.",
+    "Choose the dominant human subject or work activity.",
+    "Choose the camera perspective.",
+    "Choose the visual hierarchy.",
+    "Choose lighting.",
+    "Choose depth.",
+    "Choose colour treatment.",
+    "Choose atmosphere.",
+    "Choose the emotional character of the campaign.",
+    "Make the industry immediately recognisable.",
+    "Make the destination/project environment believable.",
+    "Make the opportunity feel real, professional and commercially attractive.",
     "",
-    "Therefore DO NOT render:",
+    "DO NOT THINK OF YOURSELF AS A BACKGROUND GENERATOR.",
+    "Do not make a blank canvas waiting for another system.",
+    "Do not create large empty areas simply because information may be placed later.",
+    "Do not create a generic photograph with no advertising concept.",
+    "Do not create a document, spreadsheet, dashboard, presentation or recruitment database.",
+    "",
+    "THE VISUAL MUST STAND ON ITS OWN:",
+    "Even before KAI adds exact factual information, the image should already look like a professionally art-directed recruitment campaign.",
+    "",
+    "INDUSTRY RECOGNITION:",
+    "The industry must be visually obvious.",
+    "Use authentic environments, machinery, tools, PPE, architecture, materials and working conditions.",
+    "Oil and Gas must look like Oil and Gas.",
+    "Construction must look like Construction.",
+    "Marine and Shipyard must look like Marine and Shipyard.",
+    "Manufacturing must look like Manufacturing.",
+    "Hospitality must look like Hospitality.",
+    "Healthcare must look like Healthcare.",
+    "Agriculture must look like Agriculture.",
+    "Energy and Power must look like Energy and Power.",
+    "",
+    "PEOPLE:",
+    "When the recruitment opportunity involves workers or technical professionals, use realistic human subjects actively performing believable work.",
+    "Do not use posed stock-photo behaviour.",
+    "Use correct PPE and believable tools.",
+    "The primary human subject should be large enough to remain recognisable on a mobile phone.",
+    "",
+    "VISUAL STORYTELLING:",
+    "Use foreground, midground and background depth.",
+    "Create scale.",
+    "Use deliberate perspective.",
+    "Use believable natural or cinematic lighting.",
+    "Use authentic atmospheric conditions.",
+    "Create one dominant focal point instead of many competing subjects.",
+    "",
+    "COMMERCIAL ADVERTISING QUALITY:",
+    "The result should feel like a premium overseas recruitment campaign.",
+    "Strong first impression.",
+    "Clear visual hierarchy.",
+    "Professional editorial photography.",
+    "Realistic materials and people.",
+    "Authentic industry.",
+    "High visual impact.",
+    "Mobile-first readability and recognition.",
+    "",
+    "FACTUAL INTEGRITY:",
+    "KAI controls exact recruitment facts separately.",
+    "Therefore do NOT invent or render factual recruitment information.",
+    "",
+    "NEVER RENDER:",
     "- readable recruitment text",
-    "- salary figures",
+    "- job titles",
     "- vacancy numbers",
+    "- salary figures",
     "- dates",
     "- phone numbers",
     "- email addresses",
-    "- QR codes",
     "- registration numbers",
-    "- fake logos",
+    "- QR codes",
+    "- fake agency logos",
+    "- fake company logos",
     "- watermarks",
-    "- fake UI",
-    "- pseudo-text",
-    "- fabricated signage",
+    "- fabricated contact details",
+    "- fake certificates",
+    "- fake documents",
+    "- screens containing readable text",
+    "- fabricated recruitment signage",
     "",
-    "DO create:",
-    "- a strong visual concept",
-    "- a clear primary subject",
-    "- realistic people where appropriate",
-    "- authentic workplace/environment",
-    "- cinematic depth",
-    "- professional lighting",
-    "- believable materials and machinery",
-    "- strong colour direction",
-    "- premium commercial photography",
-    "- immediate mobile impact",
+    "DO NOT REPLACE TEXT WITH GIBBERISH:",
+    "Do not create pseudo-writing, fake letters or artificial text-like graphics.",
     "",
-    "Do not produce an empty generic background merely because factual information will be overlaid later.",
+    "BRANDING:",
+    "Do not invent branding.",
+    "Do not create fake company marks.",
+    "The exact agency identity is controlled by KAI.",
     "",
-    "Do not use large dead zones as a substitute for creativity.",
+    "COMPOSITION:",
+    "Do not reserve a giant blank area for text.",
+    "Do not force the visual into a poster template.",
+    "Do not create a giant dark information panel.",
+    "Do not create a table.",
+    "Do not create cards for every vacancy.",
+    "Do not sacrifice the hero image to make room for imaginary text.",
     "",
-    "The composition must feel complete and intentional even before KAI adds the factual layer.",
+    "The creative should have a natural advertising hierarchy:",
+    "strong visual hook → clear industry recognition → professional recruitment atmosphere → natural space where factual information can coexist without destroying the image.",
     "",
-    "Human subjects must be realistic, relevant to the occupation and actively engaged in believable work whenever the creative brief calls for workers.",
+    "The final composition should remain visually powerful even if exact text is subsequently added by KAI.",
     "",
-    "Industrial scenes must contain authentic equipment, PPE, architecture, scale, materials and working conditions appropriate to the specified industry and destination.",
+    "AVOID:",
+    "generic businessman imagery, handshake photography, empty skylines, fantasy machinery, unrealistic PPE, excessive posed workers, corporate stock-photo scenes, meaningless blue technology backgrounds, giant empty skies, decorative graphics with no recruitment meaning.",
     "",
-    "Do not fabricate factual claims through visible text or logos.",
+    "The supplied creative brief is the authoritative campaign direction.",
     "",
     "CREATIVE BRIEF:",
     creativeBrief,
@@ -114,34 +174,65 @@ export class KaiGeminiImageProvider
     output: ImageGenerationOutput;
     usage: ImageGenerationUsage;
   }> {
-    const client = getGeminiImageClient();
-    const env = getEnv();
-    const startedAt = Date.now();
+    const client =
+      getGeminiImageClient();
 
-    const prompt = buildGeminiCreativePrompt(input.prompt);
+    const env =
+      getEnv();
 
-    const response = await client.models.generateContent({
-      model: env.KAI_IMAGE_MODEL,
-      contents: prompt,
-      config: {
-        responseModalities: ["TEXT", "IMAGE"],
-        imageConfig: {
-          aspectRatio: nearestSupportedAspectRatio(
-            input.widthPx,
-            input.heightPx,
-          ),
-        },
-      },
-    });
+    const startedAt =
+      Date.now();
 
-    const latencyMs = Date.now() - startedAt;
-
-    const imagePart =
-      response.candidates?.[0]?.content?.parts?.find(
-        (part) => part.inlineData?.data,
+    const prompt =
+      buildGeminiCreativePrompt(
+        input.prompt,
       );
 
-    if (!imagePart?.inlineData?.data) {
+    const response =
+      await client.models.generateContent(
+        {
+          model:
+            env.KAI_IMAGE_MODEL,
+
+          contents:
+            prompt,
+
+          config: {
+            responseModalities: [
+              "TEXT",
+              "IMAGE",
+            ],
+
+            imageConfig: {
+              aspectRatio:
+                nearestSupportedAspectRatio(
+                  input.widthPx,
+                  input.heightPx,
+                ),
+            },
+          },
+        },
+      );
+
+    const latencyMs =
+      Date.now() -
+      startedAt;
+
+    const imagePart =
+      response
+        .candidates?.[0]
+        ?.content
+        ?.parts
+        ?.find(
+          (part) =>
+            part.inlineData?.data,
+        );
+
+    if (
+      !imagePart
+        ?.inlineData
+        ?.data
+    ) {
       throw new Error(
         "KAI Creative Engine returned no image data.",
       );
@@ -149,14 +240,26 @@ export class KaiGeminiImageProvider
 
     return {
       output: {
-        imageBase64: imagePart.inlineData.data,
+        imageBase64:
+          imagePart
+            .inlineData
+            .data,
+
         mimeType:
-          imagePart.inlineData.mimeType ?? "image/png",
+          imagePart
+            .inlineData
+            .mimeType ??
+          "image/png",
       },
+
       usage: {
-        model: env.KAI_IMAGE_MODEL,
+        model:
+          env.KAI_IMAGE_MODEL,
+
         latencyMs,
-        estimatedCostUsd: null,
+
+        estimatedCostUsd:
+          null,
       },
     };
   }
