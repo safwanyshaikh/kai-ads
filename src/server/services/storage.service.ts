@@ -6,17 +6,19 @@ const ALLOWED_LOGO_TYPES = new Set([
   "image/webp",
   "image/svg+xml",
 ]);
-const MAX_LOGO_BYTES = 5 * 1024 * 1024; // 5MB
 
-/** Create Advertisement upload methods: PDF, DOCX, Image, WhatsApp Screenshot. */
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+
 const ALLOWED_ADVERTISEMENT_SOURCE_TYPES = new Set([
   "application/pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "image/png",
   "image/jpeg",
   "image/webp",
 ]);
-const MAX_ADVERTISEMENT_SOURCE_BYTES = 15 * 1024 * 1024; // 15MB
+
+const MAX_ADVERTISEMENT_SOURCE_BYTES =
+  15 * 1024 * 1024;
 
 export class InvalidFileError extends Error {
   constructor(message: string) {
@@ -40,11 +42,15 @@ export const storageService = {
         "Logo must be a PNG, JPEG, WEBP, or SVG image.",
       );
     }
+
     if (file.data.byteLength > MAX_LOGO_BYTES) {
-      throw new InvalidFileError("Logo file must be smaller than 5MB.");
+      throw new InvalidFileError(
+        "Logo file must be smaller than 5MB.",
+      );
     }
 
     const provider = getStorageProvider();
+
     if (!provider.isConfigured) {
       throw new Error(
         "File storage is not configured yet. Set STORAGE_PROVIDER and its credentials.",
@@ -59,27 +65,32 @@ export const storageService = {
     });
   },
 
-  /**
-   * Create Advertisement — Upload PDF / Upload DOCX / Upload Image /
-   * Upload WhatsApp Screenshot. Stores the raw file only; parsing its
-   * contents into text is an AI Extraction concern (architecture only in
-   * Sprint 002 — see src/server/ai/).
-   */
   async uploadAdvertisementSource(file: {
     name: string;
     type: string;
     data: Buffer;
   }): Promise<{ url: string; key: string }> {
-    if (!ALLOWED_ADVERTISEMENT_SOURCE_TYPES.has(file.type)) {
+    if (
+      !ALLOWED_ADVERTISEMENT_SOURCE_TYPES.has(
+        file.type,
+      )
+    ) {
       throw new InvalidFileError(
         "File must be a PDF, DOCX, PNG, JPEG, or WEBP.",
       );
     }
-    if (file.data.byteLength > MAX_ADVERTISEMENT_SOURCE_BYTES) {
-      throw new InvalidFileError("File must be smaller than 15MB.");
+
+    if (
+      file.data.byteLength >
+      MAX_ADVERTISEMENT_SOURCE_BYTES
+    ) {
+      throw new InvalidFileError(
+        "File must be smaller than 15MB.",
+      );
     }
 
     const provider = getStorageProvider();
+
     if (!provider.isConfigured) {
       throw new Error(
         "File storage is not configured yet. Set STORAGE_PROVIDER and its credentials.",
@@ -95,21 +106,23 @@ export const storageService = {
   },
 
   /**
-   * Production bug fix (2026-08-07): the generation pipeline's rendered
-   * output was being stored as a base64 data: URI directly in the
-   * Advertisement row instead of using this same existing storage
-   * abstraction — a multi-MB string held in memory (the PNG buffer, then
-   * a full base64 copy of it) inside the same request that just ran
-   * several sharp/libvips compositing passes, then written into a
-   * Postgres transaction. Reuses the identical upload path
-   * uploadAdvertisementSource already uses; no new provider, no new
-   * module.
+   * Generated advertisements are delivered as WEBP.
+   *
+   * The generation pipeline can still work internally with PNG buffers.
+   * Storage receives the optimized WEBP so:
+   *
+   * - browser preview loads faster
+   * - Vercel response is smaller
+   * - storage transfer is smaller
+   * - download is faster
+   * - mobile users receive a much lighter file
    */
   async uploadGeneratedAdvertisement(file: {
     name: string;
     data: Buffer;
   }): Promise<{ url: string; key: string }> {
     const provider = getStorageProvider();
+
     if (!provider.isConfigured) {
       throw new Error(
         "File storage is not configured yet. Set STORAGE_PROVIDER and its credentials.",
@@ -118,8 +131,11 @@ export const storageService = {
 
     return provider.upload({
       path: "advertisement-generated",
-      fileName: file.name,
-      contentType: "image/png",
+      fileName: file.name.endsWith(".webp")
+        ? file.name
+        : file.name.replace(/\.[^.]+$/, "") +
+          ".webp",
+      contentType: "image/webp",
       data: file.data,
     });
   },
