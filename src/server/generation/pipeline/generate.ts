@@ -19,9 +19,7 @@ export interface GeneratePipelineInput {
   agencyName?: string | null;
   registrationNumber?: string | null;
   contactLine?: string | null;
-  /** Agency address/website line for the branding band. */
   addressLine?: string | null;
-  /** Agency's saved footer preference; when absent KAI selects one. */
   footerStyle?: FooterStyle | null;
   brandBadges?: string[] | null;
 }
@@ -34,39 +32,53 @@ export interface GeneratePipelineResult {
     latencyMs: number;
     estimatedCostUsd: number | null;
   };
-  /** Which footer was used and why — surfaced to the recruiter and analytics. */
   footerSelection: Awaited<ReturnType<typeof selectFooterStyle>>;
 }
 
 /**
- * The one production advertisement pipeline.
+ * KAI FINAL GENERATION PIPELINE
  *
- * Pipeline:
+ * Separation of responsibilities:
  *
- *   Requirement Intelligence
- *   -> Creative Brief
- *   -> AI Background Artwork
- *   -> Deterministic Fact Layer
- *   -> Minimal Branding Overlay
- *   -> Final Advertisement
+ *   REQUIREMENT INTELLIGENCE
+ *       ↓
+ *   CREATIVE BRIEF
+ *       ↓
+ *   LLM / GPT IMAGE
+ *       ↓
+ *   FULL CREATIVE ARTWORK
+ *       ↓
+ *   KAI FACT LAYER
+ *       ↓
+ *   MINIMAL BRANDING / VERIFICATION
+ *       ↓
+ *   FINAL ADVERTISEMENT
  *
- * Important:
- * The AI background belongs ONLY inside the calculated artwork/hero region.
- * It must never be resized against the entire final poster height.
+ * The image model is the creative artist.
  *
- * Gemini currently produces landscape artwork at its supported aspect ratio.
- * Resizing that artwork directly to the full final canvas with `fit: cover`
- * crops the hero subject because the final canvas contains the factual body
- * and branding strip below it.
+ * KAI does NOT redesign the image.
+ * KAI does NOT replace the image with a poster template.
+ * KAI only guarantees precision-critical recruitment information.
  */
 export async function generateAdvertisement(
   input: GeneratePipelineInput,
 ): Promise<GeneratePipelineResult> {
+  /**
+   * STEP A — Creative intelligence.
+   *
+   * This brief contains visual/commercial direction only.
+   * Recruitment facts remain grounded in `facts`.
+   */
   const brief = await buildCreativeBrief(input.facts, {
     style: input.style,
     theme: input.theme,
   });
 
+  /**
+   * STEP B — Generate the primary creative artwork.
+   *
+   * This is now the dominant visual asset.
+   */
   const provider = getImageGenerationProvider();
 
   const { output, usage } = await provider.generate({
@@ -76,39 +88,41 @@ export async function generateAdvertisement(
     quality: getEnv().KAI_IMAGE_QUALITY,
   });
 
-  const backgroundPng = Buffer.from(output.imageBase64, "base64");
+  const aiArtworkPng = Buffer.from(
+    output.imageBase64,
+    "base64",
+  );
 
-  // Plan the complete factual canvas first.
-  //
-  // This gives us:
-  // - heightPx: complete final advertisement height
-  // - artworkHeightPx: exact hero/artwork region
-  // - png: deterministic factual layer + surfaces
+  /**
+   * STEP C — Build the deterministic fact layer.
+   *
+   * The Fact Layer decides only how much vertical room verified
+   * information needs. It does not own the creative artwork.
+   */
   const factLayer = await renderFactLayer({
     facts: input.facts,
     widthPx: input.widthPx,
     heightPx: input.heightPx,
   });
 
-  const canvasHeight = factLayer.heightPx;
+  const finalHeight = factLayer.heightPx;
   const artworkHeight = factLayer.artworkHeightPx;
 
   /**
-   * CRITICAL IMAGE COMPOSITION FIX
+   * STEP D — Place the AI artwork across the complete creative region.
    *
-   * Do NOT resize the AI artwork to `canvasHeight`.
+   * This is fundamentally different from the old pipeline.
    *
-   * `canvasHeight` includes the positions, contact information and branding
-   * below the hero. Doing that previously forced the 4:3 AI image to cover
-   * the entire poster and cropped the human subject out of the hero.
+   * OLD:
+   *   AI image → small hero region → deterministic poster dominates
    *
-   * Instead, resize the AI artwork ONLY to the actual hero region.
+   * NEW:
+   *   AI image → complete creative canvas → factual layer occupies
+   *              only its necessary precision zone
    *
-   * `attention` asks sharp/libvips to preserve salient visual content when
-   * cropping. This is materially safer for a worker/industrial focal subject
-   * than blindly taking the geometric centre.
+   * The image occupies every pixel above the factual overlay boundary.
    */
-  const heroArtworkPng = await sharp(backgroundPng)
+  const creativeArtworkPng = await sharp(aiArtworkPng)
     .resize(input.widthPx, artworkHeight, {
       fit: "cover",
       position: "attention",
@@ -117,16 +131,15 @@ export async function generateAdvertisement(
     .toBuffer();
 
   /**
-   * Build the complete canvas.
+   * STEP E — Compose AI creativity + KAI facts.
    *
-   * The transparent canvas is intentional:
-   * `factLayer.png` paints the deterministic hero scrim and the cream factual
-   * body over it, so no duplicate background fill is introduced.
+   * Fact layer already contains its own controlled factual panel.
+   * Its upper region is transparent, so the LLM artwork remains visible.
    */
-  const composedPng = await sharp({
+  const canvas = await sharp({
     create: {
       width: input.widthPx,
-      height: canvasHeight,
+      height: finalHeight,
       channels: 4,
       background: {
         r: 0,
@@ -138,7 +151,7 @@ export async function generateAdvertisement(
   })
     .composite([
       {
-        input: heroArtworkPng,
+        input: creativeArtworkPng,
         left: 0,
         top: 0,
       },
@@ -151,17 +164,22 @@ export async function generateAdvertisement(
     .png()
     .toBuffer();
 
-  // Branding compatibility only:
-  // reads the completed artwork to select the appropriate footer style.
+  /**
+   * STEP F — Branding / verification.
+   *
+   * Branding is deliberately applied AFTER the creative/fact composition.
+   * It cannot influence the image model and cannot compete with the
+   * creative direction.
+   */
   const footerSelection = await selectFooterStyle(
-    composedPng,
+    canvas,
     input.footerStyle,
   );
 
   const finalPng = await applyBrandingOverlay({
-    imagePng: composedPng,
+    imagePng: canvas,
     widthPx: input.widthPx,
-    heightPx: canvasHeight,
+    heightPx: finalHeight,
     agencyLogoPng: input.agencyLogoPng,
     qrPng: input.qrPng,
     agencyName: input.agencyName,
@@ -170,7 +188,7 @@ export async function generateAdvertisement(
     addressLine: input.addressLine,
     footerStyle: footerSelection.style,
     brandBadges: input.brandBadges,
-    artworkHeightPx: factLayer.artworkHeightPx,
+    artworkHeightPx: artworkHeight,
   });
 
   return {
