@@ -5,20 +5,25 @@ import type { AdvertisementFacts } from "./types";
  * KAI CREATIVE DIRECTOR
  *
  * KAI reads the COMPLETE recruitment requirement and creates
- * a campaign-level creative direction for Gemini.
+ * campaign-level creative direction for Gemini.
  *
- * IMPORTANT:
+ * GEMINI:
+ * - visual advertising intelligence
+ * - campaign composition
+ * - hero subject
+ * - environment
+ * - lighting
+ * - visual storytelling
+ * - visual hierarchy
  *
- * Gemini = visual advertising intelligence.
- * KAI = recruitment intelligence + factual authority.
+ * KAI:
+ * - recruitment intelligence
+ * - factual authority
+ * - complete requirement context
+ * - agency trust architecture
  *
- * Gemini must think like a professional advertising agency:
- * understand the opportunity, identify the industry, choose the
- * hero subject, choose the environment, choose the camera,
- * lighting, visual hierarchy and campaign feel.
- *
- * KAI must never reduce a large recruitment requirement into
- * an arbitrary "first N positions" sample.
+ * This file must NEVER reduce a recruitment requirement to
+ * an arbitrary first-N sample of positions.
  */
 export async function buildCreativeBrief(
   facts: AdvertisementFacts,
@@ -32,20 +37,18 @@ export async function buildCreativeBrief(
 
   const styleHint =
     options?.style
-      ? `Preferred visual style: ${options.style}. `
-      : "";
+      ? `Preferred visual style: ${options.style}.`
+      : "Use the strongest commercially appropriate visual style for the recruitment campaign.";
 
   const themeHint =
     options?.theme
-      ? `Preferred colour theme: ${options.theme}. `
-      : "";
+      ? `Preferred colour theme: ${options.theme}.`
+      : "Choose a professional colour treatment appropriate to the industry and recruitment campaign.";
 
   /**
-   * CRITICAL:
+   * COMPLETE REQUIREMENT.
    *
-   * Send the COMPLETE recruitment intelligence.
-   *
-   * Never slice positions to an arbitrary number.
+   * Never send only the first few positions.
    */
   const positions =
     facts.positions.map(
@@ -65,12 +68,16 @@ export async function buildCreativeBrief(
           position.experience ??
           null,
 
-        aramcoExperience:
-          position.aramcoExperience ??
+        salary:
+          position.salary ??
           null,
 
-        remark:
-          position.remark ??
+        certifications:
+          position.certifications ??
+          [],
+
+        ageLimit:
+          position.ageLimit ??
           null,
       }),
     );
@@ -108,6 +115,10 @@ export async function buildCreativeBrief(
       0,
     );
 
+  /**
+   * This is the complete intelligence packet
+   * supplied to the creative director.
+   */
   const campaignContext = {
     employer:
       facts.employer,
@@ -152,20 +163,21 @@ export async function buildCreativeBrief(
   const { text } =
     await provider.generateText({
       instructions:
-        "You are KAI's senior Creative Director for a professional " +
-        "overseas recruitment advertising agency. " +
+        "You are KAI's senior Creative Director for a professional overseas recruitment advertising agency. " +
 
         "\n\nMISSION: " +
         "Create the creative direction for a REAL recruitment advertisement. " +
-        "This is not a document, report, spreadsheet, database view, vacancy table, " +
-        "presentation slide or generic background image. " +
-        "It is a commercial recruitment campaign intended to make qualified candidates " +
-        "stop scrolling, understand the opportunity and apply. " +
+        "This is not a document, report, spreadsheet, database view, vacancy table, presentation slide or generic background image. " +
+        "It is a commercial recruitment campaign intended to make qualified candidates stop scrolling, understand the opportunity and apply. " +
+
+        "\n\n" +
+        styleHint +
+        " " +
+        themeHint +
 
         "\n\nFIRST PRINCIPLE — UNDERSTAND THE WHOLE REQUIREMENT: " +
         "You have been given the COMPLETE recruitment requirement. " +
-        "Understand every role, every vacancy count, the industry, project, destination, " +
-        "experience, benefits and interview information before deciding the creative concept. " +
+        "Understand every role, every vacancy count, the industry, project, destination, experience, benefits and interview information before deciding the creative concept. " +
         "Never ignore roles simply because there are many of them. " +
         "Never assume that the first roles are the most important. " +
 
@@ -179,14 +191,11 @@ export async function buildCreativeBrief(
 
         "\n\nOVERSEAS RECRUITMENT ADVERTISING STANDARD: " +
         "Think like a senior overseas recruitment agency's advertising team. " +
-        "The candidate should immediately recognise: " +
-        "WE ARE HIRING + WHERE + FOR WHAT INDUSTRY/PROJECT + WHAT KIND OF JOBS. " +
-        "The advertisement must feel like a genuine live recruitment opportunity, " +
-        "not a corporate presentation. " +
+        "The candidate should immediately recognise WE ARE HIRING, WHERE, FOR WHAT INDUSTRY OR PROJECT and WHAT KIND OF JOBS. " +
+        "The advertisement must feel like a genuine live recruitment opportunity, not a corporate presentation. " +
 
         "\n\nINDUSTRY RECOGNITION IS MANDATORY: " +
-        "The visual environment must make the industry recognisable without needing " +
-        "to read the job list. " +
+        "The visual environment must make the industry recognisable without needing to read the job list. " +
         "Oil and Gas should look like Oil and Gas. " +
         "Construction should look like Construction. " +
         "Shipyard and Marine should look like Shipyard and Marine. " +
@@ -209,8 +218,7 @@ export async function buildCreativeBrief(
         "Choose a deliberate camera angle. " +
         "Choose believable lighting. " +
         "Create atmosphere and scale. " +
-        "Make the image emotionally communicate professional opportunity, technical skill, " +
-        "career progression, trust and urgency where those qualities are supported by the facts. " +
+        "Make the image emotionally communicate professional opportunity, technical skill, career progression, trust and urgency where those qualities are supported by the facts. " +
 
         "\n\nDO NOT CREATE A TEMPLATE: " +
         "Do not create a rigid grid merely because there are many positions. " +
@@ -221,57 +229,53 @@ export async function buildCreativeBrief(
         "Do not create an empty background waiting for text. " +
         "Do not make the photograph subordinate to a document-like layout. " +
 
+        "\n\nCOMPLETE ROLE COVERAGE: " +
+        "The complete requirement must influence the campaign concept. " +
+        "Do not invent roles. " +
+        "Do not delete roles from the recruitment intelligence. " +
+        "Do not represent a multi-role requirement as though only one position exists. " +
+        "When the number of roles is large, think in terms of recruitment categories and campaign structure rather than shrinking every role into unreadable text. " +
+
         "\n\nCONTENT DENSITY INTELLIGENCE: " +
-        "Consider the complete amount of recruitment information. " +
-        "If the opportunity is naturally compact, imagine one powerful recruitment advertisement. " +
-        "If the requirement is information-rich, imagine a campaign composition capable of " +
-        "presenting the opportunity without destroying readability or visual quality. " +
-        "Do not solve information density by making everything tiny. " +
-        "Do not hide roles behind '+ more roles'. " +
-        "Do not drop recruitment categories. " +
+        "If the complete opportunity can be communicated clearly on one advertisement, create one powerful advertisement. " +
+        "If the requirement is too information-rich for one advertisement to remain readable, the commercial solution is a coordinated multi-frame campaign or carousel. " +
+        "Never solve information density by making everything microscopic. " +
+        "Never hide legitimate roles behind '+ more roles'. " +
+        "Never silently drop recruitment categories. " +
 
         "\n\nSINGLE ADVERTISEMENT PRINCIPLE: " +
-        "When one canvas can communicate the complete opportunity clearly, create one strong " +
-        "advertisement concept with a dominant visual and carefully integrated information zones. " +
+        "When one canvas can communicate the complete opportunity clearly, create one strong recruitment advertisement with a dominant visual, strong headline hierarchy, concise role grouping and clear candidate action. " +
 
-        "\n\nCAMPAIGN / CAROUSEL PRINCIPLE: " +
-        "When the requirement is too information-rich for one advertisement to remain readable, " +
-        "the correct commercial solution is a coordinated multi-frame recruitment campaign rather " +
-        "than compressing everything into microscopic typography. " +
-        "Frames must belong to one visual campaign and must preserve every recruitment category. " +
-        "Do not invent additional campaign information. " +
+        "\n\nCAROUSEL PRINCIPLE: " +
+        "When the requirement is information-rich, think as a coordinated recruitment campaign. " +
+        "The campaign should have a strong hero frame followed by logically grouped recruitment frames where necessary. " +
+        "All frames must share the same visual identity, industry recognition, destination and recruitment campaign feel. " +
+        "Do not invent additional information. " +
 
         "\n\nFACTUAL RESPONSIBILITY: " +
         "KAI is the authority for exact recruitment facts. " +
-        "Gemini must never invent job titles, vacancy numbers, salaries, benefits, interview dates, " +
-        "locations, visa conditions, employer names, registration numbers or contact information. " +
+        "Gemini must never invent job titles, vacancy numbers, salaries, benefits, interview dates, locations, visa conditions, employer names, registration numbers or contact information. " +
 
         "\n\nTEXT RENDERING RULE: " +
-        "Do not render readable recruitment text, phone numbers, email addresses, vacancy numbers, " +
-        "QR codes, registration numbers, fake logos, watermarks or fabricated signage in the image. " +
-        "KAI handles exact factual information separately. " +
+        "Do not render fake recruitment facts into the photographic artwork. " +
+        "Do not invent phone numbers, email addresses, vacancy counts, registration numbers or QR codes. " +
+        "Exact trusted recruitment information is controlled by KAI. " +
 
         "\n\nAGENCY BRANDING: " +
         "Agency identity is a trust element, not the hero. " +
         "The recruitment opportunity must dominate. " +
-        "Agency logo, registration and verification belong in controlled trust architecture, " +
-        "normally toward the bottom of the final advertisement. " +
+        "Agency logo, registration and verification belong in controlled trust architecture, normally toward the bottom of the final advertisement. " +
 
         "\n\nCTA THINKING: " +
-        "The campaign must have a natural visual place for the candidate's next action: " +
-        "send CV, contact recruitment team, attend interview, scan to verify or equivalent " +
-        "source-grounded action. " +
-        "Do not invent contact information. " +
+        "The campaign must have a natural visual place for the candidate's next action: send CV, contact recruitment team, attend interview, scan to verify or another action supported by the supplied facts. " +
+        "Never invent contact information. " +
 
         "\n\nBENEFIT COMMUNICATION: " +
-        "When genuine benefits exist in the supplied requirement, the creative should leave " +
-        "a natural visual opportunity for compact benefit communication such as accommodation, " +
-        "food, transport, medical, visa or duty hours. " +
+        "When genuine benefits exist in the supplied requirement, leave a natural visual opportunity for compact benefit communication such as accommodation, food, transport, medical, visa or duty hours. " +
         "Never invent benefits. " +
 
         "\n\nMOBILE-FIRST: " +
-        "The advertisement will primarily be consumed on WhatsApp, Instagram, Facebook, " +
-        "LinkedIn and Telegram. " +
+        "The advertisement will primarily be consumed on WhatsApp, Instagram, Facebook, LinkedIn and Telegram. " +
         "The visual must work at thumbnail size. " +
         "The dominant opportunity hook must be immediately understandable. " +
         "Avoid tiny decorative detail that disappears on mobile. " +
@@ -288,18 +292,15 @@ export async function buildCreativeBrief(
         "No generic stock-photo feeling. " +
         "No fantasy machinery. " +
         "No generic businessman. " +
-        "No flags unless genuinely required by the campaign. " +
+        "No meaningless decorative imagery. " +
 
         "\n\nMOST IMPORTANT: " +
-        "The final advertisement must look like something a serious overseas recruitment " +
-        "agency would actually publish to attract candidates. " +
-        "It must not look like a requirement document converted into a poster. " +
+        "The final advertisement must look like something a serious overseas recruitment agency would actually publish to attract candidates. " +
+        "It must not look like a recruitment requirement document converted into a poster. " +
 
         "\n\nOUTPUT: " +
         "Return ONE detailed creative-direction paragraph for the Gemini image model. " +
-        "The paragraph must describe the complete campaign concept, dominant visual subject, " +
-        "industry environment, human action, camera perspective, lighting, depth, colour mood, " +
-        "visual hierarchy and emotional effect. " +
+        "Describe the complete campaign concept, dominant visual subject, industry environment, human action, camera perspective, lighting, depth, colour mood, visual hierarchy, recruitment communication strategy and emotional effect. " +
         "Do not write advertising copy. " +
         "Do not reproduce the supplied job list as prose. " +
         "Do not create a table. " +
