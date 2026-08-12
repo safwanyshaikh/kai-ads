@@ -689,7 +689,7 @@ async function buildIntegratedFactOverlay(
     }
   }
 
-  let detailY =
+  const detailY =
     y +
     rowsPerColumn *
       rowHeight +
@@ -758,7 +758,8 @@ async function buildIntegratedFactOverlay(
     if (
       detailY +
         secondaryFont <
-      infoTop + infoHeight
+      infoTop +
+        infoHeight
     ) {
       svg.push(
         `<text x="${margin}" y="${detailY}" font-family="KaiSans, sans-serif" font-size="${secondaryFont}" fill="${WHITE}" opacity="0.82">${esc(
@@ -870,7 +871,8 @@ async function buildCompactFooter(
   );
 
   if (
-    theme.topRulePx > 0
+    theme.topRulePx >
+    0
   ) {
     svg.push(
       `<rect x="0" y="0" width="${widthPx}" height="${theme.topRulePx}" fill="${theme.topRuleColour}"/>`,
