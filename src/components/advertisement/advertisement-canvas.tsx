@@ -39,17 +39,12 @@ interface AdvertisementCanvasProps {
 function cleanCampaignTitle(
   header: string,
 ): string {
-  const trimmed =
-    header.trim();
-
-  if (!trimmed) {
-    return "RECRUITMENT CAMPAIGN";
-  }
-
-  return trimmed
-    .split("—")[0]
+  const value = header
     .trim()
-    .replace(/\s+/g, " ");
+    .split("—")[0]
+    .trim();
+
+  return value || "RECRUITMENT CAMPAIGN";
 }
 
 function totalVacancies(
@@ -57,19 +52,15 @@ function totalVacancies(
 ): number {
   return positions.reduce(
     (sum, position) =>
-      sum +
-      (position.count ?? 0),
+      sum + (position.count ?? 0),
     0,
   );
 }
 
-function normaliseDisplayValue(
-  value:
-    | string
-    | null
-    | undefined,
-): string {
-  return value?.trim() ?? "";
+function hasValue(
+  value: string | null | undefined,
+): boolean {
+  return Boolean(value?.trim());
 }
 
 export function AdvertisementCanvas({
@@ -77,92 +68,63 @@ export function AdvertisementCanvas({
   data,
   canEdit,
 }: AdvertisementCanvasProps) {
-  const router =
-    useRouter();
+  const router = useRouter();
 
   const [editing, setEditing] =
-    useState<BlockKey | null>(
-      null,
-    );
+    useState<BlockKey | null>(null);
 
   const [saving, setSaving] =
     useState(false);
 
   const [error, setError] =
-    useState<string | null>(
-      null,
-    );
+    useState<string | null>(null);
 
   const [header, setHeader] =
-    useState(
-      data.header,
-    );
+    useState(data.header);
 
   const [employer, setEmployer] =
-    useState(
-      data.employer ?? "",
-    );
+    useState(data.employer ?? "");
 
   const [positions, setPositions] =
     useState(
-      data.positions.map(
-        (position) => ({
-          title:
-            position.title,
-          count:
-            position.count != null
-              ? String(
-                  position.count,
-                )
-              : "",
-        }),
-      ),
+      data.positions.map((position) => ({
+        title: position.title,
+        count:
+          position.count == null
+            ? ""
+            : String(position.count),
+      })),
     );
 
   const [benefits, setBenefits] =
     useState(
-      data.benefits.map(
-        (benefit) => ({
-          label:
-            benefit.label,
-          detail:
-            benefit.detail ?? "",
-        }),
-      ),
+      data.benefits.map((benefit) => ({
+        label: benefit.label,
+        detail: benefit.detail ?? "",
+      })),
     );
 
   const [interviewDate, setInterviewDate] =
     useState(
-      data.interview.date ??
-        "",
+      data.interview.date ?? "",
     );
 
   const [interviewLocation, setInterviewLocation] =
     useState(
-      data.interview.location ??
-        "",
+      data.interview.location ?? "",
     );
 
   const [contact, setContact] =
     useState({
-      name:
-        data.contact.name ??
-        "",
-      phone:
-        data.contact.phone ??
-        "",
-      email:
-        data.contact.email ??
-        "",
+      name: data.contact.name ?? "",
+      phone: data.contact.phone ?? "",
+      email: data.contact.email ?? "",
       whatsapp:
-        data.contact.whatsapp ??
-        "",
+        data.contact.whatsapp ?? "",
     });
 
   const [footer, setFooter] =
-    useState(
-      data.footer ?? "",
-    );
+    useState(data.footer ?? "");
 
   async function save(
     patch: Partial<CreateAdvertisementInput>,
@@ -171,60 +133,84 @@ export function AdvertisementCanvas({
     setSaving(true);
     setError(null);
 
-    const result =
-      await patchJson(
-        API_ROUTES.advertisement(
-          advertisementId,
-        ),
-        {
-          ...patch,
-          changeSummary:
-            summary,
-        },
-      );
+    try {
+      const result =
+        await patchJson(
+          API_ROUTES.advertisement(
+            advertisementId,
+          ),
+          {
+            ...patch,
+            changeSummary: summary,
+          },
+        );
 
-    setSaving(false);
+      if (!result.ok) {
+        setError(
+          result.message ??
+            "Could not save this change.",
+        );
+        return;
+      }
 
-    if (!result.ok) {
+      setEditing(null);
+      router.refresh();
+    } catch (saveError) {
       setError(
-        result.message ??
-          "Could not save this change.",
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not save this change.",
       );
-      return;
+    } finally {
+      setSaving(false);
     }
-
-    setEditing(null);
-    router.refresh();
   }
 
-  function openEditor(
-    key: BlockKey,
+  function editActions(
+    onSave: () => void,
   ) {
-    setError(null);
-    setEditing(key);
+    return (
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          onClick={onSave}
+          disabled={saving}
+        >
+          {saving ? "Saving…" : "Save"}
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            setEditing(null)
+          }
+          disabled={saving}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
   }
 
-  function editableBlock(
+  function block(
     key: BlockKey,
     label: string,
     display: ReactNode,
     editor: ReactNode,
     className = "",
   ) {
-    const isEditing =
-      editing === key;
-
     if (!canEdit) {
       return (
-        <div
-          className={className}
-        >
+        <div className={className}>
           {display}
         </div>
       );
     }
 
-    if (isEditing) {
+    if (editing === key) {
       return (
         <div
           className={`space-y-4 border-2 border-primary bg-primary/5 p-5 ${className}`}
@@ -255,10 +241,11 @@ export function AdvertisementCanvas({
     return (
       <button
         type="button"
-        onClick={() =>
-          openEditor(key)
-        }
-        className={`group relative block w-full cursor-pointer text-left ${className}`}
+        onClick={() => {
+          setError(null);
+          setEditing(key);
+        }}
+        className={`group relative block w-full text-left ${className}`}
         aria-label={`Edit ${label}`}
       >
         {display}
@@ -270,56 +257,25 @@ export function AdvertisementCanvas({
     );
   }
 
-  function editActions(
-    onSave: () => void,
-  ) {
-    return (
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={onSave}
-          disabled={saving}
-        >
-          {saving
-            ? "Saving…"
-            : "Save"}
-        </Button>
-
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            setEditing(null)
-          }
-          disabled={saving}
-        >
-          Cancel
-        </Button>
-      </div>
-    );
-  }
-
   const campaignTitle =
     cleanCampaignTitle(
       data.header,
     );
 
   const campaignMeta =
-    [
-      data.country,
-      data.industry,
-    ]
+    [data.country, data.industry]
       .filter(Boolean)
-      .join(
-        " · ",
-      );
+      .join(" · ");
 
-  const vacancyCount =
+  const vacancies =
     totalVacancies(
       data.positions,
     );
+
+  const contactPresent =
+    hasValue(data.contact.email) ||
+    hasValue(data.contact.phone) ||
+    hasValue(data.contact.whatsapp);
 
   return (
     <div className="space-y-4">
@@ -337,56 +293,48 @@ export function AdvertisementCanvas({
 
       {canEdit && (
         <p className="text-sm text-muted-foreground">
-          Click any recruitment block
-          to edit it. Every save creates
-          a new version.
+          Click any recruitment block to
+          edit it. Every save creates a new
+          version.
         </p>
       )}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* CAMPAIGN SHEET                                                     */}
-      {/* ------------------------------------------------------------------ */}
-
       <div className="overflow-hidden rounded-xl border-2 border-foreground/80 bg-white text-black shadow-sm">
-        {/* --------------------------------------------------------------- */}
-        {/* 01 — CAMPAIGN HEADER                                            */}
-        {/* --------------------------------------------------------------- */}
+        {/* ---------------------------------------------------------------- */}
+        {/* CAMPAIGN HEADER                                                   */}
+        {/* ---------------------------------------------------------------- */}
 
-        {editableBlock(
+        {block(
           "campaign",
           "Campaign",
           <div className="bg-[#0B1F33] px-6 py-7 text-white">
-            <div className="flex items-start justify-between gap-6">
-              <div className="min-w-0">
-                <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#F3D98B]">
-                  Recruitment Campaign
+            <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#F3D98B]">
+              Recruitment Campaign
+            </p>
+
+            <h2 className="text-3xl font-black uppercase leading-none tracking-tight">
+              {campaignTitle}
+            </h2>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {campaignMeta && (
+                <p className="text-lg font-bold uppercase tracking-wide text-[#F3D98B]">
+                  {campaignMeta}
                 </p>
+              )}
 
-                <h2 className="text-3xl font-black uppercase leading-none tracking-tight">
-                  {campaignTitle}
-                </h2>
+              {vacancies > 0 && (
+                <span className="rounded-full bg-[#F3D98B] px-4 py-2 text-sm font-black uppercase text-[#0B1F33]">
+                  {vacancies} Vacancies
+                </span>
+              )}
 
-                <p className="mt-3 text-lg font-bold uppercase tracking-wide text-[#F3D98B]">
-                  {campaignMeta ||
-                    "RECRUITMENT OPPORTUNITY"}
-                </p>
-
-                <div className="mt-4 inline-flex rounded-full bg-[#F3D98B] px-4 py-2 text-sm font-black uppercase tracking-wide text-[#0B1F33]">
-                  {vacancyCount > 0
-                    ? `${vacancyCount} Vacancies`
-                    : "Multiple Opportunities"}
-                </div>
-              </div>
-
-              <div className="shrink-0 rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-center">
-                <p className="text-2xl font-black">
-                  {data.positions.length}
-                </p>
-
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70">
-                  Roles
-                </p>
-              </div>
+              <span className="rounded-full border border-white/25 px-4 py-2 text-sm font-black uppercase">
+                {data.positions.length}{" "}
+                {data.positions.length === 1
+                  ? "Role"
+                  : "Roles"}
+              </span>
             </div>
           </div>,
 
@@ -403,9 +351,7 @@ export function AdvertisementCanvas({
 
             {editActions(() =>
               save(
-                {
-                  header,
-                },
+                { header },
                 "Campaign headline edited on canvas",
               ),
             )}
@@ -414,25 +360,21 @@ export function AdvertisementCanvas({
           "bg-[#0B1F33]",
         )}
 
-        {/* --------------------------------------------------------------- */}
-        {/* 02 — EMPLOYER                                                   */}
-        {/* --------------------------------------------------------------- */}
+        {/* ---------------------------------------------------------------- */}
+        {/* CONFIRMED EMPLOYER — ONLY WHEN ACTUALLY PRESENT                   */}
+        {/* ---------------------------------------------------------------- */}
 
-        {normaliseDisplayValue(
-          data.employer,
-        ) &&
-          editableBlock(
+        {hasValue(data.employer) &&
+          block(
             "employer",
             "Employer",
-            <div className="border-b border-black/10 px-6 py-3">
+            <div className="border-b border-black/10 px-6 py-4">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
                 Hiring Company / Project Client
               </p>
 
-              <p className="mt-1 text-base font-bold">
-                {
-                  data.employer
-                }
+              <p className="mt-1 text-lg font-bold">
+                {data.employer}
               </p>
             </div>,
 
@@ -462,16 +404,16 @@ export function AdvertisementCanvas({
             "border-b border-black/10",
           )}
 
-        {/* --------------------------------------------------------------- */}
-        {/* 03 — MAIN RECRUITMENT BODY                                     */}
-        {/* --------------------------------------------------------------- */}
+        {/* ---------------------------------------------------------------- */}
+        {/* MAIN RECRUITMENT AREA                                             */}
+        {/* ---------------------------------------------------------------- */}
 
-        <div className="grid lg:grid-cols-[1.6fr_0.9fr]">
-          {/* ----------------------------------------------------------- */}
-          {/* LEFT — POSITIONS                                            */}
-          {/* ----------------------------------------------------------- */}
+        <div className="grid lg:grid-cols-[1.65fr_0.9fr]">
+          {/* ============================================================= */}
+          {/* POSITIONS                                                       */}
+          {/* ============================================================= */}
 
-          {editableBlock(
+          {block(
             "positions",
             "Positions",
             <div className="border-b border-black/10 px-6 py-6 lg:border-b-0 lg:border-r">
@@ -497,28 +439,21 @@ export function AdvertisementCanvas({
                 </div>
               </div>
 
-              <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                 {data.positions.map(
-                  (
-                    position,
-                    index,
-                  ) => (
+                  (position, index) => (
                     <div
                       key={`${position.title}-${index}`}
                       className="flex items-start gap-3"
                     >
-                      <span className="mt-0.5 min-w-9 rounded-md bg-[#F3D98B] px-2 py-1 text-center text-xs font-black text-[#0B1F33]">
+                      <span className="mt-0.5 min-w-10 rounded-md bg-[#F3D98B] px-2 py-1 text-center text-xs font-black text-[#0B1F33]">
                         {position.count ??
                           "—"}
                       </span>
 
-                      <div className="min-w-0">
-                        <p className="text-[15px] font-extrabold leading-tight">
-                          {
-                            position.title
-                          }
-                        </p>
-                      </div>
+                      <p className="min-w-0 text-[15px] font-extrabold leading-tight">
+                        {position.title}
+                      </p>
                     </div>
                   ),
                 )}
@@ -526,27 +461,26 @@ export function AdvertisementCanvas({
             </div>,
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                {positions.map(
-                  (
-                    position,
-                    index,
-                  ) => (
-                    <div
-                      key={index}
-                      className="grid gap-2 sm:grid-cols-[1fr_100px_auto]"
-                    >
+              {positions.map(
+                (position, index) => (
+                  <div
+                    key={index}
+                    className="space-y-2 rounded-md border p-3"
+                  >
+                    <div className="grid gap-2 sm:grid-cols-[1fr_100px_auto]">
                       <Input
                         value={
                           position.title
                         }
                         onChange={(
                           event,
-                        ) =>
+                        ) => {
+                          const next =
+                            event.target
+                              .value;
+
                           setPositions(
-                            (
-                              rows,
-                            ) =>
+                            (rows) =>
                               rows.map(
                                 (
                                   row,
@@ -557,15 +491,12 @@ export function AdvertisementCanvas({
                                     ? {
                                         ...row,
                                         title:
-                                          event
-                                            .target
-                                            .value,
+                                          next,
                                       }
                                     : row,
                               ),
-                            )
-                          )
-                        }
+                          );
+                        }}
                         placeholder="Position"
                       />
 
@@ -575,11 +506,13 @@ export function AdvertisementCanvas({
                         }
                         onChange={(
                           event,
-                        ) =>
+                        ) => {
+                          const next =
+                            event.target
+                              .value;
+
                           setPositions(
-                            (
-                              rows,
-                            ) =>
+                            (rows) =>
                               rows.map(
                                 (
                                   row,
@@ -590,15 +523,12 @@ export function AdvertisementCanvas({
                                     ? {
                                         ...row,
                                         count:
-                                          event
-                                            .target
-                                            .value,
+                                          next,
                                       }
                                     : row,
                               ),
-                            )
-                          )
-                        }
+                          );
+                        }}
                         placeholder="Count"
                       />
 
@@ -606,22 +536,19 @@ export function AdvertisementCanvas({
                         type="button"
                         size="sm"
                         variant="ghost"
-                        onClick={() =>
+                        onClick={() => {
                           setPositions(
-                            (
-                              rows,
-                            ) =>
+                            (rows) =>
                               rows.filter(
                                 (
-                                  _,
+                                  _row,
                                   rowIndex,
                                 ) =>
                                   rowIndex !==
                                   index,
                               ),
-                            )
-                          )
-                        }
+                          );
+                        }}
                         disabled={
                           positions.length <=
                           1
@@ -630,27 +557,25 @@ export function AdvertisementCanvas({
                         Remove
                       </Button>
                     </div>
-                  ),
-                )}
-              </div>
+                  </div>
+                ),
+              )}
 
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() =>
+                onClick={() => {
                   setPositions(
                     (rows) => [
                       ...rows,
                       {
-                        title:
-                          "",
-                        count:
-                          "",
+                        title: "",
+                        count: "",
                       },
                     ],
-                  )
-                }
+                  );
+                }}
               >
                 Add Position
               </Button>
@@ -661,20 +586,15 @@ export function AdvertisementCanvas({
                     positions:
                       positions
                         .filter(
-                          (
-                            position,
-                          ) =>
+                          (position) =>
                             position.title.trim()
                               .length >
                             0,
                         )
                         .map(
-                          (
-                            position,
-                          ) => ({
+                          (position) => ({
                             title:
                               position.title.trim(),
-
                             count:
                               position.count.trim()
                                 ? Number(
@@ -689,12 +609,12 @@ export function AdvertisementCanvas({
               )}
             </div>,
 
-            "min-h-[340px]",
+            "min-h-[360px]",
           )}
 
-          {/* ----------------------------------------------------------- */}
-          {/* RIGHT — CANDIDATE ACTION                                    */}
-          {/* ----------------------------------------------------------- */}
+          {/* ============================================================= */}
+          {/* CANDIDATE ACTION                                                */}
+          {/* ============================================================= */}
 
           <div className="bg-[#F5F1E8]">
             <div className="px-6 py-6">
@@ -703,13 +623,13 @@ export function AdvertisementCanvas({
               </p>
 
               <h3 className="mt-1 text-2xl font-black uppercase tracking-tight">
-                What You Need to Know
+                Important Details
               </h3>
             </div>
 
             <div className="divide-y divide-black/10">
               {/* BENEFITS */}
-              {editableBlock(
+              {block(
                 "benefits",
                 "Benefits",
                 <div className="px-6 py-5">
@@ -725,159 +645,141 @@ export function AdvertisementCanvas({
                           benefit,
                           index,
                         ) => (
-                          <div
-                            key={
-                              `${benefit.label}-${index}`
-                            }
-                            className="flex items-start gap-2 text-sm"
+                          <p
+                            key={`${benefit.label}-${index}`}
+                            className="text-sm font-semibold"
                           >
-                            <span className="mt-0.5 text-[#0B1F33]">
-                              •
-                            </span>
-
-                            <p className="font-semibold">
-                              {
-                                benefit.label
-                              }
-                              {benefit.detail
-                                ? ` — ${benefit.detail}`
-                                : ""}
-                            </p>
-                          </div>
+                            •{" "}
+                            {
+                              benefit.label
+                            }
+                            {benefit.detail
+                              ? ` — ${benefit.detail}`
+                              : ""}
+                          </p>
                         ),
                       )}
                     </div>
                   ) : (
                     <p className="mt-2 text-sm text-muted-foreground">
                       No benefits supplied
-                      in the recruitment
-                      requirement.
+                      in the requirement.
                     </p>
                   )}
                 </div>,
 
                 <div className="space-y-3">
-                  <div className="space-y-2">
-                    {benefits.map(
-                      (
-                        benefit,
-                        index,
-                      ) => (
-                        <div
-                          key={index}
-                          className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
+                  {benefits.map(
+                    (benefit, index) => (
+                      <div
+                        key={index}
+                        className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
+                      >
+                        <Input
+                          value={
+                            benefit.label
+                          }
+                          onChange={(
+                            event,
+                          ) => {
+                            const next =
+                              event
+                                .target
+                                .value;
+
+                            setBenefits(
+                              (rows) =>
+                                rows.map(
+                                  (
+                                    row,
+                                    rowIndex,
+                                  ) =>
+                                    rowIndex ===
+                                    index
+                                      ? {
+                                          ...row,
+                                          label:
+                                            next,
+                                        }
+                                      : row,
+                                ),
+                            );
+                          }}
+                          placeholder="Benefit"
+                        />
+
+                        <Input
+                          value={
+                            benefit.detail
+                          }
+                          onChange={(
+                            event,
+                          ) => {
+                            const next =
+                              event
+                                .target
+                                .value;
+
+                            setBenefits(
+                              (rows) =>
+                                rows.map(
+                                  (
+                                    row,
+                                    rowIndex,
+                                  ) =>
+                                    rowIndex ===
+                                    index
+                                      ? {
+                                          ...row,
+                                          detail:
+                                            next,
+                                        }
+                                      : row,
+                                ),
+                            );
+                          }}
+                          placeholder="Detail"
+                        />
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setBenefits(
+                              (rows) =>
+                                rows.filter(
+                                  (
+                                    _row,
+                                    rowIndex,
+                                  ) =>
+                                    rowIndex !==
+                                    index,
+                                ),
+                            );
+                          }}
                         >
-                          <Input
-                            value={
-                              benefit.label
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              setBenefits(
-                                (
-                                  rows,
-                                ) =>
-                                  rows.map(
-                                    (
-                                      row,
-                                      rowIndex,
-                                    ) =>
-                                      rowIndex ===
-                                      index
-                                        ? {
-                                            ...row,
-                                            label:
-                                              event
-                                                .target
-                                                .value,
-                                          }
-                                        : row,
-                                  ),
-                                )
-                              )
-                            }
-                            placeholder="Benefit"
-                          />
-
-                          <Input
-                            value={
-                              benefit.detail
-                            }
-                            onChange={(
-                              event,
-                            ) =>
-                              setBenefits(
-                                (
-                                  rows,
-                                ) =>
-                                  rows.map(
-                                    (
-                                      row,
-                                      rowIndex,
-                                    ) =>
-                                      rowIndex ===
-                                      index
-                                        ? {
-                                            ...row,
-                                            detail:
-                                              event
-                                                .target
-                                                .value,
-                                          }
-                                        : row,
-                                  ),
-                                )
-                              )
-                            }
-                            placeholder="Detail"
-                          />
-
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                              setBenefits(
-                                (
-                                  rows,
-                                ) =>
-                                  rows.filter(
-                                    (
-                                      _,
-                                      rowIndex,
-                                    ) =>
-                                      rowIndex !==
-                                      index,
-                                  ),
-                                )
-                              )
-                            }
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ),
-                    )}
-                  </div>
+                          Remove
+                        </Button>
+                      </div>
+                    ),
+                  )}
 
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() =>
+                    onClick={() => {
                       setBenefits(
                         (rows) => [
                           ...rows,
                           {
-                            label:
-                              "",
-                            detail:
-                              "",
+                            label: "",
+                            detail: "",
                           },
                         ],
-                      )
-                    }
+                      );
+                    }}
                   >
                     Add Benefit
                   </Button>
@@ -888,20 +790,15 @@ export function AdvertisementCanvas({
                         benefits:
                           benefits
                             .filter(
-                              (
-                                benefit,
-                              ) =>
+                              (benefit) =>
                                 benefit.label.trim()
                                   .length >
                                 0,
                             )
                             .map(
-                              (
-                                benefit,
-                              ) => ({
+                              (benefit) => ({
                                 label:
                                   benefit.label.trim(),
-
                                 detail:
                                   benefit.detail.trim() ||
                                   undefined,
@@ -912,12 +809,10 @@ export function AdvertisementCanvas({
                     ),
                   )}
                 </div>,
-
-                "bg-transparent",
               )}
 
               {/* INTERVIEW */}
-              {editableBlock(
+              {block(
                 "interview",
                 "Interview",
                 <div className="px-6 py-5">
@@ -925,8 +820,12 @@ export function AdvertisementCanvas({
                     Interview
                   </p>
 
-                  {data.interview.date ||
-                  data.interview.location ? (
+                  {hasValue(
+                    data.interview.date,
+                  ) ||
+                  hasValue(
+                    data.interview.location,
+                  ) ? (
                     <p className="mt-2 text-sm font-bold">
                       {
                         data.interview
@@ -947,8 +846,8 @@ export function AdvertisementCanvas({
                     </p>
                   ) : (
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Interview details
-                      not yet supplied.
+                      Interview details not
+                      yet supplied.
                     </p>
                   )}
                 </div>,
@@ -978,8 +877,7 @@ export function AdvertisementCanvas({
                         event,
                       ) =>
                         setInterviewLocation(
-                          event
-                            .target
+                          event.target
                             .value,
                         )
                       }
@@ -990,16 +888,15 @@ export function AdvertisementCanvas({
                   {editActions(() =>
                     save(
                       {
-                        interview:
-                          {
-                            ...data.interview,
-                            date:
-                              interviewDate.trim() ||
-                              undefined,
-                            location:
-                              interviewLocation.trim() ||
-                              undefined,
-                          },
+                        interview: {
+                          ...data.interview,
+                          date:
+                            interviewDate.trim() ||
+                            undefined,
+                          location:
+                            interviewLocation.trim() ||
+                            undefined,
+                        },
                       },
                       "Interview edited on canvas",
                     ),
@@ -1008,7 +905,7 @@ export function AdvertisementCanvas({
               )}
 
               {/* APPLY / CONTACT */}
-              {editableBlock(
+              {block(
                 "contact",
                 "Apply",
                 <div className="px-6 py-5">
@@ -1016,14 +913,13 @@ export function AdvertisementCanvas({
                     Apply / Contact
                   </p>
 
-                  {contact.email ||
-                  contact.phone ||
-                  contact.whatsapp ? (
+                  {contactPresent ? (
                     <div className="mt-3 space-y-1">
                       {contact.email && (
                         <p className="break-all text-base font-black">
                           {
-                            contact.email
+                            data.contact
+                              .email
                           }
                         </p>
                       )}
@@ -1031,7 +927,8 @@ export function AdvertisementCanvas({
                       {contact.phone && (
                         <p className="text-sm font-semibold">
                           {
-                            contact.phone
+                            data.contact
+                              .phone
                           }
                         </p>
                       )}
@@ -1040,7 +937,8 @@ export function AdvertisementCanvas({
                         <p className="text-sm font-semibold">
                           WhatsApp:{" "}
                           {
-                            contact.whatsapp
+                            data.contact
+                              .whatsapp
                           }
                         </p>
                       )}
@@ -1066,8 +964,7 @@ export function AdvertisementCanvas({
                           (current) => ({
                             ...current,
                             name:
-                              event
-                                .target
+                              event.target
                                 .value,
                           }),
                         )
@@ -1086,8 +983,7 @@ export function AdvertisementCanvas({
                           (current) => ({
                             ...current,
                             phone:
-                              event
-                                .target
+                              event.target
                                 .value,
                           }),
                         )
@@ -1106,8 +1002,7 @@ export function AdvertisementCanvas({
                           (current) => ({
                             ...current,
                             email:
-                              event
-                                .target
+                              event.target
                                 .value,
                           }),
                         )
@@ -1126,8 +1021,7 @@ export function AdvertisementCanvas({
                           (current) => ({
                             ...current,
                             whatsapp:
-                              event
-                                .target
+                              event.target
                                 .value,
                           }),
                         )
@@ -1139,21 +1033,20 @@ export function AdvertisementCanvas({
                   {editActions(() =>
                     save(
                       {
-                        contact:
-                          {
-                            name:
-                              contact.name.trim() ||
-                              undefined,
-                            phone:
-                              contact.phone.trim() ||
-                              undefined,
-                            email:
-                              contact.email.trim() ||
-                              undefined,
-                            whatsapp:
-                              contact.whatsapp.trim() ||
-                              undefined,
-                          },
+                        contact: {
+                          name:
+                            contact.name.trim() ||
+                            undefined,
+                          phone:
+                            contact.phone.trim() ||
+                            undefined,
+                          email:
+                            contact.email.trim() ||
+                            undefined,
+                          whatsapp:
+                            contact.whatsapp.trim() ||
+                            undefined,
+                        },
                       },
                       "Contact edited on canvas",
                     ),
@@ -1164,59 +1057,40 @@ export function AdvertisementCanvas({
           </div>
         </div>
 
-        {/* --------------------------------------------------------------- */}
-        {/* 04 — TRUST FOOTER                                              */}
-        {/* --------------------------------------------------------------- */}
+        {/* ---------------------------------------------------------------- */}
+        {/* TRUST FOOTER                                                     */}
+        {/* ---------------------------------------------------------------- */}
 
-        {editableBlock(
+        {block(
           "footer",
           "Footer",
           <div className="border-t-4 border-[#F3D98B] bg-[#0B1F33] px-6 py-5 text-white">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#F3D98B]">
-                  Agency Trust
-                </p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#F3D98B]">
+              Agency Trust
+            </p>
 
-                <p className="mt-1 text-lg font-black uppercase">
-                  {data.footer ||
-                    "AL YOUSUF ENTERPRISES LLP"}
-                </p>
+            <p className="mt-1 text-lg font-black uppercase">
+              {data.footer ||
+                "AL YOUSUF ENTERPRISES LLP"}
+            </p>
 
-                <p className="mt-1 text-xs text-white/70">
-                  Logo, registration and
-                  verification are controlled
-                  by the Agency profile.
-                </p>
-              </div>
-
-              <div className="text-left sm:text-right">
-                <p className="text-xs font-bold uppercase tracking-wider text-white/70">
-                  Verification
-                </p>
-
-                <p className="mt-1 text-sm font-bold">
-                  QR protected
-                </p>
-              </div>
-            </div>
+            <p className="mt-1 text-xs text-white/70">
+              Agency identity, registration
+              and verification are controlled
+              by the Agency profile.
+            </p>
           </div>,
 
           <div className="space-y-3">
             <Textarea
-              value={
-                footer
-              }
-              onChange={(
-                event,
-              ) =>
+              value={footer}
+              onChange={(event) =>
                 setFooter(
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
               rows={2}
-              placeholder="Optional source-grounded footer line"
+              placeholder="Optional source-grounded footer"
             />
 
             {editActions(() =>
@@ -1234,9 +1108,9 @@ export function AdvertisementCanvas({
           "bg-[#0B1F33]",
         )}
 
-        {/* --------------------------------------------------------------- */}
-        {/* TRUST ELEMENTS — LOCKED                                       */}
-        {/* --------------------------------------------------------------- */}
+        {/* ---------------------------------------------------------------- */}
+        {/* LOCKED TRUST ELEMENTS                                            */}
+        {/* ---------------------------------------------------------------- */}
 
         <div className="flex flex-col gap-3 bg-muted/40 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -1245,10 +1119,10 @@ export function AdvertisementCanvas({
             </p>
 
             <p className="mt-1 text-xs text-muted-foreground">
-              These trust elements are
-              automatically applied to every
-              generated advertisement. They
-              are never freely editable.
+              These trust elements are applied
+              automatically to generated
+              advertisements and are not freely
+              editable.
             </p>
 
             <Link
