@@ -1,52 +1,7 @@
 import "../font-config";
 import sharp from "sharp";
-import {
-  footerTheme,
-  type FooterStyle,
-} from "./footer-styles";
+import type { FooterStyle } from "./footer-styles";
 import type { AdvertisementFacts } from "./types";
-
-/**
- * KAI 10/10 RECRUITMENT AD RENDERING ENGINE
- *
- * THIS IS NOT A POSTER TEMPLATE.
- *
- * The engine behaves as a deterministic art director:
- *
- * 1. Understand the verified recruitment facts.
- * 2. Rank the candidate-facing message.
- * 3. Choose the headline.
- * 4. Measure information density.
- * 5. Choose the layout family.
- * 6. Protect mobile readability.
- * 7. Allocate the canvas.
- * 8. Render exact recruitment facts.
- * 9. Render agency trust only in the footer.
- *
- * GEMINI:
- * - photography
- * - environment
- * - workers
- * - machinery
- * - visual atmosphere
- * - visual storytelling
- *
- * KAI:
- * - exact readable recruitment text
- * - exact vacancy counts
- * - exact agency identity
- * - exact registration
- * - exact QR
- *
- * NEVER:
- * - invent facts
- * - hide roles
- * - use "+ more roles"
- * - shrink critical text indefinitely
- * - create spreadsheet-looking cards
- * - create a giant opaque poster panel
- * - repeat the agency identity unnecessarily
- */
 
 export interface BrandingOverlayInput {
   imagePng: Buffer;
@@ -67,74 +22,80 @@ export interface BrandingOverlayInput {
   brandBadges?: string[] | null;
 }
 
-const WHITE = "#FFFFFF";
 const NAVY = "#0B1F33";
 const GOLD = "#F3D98B";
+const WHITE = "#FFFFFF";
 const SOFT_WHITE = "#F5F7FA";
 
-const OUTER_MARGIN = 0.045;
-const SAFE_MIN_ROLE_FONT = 17;
-const SAFE_MIN_HEADLINE_FONT = 34;
-const FOOTER_HEIGHT_PCT = 0.085;
+const OUTER_MARGIN_PCT = 0.045;
+const FOOTER_PCT = 0.105;
 
-/**
- * Layout families.
- *
- * SPARSE:
- * strong hero + large roles
- *
- * MODERATE:
- * strong hero + compact role body
- *
- * DENSE:
- * high-density but still readable
- *
- * The renderer refuses to endlessly shrink typography.
- */
-type LayoutFamily =
-  | "SPARSE"
-  | "MODERATE"
+const MIN_ROLE_FONT = 18;
+const MAX_ROLE_FONT = 25;
+const MIN_HEADLINE_FONT = 36;
+const MAX_HEADLINE_FONT = 64;
+
+type LayoutMode =
+  | "HERO"
+  | "STANDARD"
   | "DENSE";
 
-interface LayoutMetrics {
-  family: LayoutFamily;
+interface Layout {
+  mode: LayoutMode;
 
+  left: number;
+  right: number;
+  contentWidth: number;
+
+  footerTop: number;
   footerHeight: number;
 
   headlineTop: number;
   headlineHeight: number;
 
   roleTop: number;
+  roleBottom: number;
   roleHeight: number;
 
-  roleColumns: number;
-  roleRows: number;
-  roleFontSize: number;
-  roleRowHeight: number;
-
-  leftMargin: number;
-  contentWidth: number;
+  columns: number;
+  rows: number;
   columnGap: number;
   columnWidth: number;
 
+  roleFont: number;
+  roleRowHeight: number;
   countWidth: number;
 }
 
 /**
- * Main entry point.
+ * KAI recruitment rendering engine.
+ *
+ * The renderer is deterministic.
+ *
+ * Gemini:
+ *   visual story / photography / environment / people
+ *
+ * KAI:
+ *   exact recruitment facts / readable typography / trust layer
+ *
+ * Critical rule:
+ *   readability > density.
+ *
+ * If a requirement is dense, the renderer changes the grammar
+ * before shrinking the typography.
  */
 export async function applyBrandingOverlay(
   input: BrandingOverlayInput,
 ): Promise<Buffer> {
   const {
+    facts,
     imagePng,
     widthPx,
     heightPx,
-    facts,
   } = input;
 
   if (!facts) {
-    return buildFooterOnlyImage(
+    return renderFooterOnly(
       input,
     );
   }
@@ -147,12 +108,14 @@ export async function applyBrandingOverlay(
     );
 
   const overlay =
-    await buildRecruitmentComposition(
+    await renderAdvertisement(
       input,
       layout,
     );
 
-  return sharp(imagePng)
+  return sharp(
+    imagePng,
+  )
     .composite([
       {
         input: overlay,
@@ -165,19 +128,18 @@ export async function applyBrandingOverlay(
 }
 
 /**
- * Compatibility exports used by the rest of the pipeline.
+ * Compatibility exports used elsewhere.
  */
 export function brandingBandHeight(
   widthPx: number,
   heightPx: number,
 ): number {
-  return Math.min(
-    Math.round(
+  return Math.round(
+    Math.min(
       heightPx *
-        FOOTER_HEIGHT_PCT,
-    ),
-    Math.round(
-      widthPx * 0.13,
+        FOOTER_PCT,
+      widthPx *
+        0.15,
     ),
   );
 }
@@ -202,24 +164,26 @@ export function brandingStripHeight(
 }
 
 export const BRANDING_RESERVED_HEIGHT_PCT =
-  9;
+  11;
 
 /* -------------------------------------------------------------------------- */
-/* LAYOUT BRAIN                                                               */
+/* LAYOUT                                                                      */
 /* -------------------------------------------------------------------------- */
 
 function calculateLayout(
   facts: AdvertisementFacts,
   widthPx: number,
   heightPx: number,
-): LayoutMetrics {
+): Layout {
   const roleCount =
     facts.positions.length;
 
-  const family =
-    classifyLayoutFamily(
-      roleCount,
-    );
+  const mode =
+    roleCount <= 6
+      ? "HERO"
+      : roleCount <= 12
+        ? "STANDARD"
+        : "DENSE";
 
   const footerHeight =
     brandingBandHeight(
@@ -227,215 +191,236 @@ function calculateLayout(
       heightPx,
     );
 
-  const leftMargin =
+  const footerTop =
+    heightPx -
+    footerHeight;
+
+  const left =
     Math.round(
       widthPx *
-        OUTER_MARGIN,
+        OUTER_MARGIN_PCT,
     );
 
-  const contentWidth =
+  const right =
     widthPx -
-    leftMargin * 2;
+    left;
+
+  const contentWidth =
+    right -
+    left;
+
+  /**
+   * Dense recruitment means more columns, not smaller text.
+   *
+   * 19 roles => 3 columns => 7 rows.
+   */
+  const columns =
+    mode === "HERO"
+      ? 1
+      : mode === "STANDARD"
+        ? 2
+        : roleCount <= 21
+          ? 3
+          : 4;
+
+  const rows =
+    Math.ceil(
+      roleCount /
+        columns,
+    );
 
   const columnGap =
     Math.round(
-      widthPx * 0.025,
+      widthPx *
+        0.022,
     );
-
-  /**
-   * The upper section is deliberately substantial.
-   *
-   * This protects the Gemini visual and allows KAI to place
-   * the recruitment hook without turning the whole image into
-   * a document.
-   */
-  const headlineTop =
-    Math.round(
-      heightPx * 0.055,
-    );
-
-  const headlineHeight =
-    family === "SPARSE"
-      ? Math.round(
-          heightPx * 0.23,
-        )
-      : Math.round(
-          heightPx * 0.19,
-        );
-
-  /**
-   * Roles occupy the lower creative body.
-   *
-   * A translucent gradient is used rather than a solid poster
-   * panel so Gemini's image remains visually present.
-   */
-  const roleTop =
-    Math.round(
-      heightPx * 0.515,
-    );
-
-  const roleHeight =
-    heightPx -
-    roleTop -
-    footerHeight -
-    Math.round(
-      heightPx * 0.02,
-    );
-
-  /**
-   * Select columns based on density.
-   *
-   * Crucially:
-   * 19 roles -> 2 columns.
-   *
-   * We do NOT automatically go to 3 columns simply because
-   * the content is large.
-   */
-  const roleColumns =
-    family === "SPARSE"
-      ? 1
-      : family === "MODERATE"
-        ? 2
-        : roleCount <= 20
-          ? 2
-          : 3;
-
-  const roleRows =
-    Math.ceil(
-      roleCount /
-        roleColumns,
-    );
-
-  const usableRoleWidth =
-    contentWidth -
-    columnGap *
-      (roleColumns - 1);
 
   const columnWidth =
     Math.floor(
-      usableRoleWidth /
-        roleColumns,
+      (
+        contentWidth -
+        columnGap *
+          (columns - 1)
+      ) /
+        columns,
+    );
+
+  /**
+   * Header consumes no more than the upper 34%.
+   * The image remains visually dominant.
+   */
+  const headlineTop =
+    Math.round(
+      heightPx *
+        0.045,
+    );
+
+  const headlineHeight =
+    Math.round(
+      heightPx *
+        (
+          mode === "HERO"
+            ? 0.23
+            : 0.19
+        ),
+    );
+
+  /**
+   * Position area starts lower than before,
+   * but its bottom is HARD-LOCKED to the footer.
+   */
+  const roleTop =
+    Math.round(
+      heightPx *
+        (
+          mode === "HERO"
+            ? 0.55
+            : 0.50
+        ),
+    );
+
+  const roleBottom =
+    footerTop -
+    Math.round(
+      heightPx *
+        0.018,
+    );
+
+  const roleHeight =
+    Math.max(
+      1,
+      roleBottom -
+        roleTop,
     );
 
   const countWidth =
     Math.max(
-      42,
+      40,
       Math.round(
-        widthPx * 0.045,
+        widthPx *
+          0.042,
       ),
+    );
+
+  const titleGap =
+    Math.round(
+      widthPx *
+        0.012,
     );
 
   const titleWidth =
     columnWidth -
     countWidth -
-    Math.round(
-      widthPx * 0.014,
+    titleGap;
+
+  /**
+   * Dense mode deliberately starts around 20 px.
+   * Never collapse into unreadable micro-text.
+   */
+  const preferredRoleFont =
+    mode === "HERO"
+      ? Math.min(
+          MAX_ROLE_FONT,
+          Math.round(
+            widthPx *
+              0.026,
+          ),
+        )
+      : mode ===
+          "STANDARD"
+        ? Math.min(
+            MAX_ROLE_FONT,
+            Math.round(
+              widthPx *
+                0.021,
+            ),
+          )
+        : Math.min(
+            MAX_ROLE_FONT,
+            Math.round(
+              widthPx *
+                0.019,
+            ),
+          );
+
+  const representativeTitle =
+    longestPositionTitle(
+      facts,
+    );
+
+  const roleFont =
+    fitFont(
+      representativeTitle,
+      titleWidth,
+      preferredRoleFont,
+      MIN_ROLE_FONT,
     );
 
   /**
-   * Start with a strong role font.
+   * Calculate row height from the actual number of rows.
    *
-   * Only reduce it when the actual calculated geometry
-   * requires it.
+   * This prevents the final rows from being pushed into the footer.
    */
-  const preferredRoleFont =
-    family === "SPARSE"
-      ? Math.round(
-          widthPx * 0.024,
-        )
-      : family === "MODERATE"
-        ? Math.round(
-            widthPx * 0.020,
-          )
-        : Math.round(
-            widthPx * 0.018,
-          );
-
-  const maximumRoleFontFromWidth =
-    Math.floor(
-      preferredRoleFont,
-    );
-
-  const fittedRoleFont =
-    fitFont(
-      "Procurement Engineer - Estimation",
-      titleWidth,
-      maximumRoleFontFromWidth,
-      SAFE_MIN_ROLE_FONT,
+  const availableRowsHeight =
+    Math.max(
+      1,
+      roleHeight -
+        Math.round(
+          heightPx *
+            0.055,
+        ),
     );
 
   const roleRowHeight =
     Math.max(
-      Math.round(
-        fittedRoleFont *
-          1.22,
-      ),
-      Math.round(
-        roleHeight /
+      Math.floor(
+        availableRowsHeight /
           Math.max(
-            roleRows,
+            rows,
             1,
           ),
       ),
+      Math.round(
+        roleFont *
+          1.45,
+      ),
     );
 
-  /**
-   * If calculated row height is too small, we keep the
-   * minimum readable typography instead of shrinking it.
-   *
-   * This is the important difference from the old renderer.
-   */
   return {
-    family,
+    mode,
 
+    left,
+    right,
+    contentWidth,
+
+    footerTop,
     footerHeight,
 
     headlineTop,
     headlineHeight,
 
     roleTop,
+    roleBottom,
     roleHeight,
 
-    roleColumns,
-    roleRows,
-    roleFontSize:
-      fittedRoleFont,
-    roleRowHeight,
-
-    leftMargin,
-    contentWidth,
+    columns,
+    rows,
     columnGap,
     columnWidth,
 
+    roleFont,
+    roleRowHeight,
     countWidth,
   };
 }
 
-function classifyLayoutFamily(
-  roleCount: number,
-): LayoutFamily {
-  if (
-    roleCount <= 5
-  ) {
-    return "SPARSE";
-  }
-
-  if (
-    roleCount <= 12
-  ) {
-    return "MODERATE";
-  }
-
-  return "DENSE";
-}
-
 /* -------------------------------------------------------------------------- */
-/* RECRUITMENT COMPOSITION                                                    */
+/* ADVERTISEMENT                                                                */
 /* -------------------------------------------------------------------------- */
 
-async function buildRecruitmentComposition(
+async function renderAdvertisement(
   input: BrandingOverlayInput,
-  layout: LayoutMetrics,
+  layout: Layout,
 ): Promise<Buffer> {
   const {
     widthPx,
@@ -444,100 +429,92 @@ async function buildRecruitmentComposition(
   } = input;
 
   if (!facts) {
-    return Buffer.alloc(0);
+    return Buffer.alloc(
+      0,
+    );
   }
-
-  const footerHeight =
-    layout.footerHeight;
 
   const svg: string[] = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${widthPx}" height="${heightPx}">`,
+    `
+      <defs>
+
+        <linearGradient
+          id="kaiTop"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop
+            offset="0%"
+            stop-color="${NAVY}"
+            stop-opacity="0.92"
+          />
+
+          <stop
+            offset="55%"
+            stop-color="${NAVY}"
+            stop-opacity="0.42"
+          />
+
+          <stop
+            offset="100%"
+            stop-color="${NAVY}"
+            stop-opacity="0"
+          />
+        </linearGradient>
+
+        <linearGradient
+          id="kaiRoles"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop
+            offset="0%"
+            stop-color="${NAVY}"
+            stop-opacity="0.20"
+          />
+
+          <stop
+            offset="20%"
+            stop-color="${NAVY}"
+            stop-opacity="0.72"
+          />
+
+          <stop
+            offset="100%"
+            stop-color="${NAVY}"
+            stop-opacity="0.93"
+          />
+        </linearGradient>
+
+        <linearGradient
+          id="kaiFooter"
+          x1="0"
+          y1="0"
+          x2="1"
+          y2="0"
+        >
+          <stop
+            offset="0%"
+            stop-color="${NAVY}"
+          />
+
+          <stop
+            offset="100%"
+            stop-color="#102A44"
+          />
+        </linearGradient>
+
+      </defs>
+    `,
   ];
 
   /* ---------------------------------------------------------------------- */
-  /* GLOBAL GRADIENTS                                                       */
-  /* ---------------------------------------------------------------------- */
-
-  svg.push(`
-    <defs>
-
-      <linearGradient
-        id="kaiHeroTop"
-        x1="0"
-        y1="0"
-        x2="0"
-        y2="1"
-      >
-        <stop
-          offset="0%"
-          stop-color="${NAVY}"
-          stop-opacity="0.82"
-        />
-
-        <stop
-          offset="58%"
-          stop-color="${NAVY}"
-          stop-opacity="0.34"
-        />
-
-        <stop
-          offset="100%"
-          stop-color="${NAVY}"
-          stop-opacity="0"
-        />
-      </linearGradient>
-
-      <linearGradient
-        id="kaiRoleGradient"
-        x1="0"
-        y1="0"
-        x2="0"
-        y2="1"
-      >
-        <stop
-          offset="0%"
-          stop-color="${NAVY}"
-          stop-opacity="0.30"
-        />
-
-        <stop
-          offset="18%"
-          stop-color="${NAVY}"
-          stop-opacity="0.72"
-        />
-
-        <stop
-          offset="100%"
-          stop-color="${NAVY}"
-          stop-opacity="0.96"
-        />
-      </linearGradient>
-
-      <linearGradient
-        id="kaiFooterGradient"
-        x1="0"
-        y1="0"
-        x2="1"
-        y2="0"
-      >
-        <stop
-          offset="0%"
-          stop-color="${NAVY}"
-          stop-opacity="0.97"
-        />
-
-        <stop
-          offset="100%"
-          stop-color="${NAVY}"
-          stop-opacity="0.94"
-        />
-      </linearGradient>
-
-    </defs>
-  `);
-
-  /* ---------------------------------------------------------------------- */
-  /* HEADLINE / HOOK                                                        */
+  /* HEADLINE                                                                */
   /* ---------------------------------------------------------------------- */
 
   const headline =
@@ -545,86 +522,71 @@ async function buildRecruitmentComposition(
       facts,
     );
 
-  const secondary =
-    selectSecondaryLine(
-      facts,
-    );
-
-  const headlineMaxWidth =
-    layout.contentWidth;
-
   const headlineFont =
     fitFont(
       headline,
-      headlineMaxWidth,
-      layout.family ===
-        "SPARSE"
-        ? Math.round(
-            widthPx * 0.052,
-          )
+      layout.contentWidth,
+      layout.mode ===
+        "HERO"
+        ? MAX_HEADLINE_FONT
         : Math.round(
-            widthPx * 0.045,
+            MAX_HEADLINE_FONT *
+              0.86,
           ),
-      SAFE_MIN_HEADLINE_FONT,
+      MIN_HEADLINE_FONT,
     );
 
   const headlineLines =
     wrapText(
       headline,
-      headlineMaxWidth,
+      layout.contentWidth,
       headlineFont,
       2,
     );
 
-  /**
-   * The headline is anchored at the top.
-   * It is allowed to overlap the photographic area naturally
-   * through the dark gradient beneath it.
-   */
-  svg.push(
-    `<rect
+  svg.push(`
+    <rect
       x="0"
       y="0"
       width="${widthPx}"
       height="${Math.round(
         layout.headlineHeight *
-          1.18,
+          1.35,
       )}"
-      fill="url(#kaiHeroTop)"
-    />`,
-  );
+      fill="url(#kaiTop)"
+    />
+  `);
 
   let headlineY =
     layout.headlineTop +
     headlineFont;
 
   for (
-    let index = 0;
-    index <
-      headlineLines.length;
-    index += 1
+    const line of headlineLines
   ) {
-    const line =
-      headlineLines[index];
-
-    svg.push(
-      `<text
-        x="${layout.leftMargin}"
+    svg.push(`
+      <text
+        x="${layout.left}"
         y="${headlineY}"
         font-family="KaiSans, sans-serif"
         font-size="${headlineFont}"
         font-weight="900"
-        letter-spacing="-0.5"
         fill="${WHITE}"
-      >${esc(line)}</text>`,
-    );
+        letter-spacing="-0.6"
+      >${esc(line)}</text>
+    `);
 
     headlineY +=
       Math.round(
         headlineFont *
-          0.93,
+          0.92,
       );
   }
+
+  const secondary =
+    selectSecondary(
+      facts,
+    );
 
   if (secondary) {
     const secondaryFont =
@@ -636,44 +598,41 @@ async function buildRecruitmentComposition(
         ),
       );
 
-    svg.push(
-      `<text
-        x="${layout.leftMargin}"
+    svg.push(`
+      <text
+        x="${layout.left}"
         y="${
           headlineY +
           Math.round(
             secondaryFont *
-              1.25,
+              1.2,
           )
         }"
         font-family="KaiSans, sans-serif"
         font-size="${secondaryFont}"
-        font-weight="600"
+        font-weight="650"
         fill="${GOLD}"
-      >${esc(secondary)}</text>`,
-    );
+      >${esc(secondary)}</text>
+    `);
   }
 
   /* ---------------------------------------------------------------------- */
-  /* OPPORTUNITY SIGNAL                                                     */
+  /* VACANCY SIGNAL                                                          */
   /* ---------------------------------------------------------------------- */
 
-  const vacancyTotal =
+  const total =
     totalVacancies(
       facts,
     );
 
   if (
-    vacancyTotal !==
-      null &&
-    vacancyTotal > 0
+    total !== null &&
+    total > 0
   ) {
-    const opportunity =
-      vacancyTotal >= 20
-        ? `${vacancyTotal} OPENINGS`
-        : `${vacancyTotal} VACANCIES`;
+    const text =
+      `${total} VACANCIES`;
 
-    const pillFont =
+    const font =
       Math.max(
         17,
         Math.round(
@@ -682,100 +641,91 @@ async function buildRecruitmentComposition(
         ),
       );
 
-    const pillWidth =
+    const width =
       Math.min(
         Math.round(
           widthPx *
-            0.40,
+            0.30,
         ),
         Math.round(
           estimateTextWidth(
-            opportunity,
-            pillFont,
+            text,
+            font,
           ) +
             widthPx *
               0.045,
         ),
       );
 
-    const pillHeight =
+    const height =
       Math.round(
-        pillFont *
-          1.75,
+        font *
+          1.65,
       );
 
-    const pillY =
+    const y =
       Math.min(
         Math.round(
           heightPx *
-            0.36,
+            0.34,
         ),
         headlineY +
           Math.round(
-            pillFont *
-              1.6,
+            font *
+              1.45,
           ),
       );
 
-    svg.push(
-      `<rect
-        x="${layout.leftMargin}"
-        y="${pillY}"
-        width="${pillWidth}"
-        height="${pillHeight}"
+    svg.push(`
+      <rect
+        x="${layout.left}"
+        y="${y}"
+        width="${width}"
+        height="${height}"
         rx="${Math.round(
-          pillHeight / 2,
+          height / 2,
         )}"
         fill="${GOLD}"
-      />`,
-    );
+      />
 
-    svg.push(
-      `<text
+      <text
         x="${
-          layout.leftMargin +
+          layout.left +
           Math.round(
-            pillWidth / 2,
+            width / 2,
           )
         }"
         y="${
-          pillY +
+          y +
           Math.round(
-            pillHeight *
-              0.68,
+            height *
+              0.69,
           )
         }"
-        font-family="KaiSans, sans-serif"
-        font-size="${pillFont}"
-        font-weight="850"
         text-anchor="middle"
+        font-family="KaiSans, sans-serif"
+        font-size="${font}"
+        font-weight="850"
         fill="${NAVY}"
-      >${esc(opportunity)}</text>`,
-    );
+      >${esc(text)}</text>
+    `);
   }
 
   /* ---------------------------------------------------------------------- */
-  /* ROLE AREA                                                              */
+  /* ROLE REGION                                                             */
   /* ---------------------------------------------------------------------- */
 
-  svg.push(
-    `<rect
+  svg.push(`
+    <rect
       x="0"
       y="${layout.roleTop}"
       width="${widthPx}"
       height="${layout.roleHeight}"
-      fill="url(#kaiRoleGradient)"
-    />`,
-  );
+      fill="url(#kaiRoles)"
+    />
+  `);
 
-  const sectionLabelY =
-    layout.roleTop +
-    Math.round(
-      layout.roleHeight *
-        0.055,
-    );
-
-  const sectionFont =
+  const labelFont =
     Math.max(
       20,
       Math.round(
@@ -784,67 +734,40 @@ async function buildRecruitmentComposition(
       ),
     );
 
-  svg.push(
-    `<text
-      x="${layout.leftMargin}"
-      y="${sectionLabelY}"
+  const labelY =
+    layout.roleTop +
+    Math.round(
+      heightPx *
+        0.045,
+    );
+
+  svg.push(`
+    <text
+      x="${layout.left}"
+      y="${labelY}"
       font-family="KaiSans, sans-serif"
-      font-size="${sectionFont}"
+      font-size="${labelFont}"
       font-weight="850"
       fill="${WHITE}"
-    >POSITIONS</text>`,
-  );
+    >POSITIONS</text>
 
-  svg.push(
-    `<rect
-      x="${layout.leftMargin}"
-      y="${
-        sectionLabelY +
-        11
-      }"
+    <rect
+      x="${layout.left}"
+      y="${labelY + 10}"
       width="${Math.round(
-        widthPx * 0.085,
+        widthPx *
+          0.075,
       )}"
       height="4"
       fill="${GOLD}"
-    />`,
-  );
+    />
+  `);
 
-  const roleStartY =
-    sectionLabelY +
+  const firstRoleY =
+    labelY +
     Math.round(
-      sectionFont * 1.55,
-    );
-
-  const roleBottom =
-    layout.roleTop +
-    layout.roleHeight -
-    Math.round(
-      heightPx * 0.02,
-    );
-
-  const roleAvailableHeight =
-    roleBottom -
-    roleStartY;
-
-  const maxRows =
-    layout.roleRows;
-
-  /**
-   * Compute row height from actual geometry.
-   *
-   * We never shrink below the role legibility floor.
-   */
-  const actualRowHeight =
-    Math.max(
-      layout.roleRowHeight,
-      Math.floor(
-        roleAvailableHeight /
-          Math.max(
-            maxRows,
-            1,
-          ),
-      ),
+      labelFont *
+        1.45,
     );
 
   const titleGap =
@@ -859,27 +782,35 @@ async function buildRecruitmentComposition(
     titleGap;
 
   /**
-   * Render all roles.
+   * Divide roles vertically by columns.
    *
-   * IMPORTANT:
-   * No "+ more roles".
-   * No silent truncation.
-   * No experience paragraphs.
+   * 19 roles:
+   *   column 1 = 7
+   *   column 2 = 6
+   *   column 3 = 6
    *
-   * Exact title + exact count only.
-   *
-   * Experience and qualification data remain available in KAI's
-   * structured requirement, but the social poster is not a PDF
-   * requirement sheet.
+   * This is visually much stronger than 10 rows in two columns.
    */
+  const columnCounts =
+    distributeRoles(
+      facts.positions.length,
+      layout.columns,
+    );
+
+  let globalIndex = 0;
+
   for (
     let column = 0;
     column <
-      layout.roleColumns;
+      layout.columns;
     column += 1
   ) {
+    const count =
+      columnCounts[column] ??
+      0;
+
     const columnX =
-      layout.leftMargin +
+      layout.left +
       column *
         (
           layout.columnWidth +
@@ -888,63 +819,65 @@ async function buildRecruitmentComposition(
 
     for (
       let row = 0;
-      row <
-        layout.roleRows;
+      row < count;
       row += 1
     ) {
-      const index =
-        column *
-          layout.roleRows +
-        row;
-
       const position =
-        facts.positions[index];
+        facts.positions[
+          globalIndex
+        ];
+
+      globalIndex +=
+        1;
 
       if (!position) {
         continue;
       }
 
+      /**
+       * Hard bottom boundary:
+       *
+       * Nothing may render below roleBottom.
+       */
       const rowY =
-        roleStartY +
+        firstRoleY +
         row *
-          actualRowHeight;
+          layout.roleRowHeight;
 
-      const titleLines =
-        wrapText(
-          position.title,
-          titleWidth,
-          layout.roleFontSize,
-          2,
-        );
+      if (
+        rowY +
+          layout.roleRowHeight >
+        layout.roleBottom
+      ) {
+        continue;
+      }
 
       const countText =
         typeof position.count ===
-        "number"
+          "number"
           ? String(
               position.count,
             )
           : "";
 
       if (countText) {
-        const countHeight =
+        const badgeHeight =
           Math.round(
-            layout.roleFontSize *
-              1.42,
+            layout.roleFont *
+              1.32,
           );
 
-        svg.push(
-          `<rect
+        svg.push(`
+          <rect
             x="${columnX}"
             y="${rowY}"
             width="${layout.countWidth}"
-            height="${countHeight}"
+            height="${badgeHeight}"
             rx="5"
             fill="${GOLD}"
-          />`,
-        );
+          />
 
-        svg.push(
-          `<text
+          <text
             x="${
               columnX +
               Math.round(
@@ -955,23 +888,25 @@ async function buildRecruitmentComposition(
             y="${
               rowY +
               Math.round(
-                countHeight *
+                badgeHeight *
                   0.72,
               )
             }"
+            text-anchor="middle"
             font-family="KaiSans, sans-serif"
             font-size="${Math.max(
               15,
               Math.round(
-                layout.roleFontSize *
+                layout.roleFont *
                   0.78,
               ),
             )}"
             font-weight="850"
-            text-anchor="middle"
             fill="${NAVY}"
-          >${esc(countText)}</text>`,
-        );
+          >${esc(
+            countText,
+          )}</text>
+        `);
       }
 
       const titleX =
@@ -979,128 +914,344 @@ async function buildRecruitmentComposition(
         layout.countWidth +
         titleGap;
 
+      const titleLines =
+        wrapText(
+          position.title,
+          titleWidth,
+          layout.roleFont,
+          2,
+        );
+
       for (
-        let line = 0;
-        line <
+        let lineIndex = 0;
+        lineIndex <
           titleLines.length;
-        line += 1
+        lineIndex += 1
       ) {
-        svg.push(
-          `<text
+        const lineY =
+          rowY +
+          Math.round(
+            layout.roleFont *
+              0.96,
+          ) +
+          lineIndex *
+            Math.round(
+              layout.roleFont *
+                1.04,
+            );
+
+        svg.push(`
+          <text
             x="${titleX}"
-            y="${
-              rowY +
-              Math.round(
-                layout.roleFontSize *
-                  0.96,
-              ) +
-              line *
-                Math.round(
-                  layout.roleFontSize *
-                    1.03,
-                )
-            }"
+            y="${lineY}"
             font-family="KaiSans, sans-serif"
-            font-size="${layout.roleFontSize}"
-            font-weight="700"
+            font-size="${layout.roleFont}"
+            font-weight="720"
             fill="${SOFT_WHITE}"
           >${esc(
-            titleLines[line],
-          )}</text>`,
-        );
+            titleLines[lineIndex],
+          )}</text>
+        `);
       }
     }
   }
 
   /* ---------------------------------------------------------------------- */
-  /* SOURCE-GROUNDED CTA / BENEFITS                                         */
+  /* FOOTER-SAFE SEPARATOR                                                   */
   /* ---------------------------------------------------------------------- */
 
-  const benefitLabels =
-    getBenefitLabels(
-      facts,
-    );
+  svg.push(`
+    <rect
+      x="0"
+      y="${layout.footerTop - 2}"
+      width="${widthPx}"
+      height="2"
+      fill="${GOLD}"
+    />
+  `);
 
-  const contact =
-    buildContactLine(
-      facts,
+  /* ---------------------------------------------------------------------- */
+  /* TRUST FOOTER                                                            */
+  /* ---------------------------------------------------------------------- */
+
+  const footer =
+    await renderFooter(
       input,
+      layout,
     );
 
-  /**
-   * Only render CTA when actual source information exists.
-   * No invented CTA.
-   */
+  svg.push(`
+    <image
+      href="${toDataUri(
+        footer,
+      )}"
+      x="0"
+      y="${layout.footerTop}"
+      width="${widthPx}"
+      height="${layout.footerHeight}"
+      preserveAspectRatio="none"
+    />
+  `);
+
+  svg.push(
+    "</svg>",
+  );
+
+  return sharp(
+    Buffer.from(
+      svg.join(""),
+    ),
+  )
+    .png()
+    .toBuffer();
+}
+
+/* -------------------------------------------------------------------------- */
+/* FOOTER                                                                      */
+/* -------------------------------------------------------------------------- */
+
+async function renderFooter(
+  input: BrandingOverlayInput,
+  layout: Layout,
+): Promise<Buffer> {
+  const {
+    widthPx,
+  } = input;
+
+  const {
+    footerHeight,
+  } = layout;
+
+  const logoSize =
+    input.agencyLogoPng
+      ? Math.round(
+          footerHeight *
+            0.55,
+        )
+      : 0;
+
+  const qrSize =
+    input.qrPng
+      ? Math.round(
+          footerHeight *
+            0.70,
+        )
+      : 0;
+
+  const pad =
+    Math.round(
+      widthPx *
+        0.025,
+    );
+
+  const qrLeft =
+    widthPx -
+    pad -
+    qrSize;
+
+  const textLeft =
+    logoSize > 0
+      ? pad +
+        logoSize +
+        Math.round(
+          widthPx *
+            0.018,
+        )
+      : pad;
+
+  const textRight =
+    qrSize > 0
+      ? qrLeft -
+        pad
+      : widthPx -
+        pad;
+
+  const available =
+    Math.max(
+      120,
+      textRight -
+        textLeft,
+    );
+
+  const svg: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${widthPx}" height="${footerHeight}">`,
+    `<rect width="${widthPx}" height="${footerHeight}" fill="${NAVY}"/>`,
+    `<rect width="${widthPx}" height="3" fill="${GOLD}"/>`,
+  ];
+
   if (
-    benefitLabels.length > 0 ||
-    contact
+    input.agencyLogoPng &&
+    logoSize > 0
   ) {
-    const bottomBandHeight =
-      Math.round(
-        heightPx *
-          0.085,
+    const logo =
+      await normalise(
+        input.agencyLogoPng,
+        logoSize,
       );
 
-    const bottomBandTop =
-      layout.roleTop +
-      layout.roleHeight -
-      bottomBandHeight;
+    svg.push(`
+      <image
+        href="${toDataUri(
+          logo,
+        )}"
+        x="${pad}"
+        y="${Math.round(
+          (footerHeight -
+            logoSize) /
+            2,
+        )}"
+        width="${logoSize}"
+        height="${logoSize}"
+        preserveAspectRatio="xMidYMid meet"
+      />
+    `);
+  }
 
-    svg.push(
-      `<rect
-        x="0"
-        y="${bottomBandTop}"
-        width="${widthPx}"
-        height="${bottomBandHeight}"
-        fill="${NAVY}"
-        fill-opacity="0.94"
-      />`,
+  let y =
+    Math.round(
+      footerHeight *
+        0.38,
     );
 
-    const bottomItems = [
-      ...benefitLabels.slice(
-        0,
-        4,
-      ),
-      ...(contact
-        ? [contact]
-        : []),
-    ];
+  if (
+    input.agencyName
+  ) {
+    const font =
+      fitFont(
+        input.agencyName,
+        available,
+        Math.round(
+          footerHeight *
+            0.22,
+        ),
+        13,
+      );
 
-    const bottomText =
-      bottomItems.join(
+    svg.push(`
+      <text
+        x="${textLeft}"
+        y="${y}"
+        font-family="KaiSans, sans-serif"
+        font-size="${font}"
+        font-weight="850"
+        fill="${WHITE}"
+      >${esc(
+        input.agencyName,
+      )}</text>
+    `);
+
+    y +=
+      Math.round(
+        font *
+          1.05,
+      );
+  }
+
+  if (
+    input.registrationNumber
+  ) {
+    const registration =
+      `REG. ${input.registrationNumber}`;
+
+    const font =
+      fitFont(
+        registration,
+        available,
+        Math.round(
+          footerHeight *
+            0.095,
+        ),
+        10,
+      );
+
+    svg.push(`
+      <text
+        x="${textLeft}"
+        y="${y}"
+        font-family="KaiSans, sans-serif"
+        font-size="${font}"
+        font-weight="550"
+        fill="${WHITE}"
+        opacity="0.82"
+      >${esc(
+        registration,
+      )}</text>
+    `);
+
+    y +=
+      Math.round(
+        font *
+          1.15,
+      );
+  }
+
+  const contact =
+    [
+      input.contactLine,
+      input.addressLine,
+    ]
+      .filter(Boolean)
+      .join(
         "  •  ",
       );
 
-    if (bottomText) {
-      const bottomFont =
-        fitFont(
-          bottomText,
-          layout.contentWidth,
-          Math.round(
-            widthPx *
-              0.014,
-          ),
-          14,
-        );
-
-      svg.push(
-        `<text
-          x="${layout.leftMargin}"
-          y="${
-            bottomBandTop +
-            Math.round(
-              bottomBandHeight *
-                0.62,
-            )
-          }"
-          font-family="KaiSans, sans-serif"
-          font-size="${bottomFont}"
-          font-weight="700"
-          fill="${WHITE}"
-        >${esc(bottomText)}</text>`,
+  if (contact) {
+    const font =
+      fitFont(
+        contact,
+        available,
+        Math.round(
+          footerHeight *
+            0.078,
+        ),
+        9,
       );
-    }
+
+    svg.push(`
+      <text
+        x="${textLeft}"
+        y="${Math.min(
+          footerHeight -
+            5,
+          y,
+        )}"
+        font-family="KaiSans, sans-serif"
+        font-size="${font}"
+        font-weight="500"
+        fill="${WHITE}"
+        opacity="0.72"
+      >${esc(
+        contact,
+      )}</text>
+    `);
+  }
+
+  if (
+    input.qrPng &&
+    qrSize > 0
+  ) {
+    const qr =
+      await normalise(
+        input.qrPng,
+        qrSize,
+      );
+
+    svg.push(`
+      <image
+        href="${toDataUri(
+          qr,
+        )}"
+        x="${qrLeft}"
+        y="${Math.round(
+          (footerHeight -
+            qrSize) /
+            2,
+        )}"
+        width="${qrSize}"
+        height="${qrSize}"
+        preserveAspectRatio="xMidYMid meet"
+      />
+    `);
   }
 
   svg.push(
@@ -1117,22 +1268,14 @@ async function buildRecruitmentComposition(
 }
 
 /* -------------------------------------------------------------------------- */
-/* HEADLINE DECISION                                                          */
+/* HELPERS                                                                     */
 /* -------------------------------------------------------------------------- */
 
 function selectHeadline(
   facts: AdvertisementFacts,
 ): string {
-  /**
-   * The source header is already a grounded, candidate-facing claim.
-   * Prefer it.
-   *
-   * Do not overwrite a real source-derived headline with generic
-   * "WE ARE HIRING" copy.
-   */
   if (
-    facts.header &&
-    facts.header.trim()
+    facts.header?.trim()
   ) {
     return facts.header.trim();
   }
@@ -1151,136 +1294,138 @@ function selectHeadline(
     return `${facts.industry} — ${facts.country}`;
   }
 
-  if (
-    facts.country
-  ) {
-    return facts.country;
-  }
-
-  return "CAREER OPPORTUNITY";
+  return (
+    facts.country ||
+    "CAREER OPPORTUNITY"
+  );
 }
 
-function selectSecondaryLine(
+function selectSecondary(
   facts: AdvertisementFacts,
 ): string {
-  const parts = [
+  return [
     facts.country,
     facts.industry,
   ]
     .filter(Boolean)
-    .map(
-      (value) =>
-        String(value).trim(),
+    .join(
+      "  •  ",
     );
-
-  const unique: string[] =
-    [];
-
-  for (const part of parts) {
-    if (
-      !unique.some(
-        (existing) =>
-          existing.toLowerCase() ===
-          part.toLowerCase(),
-      )
-    ) {
-      unique.push(part);
-    }
-  }
-
-  return unique.join(
-    "  ·  ",
-  );
 }
-
-/* -------------------------------------------------------------------------- */
-/* SUPPORT                                                                    */
-/* -------------------------------------------------------------------------- */
 
 function totalVacancies(
   facts: AdvertisementFacts,
 ): number | null {
   if (
-    facts.positions.length ===
-      0 ||
-    !facts.positions.every(
-      (position) =>
-        typeof position.count ===
-        "number",
-    )
+    !facts.positions.length
   ) {
     return null;
   }
 
-  return facts.positions.reduce(
-    (sum, position) =>
-      sum +
-      (position.count ?? 0),
+  const numeric =
+    facts.positions.filter(
+      (position) =>
+        typeof position.count ===
+        "number",
+    );
+
+  if (
+    numeric.length !==
+    facts.positions.length
+  ) {
+    return null;
+  }
+
+  return numeric.reduce(
+    (
+      total,
+      position,
+    ) =>
+      total +
+      (position.count ??
+        0),
     0,
   );
 }
 
-function getBenefitLabels(
+function longestPositionTitle(
   facts: AdvertisementFacts,
-): string[] {
+): string {
   if (
-    !facts.benefits?.length
+    facts.positions.length ===
+    0
   ) {
-    return [];
+    return "Position";
   }
 
-  return facts.benefits
-    .map(
-      (benefit) =>
-        benefit.detail
-          ? `${benefit.label}: ${benefit.detail}`
-          : benefit.label,
-    )
-    .filter(Boolean);
+  return facts.positions.reduce(
+    (
+      longest,
+      current,
+    ) =>
+      current.title.length >
+      longest.length
+        ? current.title
+        : longest,
+    facts.positions[0]
+      .title,
+  );
 }
 
-function buildContactLine(
-  facts: AdvertisementFacts,
-  input: BrandingOverlayInput,
-): string | null {
-  const values = [
-    facts.contact.phone,
-    facts.contact.email,
-    facts.contact.whatsapp,
-    input.contactLine,
-  ]
-    .filter(Boolean)
-    .map(
-      (value) =>
-        String(value).trim(),
+function distributeRoles(
+  roleCount: number,
+  columns: number,
+): number[] {
+  const result =
+    Array.from(
+      {
+        length: columns,
+      },
+      () => 0,
     );
 
-  const unique: string[] =
-    [];
+  const base =
+    Math.floor(
+      roleCount /
+        columns,
+    );
 
-  for (const value of values) {
+  let remainder =
+    roleCount %
+    columns;
+
+  for (
+    let i = 0;
+    i < columns;
+    i += 1
+  ) {
+    result[i] =
+      base +
+      (remainder >
+      0
+        ? 1
+        : 0);
+
     if (
-      !unique.includes(value)
+      remainder >
+      0
     ) {
-      unique.push(value);
+      remainder -=
+        1;
     }
   }
 
-  return unique.length
-    ? unique.join(
-        "  ·  ",
-      )
-    : null;
+  return result;
 }
 
 function estimateTextWidth(
   text: string,
-  size: number,
+  fontSize: number,
 ): number {
   return (
     text.length *
-    size *
-    0.56
+    fontSize *
+    0.54
   );
 }
 
@@ -1300,7 +1445,8 @@ function fitFont(
       size,
     ) > maxWidth
   ) {
-    size -= 1;
+    size -=
+      1;
   }
 
   return Math.max(
@@ -1330,23 +1476,28 @@ function wrapText(
   const lines: string[] =
     [];
 
-  let current = "";
+  let current =
+    "";
 
-  for (const word of words) {
+  for (
+    const word of words
+  ) {
     const candidate =
       current
         ? `${current} ${word}`
         : word;
 
     if (
-      !current ||
       estimateTextWidth(
         candidate,
         fontSize,
-      ) <= maxWidth
+      ) <=
+        maxWidth ||
+      !current
     ) {
       current =
         candidate;
+
       continue;
     }
 
@@ -1358,39 +1509,24 @@ function wrapText(
       word;
 
     if (
-      lines.length ===
-      maxLines - 1
+      lines.length >=
+      maxLines
     ) {
-      const remaining =
-        words
-          .slice(
-            words.indexOf(
-              word,
-            ) + 1,
-          )
-          .join(
-            " ",
-          );
-
-      current =
-        remaining
-          ? `${current} ${remaining}`
-          : current;
-
       break;
     }
   }
 
-  if (current) {
+  if (
+    current &&
+    lines.length <
+      maxLines
+  ) {
     lines.push(
       current,
     );
   }
 
-  return lines.slice(
-    0,
-    maxLines,
-  );
+  return lines;
 }
 
 function esc(
@@ -1419,27 +1555,81 @@ function esc(
     );
 }
 
-/* -------------------------------------------------------------------------- */
-/* FOOTER                                                                     */
-/* -------------------------------------------------------------------------- */
+async function normalise(
+  image: Buffer,
+  size: number,
+): Promise<Buffer> {
+  return sharp(
+    image,
+  )
+    .resize(
+      size,
+      size,
+      {
+        fit: "inside",
+        withoutEnlargement:
+          false,
+      },
+    )
+    .png()
+    .toBuffer();
+}
 
-async function buildFooterOnlyImage(
+function toDataUri(
+  image: Buffer,
+): string {
+  return `data:image/png;base64,${image.toString(
+    "base64",
+  )}`;
+}
+
+async function renderFooterOnly(
   input: BrandingOverlayInput,
 ): Promise<Buffer> {
-  const {
-    widthPx,
-    heightPx,
-  } = input;
+  const footerHeight =
+    brandingBandHeight(
+      input.widthPx,
+      input.heightPx,
+    );
 
   const footer =
-    await buildFooter(
+    await renderFooter(
       input,
+      {
+        mode: "HERO",
+        left: 0,
+        right:
+          input.widthPx,
+        contentWidth:
+          input.widthPx,
+        footerTop:
+          input.heightPx -
+          footerHeight,
+        footerHeight,
+        headlineTop: 0,
+        headlineHeight: 0,
+        roleTop: 0,
+        roleBottom: 0,
+        roleHeight: 0,
+        columns: 1,
+        rows: 0,
+        columnGap: 0,
+        columnWidth:
+          input.widthPx,
+        roleFont:
+          MIN_ROLE_FONT,
+        roleRowHeight:
+          MIN_ROLE_FONT * 2,
+        countWidth: 40,
+      },
     );
 
   return sharp({
     create: {
-      width: widthPx,
-      height: heightPx,
+      width:
+        input.widthPx,
+      height:
+        input.heightPx,
       channels: 4,
       background: {
         r: 255,
@@ -1454,311 +1644,10 @@ async function buildFooterOnlyImage(
         input: footer,
         left: 0,
         top:
-          heightPx -
-          brandingBandHeight(
-            widthPx,
-            heightPx,
-          ),
+          input.heightPx -
+          footerHeight,
       },
     ])
-    .png()
-    .toBuffer();
-}
-
-async function buildFooter(
-  input: BrandingOverlayInput,
-): Promise<Buffer> {
-  const {
-    widthPx,
-    heightPx,
-    agencyLogoPng,
-    qrPng,
-    agencyName,
-    registrationNumber,
-    contactLine,
-    addressLine,
-    footerStyle,
-  } = input;
-
-  const theme =
-    footerTheme(
-      footerStyle,
-    );
-
-  const height =
-    brandingBandHeight(
-      widthPx,
-      heightPx,
-    );
-
-  const pad =
-    Math.round(
-      widthPx * 0.025,
-    );
-
-  const qrSize =
-    qrPng
-      ? Math.round(
-          height * 0.70,
-        )
-      : 0;
-
-  const logoSize =
-    agencyLogoPng
-      ? Math.round(
-          height * 0.58,
-        )
-      : 0;
-
-  const qrLeft =
-    widthPx -
-    pad -
-    qrSize;
-
-  const textLeft =
-    agencyLogoPng
-      ? pad +
-        logoSize +
-        Math.round(
-          pad * 0.55,
-        )
-      : pad;
-
-  const textRight =
-    qrPng
-      ? qrLeft -
-        pad
-      : widthPx -
-        pad;
-
-  const available =
-    Math.max(
-      120,
-      textRight -
-        textLeft,
-    );
-
-  const svg: string[] = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${widthPx}" height="${height}">`,
-    `<rect width="${widthPx}" height="${height}" fill="${theme.background}"/>`,
-  ];
-
-  if (
-    theme.topRulePx >
-    0
-  ) {
-    svg.push(
-      `<rect x="0" y="0" width="${widthPx}" height="${theme.topRulePx}" fill="${theme.topRuleColour}"/>`,
-    );
-  }
-
-  if (
-    agencyLogoPng &&
-    logoSize >
-      0
-  ) {
-    const logo =
-      await normaliseImage(
-        agencyLogoPng,
-        logoSize,
-      );
-
-    svg.push(
-      `<image
-        href="${toDataUri(
-          logo,
-        )}"
-        x="${pad}"
-        y="${Math.round(
-          (height -
-            logoSize) /
-            2,
-        )}"
-        width="${logoSize}"
-        height="${logoSize}"
-        preserveAspectRatio="xMidYMid meet"
-      />`,
-    );
-  }
-
-  let y =
-    Math.round(
-      height * 0.38,
-    );
-
-  if (
-    agencyName
-  ) {
-    const size =
-      fitFont(
-        agencyName,
-        available,
-        Math.round(
-          height * 0.22,
-        ),
-        13,
-      );
-
-    svg.push(
-      `<text
-        x="${textLeft}"
-        y="${y}"
-        font-family="KaiSans, sans-serif"
-        font-size="${size}"
-        font-weight="850"
-        fill="${theme.text}"
-      >${esc(
-        agencyName,
-      )}</text>`,
-    );
-
-    y +=
-      Math.round(
-        size * 1.03,
-      );
-  }
-
-  if (
-    registrationNumber
-  ) {
-    const registration =
-      `REG. ${registrationNumber}`;
-
-    const size =
-      fitFont(
-        registration,
-        available,
-        Math.round(
-          height * 0.095,
-        ),
-        10,
-      );
-
-    svg.push(
-      `<text
-        x="${textLeft}"
-        y="${y}"
-        font-family="KaiSans, sans-serif"
-        font-size="${size}"
-        font-weight="550"
-        fill="${theme.text}"
-        opacity="0.82"
-      >${esc(
-        registration,
-      )}</text>`,
-    );
-
-    y +=
-      Math.round(
-        size * 1.15,
-      );
-  }
-
-  const secondary =
-    [
-      contactLine,
-      addressLine,
-    ]
-      .filter(Boolean)
-      .join(
-        "  ·  ",
-      );
-
-  if (secondary) {
-    const size =
-      fitFont(
-        secondary,
-        available,
-        Math.round(
-          height * 0.082,
-        ),
-        9,
-      );
-
-    svg.push(
-      `<text
-        x="${textLeft}"
-        y="${Math.min(
-          height - 5,
-          y,
-        )}"
-        font-family="KaiSans, sans-serif"
-        font-size="${size}"
-        font-weight="500"
-        fill="${theme.text}"
-        opacity="0.72"
-      >${esc(
-        secondary,
-      )}</text>`,
-    );
-  }
-
-  if (
-    qrPng &&
-    qrSize >
-      0
-  ) {
-    const qr =
-      await normaliseImage(
-        qrPng,
-        qrSize,
-      );
-
-    svg.push(
-      `<image
-        href="${toDataUri(
-          qr,
-        )}"
-        x="${qrLeft}"
-        y="${Math.round(
-          (height -
-            qrSize) /
-            2,
-        )}"
-        width="${qrSize}"
-        height="${qrSize}"
-        preserveAspectRatio="xMidYMid meet"
-      />`,
-    );
-  }
-
-  svg.push(
-    "</svg>",
-  );
-
-  return sharp(
-    Buffer.from(
-      svg.join(""),
-    ),
-  )
-    .png()
-    .toBuffer();
-}
-
-function toDataUri(
-  png: Buffer,
-): string {
-  return `data:image/png;base64,${png.toString(
-    "base64",
-  )}`;
-}
-
-async function normaliseImage(
-  png: Buffer,
-  size: number,
-): Promise<Buffer> {
-  return sharp(
-    png,
-  )
-    .resize(
-      size,
-      size,
-      {
-        fit: "inside",
-        withoutEnlargement:
-          false,
-      },
-    )
     .png()
     .toBuffer();
 }
