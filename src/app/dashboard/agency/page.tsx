@@ -41,26 +41,6 @@ export const metadata: Metadata = {
   title: "Agency",
 };
 
-/**
- * Agency Administration
- *
- * Permanent agency identity:
- *   - Agency name
- *   - MEA registration number
- *   - Agency logo
- *   - Optional secondary / ISO logo
- *   - Official contact
- *   - Registered office
- *   - Agency credentials
- *
- * Campaign-specific information is intentionally NOT managed here:
- *   - interview venue
- *   - campaign contact
- *   - campaign benefits
- *   - recruitment roles
- *
- * Those belong to individual advertisements.
- */
 export default async function AgencyAdminPage({
   searchParams,
 }: {
@@ -96,66 +76,61 @@ export default async function AgencyAdminPage({
     await searchParams;
 
   const teamPagination =
-    paginationQuerySchema.parse(
-      {
-        page:
-          params.teamPage,
-        pageSize:
-          params.pageSize,
-      },
-    );
+    paginationQuerySchema.parse({
+      page:
+        params.teamPage,
+      pageSize:
+        params.pageSize,
+    });
 
   const requestsPagination =
-    paginationQuerySchema.parse(
-      {
-        page:
-          params.requestsPage,
-        pageSize:
-          params.pageSize,
-      },
-    );
+    paginationQuerySchema.parse({
+      page:
+        params.requestsPage,
+      pageSize:
+        params.pageSize,
+    });
 
   const [
     agency,
     teamPage,
     requestsPage,
     contacts,
-  ] =
-    await Promise.all([
-      agencyService.getById(
-        user.agencyId,
-      ),
+  ] = await Promise.all([
+    agencyService.getById(
+      user.agencyId,
+    ),
 
-      agencyService.listEmployeesPaginated(
-        user.agencyId,
-        teamPagination,
-      ),
+    agencyService.listEmployeesPaginated(
+      user.agencyId,
+      teamPagination,
+    ),
 
-      can(
-        user,
-        "join_request:review",
-      )
-        ? joinRequestService.listForAgencyPaginated(
-            user.agencyId,
-            requestsPagination,
-          )
-        : Promise.resolve({
-            data: [],
-            page: 1,
-            pageSize: 25,
-            total: 0,
-            totalPages: 1,
-          }),
+    can(
+      user,
+      "join_request:review",
+    )
+      ? joinRequestService.listForAgencyPaginated(
+          user.agencyId,
+          requestsPagination,
+        )
+      : Promise.resolve({
+          data: [],
+          page: 1,
+          pageSize: 25,
+          total: 0,
+          totalPages: 1,
+        }),
 
-      can(
-        user,
-        "advertisement:view",
-      )
-        ? agencyContactService.list(
-            user.agencyId,
-          )
-        : Promise.resolve([]),
-    ]);
+    can(
+      user,
+      "advertisement:view",
+    )
+      ? agencyContactService.list(
+          user.agencyId,
+        )
+      : Promise.resolve([]),
+  ]);
 
   type Employee =
     (typeof teamPage.data)[number];
@@ -168,12 +143,25 @@ export default async function AgencyAdminPage({
       ?.status ??
     "UNVERIFIED";
 
+  const brandBadges =
+    Array.isArray(
+      agency.brandBadges,
+    )
+      ? (
+          agency.brandBadges as unknown[]
+        )
+          .filter(
+            (
+              value,
+            ): value is string =>
+              typeof value ===
+              "string",
+          )
+          .join("\n")
+      : "";
+
   return (
     <DashboardShell user={user}>
-      {/* ================================================================ */}
-      {/* PAGE HEADER                                                       */}
-      {/* ================================================================ */}
-
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-muted-foreground">
@@ -186,7 +174,9 @@ export default async function AgencyAdminPage({
 
           <p className="mt-1 text-sm font-semibold text-muted-foreground">
             RC / MEA Registration:{" "}
-            {agency.registrationNumber}
+            {
+              agency.registrationNumber
+            }
           </p>
         </div>
 
@@ -214,10 +204,7 @@ export default async function AgencyAdminPage({
       </div>
 
       <div className="space-y-6">
-        {/* ============================================================= */}
-        {/* AGENCY PROFILE                                                 */}
-        {/* ============================================================= */}
-
+        {/* AGENCY PROFILE */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -227,10 +214,6 @@ export default async function AgencyAdminPage({
             <CardDescription>
               Permanent agency identity used
               across recruitment advertisements.
-              Agency name, RC / MEA registration
-              and verification status remain
-              controlled by the agency record and
-              KAI.
             </CardDescription>
           </CardHeader>
 
@@ -273,22 +256,7 @@ export default async function AgencyAdminPage({
                     agency.secondaryLogoUrl ??
                     "",
 
-                  brandBadges:
-                    Array.isArray(
-                      agency.brandBadges,
-                    )
-                      ? (
-                          agency.brandBadges as unknown[]
-                        )
-                          .filter(
-                            (
-                              value,
-                            ): value is string =>
-                              typeof value ===
-                              "string",
-                          )
-                          .join("\n")
-                      : "",
+                  brandBadges,
                 }}
 
                 agencyName={
@@ -315,9 +283,7 @@ export default async function AgencyAdminPage({
                   </p>
 
                   <p className="mt-1 font-semibold">
-                    {
-                      agency.name
-                    }
+                    {agency.name}
                   </p>
                 </div>
 
@@ -374,10 +340,7 @@ export default async function AgencyAdminPage({
           </CardContent>
         </Card>
 
-        {/* ============================================================= */}
-        {/* VERIFIED IDENTITY                                               */}
-        {/* ============================================================= */}
-
+        {/* VERIFIED IDENTITY */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -385,10 +348,8 @@ export default async function AgencyAdminPage({
             </CardTitle>
 
             <CardDescription>
-              This is the trust identity that may
-              appear in generated advertisements.
-              Agency users cannot alter the
-              registered identity itself.
+              Registered identity and KAI verification
+              are separate from campaign information.
             </CardDescription>
           </CardHeader>
 
@@ -418,7 +379,7 @@ export default async function AgencyAdminPage({
 
               <div className="rounded-lg border p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Ministry
+                  Registration Authority
                 </p>
 
                 <p className="mt-1 font-semibold">
@@ -468,7 +429,7 @@ export default async function AgencyAdminPage({
                   Primary Logo
                 </p>
 
-                <p className="mt-1 text-sm font-semibold">
+                <p className="mt-1 font-semibold">
                   {agency.logoUrl
                     ? "Uploaded"
                     : "Not uploaded"}
@@ -488,19 +449,15 @@ export default async function AgencyAdminPage({
                 </p>
 
                 <p className="mt-2 text-xs text-muted-foreground">
-                  This is the agency's registered
-                  office address. It is never treated
-                  as an interview venue.
+                  This is the official agency address.
+                  It is not an interview venue.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* ============================================================= */}
-        {/* TEAM                                                             */}
-        {/* ============================================================= */}
-
+        {/* TEAM */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -580,10 +537,7 @@ export default async function AgencyAdminPage({
           </CardContent>
         </Card>
 
-        {/* ============================================================= */}
-        {/* JOIN REQUESTS                                                   */}
-        {/* ============================================================= */}
-
+        {/* JOIN REQUESTS */}
         {can(
           user,
           "join_request:review",
@@ -668,10 +622,7 @@ export default async function AgencyAdminPage({
           </Card>
         )}
 
-        {/* ============================================================= */}
-        {/* CONTACT DIRECTORY                                               */}
-        {/* ============================================================= */}
-
+        {/* CAMPAIGN CONTACTS */}
         {can(
           user,
           "advertisement:view",
@@ -683,10 +634,9 @@ export default async function AgencyAdminPage({
               </CardTitle>
 
               <CardDescription>
-                These contacts can be selected for
-                individual recruitment campaigns.
-                They are separate from the permanent
-                agency identity.
+                These contacts belong to individual
+                recruitment campaigns and are separate
+                from permanent agency identity.
               </CardDescription>
             </CardHeader>
 
