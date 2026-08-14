@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { AgencyStatusBadge } from "@/components/agency/agency-status-badge";
 import { JoinRequestActions } from "@/components/agency/join-request-actions";
+
 import {
   AgencyProfileForm,
 } from "@/components/agency/agency-profile-form";
@@ -41,6 +42,26 @@ export const metadata: Metadata = {
   title: "Agency",
 };
 
+/**
+ * Agency Administration
+ *
+ * Permanent agency identity:
+ *   - Agency name
+ *   - RC / MEA registration
+ *   - Logo
+ *   - Optional ISO / secondary logo
+ *   - Official contact
+ *   - Registered office
+ *   - Agency credentials
+ *
+ * Campaign-specific data is deliberately kept outside this page:
+ *   - Interview venue
+ *   - Campaign contact
+ *   - Recruitment roles
+ *   - Benefits
+ *   - Salary
+ *   - Project-specific information
+ */
 export default async function AgencyAdminPage({
   searchParams,
 }: {
@@ -96,52 +117,48 @@ export default async function AgencyAdminPage({
     teamPage,
     requestsPage,
     contacts,
-  ] = await Promise.all([
-    agencyService.getById(
-      user.agencyId,
-    ),
+  ] =
+    await Promise.all([
+      agencyService.getById(
+        user.agencyId,
+      ),
 
-    agencyService.listEmployeesPaginated(
-      user.agencyId,
-      teamPagination,
-    ),
+      agencyService.listEmployeesPaginated(
+        user.agencyId,
+        teamPagination,
+      ),
 
-    can(
-      user,
-      "join_request:review",
-    )
-      ? joinRequestService.listForAgencyPaginated(
-          user.agencyId,
-          requestsPagination,
-        )
-      : Promise.resolve({
-          data: [],
-          page: 1,
-          pageSize: 25,
-          total: 0,
-          totalPages: 1,
-        }),
+      can(
+        user,
+        "join_request:review",
+      )
+        ? joinRequestService.listForAgencyPaginated(
+            user.agencyId,
+            requestsPagination,
+          )
+        : Promise.resolve({
+            data: [],
+            page: 1,
+            pageSize: 25,
+            total: 0,
+            totalPages: 1,
+          }),
 
-    can(
-      user,
-      "advertisement:view",
-    )
-      ? agencyContactService.list(
-          user.agencyId,
-        )
-      : Promise.resolve([]),
-  ]);
+      can(
+        user,
+        "advertisement:view",
+      )
+        ? agencyContactService.list(
+            user.agencyId,
+          )
+        : Promise.resolve([]),
+    ]);
 
   type Employee =
     (typeof teamPage.data)[number];
 
   type PendingRequest =
     (typeof requestsPage.data)[number];
-
-  const verificationStatus =
-    agency.verification
-      ?.status ??
-    "UNVERIFIED";
 
   const brandBadges =
     Array.isArray(
@@ -160,8 +177,29 @@ export default async function AgencyAdminPage({
           .join("\n")
       : "";
 
+  /**
+   * IMPORTANT:
+   *
+   * `agencyService.getById()` currently returns the
+   * Agency record itself, not the AgencyVerification
+   * relation.
+   *
+   * Therefore we intentionally do NOT invent a
+   * verification status here.
+   *
+   * The form will display the verification state as
+   * unavailable until a dedicated verification read
+   * is wired into the service.
+   */
+  const verificationStatus =
+    undefined;
+
   return (
     <DashboardShell user={user}>
+      {/* ================================================================ */}
+      {/* PAGE HEADER                                                       */}
+      {/* ================================================================ */}
+
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-muted-foreground">
@@ -180,31 +218,18 @@ export default async function AgencyAdminPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <AgencyStatusBadge
-            status={
-              agency.status
-            }
-          />
-
-          <Badge
-            variant={
-              verificationStatus ===
-              "VERIFIED"
-                ? "success"
-                : "secondary"
-            }
-          >
-            {verificationStatus.replace(
-              /_/g,
-              " ",
-            )}
-          </Badge>
-        </div>
+        <AgencyStatusBadge
+          status={
+            agency.status
+          }
+        />
       </div>
 
       <div className="space-y-6">
-        {/* AGENCY PROFILE */}
+        {/* ============================================================= */}
+        {/* AGENCY PROFILE                                                 */}
+        {/* ============================================================= */}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -258,19 +283,15 @@ export default async function AgencyAdminPage({
 
                   brandBadges,
                 }}
-
                 agencyName={
                   agency.name
                 }
-
                 registrationNumber={
                   agency.registrationNumber
                 }
-
                 agencyStatus={
                   agency.status
                 }
-
                 verificationStatus={
                   verificationStatus
                 }
@@ -340,7 +361,10 @@ export default async function AgencyAdminPage({
           </CardContent>
         </Card>
 
-        {/* VERIFIED IDENTITY */}
+        {/* ============================================================= */}
+        {/* VERIFIED IDENTITY                                               */}
+        {/* ============================================================= */}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -348,8 +372,9 @@ export default async function AgencyAdminPage({
             </CardTitle>
 
             <CardDescription>
-              Registered identity and KAI verification
-              are separate from campaign information.
+              Permanent agency identity is
+              separated from campaign-specific
+              recruitment information.
             </CardDescription>
           </CardHeader>
 
@@ -408,18 +433,8 @@ export default async function AgencyAdminPage({
                 </p>
 
                 <div className="mt-2">
-                  <Badge
-                    variant={
-                      verificationStatus ===
-                      "VERIFIED"
-                        ? "success"
-                        : "secondary"
-                    }
-                  >
-                    {verificationStatus.replace(
-                      /_/g,
-                      " ",
-                    )}
+                  <Badge variant="secondary">
+                    Verification status not loaded
                   </Badge>
                 </div>
               </div>
@@ -449,15 +464,19 @@ export default async function AgencyAdminPage({
                 </p>
 
                 <p className="mt-2 text-xs text-muted-foreground">
-                  This is the official agency address.
-                  It is not an interview venue.
+                  This is the agency's registered
+                  address. It is not an interview
+                  venue.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* TEAM */}
+        {/* ============================================================= */}
+        {/* TEAM                                                             */}
+        {/* ============================================================= */}
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -537,7 +556,10 @@ export default async function AgencyAdminPage({
           </CardContent>
         </Card>
 
-        {/* JOIN REQUESTS */}
+        {/* ============================================================= */}
+        {/* JOIN REQUESTS                                                   */}
+        {/* ============================================================= */}
+
         {can(
           user,
           "join_request:review",
@@ -622,7 +644,10 @@ export default async function AgencyAdminPage({
           </Card>
         )}
 
-        {/* CAMPAIGN CONTACTS */}
+        {/* ============================================================= */}
+        {/* CAMPAIGN CONTACTS                                               */}
+        {/* ============================================================= */}
+
         {can(
           user,
           "advertisement:view",
