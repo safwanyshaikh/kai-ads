@@ -178,18 +178,10 @@ export default async function AgencyAdminPage({
       : "";
 
   /**
-   * IMPORTANT:
+   * The current agency service returns the Agency
+   * record itself and does not load AgencyVerification.
    *
-   * `agencyService.getById()` currently returns the
-   * Agency record itself, not the AgencyVerification
-   * relation.
-   *
-   * Therefore we intentionally do NOT invent a
-   * verification status here.
-   *
-   * The form will display the verification state as
-   * unavailable until a dedicated verification read
-   * is wired into the service.
+   * Do not fabricate a verification state here.
    */
   const verificationStatus =
     undefined;
@@ -464,7 +456,7 @@ export default async function AgencyAdminPage({
                 </p>
 
                 <p className="mt-2 text-xs text-muted-foreground">
-                  This is the agency's registered
+                  This is the agency&apos;s registered
                   address. It is not an interview
                   venue.
                 </p>
@@ -474,7 +466,7 @@ export default async function AgencyAdminPage({
         </Card>
 
         {/* ============================================================= */}
-        {/* TEAM                                                             */}
+        {/* TEAM                                                            */}
         {/* ============================================================= */}
 
         <Card>
@@ -557,7 +549,7 @@ export default async function AgencyAdminPage({
         </Card>
 
         {/* ============================================================= */}
-        {/* JOIN REQUESTS                                                   */}
+        {/* JOIN REQUESTS                                                  */}
         {/* ============================================================= */}
 
         {can(
@@ -580,8 +572,8 @@ export default async function AgencyAdminPage({
             </CardHeader>
 
             <CardContent className="space-y-3">
-              {requestsPage
-                .data.length ===
+              {requestsPage.data
+                .length ===
                 0 && (
                 <p className="text-sm text-muted-foreground">
                   No pending requests.
@@ -601,16 +593,14 @@ export default async function AgencyAdminPage({
                     <div>
                       <p className="font-medium">
                         {
-                          request
-                            .user
+                          request.user
                             .name
                         }
                       </p>
 
                       <p className="text-muted-foreground">
                         {
-                          request
-                            .user
+                          request.user
                             .email
                         }
                       </p>
@@ -645,7 +635,7 @@ export default async function AgencyAdminPage({
         )}
 
         {/* ============================================================= */}
-        {/* CAMPAIGN CONTACTS                                               */}
+        {/* CAMPAIGN CONTACTS                                              */}
         {/* ============================================================= */}
 
         {can(
