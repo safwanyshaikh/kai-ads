@@ -1,20 +1,351 @@
 import { getTextGenerationProvider } from "@/server/ai/text";
-import type { AdvertisementFacts } from "./types";
+import type {
+  AdvertisementCampaignIdentity,
+  AdvertisementContentDensity,
+  AdvertisementFacts,
+  CreativeArchetype,
+  VerifiedAgencyProfile,
+} from "./types";
 
 /**
- * KAI CREATIVE SCHEMA
+ * ============================================================================
+ * KAI CREATIVE DIRECTOR
+ * ============================================================================
  *
- * The production advertisement uses two commercial creative grammars:
+ * KAI decides:
+ *   WHAT must be communicated.
  *
- * 1. HERO_RECRUITMENT_POSTER
- *    Focused / moderate recruitment requirement.
+ * GEMINI decides:
+ *   HOW the finished advertisement looks.
  *
- * 2. HIGH_DENSITY_RECRUITMENT_POSTER
- *    Large recruitment requirement.
+ * Gemini owns:
+ *   - complete visual composition
+ *   - hero
+ *   - typography
+ *   - role presentation
+ *   - benefits presentation
+ *   - interview presentation
+ *   - campaign CTA
+ *   - footer composition
+ *   - visual hierarchy
  *
- * Gemini owns the complete advertisement composition.
- * KAI owns source-grounded recruitment intelligence and trust rules.
+ * KAI owns:
+ *   - source truth
+ *   - campaign identity
+ *   - content density strategy
+ *   - agency trust rules
+ *
+ * The downstream branding layer must never rebuild the recruitment body.
+ * ============================================================================
  */
+
+/* -------------------------------------------------------------------------- */
+/* CAMPAIGN IDENTITY                                                          */
+/* -------------------------------------------------------------------------- */
+
+function buildCampaignHeadline(
+  facts: AdvertisementFacts,
+): string {
+  const raw =
+    facts.header?.trim() ?? "";
+
+  /**
+   * Remove a country suffix from a CRM-style header.
+   */
+  const withoutCountrySuffix =
+    raw
+      .replace(
+        /\s+[—-]\s+(Saudi Arabia|UAE|United Arab Emirates|Qatar|Kuwait|Bahrain|Oman)\s*$/i,
+        "",
+      )
+      .trim();
+
+  /**
+   * CRM-style headers such as:
+   *
+   * Operation Manager + 18 more roles
+   *
+   * are not suitable campaign headlines.
+   */
+  const isCrmRoleHeader =
+    /\+\s*\d+\s+more\s+roles?/i.test(
+      withoutCountrySuffix,
+    ) ||
+    /^.+\s+\+\s+\d+\s+more$/i.test(
+      withoutCountrySuffix,
+    );
+
+  /**
+   * 1. Named project.
+   */
+  if (
+    facts.projectType?.trim()
+  ) {
+    return facts.projectType.trim();
+  }
+
+  /**
+   * 2. Confirmed employer / client.
+   */
+  if (
+    facts.employer?.trim()
+  ) {
+    return `${facts.employer.trim()} PROJECT`;
+  }
+
+  /**
+   * 3. Human-written source header, but only if it is not
+   * a CRM "+ more roles" construction.
+   */
+  if (
+    withoutCountrySuffix &&
+    !isCrmRoleHeader
+  ) {
+    return withoutCountrySuffix;
+  }
+
+  /**
+   * 4. Industry campaign identity.
+   */
+  if (
+    facts.industry?.trim()
+  ) {
+    return `${facts.industry.trim()} RECRUITMENT`;
+  }
+
+  return "OVERSEAS RECRUITMENT OPPORTUNITY";
+}
+
+function buildDestinationIndustry(
+  facts: AdvertisementFacts,
+): string {
+  return [
+    facts.country?.trim(),
+    facts.industry?.trim(),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/* -------------------------------------------------------------------------- */
+/* CONTENT DENSITY                                                            */
+/* -------------------------------------------------------------------------- */
+
+function calculateDensity(
+  facts: AdvertisementFacts,
+): AdvertisementContentDensity {
+  const roleCount =
+    facts.positions.length;
+
+  const rolesWithDetails =
+    facts.positions.filter(
+      (position) =>
+        Boolean(
+          position.experience ||
+            position.salary ||
+            position.qualification ||
+            position.certifications?.length ||
+            position.ageLimit,
+        ),
+    ).length;
+
+  const contentWeight =
+    roleCount +
+    rolesWithDetails +
+    facts.benefits.length +
+    facts.interview.length;
+
+  if (
+    contentWeight <= 7
+  ) {
+    return "LOW";
+  }
+
+  if (
+    contentWeight <= 16
+  ) {
+    return "MEDIUM";
+  }
+
+  if (
+    contentWeight <= 30
+  ) {
+    return "HIGH";
+  }
+
+  return "EXTREME";
+}
+
+/**
+ * KAI mobile readability rule.
+ *
+ * This is an internal product quality rule.
+ * It is NOT presented as an official platform minimum.
+ */
+const MIN_ROLE_FONT_PX =
+  28;
+
+const MIN_SUPPORTING_FONT_PX =
+  22;
+
+function buildDensityDecision(
+  facts: AdvertisementFacts,
+): {
+  density: AdvertisementContentDensity;
+  archetype: CreativeArchetype;
+  canFitSinglePoster: boolean;
+  requiresCarousel: boolean;
+} {
+  const density =
+    calculateDensity(
+      facts,
+    );
+
+  const roleCount =
+    facts.positions.length;
+
+  /**
+   * Small requirement:
+   * one strong poster.
+   */
+  if (
+    roleCount <= 7 &&
+    density !== "HIGH" &&
+    density !== "EXTREME"
+  ) {
+    return {
+      density,
+      archetype:
+        "HERO_RECRUITMENT_POSTER",
+      canFitSinglePoster:
+        true,
+      requiresCarousel:
+        false,
+    };
+  }
+
+  /**
+   * Medium requirement:
+   * single high-density poster is allowed
+   * while maintaining readable role typography.
+   */
+  if (
+    roleCount <= 14 &&
+    density !== "EXTREME"
+  ) {
+    return {
+      density,
+      archetype:
+        "HIGH_DENSITY_RECRUITMENT_POSTER",
+      canFitSinglePoster:
+        true,
+      requiresCarousel:
+        false,
+    };
+  }
+
+  /**
+   * Large requirement:
+   *
+   * DO NOT shrink the role text.
+   * DO NOT delete roles.
+   * DO NOT write "+ more roles".
+   *
+   * Change the campaign grammar.
+   */
+  return {
+    density,
+    archetype:
+      "RECRUITMENT_CAROUSEL",
+    canFitSinglePoster:
+      false,
+    requiresCarousel:
+      true,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* VERIFIED AGENCY PACKET                                                     */
+/* -------------------------------------------------------------------------- */
+
+function buildAgencyTrustPacket(
+  facts: AdvertisementFacts,
+): VerifiedAgencyProfile | null {
+  if (
+    facts.agencyProfile
+  ) {
+    return {
+      ...facts.agencyProfile,
+
+      agencyName:
+        facts.agencyProfile
+          .agencyName ||
+        facts.agencyName,
+    };
+  }
+
+  /**
+   * Temporary compatibility fallback.
+   *
+   * New canonical data should come from
+   * facts.agencyProfile.
+   */
+  return {
+    agencyName:
+      facts.agencyName,
+
+    logoUrl:
+      null,
+
+    rcNumber:
+      facts.raLicenseId ??
+      null,
+
+    fullRegistrationNumber:
+      facts.fullRegistrationNumber ??
+      null,
+
+    meaRegistrationText:
+      "Ministry of External Affairs — Government of India Registered",
+
+    isoCertification:
+      null,
+
+    isoLogoUrl:
+      null,
+
+    registeredAddress:
+      facts.officeAddress ??
+      null,
+
+    officialPhone:
+      null,
+
+    officialEmail:
+      null,
+
+    website:
+      facts.website ??
+      null,
+
+    verificationStatus:
+      "UNVERIFIED",
+
+    verificationId:
+      null,
+
+    verificationUrl:
+      null,
+
+    approvedBadges:
+      [],
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* CREATIVE BRIEF                                                             */
+/* -------------------------------------------------------------------------- */
+
 export async function buildCreativeBrief(
   facts: AdvertisementFacts,
   options?: {
@@ -25,8 +356,10 @@ export async function buildCreativeBrief(
   const provider =
     getTextGenerationProvider();
 
-  const roleCount =
-    facts.positions.length;
+  const densityDecision =
+    buildDensityDecision(
+      facts,
+    );
 
   const totalVacancies =
     facts.positions.reduce(
@@ -36,43 +369,55 @@ export async function buildCreativeBrief(
       0,
     );
 
-  const archetype =
-    roleCount <= 7
-      ? "HERO_RECRUITMENT_POSTER"
-      : "HIGH_DENSITY_RECRUITMENT_POSTER";
+  const campaignIdentity:
+    AdvertisementCampaignIdentity =
+      {
+        headline:
+          buildCampaignHeadline(
+            facts,
+          ),
 
-  const styleHint =
-    options?.style
-      ? options.style
-      : "Choose the strongest premium commercial visual style appropriate to the recruitment campaign.";
+        destinationIndustry:
+          buildDestinationIndustry(
+            facts,
+          ),
 
-  const themeHint =
-    options?.theme
-      ? options.theme
-      : "Choose a professional visual colour system appropriate to the industry and recruitment campaign.";
+        country:
+          facts.country,
+
+        industry:
+          facts.industry,
+
+        projectType:
+          facts.projectType ??
+          null,
+
+        employer:
+          facts.employer ??
+          null,
+
+        totalVacancies,
+
+        totalDistinctRoles:
+          facts.positions.length,
+      };
+
+  const agencyTrust =
+    buildAgencyTrustPacket(
+      facts,
+    );
 
   /**
-   * COMPLETE SOURCE-GROUNDED CONTENT PACKET.
+   * COMPLETE SOURCE PACKET.
    *
-   * Do not reduce this to first-N positions.
+   * Gemini receives the complete recruitment truth.
+   * It is never allowed to invent missing information.
    */
   const canonicalContent = {
-    headline:
+    campaignIdentity,
+
+    rawSourceHeader:
       facts.header,
-
-    country:
-      facts.country,
-
-    industry:
-      facts.industry,
-
-    employer:
-      facts.employer ??
-      null,
-
-    projectType:
-      facts.projectType ??
-      null,
 
     visaType:
       facts.visaType ??
@@ -85,11 +430,6 @@ export async function buildCreativeBrief(
     rotation:
       facts.rotation ??
       null,
-
-    totalVacancies,
-
-    totalDistinctRoles:
-      roleCount,
 
     positions:
       facts.positions.map(
@@ -148,248 +488,466 @@ export async function buildCreativeBrief(
         }),
       ),
 
-    contact:
+    interviewVenue:
+      facts.interviewVenue ??
+      null,
+
+    campaignContact:
       facts.contact,
 
-    officeAddress:
-      facts.officeAddress ??
-      null,
-
-    website:
-      facts.website ??
-      null,
+    agencyTrust,
 
     legalDisclaimer:
       facts.legalDisclaimer ??
       null,
-
-    footer:
-      facts.footer ??
-      null,
-
-    agencyName:
-      facts.agencyName,
-
-    raLicenseId:
-      facts.raLicenseId ??
-      null,
-
-    fullRegistrationNumber:
-      facts.fullRegistrationNumber ??
-      null,
   };
+
+  const styleHint =
+    options?.style?.trim() ||
+    "Premium commercial overseas recruitment advertising";
+
+  const themeHint =
+    options?.theme?.trim() ||
+    "Professional Gulf recruitment campaign with strong candidate-facing hierarchy";
 
   const { text } =
     await provider.generateText({
       instructions:
         [
-          "You are KAI's Senior Creative Director for a serious overseas recruitment agency.",
+          "You are KAI's Senior Creative Director for a professional overseas recruitment agency.",
 
           "",
 
-          "Your job is to design the COMPLETE COMMERCIAL RECRUITMENT ADVERTISEMENT.",
+          "CREATE THE COMPLETE COMMERCIAL RECRUITMENT ADVERTISEMENT DIRECTION.",
 
-          "This is NOT a background-image task.",
-          "This is NOT a document.",
+          "",
+
+          "This is NOT a CRM interface.",
+          "This is NOT an ATS record.",
           "This is NOT a spreadsheet.",
-          "This is NOT an internal requirement sheet.",
-          "This is NOT a SaaS dashboard.",
+          "This is NOT an internal recruitment requirement sheet.",
+          "This is NOT a generic background image.",
           "This is NOT a generic AI poster.",
 
           "",
 
-          "KAI CREATIVE SCHEMA:",
-
-          `ARCHETYPE: ${archetype}`,
-          `STYLE: ${styleHint}`,
-          `THEME: ${themeHint}`,
+          "Gemini will create the COMPLETE FINISHED ADVERTISEMENT from your direction.",
 
           "",
 
-          "The final advertisement must look like a real overseas recruitment campaign created by a professional advertising team.",
+          "================================================================",
+          "CAMPAIGN IDENTITY",
+          "================================================================",
+
+          `MAIN CAMPAIGN HEADLINE: ${campaignIdentity.headline}`,
+
+          `DESTINATION / INDUSTRY: ${
+            campaignIdentity.destinationIndustry ||
+            "Use the supplied destination and industry."
+          }`,
+
+          `TOTAL VACANCIES: ${totalVacancies}`,
+
+          `DISTINCT ROLES: ${facts.positions.length}`,
 
           "",
 
-          "FIRST-SECOND ATTENTION:",
-          "The dominant candidate-facing hook must stop the scroll immediately.",
-          "The largest typography must communicate the recruitment opportunity.",
-          "The agency must never dominate the top of the advertisement.",
+          "CRITICAL HEADLINE RULE:",
+
+          "Never use a database headline such as:",
+          "\"Operation Manager + 18 more roles — Saudi Arabia\".",
+
+          "Never use '+ more roles' as the main headline.",
+
+          "Never make one random position the identity of a multi-role recruitment campaign.",
+
+          "The main headline must identify the opportunity, project, employer or recruitment category.",
 
           "",
 
-          "THREE-SECOND COMPREHENSION:",
-          "A relevant candidate should quickly understand:",
-          "what the opportunity is,",
-          "where it is,",
-          "what industry/project it belongs to,",
-          "what roles are being recruited,",
-          "and how to act when valid contact/interview information exists.",
+          "COUNTRY RULE:",
+
+          "Use the country once in the main campaign hierarchy unless repetition is genuinely useful.",
+
+          "Do not produce:",
+          "SAUDI ARABIA",
+          "SAUDI ARABIA",
+          "SAUDI ARABIA.",
+
+          "Prefer:",
+          "CAMPAIGN / PROJECT",
+          "SAUDI ARABIA · INDUSTRY.",
 
           "",
 
-          "HERO_RECRUITMENT_POSTER:",
-          "Use one dominant visual hero.",
-          "Use large editorial headline typography.",
-          "Make the country and project obvious.",
-          "Present the roles in a concise readable structure.",
-          "Use real benefits/interview/contact information when supplied.",
-          "Finish with compact agency trust architecture.",
+          "================================================================",
+          "DENSITY INTELLIGENCE",
+          "================================================================",
+
+          `DENSITY: ${densityDecision.density}`,
+
+          `ARCHETYPE: ${densityDecision.archetype}`,
+
+          `SINGLE POSTER APPROPRIATE: ${densityDecision.canFitSinglePoster}`,
+
+          `CAROUSEL REQUIRED: ${densityDecision.requiresCarousel}`,
+
+          `MINIMUM ROLE FONT TARGET: ${MIN_ROLE_FONT_PX}px on the KAI master social canvas.`,
+
+          `MINIMUM SUPPORTING TEXT TARGET: ${MIN_SUPPORTING_FONT_PX}px.`,
 
           "",
 
-          "HIGH_DENSITY_RECRUITMENT_POSTER:",
-          "This is still a commercial advertisement.",
-          "It must NOT look like a spreadsheet.",
-          "It must NOT become a database-style list.",
-          "Group roles intelligently into visually meaningful recruitment sections.",
-          "Use clear categories, bands, columns or grouped role blocks when helpful.",
-          "Maintain a strong visual hero.",
-          "Maintain large readable typography.",
-          "Never solve density by shrinking everything into microscopic text.",
+          "DO NOT solve content density by making typography microscopic.",
+
+          "When the full recruitment requirement cannot remain readable in one frame, use a carousel campaign.",
+
+          "All source roles must still be represented across the complete campaign.",
+
+          "Never silently remove roles.",
+
+          "Never use '+ more roles'.",
 
           "",
 
-          "INDUSTRY RECOGNITION:",
-          "Oil & Gas must look like Oil & Gas.",
-          "Construction must look like Construction.",
-          "Shipyard and Marine must look like Shipyard and Marine.",
-          "Manufacturing must look like Manufacturing.",
-          "Healthcare must look like Healthcare.",
-          "Hospitality must look like Hospitality.",
-          "Agriculture must look like Agriculture.",
-          "Energy and Power must look like Energy and Power.",
+          "================================================================",
+          "FIXED ADVERTISEMENT SCHEMA",
+          "================================================================",
+
+          "HEADER",
+          "↓",
+          "HERO / INDUSTRY STORY",
+          "↓",
+          "RECRUITMENT OPPORTUNITY",
+          "↓",
+          "CANDIDATE ACTION",
+          "↓",
+          "AGENCY TRUST",
 
           "",
 
-          "VISUAL HERO:",
-          "Choose a dominant worker, professional, machine, environment or work action.",
-          "Prefer active authentic work over posed portraits.",
-          "Use realistic PPE, tools, machinery and working conditions.",
-          "The visual hero must be recognisable on a mobile phone.",
-          "Create convincing foreground, midground and background depth.",
-          "Use deliberate camera perspective and premium editorial lighting.",
+          "This is a commercial hierarchy, not a rigid rectangular template.",
 
           "",
 
-          "VISUAL STORY:",
-          "The environment must tell the industry story without requiring the candidate to read the role list.",
-          "The creative should communicate professional opportunity, scale, technical credibility and real work.",
+          "================================================================",
+          "HEADER",
+          "================================================================",
+
+          "Create one dominant campaign headline.",
+
+          "Immediately show the destination and industry.",
+
+          "Show the vacancy signal when useful.",
+
+          "Do not turn the header into a database summary.",
+
+          "Do not repeat the country unnecessarily.",
 
           "",
 
-          "TYPOGRAPHY LAW:",
-          "Typography hierarchy must be obvious.",
-          "HOOK >> DESTINATION / PROJECT >> ROLE GROUPS >> BENEFITS / INTERVIEW / CTA >> TRUST.",
-          "The main hook must be large.",
-          "Role text must remain comfortably readable.",
-          "Do not shrink text merely to fit excessive information.",
+          "================================================================",
+          "HERO / INDUSTRY STORY",
+          "================================================================",
+
+          "The viewer should recognise the industry from the visual environment before reading the detailed roles.",
+
+          "Use authentic:",
+          "workers",
+          "PPE",
+          "tools",
+          "machinery",
+          "architecture",
+          "industrial equipment",
+          "workplace conditions",
+          "materials",
+          "climate",
+          "scale.",
+
+          "Show people actively performing believable professional work.",
+
+          "Avoid:",
+          "posed corporate portraits",
+          "handshake photography",
+          "generic businessmen",
+          "generic office photography.",
 
           "",
 
-          "CONTENT DENSITY:",
-          "First understand the complete recruitment requirement.",
-          "Then determine how much information a strong advertisement can communicate without damaging readability.",
-          "Use the high-density grammar when necessary.",
-          "Do not silently delete roles.",
-          "Do not use '+ more roles'.",
+          "The hero must work as a mobile thumbnail.",
+
+          "Create strong foreground, midground and background depth.",
+
+          "Use believable lighting and premium editorial photography.",
 
           "",
 
-          "SOURCE-GROUNDED ROLE COVERAGE:",
-          "Every supplied position is part of the recruitment intelligence.",
-          "Never invent a role.",
-          "Never rename a role into a different occupation.",
-          "You may visually group roles only when the grouping preserves the actual source meaning.",
+          "================================================================",
+          "RECRUITMENT OPPORTUNITY",
+          "================================================================",
+
+          "Every supplied position must be represented.",
+
+          "Exact role names remain authoritative.",
+
+          "Exact counts remain authoritative.",
+
+          "Do not silently delete a position.",
+
+          "Do not replace real roles with a generic category that hides them.",
+
+          "You may GROUP roles into meaningful recruitment families when that improves candidate comprehension.",
+
+          "Examples of legitimate families when supported by the actual source:",
+          "Management",
+          "Engineering / Planning",
+          "Procurement",
+          "Electrical",
+          "Mechanical / HVAC",
+          "Civil / Finishing",
+          "Quality / HSE",
+          "Administration / IT.",
+
+          "Grouping is only a presentation decision.",
+
+          "Do not alter the meaning of the actual positions.",
 
           "",
 
-          "FACTUAL LAW:",
-          "The canonical content packet below is the only recruitment source of truth.",
-          "Use exact supplied role titles.",
-          "Use exact supplied vacancy counts.",
-          "Use exact supplied salary information only when present.",
-          "Use exact supplied benefits only when present.",
-          "Use exact supplied interview information only when present.",
-          "Use exact supplied contact information only when present.",
-          "Never invent missing facts.",
+          "================================================================",
+          "CAROUSEL LAW",
+          "================================================================",
+
+          "When CAROUSEL is required:",
+
+          "FRAME 1:",
+          "Campaign hero + opportunity identity + destination + industry + strongest candidate-facing hook.",
+
+          "FRAME 2+",
+          "Complete readable recruitment role groups.",
+
+          "FINAL FRAME:",
+          "Benefits / interview / campaign contact / agency trust as supported by source data.",
+
+          "Every supplied role must appear somewhere in the complete campaign.",
+
+          "Do not hide roles behind '+ more'.",
+
+          "Do not use the first frame as an excuse to omit the recruitment requirement.",
 
           "",
 
-          "SOURCE-DATA ABSENCE:",
-          "Missing salary is not an invitation to invent salary.",
-          "Missing benefits are not an invitation to invent benefits.",
-          "Missing interview information is not an invitation to invent an interview.",
-          "Missing contact information is not an invitation to invent contact information.",
+          "================================================================",
+          "CANDIDATE ACTION",
+          "================================================================",
+
+          "Use only genuine source-supported information.",
+
+          "Possible candidate-facing sections:",
+          "BENEFITS",
+          "INTERVIEW",
+          "APPLY / CONTACT",
+          "OPPORTUNITY HIGHLIGHTS",
+          "VERIFY.",
+
+          "Never invent:",
+          "salary",
+          "benefits",
+          "food",
+          "accommodation",
+          "transport",
+          "medical",
+          "visa promises",
+          "interview venue",
+          "interview date",
+          "contact numbers",
+          "email addresses.",
+
+          "If information is missing, omit it.",
 
           "",
 
-          "AGENCY TRUST:",
-          "Agency identity supports credibility but does not dominate the recruitment opportunity.",
-          "Logo, registration, verification and agency identity belong in the trust architecture.",
-          "Do not invent registration numbers.",
-          "Do not invent QR codes.",
-          "Do not invent agency badges.",
+          "================================================================",
+          "INTERVIEW VS AGENCY IDENTITY",
+          "================================================================",
+
+          "REGISTERED ADDRESS is permanent agency identity.",
+
+          "INTERVIEW VENUE belongs to THIS campaign.",
+
+          "They are completely different concepts.",
+
+          "Never replace the agency registered address with an interview venue.",
 
           "",
 
-          "CTA:",
-          "When genuine contact or interview information exists, give it strong candidate-facing prominence.",
-          "CTA must feel like a designed recruitment action rather than tiny body copy.",
+          "OFFICIAL AGENCY CONTACT is permanent agency identity.",
+
+          "CAMPAIGN CONTACT is specific to THIS recruitment advertisement.",
+
+          "They may differ.",
 
           "",
 
-          "MOBILE-FIRST:",
-          "The advertisement must work on WhatsApp, Instagram, Facebook, LinkedIn and Telegram.",
-          "The primary hook must survive thumbnail viewing.",
-          "Critical role information must remain readable.",
-          "Do not use microscopic typography.",
-          "Do not waste the canvas with large empty areas.",
+          "================================================================",
+          "AGENCY TRUST",
+          "================================================================",
+
+          "Agency identity is a trust layer, not the visual hero.",
+
+          "The trusted agency packet can contain:",
+
+          "Agency Logo",
+          "Agency Name",
+          "RC / MEA Registration",
+          "Ministry of External Affairs — Government of India Registered",
+          "ISO Certification when genuinely approved",
+          "ISO Logo when genuinely approved",
+          "Registered Address",
+          "Official Phone",
+          "Official Email",
+          "Official Website",
+          "Verification QR.",
+
+          "Never invent an agency logo.",
+
+          "Never invent an ISO credential.",
+
+          "Never invent a registration number.",
+
+          "Never invent a verification claim.",
 
           "",
 
-          "VISUAL QUALITY BAR:",
-          "Premium editorial advertising photography.",
-          "Authentic people.",
-          "Authentic work.",
-          "Authentic industry.",
-          "Believable scale.",
-          "Controlled colour.",
-          "Strong camera composition.",
-          "Commercial visual impact.",
+          "================================================================",
+          "FOOTER OWNERSHIP",
+          "================================================================",
+
+          "Gemini owns the visual footer composition.",
+
+          "Gemini decides:",
+          "footer layout",
+          "logo position",
+          "QR position",
+          "colour",
+          "spacing",
+          "trust hierarchy.",
+          
+          "KAI protects the exact verified values.",
+
+          "The footer must not become a second recruitment panel.",
 
           "",
 
-          "DO NOT FALL INTO TEMPLATE BEHAVIOUR:",
-          "Do not create generic cards everywhere.",
-          "Do not create a document converted into a poster.",
-          "Do not cover the photograph with an oversized dark information sheet.",
-          "Do not make the agency the visual hero.",
-          "Do not make all typography tiny.",
-          "Do not make all text the same size.",
+          "================================================================",
+          "TYPOGRAPHY LAW",
+          "================================================================",
+
+          "The master social advertisement should be designed around strong mobile readability.",
+
+          "Main headline: dominant and large.",
+
+          "Destination / industry: clearly readable.",
+
+          "Role titles: target at least 28px on the KAI master social canvas.",
+
+          "Supporting candidate information: target at least 22px.",
+
+          "Never shrink the complete advertisement until it becomes difficult to read.",
+
+          "Use hierarchy, grouping and campaign frames instead.",
 
           "",
 
-          "IMPORTANT ARCHITECTURE:",
-          "Gemini owns the complete advertisement composition.",
-          "KAI supplies the complete source-grounded recruitment intelligence and creative strategy.",
-          "The downstream KAI branding layer must remain minimal and should not rebuild the recruitment body.",
+          "================================================================",
+          "VISUAL DESIGN LANGUAGE",
+          "================================================================",
+
+          "The advertisement must look like a professional Gulf recruitment campaign.",
+
+          "Premium editorial photography.",
+
+          "Strong commercial composition.",
+
+          "Real workplace environment.",
+
+          "Strong visual hero.",
+
+          "Professional colour grading.",
+
+          "Clean typography.",
+
+          "Purposeful information hierarchy.",
+
+          "No generic SaaS UI appearance.",
+
+          "No database aesthetics.",
+
+          "No spreadsheet aesthetics.",
+
+          "No giant empty areas.",
+
+          "No giant dark document panel covering the image.",
+
+          "",
+
+          "================================================================",
+          "FINAL INTERNAL TEST",
+          "================================================================",
+
+          "Before finalising the direction, verify:",
+
+          "1. Is the headline a campaign identity rather than a CRM record?",
+
+          "2. Is the destination clear without unnecessary repetition?",
+
+          "3. Is the industry instantly recognisable?",
+
+          "4. Is the visual hero strong enough for mobile viewing?",
+
+          "5. Are the positions represented accurately?",
+
+          "6. Are the positions readable?",
+
+          "7. Has density been solved through grouping or carousel rather than tiny text?",
+
+          "8. Are benefits and interview details source-grounded?",
+
+          "9. Is campaign contact separated from permanent agency identity?",
+
+          "10. Is registered address separated from interview venue?",
+
+          "11. Is the agency identity trustworthy but secondary?",
+
+          "12. Has anything factual been invented?",
+
+          "",
+
+          `STYLE DIRECTION: ${styleHint}`,
+
+          `THEME DIRECTION: ${themeHint}`,
 
           "",
 
           "OUTPUT:",
-          "Return ONE detailed creative direction paragraph for the Gemini image model.",
-          "Describe the finished advertisement concept, visual hero, environment, hierarchy, typography strategy, role-group strategy, CTA/trust placement, lighting, colour, depth and mobile behaviour.",
-          "Do not reproduce the role list as prose.",
-          "Do not create a table.",
+          "Return ONE detailed creative direction for the Gemini image model.",
           "Do not output software instructions.",
-        ].join(
-          "\n",
-        ),
+          "Do not output a table.",
+          "Do not reproduce all roles as prose.",
+        ].join("\n"),
 
       input:
         JSON.stringify({
           creativeArchetype:
-            archetype,
+            densityDecision.archetype,
+
+          density:
+            densityDecision.density,
+
+          requiresCarousel:
+            densityDecision.requiresCarousel,
+
+          campaignIdentity,
 
           canonicalContent,
         }),
