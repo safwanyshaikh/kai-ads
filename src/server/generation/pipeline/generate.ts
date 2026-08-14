@@ -5,25 +5,87 @@ import { applyBrandingOverlay } from "./branding-overlay";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import sharp from "sharp";
 import { getEnv } from "@/lib/env";
-import type { AdvertisementFacts } from "./types";
+import type {
+  AdvertisementFacts,
+  AdvertisementCampaignContact,
+  VerifiedAgencyProfile,
+} from "./types";
 
 export interface GeneratePipelineInput {
   facts: AdvertisementFacts;
+
   widthPx: number;
   heightPx: number;
 
   style?: string;
   theme?: string;
 
+  /**
+   * ------------------------------------------------------------------------
+   * VERIFIED AGENCY TRUST ASSETS
+   * ------------------------------------------------------------------------
+   *
+   * These are NOT campaign content.
+   *
+   * They belong to the agency profile and must be verified before production
+   * publishing.
+   */
   agencyLogoPng?: Buffer | null;
+
   qrPng?: Buffer | null;
 
+  agencyProfile?: VerifiedAgencyProfile | null;
+
+  /**
+   * Legacy compatibility.
+   *
+   * These values are still accepted by older callers.
+   * Canonical agencyProfile values take precedence.
+   */
   agencyName?: string | null;
   registrationNumber?: string | null;
+
+  /**
+   * ------------------------------------------------------------------------
+   * CAMPAIGN CONTACT
+   * ------------------------------------------------------------------------
+   *
+   * Candidate-facing contact for THIS advertisement.
+   *
+   * This is intentionally separate from:
+   *
+   * agencyProfile.officialPhone
+   * agencyProfile.officialEmail
+   */
+  campaignContact?:
+    | AdvertisementCampaignContact
+    | null;
+
+  /**
+   * Legacy campaign contact compatibility.
+   */
   contactLine?: string | null;
+
+  /**
+   * ------------------------------------------------------------------------
+   * AGENCY REGISTERED ADDRESS
+   * ------------------------------------------------------------------------
+   *
+   * This is the official registered office address.
+   *
+   * It is NOT the interview venue.
+   *
+   * Canonical source:
+   *
+   * agencyProfile.registeredAddress
+   */
   addressLine?: string | null;
 
+  /**
+   * Legacy agency verification/profile assets.
+   */
   footerStyle?: FooterStyle | null;
+
   brandBadges?: string[] | null;
 }
 
@@ -35,43 +97,107 @@ export interface GeneratePipelineResult {
   usage: {
     model: string;
     latencyMs: number;
-    estimatedCostUsd: number | null;
+    estimatedCostUsd:
+      | number
+      | null;
   };
 
   footerSelection: Awaited<
-    ReturnType<typeof selectFooterStyle>
+    ReturnType<
+      typeof selectFooterStyle
+    >
   >;
 }
 
 /**
+ * ============================================================================
  * KAI ADS — PRODUCTION CREATIVE PIPELINE
+ * ============================================================================
  *
- * Requirement Intelligence
- *      ↓
- * Complete Creative Brief
- *      ↓
- * Gemini Creative Director
- *      ↓
- * Preserve Gemini composition
- *      ↓
- * KAI Minimal Branding / Verification
- *      ↓
- * Finished Advertisement
+ * SOURCE REQUIREMENT
+ *        ↓
+ * KAI RECRUITMENT INTELLIGENCE
+ *        ↓
+ * CAMPAIGN CREATIVE BRIEF
+ *        ↓
+ * GEMINI COMPLETE ADVERTISEMENT
+ *        ↓
+ * PRESERVE GEMINI COMPOSITION
+ *        ↓
+ * KAI VERIFIED TRUST LAYER
+ *        ↓
+ * VISUAL QA
+ *        ↓
+ * FINAL ADVERTISEMENT
  *
- * GEMINI:
- * Owns the advertisement's creative visual concept.
+ * ----------------------------------------------------------------------------
  *
- * KAI:
- * Owns recruitment intelligence, exact agency identity
- * and verification.
+ * GEMINI OWNS:
+ *
+ *   - campaign headline presentation
+ *   - country / industry presentation
+ *   - project story
+ *   - hero visual
+ *   - recruitment presentation
+ *   - role grouping
+ *   - benefits presentation
+ *   - interview presentation
+ *   - campaign CTA presentation
+ *   - typography
+ *   - colour
+ *   - spacing
+ *   - composition
+ *   - footer composition
+ *
+ * KAI OWNS:
+ *
+ *   - exact source facts
+ *   - verified agency identity
+ *   - exact approved agency logo
+ *   - exact RC / registration
+ *   - exact approved agency information
+ *   - exact verification QR
+ *
+ * KAI DOES NOT REBUILD THE RECRUITMENT BODY AFTER GEMINI.
+ * ============================================================================
  */
 export async function generateAdvertisement(
   input: GeneratePipelineInput,
 ): Promise<GeneratePipelineResult> {
   /**
-   * STEP 1
+   * ------------------------------------------------------------------------
+   * STEP 1 — NORMALISE AGENCY PROFILE
+   * ------------------------------------------------------------------------
    *
-   * KAI understands the COMPLETE requirement.
+   * Agency identity must come from one canonical object.
+   *
+   * Legacy callers are still supported during migration.
+   */
+  const agencyProfile =
+    resolveAgencyProfile(
+      input,
+    );
+
+  /**
+   * ------------------------------------------------------------------------
+   * STEP 2 — NORMALISE CAMPAIGN CONTACT
+   * ------------------------------------------------------------------------
+   *
+   * The campaign contact is NOT the agency profile.
+   */
+  const campaignContact =
+    resolveCampaignContact(
+      input,
+    );
+
+  /**
+   * ------------------------------------------------------------------------
+   * STEP 3 — BUILD COMPLETE CREATIVE BRIEF
+   * ------------------------------------------------------------------------
+   *
+   * KAI decides WHAT must be communicated.
+   *
+   * Gemini decides HOW the advertisement looks.
    */
   const brief =
     await buildCreativeBrief(
@@ -85,9 +211,9 @@ export async function generateAdvertisement(
     );
 
   /**
-   * STEP 2
-   *
-   * Gemini creates the actual recruitment campaign visual.
+   * ------------------------------------------------------------------------
+   * STEP 4 — GEMINI COMPLETE ADVERTISEMENT
+   * ------------------------------------------------------------------------
    */
   const provider =
     getImageGenerationProvider();
@@ -118,27 +244,16 @@ export async function generateAdvertisement(
     );
 
   /**
-   * STEP 3
+   * ------------------------------------------------------------------------
+   * STEP 5 — NORMALISE DIMENSIONS WITHOUT CROPPING
+   * ------------------------------------------------------------------------
    *
-   * Preserve Gemini's complete composition.
+   * Preserve Gemini's entire composition.
    *
-   * IMPORTANT:
-   *
-   * Gemini's image model may support 3:4 while the
-   * publication format may be 4:5.
-   *
-   * NEVER use "cover" here.
-   *
-   * "cover" crops the creative and can remove the
-   * worker, machinery, subject or important visual
-   * composition.
-   *
-   * Instead, fit the complete Gemini image inside
-   * the requested publication canvas.
-   *
-   * Any unavoidable ratio difference is handled by
-   * controlled canvas extension rather than destructive
-   * cropping.
+   * Never use "cover".
+   * Never crop the worker.
+   * Never crop the hero.
+   * Never crop generated recruitment content.
    */
   const normalizedArtwork =
     await fitWithoutCropping(
@@ -148,12 +263,13 @@ export async function generateAdvertisement(
     );
 
   /**
-   * STEP 4
+   * ------------------------------------------------------------------------
+   * STEP 6 — SELECT TRUST FOOTER TREATMENT
+   * ------------------------------------------------------------------------
    *
-   * Select only the visual treatment of the agency
-   * trust footer.
+   * This is only the visual treatment.
    *
-   * This does not alter the advertisement body.
+   * Gemini still owns the overall advertisement composition.
    */
   const footerSelection =
     await selectFooterStyle(
@@ -162,19 +278,28 @@ export async function generateAdvertisement(
     );
 
   /**
-   * STEP 5
+   * ------------------------------------------------------------------------
+   * STEP 7 — KAI TRUST LAYER ONLY
+   * ------------------------------------------------------------------------
    *
-   * KAI adds ONLY:
+   * Deterministic information allowed here:
    *
-   * - exact agency logo
-   * - exact registration
-   * - exact contact identity
-   * - exact QR
+   *   ✓ approved agency logo
+   *   ✓ exact agency name
+   *   ✓ exact registration
+   *   ✓ official registered address
+   *   ✓ campaign contact where supplied
+   *   ✓ exact QR
    *
-   * No job table.
-   * No vacancy grid.
-   * No document panel.
-   * No recruitment-body reconstruction.
+   * Never:
+   *
+   *   ✗ job list
+   *   ✗ vacancy table
+   *   ✗ salary
+   *   ✗ benefits
+   *   ✗ interview panel
+   *   ✗ campaign headline
+   *   ✗ recruitment body
    */
   const finalPng =
     await applyBrandingOverlay({
@@ -187,6 +312,11 @@ export async function generateAdvertisement(
       heightPx:
         input.heightPx,
 
+      /**
+       * Facts remain available for compatibility and
+       * downstream validation, but the branding layer
+       * MUST NOT use them to rebuild the ad body.
+       */
       facts:
         input.facts,
 
@@ -196,22 +326,46 @@ export async function generateAdvertisement(
       qrPng:
         input.qrPng,
 
+      /**
+       * Canonical agency identity.
+       */
       agencyName:
-        input.agencyName,
+        agencyProfile.agencyName,
 
       registrationNumber:
-        input.registrationNumber,
+        agencyProfile.fullRegistrationNumber ??
+        agencyProfile.rcNumber,
 
+      /**
+       * Campaign-facing contact is kept separate from
+       * the agency's permanent official contact.
+       *
+       * Prefer campaign email/phone, then legacy
+       * contactLine.
+       */
       contactLine:
-        input.contactLine,
+        buildCampaignContactLine(
+          campaignContact,
+          input.contactLine,
+        ),
 
+      /**
+       * IMPORTANT:
+       *
+       * This is the REGISTERED ADDRESS.
+       *
+       * It is never taken from interviewVenue.
+       */
       addressLine:
-        input.addressLine,
+        agencyProfile.registeredAddress ??
+        input.addressLine ??
+        null,
 
       footerStyle:
         footerSelection.style,
 
       brandBadges:
+        agencyProfile.approvedBadges ??
         input.brandBadges,
     });
 
@@ -227,31 +381,264 @@ export async function generateAdvertisement(
   };
 }
 
+/* ========================================================================== */
+/* NORMALISATION                                                               */
+/* ========================================================================== */
+
 /**
- * Preserve the entire Gemini composition.
+ * Resolve the one canonical agency profile.
  *
- * The image is fitted INSIDE the target canvas.
+ * New callers:
+ *   input.agencyProfile
  *
- * No "cover" crop.
+ * Legacy callers:
+ *   input.agencyName
+ *   input.registrationNumber
+ *   input.addressLine
+ */
+function resolveAgencyProfile(
+  input: GeneratePipelineInput,
+): VerifiedAgencyProfile {
+  const supplied =
+    input.agencyProfile;
+
+  if (supplied) {
+    return supplied;
+  }
+
+  return {
+    agencyName:
+      input.agencyName ??
+      input.facts.agencyProfile
+        ?.agencyName ??
+      input.facts.agencyName,
+
+    logoUrl:
+      input.facts.agencyProfile
+        ?.logoUrl ??
+      null,
+
+    rcNumber:
+      input.facts.agencyProfile
+        ?.rcNumber ??
+      input.registrationNumber ??
+      input.facts.raLicenseId ??
+      null,
+
+    fullRegistrationNumber:
+      input.facts.agencyProfile
+        ?.fullRegistrationNumber ??
+      input.registrationNumber ??
+      input.facts.fullRegistrationNumber ??
+      null,
+
+    meaRegistrationText:
+      input.facts.agencyProfile
+        ?.meaRegistrationText ??
+      null,
+
+    isoCertification:
+      input.facts.agencyProfile
+        ?.isoCertification ??
+      null,
+
+    isoLogoUrl:
+      input.facts.agencyProfile
+        ?.isoLogoUrl ??
+      null,
+
+    registeredAddress:
+      input.facts.agencyProfile
+        ?.registeredAddress ??
+      input.addressLine ??
+      input.facts.officeAddress ??
+      null,
+
+    officialPhone:
+      input.facts.agencyProfile
+        ?.officialPhone ??
+      null,
+
+    officialEmail:
+      input.facts.agencyProfile
+        ?.officialEmail ??
+      null,
+
+    website:
+      input.facts.agencyProfile
+        ?.website ??
+      input.facts.website ??
+      null,
+
+    verificationStatus:
+      input.facts.agencyProfile
+        ?.verificationStatus ??
+      "UNVERIFIED",
+
+    verificationId:
+      input.facts.agencyProfile
+        ?.verificationId ??
+      null,
+
+    verificationUrl:
+      input.facts.agencyProfile
+        ?.verificationUrl ??
+      null,
+
+    approvedBadges:
+      input.facts.agencyProfile
+        ?.approvedBadges ??
+      [],
+  };
+}
+
+/**
+ * Campaign contact resolver.
  *
- * For a small aspect-ratio mismatch, the canvas is extended
- * using pixels derived from the edge of the Gemini image.
+ * Priority:
  *
- * This gives us:
+ * 1. Explicit campaignContact
+ * 2. AdvertisementFacts.contact
+ * 3. Legacy contactLine
+ */
+function resolveCampaignContact(
+  input: GeneratePipelineInput,
+): AdvertisementCampaignContact {
+  if (
+    input.campaignContact
+  ) {
+    return {
+      name:
+        cleanOptional(
+          input.campaignContact
+            .name,
+        ),
+
+      phone:
+        cleanOptional(
+          input.campaignContact
+            .phone,
+        ),
+
+      email:
+        cleanOptional(
+          input.campaignContact
+            .email,
+        ),
+
+      whatsapp:
+        cleanOptional(
+          input.campaignContact
+            .whatsapp,
+        ),
+    };
+  }
+
+  return {
+    name:
+      cleanOptional(
+        input.facts.contact
+          .name,
+      ),
+
+    phone:
+      cleanOptional(
+        input.facts.contact
+          .phone,
+      ),
+
+    email:
+      cleanOptional(
+        input.facts.contact
+          .email,
+      ),
+
+    whatsapp:
+      cleanOptional(
+        input.facts.contact
+          .whatsapp,
+      ),
+  };
+}
+
+function buildCampaignContactLine(
+  contact:
+    | AdvertisementCampaignContact
+    | null,
+  legacyLine:
+    | string
+    | null
+    | undefined,
+): string | null {
+  if (!contact) {
+    return (
+      cleanOptional(
+        legacyLine,
+      ) ?? null
+    );
+  }
+
+  const parts =
+    [
+      contact.name,
+      contact.phone,
+      contact.email,
+      contact.whatsapp,
+    ].filter(
+      (
+        value,
+      ): value is string =>
+        Boolean(
+          value?.trim(),
+        ),
+    );
+
+  if (
+    parts.length > 0
+  ) {
+    return parts.join(
+      "  •  ",
+    );
+  }
+
+  return (
+    cleanOptional(
+      legacyLine,
+    ) ?? null
+  );
+}
+
+function cleanOptional(
+  value:
+    | string
+    | null
+    | undefined,
+): string | undefined {
+  const cleaned =
+    value?.trim();
+
+  return cleaned ||
+    undefined;
+}
+
+/* ========================================================================== */
+/* IMAGE NORMALISATION                                                         */
+/* ========================================================================== */
+
+/**
+ * Preserve the complete Gemini composition.
  *
- * Gemini composition
+ * Gemini image:
  *       ↓
  * complete image preserved
  *       ↓
  * publication dimensions
  *
- * rather than:
+ * Never:
  *
- * Gemini composition
+ * Gemini image
  *       ↓
- * crop
- *       ↓
- * lost subject
+ * destructive crop
  */
 async function fitWithoutCropping(
   image: Buffer,
@@ -271,10 +658,6 @@ async function fitWithoutCropping(
     metadata.height ??
     heightPx;
 
-  /**
-   * Calculate the scale that fits the complete
-   * Gemini image inside the target canvas.
-   */
   const scale =
     Math.min(
       widthPx /
@@ -303,8 +686,7 @@ async function fitWithoutCropping(
     );
 
   /**
-   * If Gemini already matches the target ratio,
-   * simply resize to the requested dimensions.
+   * Exact match.
    */
   if (
     fittedWidth ===
@@ -329,7 +711,7 @@ async function fitWithoutCropping(
   }
 
   /**
-   * Resize the complete Gemini image first.
+   * Resize the entire image.
    */
   const fitted =
     await sharp(
@@ -348,14 +730,11 @@ async function fitWithoutCropping(
       .toBuffer();
 
   /**
-   * Extract a representative edge colour from the
-   * fitted image.
-   *
-   * This prevents a harsh white/black artificial frame.
+   * Extract a representative colour for the tiny
+   * unavoidable extension.
    */
   const {
     data,
-    info,
   } =
     await sharp(
       fitted,
@@ -383,12 +762,6 @@ async function fitWithoutCropping(
   const b =
     data[2] ?? 20;
 
-  /**
-   * The extension is deliberately subtle.
-   *
-   * It exists only because the image model ratio and
-   * publication ratio differ.
-   */
   return sharp({
     create: {
       width:
@@ -413,16 +786,18 @@ async function fitWithoutCropping(
 
         left:
           Math.round(
-            (widthPx -
-              fittedWidth) /
-              2,
+            (
+              widthPx -
+              fittedWidth
+            ) / 2,
           ),
 
         top:
           Math.round(
-            (heightPx -
-              fittedHeight) /
-              2,
+            (
+              heightPx -
+              fittedHeight
+            ) / 2,
           ),
       },
     ])
