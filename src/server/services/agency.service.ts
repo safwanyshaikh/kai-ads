@@ -63,9 +63,6 @@ const log =
   );
 
 export const agencyService = {
-  /**
-   * Registers a new agency.
-   */
   async register(
     input: RegisterAgencyInput,
   ) {
@@ -271,41 +268,6 @@ export const agencyService = {
     return agency;
   },
 
-  /**
-   * Agency Profile update.
-   *
-   * TRUST RULE:
-   *
-   * If a VERIFIED agency changes any public identity /
-   * trust-sensitive information, KAI automatically changes
-   * its verification status to:
-   *
-   *   REVERIFICATION_REQUIRED
-   *
-   * before the new identity can continue being treated as
-   * verified.
-   *
-   * Trust-sensitive fields:
-   *
-   * - primary logo
-   * - secondary / ISO logo
-   * - official email
-   * - website
-   * - contact person
-   * - phone
-   * - WhatsApp
-   * - registered address
-   * - permanent brand badges
-   * - brand colours
-   * - social links
-   *
-   * Admin-controlled identity remains protected:
-   *
-   * - agency name
-   * - RC / MEA registration number
-   * - verification status
-   * - verification URL
-   */
   async updateProfile(
     agencyId: string,
     actorId: string,
@@ -330,13 +292,21 @@ export const agencyService = {
           ? null
           : value.trim();
 
+    /**
+     * logoUrl is REQUIRED in Prisma.
+     *
+     * Therefore:
+     * - when omitted, preserve existing logo
+     * - when supplied and non-empty, replace it
+     * - never write null
+     */
     const nextLogoUrl =
       input.logoUrl ===
       undefined
         ? currentAgency.logoUrl
-        : input.logoUrl
-            .trim() ||
-          null;
+        : input.logoUrl.trim()
+            ? input.logoUrl.trim()
+            : currentAgency.logoUrl;
 
     const nextSecondaryLogoUrl =
       input.secondaryLogoUrl ===
@@ -352,7 +322,7 @@ export const agencyService = {
         ? currentAgency.officialEmail
         : input.officialEmail
             .trim() ||
-          null;
+          currentAgency.officialEmail;
 
     const nextWebsite =
       input.website ===
@@ -360,7 +330,7 @@ export const agencyService = {
         ? currentAgency.website
         : input.website
             .trim() ||
-          null;
+          currentAgency.website;
 
     const nextContactPerson =
       input.contactPerson ===
@@ -412,10 +382,6 @@ export const agencyService = {
         ? currentAgency.socialLinks
         : input.socialLinks;
 
-    /**
-     * Only changes that affect permanent agency identity /
-     * trust are allowed to trigger re-verification.
-     */
     const trustIdentityChanged =
       currentAgency.logoUrl !==
         nextLogoUrl ||
@@ -491,15 +457,13 @@ export const agencyService = {
             input.officialEmail ===
             undefined
               ? undefined
-              : nextOfficialEmail ??
-                undefined,
+              : nextOfficialEmail,
 
           website:
             input.website ===
             undefined
               ? undefined
-              : nextWebsite ??
-                undefined,
+              : nextWebsite,
 
           contactPerson:
             input.contactPerson ===
@@ -576,26 +540,6 @@ export const agencyService = {
       },
     });
 
-    /**
-     * TRUST INVALIDATION
-     *
-     * Only run when:
-     *
-     * 1. the agency was previously VERIFIED
-     * 2. a trust-sensitive field actually changed
-     *
-     * This means:
-     *
-     * VERIFIED
-     *   ↓
-     * Agency changes logo/address/ISO/contact
-     *   ↓
-     * REVERIFICATION_REQUIRED
-     *   ↓
-     * Super Admin reviews again
-     *   ↓
-     * VERIFIED
-     */
     if (
       currentVerification?.status ===
         "VERIFIED" &&
@@ -720,8 +664,8 @@ export const agencyService = {
   ) {
     if (
       !reason ||
-      reason.trim()
-        .length < 3
+      reason.trim().length <
+        3
     ) {
       throw new ConflictError(
         "A rejection reason is required.",
@@ -818,8 +762,8 @@ export const agencyService = {
   ) {
     if (
       !reason ||
-      reason.trim()
-        .length < 3
+      reason.trim().length <
+        3
     ) {
       throw new ConflictError(
         "A suspension reason is required.",
