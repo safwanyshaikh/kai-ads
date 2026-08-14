@@ -13,6 +13,10 @@ import {
 } from "@/server/repositories/user.repository";
 
 import {
+  agencyVerificationService,
+} from "@/server/services/agency-verification.service";
+
+import {
   auditLogService,
 } from "@/server/services/audit-log.service";
 
@@ -39,6 +43,7 @@ import {
 
 import type {
   UpdateAgencyProfileInput,
+  RegisterAgencyInput,
 } from "@/lib/validations/agency";
 
 import {
@@ -52,10 +57,6 @@ import {
   type Paginated,
 } from "@/lib/pagination";
 
-import type {
-  RegisterAgencyInput,
-} from "@/lib/validations/agency";
-
 const log =
   createLogger(
     "agency-service",
@@ -63,14 +64,7 @@ const log =
 
 export const agencyService = {
   /**
-   * Registers a new agency:
-   *
-   * 1. Reject personal email domains.
-   * 2. Reject duplicate registration number.
-   * 3. Reject duplicate official email.
-   * 4. Reject duplicate domain.
-   * 5. Create Agency + Domain + first AGENCY_ADMIN user.
-   * 6. Agency starts as PENDING.
+   * Registers a new agency.
    */
   async register(
     input: RegisterAgencyInput,
@@ -86,6 +80,7 @@ export const agencyService = {
       agencyRepository.findByRegistrationNumber(
         input.registrationNumber,
       ),
+
       agencyRepository.findByOfficialEmail(
         input.officialEmail,
       ),
@@ -279,53 +274,200 @@ export const agencyService = {
   /**
    * Agency Profile update.
    *
-   * Agency-owned fields:
+   * TRUST RULE:
    *
-   * - logo
+   * If a VERIFIED agency changes any public identity /
+   * trust-sensitive information, KAI automatically changes
+   * its verification status to:
+   *
+   *   REVERIFICATION_REQUIRED
+   *
+   * before the new identity can continue being treated as
+   * verified.
+   *
+   * Trust-sensitive fields:
+   *
+   * - primary logo
    * - secondary / ISO logo
-   * - official contact
+   * - official email
+   * - website
+   * - contact person
+   * - phone
+   * - WhatsApp
    * - registered address
    * - permanent brand badges
    * - brand colours
    * - social links
    *
-   * Admin-controlled fields remain protected:
+   * Admin-controlled identity remains protected:
    *
    * - agency name
-   * - RC / MEA licence number
+   * - RC / MEA registration number
    * - verification status
-   * - verification QR destination
+   * - verification URL
    */
   async updateProfile(
     agencyId: string,
     actorId: string,
     input: UpdateAgencyProfileInput,
   ) {
-    const blank =
-      (
-        value?: string,
-      ) =>
-        value === undefined
-          ? undefined
-          : value.trim() === ""
-            ? null
-            : value.trim();
+    const currentAgency =
+      await agencyService.getById(
+        agencyId,
+      );
+
+    const currentVerification =
+      await agencyVerificationService.getStatus(
+        agencyId,
+      );
+
+    const blank = (
+      value?: string,
+    ) =>
+      value === undefined
+        ? undefined
+        : value.trim() === ""
+          ? null
+          : value.trim();
+
+    const nextLogoUrl =
+      input.logoUrl ===
+      undefined
+        ? currentAgency.logoUrl
+        : input.logoUrl
+            .trim() ||
+          null;
+
+    const nextSecondaryLogoUrl =
+      input.secondaryLogoUrl ===
+      undefined
+        ? currentAgency.secondaryLogoUrl
+        : input.secondaryLogoUrl
+            .trim() ||
+          null;
+
+    const nextOfficialEmail =
+      input.officialEmail ===
+      undefined
+        ? currentAgency.officialEmail
+        : input.officialEmail
+            .trim() ||
+          null;
+
+    const nextWebsite =
+      input.website ===
+      undefined
+        ? currentAgency.website
+        : input.website
+            .trim() ||
+          null;
+
+    const nextContactPerson =
+      input.contactPerson ===
+      undefined
+        ? currentAgency.contactPerson
+        : blank(
+            input.contactPerson,
+          );
+
+    const nextPhone =
+      input.phone ===
+      undefined
+        ? currentAgency.phone
+        : blank(
+            input.phone,
+          );
+
+    const nextWhatsapp =
+      input.whatsapp ===
+      undefined
+        ? currentAgency.whatsapp
+        : blank(
+            input.whatsapp,
+          );
+
+    const nextOfficeAddress =
+      input.officeAddress ===
+      undefined
+        ? currentAgency.officeAddress
+        : blank(
+            input.officeAddress,
+          );
+
+    const nextBrandBadges =
+      input.brandBadges ===
+      undefined
+        ? currentAgency.brandBadges
+        : input.brandBadges;
+
+    const nextBrandColours =
+      input.brandColours ===
+      undefined
+        ? currentAgency.brandColours
+        : input.brandColours;
+
+    const nextSocialLinks =
+      input.socialLinks ===
+      undefined
+        ? currentAgency.socialLinks
+        : input.socialLinks;
 
     /**
-     * IMPORTANT:
-     *
-     * brandBadges is agency-owned permanent
-     * credential information.
-     *
-     * It is stored separately from:
-     *
-     * - campaign benefits
-     * - interview data
-     * - campaign contact
-     *
-     * Therefore it can be reused by the
-     * verified agency trust layer.
+     * Only changes that affect permanent agency identity /
+     * trust are allowed to trigger re-verification.
      */
+    const trustIdentityChanged =
+      currentAgency.logoUrl !==
+        nextLogoUrl ||
+
+      currentAgency.secondaryLogoUrl !==
+        nextSecondaryLogoUrl ||
+
+      currentAgency.officialEmail !==
+        nextOfficialEmail ||
+
+      currentAgency.website !==
+        nextWebsite ||
+
+      currentAgency.contactPerson !==
+        nextContactPerson ||
+
+      currentAgency.phone !==
+        nextPhone ||
+
+      currentAgency.whatsapp !==
+        nextWhatsapp ||
+
+      currentAgency.officeAddress !==
+        nextOfficeAddress ||
+
+      JSON.stringify(
+        currentAgency.brandBadges ??
+          null,
+      ) !==
+        JSON.stringify(
+          nextBrandBadges ??
+            null,
+        ) ||
+
+      JSON.stringify(
+        currentAgency.brandColours ??
+          null,
+      ) !==
+        JSON.stringify(
+          nextBrandColours ??
+            null,
+        ) ||
+
+      JSON.stringify(
+        currentAgency.socialLinks ??
+          null,
+      ) !==
+        JSON.stringify(
+          nextSocialLinks ??
+            null,
+        );
+
     const updated =
       await db.agency.update({
         where: {
@@ -334,60 +476,72 @@ export const agencyService = {
 
         data: {
           logoUrl:
-            input.logoUrl
-              ?.trim()
-              ? input.logoUrl.trim()
-              : undefined,
+            input.logoUrl ===
+            undefined
+              ? undefined
+              : nextLogoUrl,
 
           secondaryLogoUrl:
-            input.secondaryLogoUrl
-              ?.trim()
-              ? input.secondaryLogoUrl.trim()
-              : null,
+            input.secondaryLogoUrl ===
+            undefined
+              ? undefined
+              : nextSecondaryLogoUrl,
 
           officialEmail:
-            input.officialEmail
-              ?.trim()
-              ? input.officialEmail.trim()
-              : undefined,
+            input.officialEmail ===
+            undefined
+              ? undefined
+              : nextOfficialEmail ??
+                undefined,
 
           website:
-            input.website
-              ?.trim()
-              ? input.website.trim()
-              : undefined,
+            input.website ===
+            undefined
+              ? undefined
+              : nextWebsite ??
+                undefined,
 
           contactPerson:
-            blank(
-              input.contactPerson,
-            ),
+            input.contactPerson ===
+            undefined
+              ? undefined
+              : nextContactPerson,
 
           phone:
-            blank(
-              input.phone,
-            ),
+            input.phone ===
+            undefined
+              ? undefined
+              : nextPhone,
 
           whatsapp:
-            blank(
-              input.whatsapp,
-            ),
+            input.whatsapp ===
+            undefined
+              ? undefined
+              : nextWhatsapp,
 
           officeAddress:
-            blank(
-              input.officeAddress,
-            ),
+            input.officeAddress ===
+            undefined
+              ? undefined
+              : nextOfficeAddress,
 
           brandBadges:
-            input.brandBadges ??
-            undefined,
+            input.brandBadges ===
+            undefined
+              ? undefined
+              : nextBrandBadges,
 
           brandColours:
-            input.brandColours ??
-            undefined,
+            input.brandColours ===
+            undefined
+              ? undefined
+              : nextBrandColours,
 
           socialLinks:
-            input.socialLinks ??
-            undefined,
+            input.socialLinks ===
+            undefined
+              ? undefined
+              : nextSocialLinks,
         },
       });
 
@@ -421,6 +575,40 @@ export const agencyService = {
         ],
       },
     });
+
+    /**
+     * TRUST INVALIDATION
+     *
+     * Only run when:
+     *
+     * 1. the agency was previously VERIFIED
+     * 2. a trust-sensitive field actually changed
+     *
+     * This means:
+     *
+     * VERIFIED
+     *   ↓
+     * Agency changes logo/address/ISO/contact
+     *   ↓
+     * REVERIFICATION_REQUIRED
+     *   ↓
+     * Super Admin reviews again
+     *   ↓
+     * VERIFIED
+     */
+    if (
+      currentVerification?.status ===
+        "VERIFIED" &&
+      trustIdentityChanged
+    ) {
+      await agencyVerificationService
+        .setStatus(
+          agencyId,
+          actorId,
+          "REVERIFICATION_REQUIRED",
+          "Agency trust identity changed. Super Admin reverification is required before the updated agency profile is treated as verified.",
+        );
+    }
 
     return updated;
   },
