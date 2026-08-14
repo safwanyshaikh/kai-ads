@@ -1,75 +1,177 @@
 import { z } from "zod";
 
 /**
- * BRAIN C — Visual QA Brain structured verdict.
+ * KAI Visual QA — final commercial publication gate.
  *
- * The vision model inspects the ACTUAL final rendered advertisement
- * image (never the SVG source, never the facts) and returns this exact
- * structure. Scores are 0-100. The verdict is derived deterministically
- * from overallScore by the acceptance loop (>= 85 passes) — the model's
- * own verdict field is recorded but the threshold decision is code, not
- * the model, so the pass bar can never drift with prompt phrasing.
+ * Gemini:
+ *   complete advertisement composition
+ *
+ * KAI:
+ *   trusted agency identity / verification when supplied
+ *
+ * QA:
+ *   judges the actual finished raster
+ *
+ * The model's verdict is informational.
+ * The numeric threshold below is authoritative.
  */
-export const VISUAL_QA_PASS_THRESHOLD = 85;
+export const VISUAL_QA_PASS_THRESHOLD =
+  85;
 
-const score = z.number().min(0).max(100);
+const score =
+  z.number().min(0).max(100);
 
-export const visualQaCorrectionTypeSchema = z.enum([
-  /** The background/decorative imagery itself is weak or irrelevant — the only correction that spends image-generation budget again. */
-  "REGENERATE_IMAGE",
-  /** Headline/role/country not dominant enough. */
-  "INCREASE_HEADLINE_EMPHASIS",
-  /** Crowding, collisions, or dead zones — layout spacing correction. */
-  "IMPROVE_SPACING",
-  /** Contact CTA (phone, email) undersized or imbalanced. */
-  "IMPROVE_CTA",
-  /** Text-over-image or text-over-background contrast insufficient. */
-  "IMPROVE_CONTRAST",
-  /** Anything else — recorded for the report, mapped by keyword heuristic when possible. */
-  "OTHER",
-]);
+export const visualQaCorrectionTypeSchema =
+  z.enum([
+    /**
+     * The generated visual itself is weak,
+     * irrelevant or fundamentally unsuitable.
+     *
+     * This is the only correction type that
+     * legitimately spends another image-generation call.
+     */
+    "REGENERATE_IMAGE",
 
-export const visualQaResultSchema = z.object({
-  overallScore: score,
-  commercialQualityScore: score,
-  hierarchyScore: score,
-  readabilityScore: score,
-  imageryScore: score,
-  canvasUtilizationScore: score,
-  ctaScore: score,
-  trustScore: score,
-  defects: z.array(z.string()),
-  /**
-   * Catastrophic defects — a NON-EMPTY list here prevents PASS regardless
-   * of overallScore (enforced in code by the acceptance loop, not by the
-   * model's verdict): unreadable/clipped/overlapping content, apparent
-   * fabricated branding or signage inside imagery, generated gibberish
-   * text damaging the advertisement, severe canvas misuse, or missing
-   * agency/verification identity.
-   */
-  catastrophicDefects: z.array(z.string()),
-  requiredCorrections: z.array(
-    z.object({
-      type: visualQaCorrectionTypeSchema,
-      note: z.string(),
-    }),
-  ),
-  verdict: z.enum(["PASS", "REGENERATE", "BLOCKED"]),
-});
+    /**
+     * Candidate-facing hierarchy is weak.
+     */
+    "INCREASE_HEADLINE_EMPHASIS",
 
-export type VisualQaCorrectionType = z.infer<typeof visualQaCorrectionTypeSchema>;
-export type VisualQaResult = z.infer<typeof visualQaResultSchema>;
+    /**
+     * Collision, crowding, awkward spacing
+     * or poor information organization.
+     */
+    "IMPROVE_SPACING",
+
+    /**
+     * Genuine candidate CTA/contact exists
+     * but is visually weak.
+     */
+    "IMPROVE_CTA",
+
+    /**
+     * Readability/contrast problem.
+     */
+    "IMPROVE_CONTRAST",
+
+    /**
+     * Other non-catastrophic defect.
+     */
+    "OTHER",
+  ]);
+
+export const visualQaResultSchema =
+  z.object({
+    overallScore: score,
+
+    commercialQualityScore:
+      score,
+
+    hierarchyScore:
+      score,
+
+    readabilityScore:
+      score,
+
+    imageryScore:
+      score,
+
+    canvasUtilizationScore:
+      score,
+
+    ctaScore:
+      score,
+
+    trustScore:
+      score,
+
+    defects:
+      z.array(
+        z.string(),
+      ),
+
+    /**
+     * A non-empty catastrophicDefects list blocks publication.
+     *
+     * IMPORTANT:
+     * A catastrophic defect must represent a genuine
+     * publication-blocking failure.
+     *
+     * Missing OPTIONAL SOURCE DATA is not catastrophic.
+     * Missing optional CTA data is not catastrophic.
+     * Missing optional benefit/interview data is not catastrophic.
+     * Small incidental text inside an industrial scene is not catastrophic.
+     *
+     * Examples that ARE catastrophic:
+     *
+     * - primary headline clipped
+     * - major text collision
+     * - unusable composition
+     * - fundamentally wrong industry imagery
+     * - prominent fabricated recruitment facts
+     * - fake agency identity
+     * - fake QR / verification claim
+     * - severe unreadability of critical content
+     */
+    catastrophicDefects:
+      z.array(
+        z.string(),
+      ),
+
+    requiredCorrections:
+      z.array(
+        z.object({
+          type:
+            visualQaCorrectionTypeSchema,
+
+          note:
+            z.string(),
+        }),
+      ),
+
+    verdict:
+      z.enum([
+        "PASS",
+        "REGENERATE",
+        "BLOCKED",
+      ]),
+  });
+
+export type VisualQaCorrectionType =
+  z.infer<
+    typeof visualQaCorrectionTypeSchema
+  >;
+
+export type VisualQaResult =
+  z.infer<
+    typeof visualQaResultSchema
+  >;
 
 export interface VisualQaInput {
-  /** The final rasterized advertisement, exactly as it would be exported. */
+  /**
+   * Exact final rasterized advertisement.
+   */
   imagePngBase64: string;
+
+  /**
+   * Creative archetype used by the pipeline.
+   */
   archetype: string;
+
+  /**
+   * Publication format.
+   */
   platformFormatKey: string;
+
   widthPx: number;
+
   heightPx: number;
 }
 
 export interface VisualQaProvider {
   readonly name: string;
-  evaluate(input: VisualQaInput): Promise<VisualQaResult>;
+
+  evaluate(
+    input: VisualQaInput,
+  ): Promise<VisualQaResult>;
 }
