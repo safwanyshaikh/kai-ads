@@ -268,6 +268,13 @@ export const agencyService = {
     return agency;
   },
 
+  /**
+   * Agency Profile update.
+   *
+   * Trust-sensitive changes automatically invalidate
+   * an existing VERIFIED agency profile and require
+   * Super Admin reverification.
+   */
   async updateProfile(
     agencyId: string,
     actorId: string,
@@ -293,12 +300,12 @@ export const agencyService = {
           : value.trim();
 
     /**
-     * logoUrl is REQUIRED in Prisma.
+     * logoUrl is required by Prisma.
      *
-     * Therefore:
-     * - when omitted, preserve existing logo
-     * - when supplied and non-empty, replace it
-     * - never write null
+     * Never write null.
+     *
+     * If the caller does not provide it,
+     * leave the existing value untouched.
      */
     const nextLogoUrl =
       input.logoUrl ===
@@ -441,18 +448,29 @@ export const agencyService = {
         },
 
         data: {
+          /**
+           * Required string field.
+           */
           logoUrl:
             input.logoUrl ===
             undefined
               ? undefined
               : nextLogoUrl,
 
+          /**
+           * Nullable string field.
+           */
           secondaryLogoUrl:
             input.secondaryLogoUrl ===
             undefined
               ? undefined
               : nextSecondaryLogoUrl,
 
+          /**
+           * Required string fields.
+           * Preserve existing values when
+           * caller does not provide them.
+           */
           officialEmail:
             input.officialEmail ===
             undefined
@@ -489,23 +507,35 @@ export const agencyService = {
               ? undefined
               : nextOfficeAddress,
 
+          /**
+           * JSON fields.
+           *
+           * IMPORTANT:
+           *
+           * When the caller does not supply the field,
+           * OMIT the Prisma property completely.
+           *
+           * This preserves the existing database value
+           * and avoids passing JsonValue | null where Prisma
+           * expects InputJsonValue.
+           */
           brandBadges:
             input.brandBadges ===
             undefined
               ? undefined
-              : nextBrandBadges,
+              : input.brandBadges,
 
           brandColours:
             input.brandColours ===
             undefined
               ? undefined
-              : nextBrandColours,
+              : input.brandColours,
 
           socialLinks:
             input.socialLinks ===
             undefined
               ? undefined
-              : nextSocialLinks,
+              : input.socialLinks,
         },
       });
 
@@ -540,6 +570,12 @@ export const agencyService = {
       },
     });
 
+    /**
+     * VERIFIED → REVERIFICATION REQUIRED
+     *
+     * Only when an actual trust-sensitive identity
+     * field changed.
+     */
     if (
       currentVerification?.status ===
         "VERIFIED" &&
