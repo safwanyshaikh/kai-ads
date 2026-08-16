@@ -1491,16 +1491,36 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" fill="url(#pp)"/>`,
     );
 
-    // A single quiet mark on the photograph itself: the agency's name,
-    // small, weightless, top-left — the only thing the reference genre
-    // consistently keeps ON the image. Everything else lives in the panel.
+    // The agency's name, top-left, ON the photograph — the only thing the
+    // reference genre consistently keeps directly on the image. Every
+    // other mark in this composition sits on a scrim or a flat surface
+    // with a guaranteed contrast floor; this text alone had neither —
+    // the duotone photo tint above (id="pt") is tuned for the whole
+    // frame, not for guaranteeing this one line of text stays readable
+    // against an unknown bright sky or pale wall Gemini might place
+    // top-left. A small solid chip gives it the same guarantee every
+    // other fact in this file already has, and matches how the reference
+    // genre itself always sets agency identity on its own contrast card
+    // rather than bare on the photo.
     const markSize = Math.max(plan.floor, px(T.Caption));
+    const markPadX = Math.round(markSize * 0.7);
+    const markPadY = Math.round(markSize * 0.55);
+    const markText = facts.agencyName.toUpperCase();
+    const markTextW = Math.ceil(textWidth(markText, markSize, false)) + Math.round(markSize * 0.4); // letter-spacing
+    const chipW = markTextW + markPadX * 2;
+    const chipH = markSize + markPadY * 2;
+    const chipX = margin;
+    const chipY = Math.round(margin * 0.55);
     parts.push(
-      `<text x="${margin}" y="${Math.round(margin * 0.9)}" font-family="KaiSans, sans-serif" font-size="${markSize}" ` +
-        `font-weight="600" fill="${pal.reversed}" letter-spacing="2" opacity="0.92">${esc(facts.agencyName.toUpperCase())}</text>`,
+      `<rect x="${chipX}" y="${chipY}" width="${chipW}" height="${chipH}" rx="${Math.round(chipH * 0.16)}" ` +
+        `fill="${pal.ink}" fill-opacity="0.78"/>`,
     );
     parts.push(
-      `<rect x="${margin}" y="${Math.round(margin * 0.9) + Math.round(markSize * 0.5)}" width="${px(0.09)}" height="2" fill="${pal.accent}" opacity="0.85"/>`,
+      `<rect x="${chipX}" y="${chipY + chipH - 3}" width="${Math.round(chipW * 0.42)}" height="3" fill="${pal.accent}"/>`,
+    );
+    parts.push(
+      `<text x="${chipX + markPadX}" y="${chipY + markPadY + Math.round(markSize * 0.82)}" font-family="KaiSans, sans-serif" ` +
+        `font-size="${markSize}" font-weight="600" fill="${pal.reversed}" letter-spacing="2">${esc(markText)}</text>`,
     );
 
     // ---- Panel content: eyebrow, destination, employer, project — a

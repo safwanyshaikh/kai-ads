@@ -405,4 +405,32 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     // The destination is stated once, not echoed by an adjacent element.
     expect((r.svgMarkup.match(/SAUDI ARABIA/g) ?? []).length).toBe(1);
   });
+
+  it("gives the agency name a solid chip on the photograph rather than bare text with no contrast guarantee", async () => {
+    // Every other mark in this composition sits on a scrim or a flat
+    // surface with a guaranteed contrast floor; the agency name — set
+    // directly ON the unknown Gemini photograph — previously had neither,
+    // so it composited fine over a synthetic test photo but had no
+    // guarantee against a bright real one. Confirmed by rendering over a
+    // near-white background: the chip's own fill must produce a solid,
+    // dark region behind the text, independent of what's beneath it.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
+    const brightSky = await sharp({
+      create: { width: 1080, height: r.heightPx, channels: 3, background: { r: 245, g: 245, b: 248 } },
+    })
+      .png()
+      .toBuffer();
+    const composed = await sharp(brightSky).composite([{ input: r.png, left: 0, top: 0 }]).png().toBuffer();
+    const { data, info } = await sharp(composed).raw().toBuffer({ resolveWithObject: true });
+
+    // Sample a pixel inside the chip (margin is a fixed 0.065 * width;
+    // the chip sits right at that margin, near the very top) — it must
+    // be dark (the chip's ink fill), not the bright synthetic background
+    // showing through.
+    const x = Math.round(info.width * 0.065) + 10;
+    const y = 45;
+    const i = (y * info.width + x) * info.channels;
+    const luminance = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+    expect(luminance).toBeLessThan(100);
+  });
 });
