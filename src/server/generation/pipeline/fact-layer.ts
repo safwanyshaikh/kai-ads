@@ -424,6 +424,77 @@ function wrap(text: string, maxWidth: number, size: number, maxLines: number): s
   return lines.slice(0, maxLines);
 }
 
+/**
+ * Display-only spelling normalisation for obvious source/OCR defects.
+ *
+ * The stored recruitment fact remains authoritative and untouched — this
+ * corrects only what is TYPESET, and only for tokens that are not English
+ * words at all and have exactly one plausible reading in a job title
+ * ("Adminstator" -> "Administrator"). Anything genuinely ambiguous, and
+ * any word that exists in ordinary English (e.g. "manger"), is left
+ * exactly as the source wrote it: publishing an agency's own wording
+ * unchanged is safer than guessing at a role it may really have meant.
+ * Casing of the source token is preserved by the caller, which uppercases
+ * for display anyway.
+ */
+const TITLE_SPELLING_FIXES: Record<string, string> = {
+  adminstator: "Administrator",
+  administator: "Administrator",
+  adminstrator: "Administrator",
+  qualality: "Quality",
+  quallity: "Quality",
+  qualiity: "Quality",
+  enginer: "Engineer",
+  engneer: "Engineer",
+  enginner: "Engineer",
+  techncian: "Technician",
+  techinician: "Technician",
+  technican: "Technician",
+  mechnical: "Mechanical",
+  electrican: "Electrician",
+  supervisar: "Supervisor",
+  carpender: "Carpenter",
+};
+
+/**
+ * The role title as it should be TYPESET — never as it is stored. Applied
+ * at every draw and at every measurement, so the planner and the renderer
+ * can never disagree about how wide a title is.
+ */
+function displayTitle(title: string): string {
+  return title
+    .split(/(\s+)/)
+    .map((token) => {
+      if (/^\s+$/.test(token)) return token;
+      // Punctuation (e.g. a trailing slash or hyphen) is preserved around
+      // the word so "Adminstator/HR" normalises without losing structure.
+      const match = token.match(/^([^A-Za-z]*)([A-Za-z]+)([^A-Za-z]*)$/);
+      if (!match) return token;
+      const [, lead, word, trail] = match;
+      const fix = TITLE_SPELLING_FIXES[word.toLowerCase()];
+      return fix ? `${lead}${fix}${trail}` : token;
+    })
+    .join("");
+}
+
+/**
+ * The exact single string the POSTER composition typesets for one role.
+ *
+ * The vacancy count is folded into the wrapped title rather than set as a
+ * separate badge, so it can never be silently dropped. That makes the
+ * drawn string LONGER than the stored title, which is precisely why this
+ * lives in one shared function: planBody measures this string and
+ * renderPosterBody draws this string. When the planner measured the bare
+ * title while the renderer drew the title plus "(N NOS)", a role whose
+ * title fitted on one line but whose title-plus-count needed two wrapped
+ * into a second line the row box never reserved — and that second line
+ * printed straight through the role beneath it.
+ */
+function posterRoleLine(p: AdvertisementFacts["positions"][number]): string {
+  const title = displayTitle(p.title).toUpperCase();
+  return p.count != null ? `${title} (${p.count} NOS)` : title;
+}
+
 /** Detail string for one role — only ever built from values that are present. */
 function roleDetail(p: AdvertisementFacts["positions"][number]): string {
   const bits: string[] = [];
@@ -522,7 +593,21 @@ function planBody(
   // does not replace it, so density still answers to the requirement first.
   const rowGap = px((tier === "T1" ? 0.02 : tier === "T2" ? 0.014 : tier === "T3" ? 0.009 : 0.007) * L.rowGapScale);
   const lineFactor = tier === "T4" ? 1.15 : 1.25;
-  const badgeW = facts.positions.some((p) => p.count != null) ? px(0.05) : 0;
+  // Derived here rather than passed in, so every one of planBody's callers
+  // measures the same composition the renderer will actually draw.
+  const poster = !dense && dna.motifs.layoutStyle === "POSTER";
+  // POSTER sets a small triangular bullet where the other compositions set
+  // a numeric badge; the title measure must start after whichever of the
+  // two this composition actually draws (renderPosterBody's bs + gap).
+  const bulletW = Math.round(titleSize * 0.42) + px(0.014);
+  const badgeW = poster
+    ? bulletW
+    : facts.positions.some((p) => p.count != null)
+      ? px(0.05)
+      : 0;
+  /** Exactly the string this composition typesets for a role — see posterRoleLine. */
+  const measuredTitle = (p: AdvertisementFacts["positions"][number]) =>
+    poster ? posterRoleLine(p) : displayTitle(p.title);
   // High Density promotes salary into its own right-hand column. That
   // width must be reserved before titles are wrapped, or a long title
   // wraps as if it owned the full measure and then collides with the figure.
@@ -553,14 +638,14 @@ function planBody(
   // printed straight through the job titles.
   const widestWord = Math.ceil(
     Math.max(
-      ...facts.positions.flatMap((p) => p.title.split(/\s+/).map((w) => textWidth(w, floor, true))),
+      ...facts.positions.flatMap((p) => measuredTitle(p).split(/\s+/).map((w) => textWidth(w, floor, true))),
       0,
     ),
   );
   const titleFits = () => {
     const avail = colW - badgeW - salaryW;
     return avail >= widestWord &&
-      !facts.positions.some((p) => wrapLines(p.title, avail, floor).length > MAX_LINES);
+      !facts.positions.some((p) => wrapLines(measuredTitle(p), avail, floor).length > MAX_LINES);
   };
   while (cols > 1 && !titleFits()) {
     cols -= 1;
@@ -572,7 +657,7 @@ function planBody(
   const rowHeights = facts.positions.map((p) => {
     const lines = Math.min(
       MAX_LINES,
-      wrapLines(p.title, colW - badgeW - salaryW, titleSize).length,
+      wrapLines(measuredTitle(p), colW - badgeW - salaryW, titleSize).length,
     );
     return Math.round(
       titleSize * lineFactor * lines + (anyDetail && roleDetail(p) ? detailSize * 1.3 : 0) + rowGap,
@@ -1413,6 +1498,27 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       );
       y += Math.round(ms * 0.35);
     }
+    // The verified vacancy total — commercially the single most important
+    // number on a recruitment advertisement, and the exact fact planHero
+    // already reserves badgeH for. While it went undrawn here, that
+    // reserve turned into dead panel depth AND the advertisement never
+    // stated how many jobs it was actually offering: a 127-vacancy
+    // requirement published without its own headline number.
+    {
+      const countLabel = headlineCountLabel(facts);
+      const cs = Math.max(plan.floor, Math.round(hero.badgeH * 0.4));
+      const cw = Math.min(panelW, Math.round(textWidth(countLabel, cs, true) + px(0.055)));
+      y += px(0.022);
+      parts.push(
+        `<rect x="${panelX}" y="${y}" width="${cw}" height="${hero.badgeH}" rx="${Math.round(hero.badgeH * 0.5)}" fill="${pal.accent}"/>`,
+      );
+      parts.push(
+        `<text x="${panelX + Math.round(cw / 2)}" y="${y + Math.round(hero.badgeH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+          `font-size="${cs}" font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1.5">${esc(countLabel)}</text>`,
+      );
+      y += hero.badgeH;
+    }
+
     // A short accent rule closes the identity block and opens the
     // positions section — the one recurring "custom divider" a reader
     // can learn to trust as "facts start here" across every advertisement.
@@ -1714,15 +1820,19 @@ function renderPosterBody(
       parts.push(
         `<path d="M ${colX} ${cy - bs} L ${colX + bs} ${cy - Math.round(bs * 0.42)} L ${colX} ${cy + Math.round(bs * 0.16)} Z" fill="${pal.accent}"/>`,
       );
-      const tx = colX + bs + px(0.014);
-      const tw = colW - bs - px(0.014);
+      // Planner and renderer share one column geometry, always: plan.badgeW
+      // IS this composition's bullet + gap (see planBody), and the measure
+      // below is the exact width planBody wrapped against. Deriving a
+      // second, slightly different measure here is what let a wrapped
+      // second line escape the row box the planner had reserved.
+      const tx = colX + plan.badgeW;
+      const tw = colW - plan.badgeW - plan.salaryW;
       let ly = cy;
       // The verified vacancy count per role — "(20 NOS)" — is the trade
       // convention this genre actually uses. Folded into the wrapped
       // title itself rather than a separate badge, so it can never be
       // silently dropped and is measured exactly like the rest of the line.
-      const titleWithCount = p.count != null ? `${p.title.toUpperCase()} (${p.count} NOS)` : p.title.toUpperCase();
-      const lines = wrap(titleWithCount, tw, titleSize, plan.maxLines);
+      const lines = wrap(posterRoleLine(p), tw, titleSize, plan.maxLines);
       for (const line of lines) {
         const ls = fit(line, tw, titleSize, floor, true);
         parts.push(
@@ -1914,7 +2024,7 @@ function renderBody(
       // Wrapped and measured on the true text — only the drawn glyphs are
       // uppercased in dense mode, matching how both real classifieds set
       // every trade name in the table.
-      const lines = wrap(p.title, tw, titleSize, plan.maxLines);
+      const lines = wrap(displayTitle(p.title), tw, titleSize, plan.maxLines);
       const firstBaseline = cy;
       for (const line of lines) {
         const drawn = M.uppercaseTitles ? line.toUpperCase() : line;

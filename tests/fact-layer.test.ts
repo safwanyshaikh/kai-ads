@@ -191,3 +191,116 @@ describe("Fact Layer — commercial readiness fixes (Step 4)", () => {
     }
   });
 });
+
+/**
+ * The real 19-role Saudi requirement (127 vacancies) that the commercial
+ * acceptance test runs on. Titles carry the source's own OCR spelling
+ * defects deliberately — normalisation is display-only and must not
+ * depend on the stored fact being clean.
+ */
+const SAUDI_19: [string, number][] = [
+  ["Operation Manager", 1], ["WPR", 25], ["Time Keeper/HR Executive", 2],
+  ["Procurement Engineer-Estimation", 2], ["Purchaser", 2], ["Planning Engineer Lead", 1],
+  ["Planning Engineer", 1], ["Procurement Engineer Construction", 2], ["Procurement Manager", 1],
+  ["Electrician", 10], ["Tile Mason", 2], ["IT Adminstator", 1], ["HVAC Technician", 45],
+  ["DDC Technician (HVAC)", 7], ["Mechanical Engineer (HVAC)", 5], ["Project Manager", 5],
+  ["Qualality Manager", 5], ["HSE Manager", 5], ["PQCS", 5],
+];
+
+const saudiFacts = (): AdvertisementFacts =>
+  facts(0, {
+    header: "Urgent Requirement — Saudi Arabia",
+    industry: "Construction",
+    country: "Saudi Arabia",
+    employer: "Saudi Aramco Projects",
+    projectType: "Major Construction Project",
+    positions: SAUDI_19.map(([title, count]) => ({ title, count })),
+    benefits: [{ label: "Free food" }, { label: "Free accommodation" }],
+    interview: [{ date: "5th September 2026", location: "Mumbai" }],
+    contact: { phone: "9324995767", email: "jobs@alyousufent.com" },
+  });
+
+/** Every <text> node with its column x and baseline y. */
+function textNodes(svg: string) {
+  return [...svg.matchAll(/<text x="(\d+)"[^>]*\by="(\d+)"[^>]*>(.*?)<\/text>/g)].map((m) => ({
+    x: Number(m[1]),
+    y: Number(m[2]),
+    text: m[3],
+  }));
+}
+
+describe("Fact Layer — commercial composition (Step 8)", () => {
+  it("does not overlap rows when a title plus its vacancy count wraps to a second line", async () => {
+    // The planner measured the bare title while the poster renderer drew
+    // "TITLE (N NOS)". A role whose title fitted one line but whose
+    // title-plus-count needed two wrapped into a second line the row box
+    // never reserved, and it printed through the role beneath it.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
+    const columns = new Map<number, number[]>();
+    for (const node of textNodes(r.svgMarkup)) {
+      if (!columns.has(node.x)) columns.set(node.x, []);
+      columns.get(node.x)!.push(node.y);
+    }
+    // Only the position columns carry many stacked lines at one x.
+    const listColumns = [...columns.values()].filter((ys) => ys.length >= 8);
+    expect(listColumns.length).toBeGreaterThan(0);
+    for (const ys of listColumns) {
+      const sorted = [...ys].sort((a, b) => a - b);
+      for (let i = 1; i < sorted.length; i++) {
+        // One drawn line height at this canvas width is ~28px; anything
+        // below 20px means two lines are printing on top of each other.
+        expect(sorted[i] - sorted[i - 1]).toBeGreaterThanOrEqual(20);
+      }
+    }
+  });
+
+  it("keeps every one of the 19 real roles and every verified quantity", async () => {
+    const f = saudiFacts();
+    const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
+    const svg = r.svgMarkup.toUpperCase();
+    for (const [, count] of SAUDI_19) {
+      expect(svg).toContain(`(${count} NOS)`);
+    }
+    expect(f.positions).toHaveLength(19);
+    expect(f.positions.reduce((s, p) => s + (p.count ?? 0), 0)).toBe(127);
+    // PQCS is the role that went missing in the real commercial run.
+    expect(svg).toContain("PQCS (5 NOS)");
+  });
+
+  it("states the verified vacancy total in the hero rather than leaving its reserved space empty", async () => {
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
+    expect(r.svgMarkup).toContain("127 VACANCIES · 19 ROLES");
+  });
+
+  it("normalises unambiguous source spelling defects for display only", async () => {
+    const f = saudiFacts();
+    const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
+    expect(r.svgMarkup).toContain("IT ADMINISTRATOR");
+    expect(r.svgMarkup).toContain("QUALITY MANAGER");
+    expect(r.svgMarkup).not.toContain("ADMINSTATOR");
+    expect(r.svgMarkup).not.toContain("QUALALITY");
+    // The stored recruitment fact itself is never rewritten.
+    expect(f.positions.find((p) => p.title === "IT Adminstator")).toBeDefined();
+    expect(f.positions.find((p) => p.title === "Qualality Manager")).toBeDefined();
+  });
+
+  it("leaves a title alone when the wording is a real word rather than an obvious defect", async () => {
+    const r = await renderFactLayer({
+      facts: facts(0, {
+        positions: [{ title: "Cattle Manger Attendant", count: 2 }, { title: "Site Supervisor", count: 1 }],
+      }),
+      widthPx: 1080,
+      heightPx: 1350,
+    });
+    expect(r.svgMarkup).toContain("CATTLE MANGER ATTENDANT");
+    expect(r.svgMarkup).toContain("SITE SUPERVISOR");
+  });
+
+  it("keeps the hero-led campaign composition for the real 19-role requirement", async () => {
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
+    expect(r.themeSelection.theme).toBe("PREMIUM_CAMPAIGN");
+    expect(r.artworkHeightPx).toBeGreaterThan(Math.round(1080 * 0.25));
+    // The destination is stated once, not echoed by an adjacent element.
+    expect((r.svgMarkup.match(/SAUDI ARABIA/g) ?? []).length).toBe(1);
+  });
+});
