@@ -320,7 +320,11 @@ export const advertisementGenerationService = {
        * FINAL VISUAL QA
        *
        * QA judges the exact PNG that will
-       * become the final deliverable.
+       * become the final deliverable — including its ACTUAL height, which
+       * can be taller than platformFormat.heightPx when the fact layer
+       * grew the canvas for a dense requirement. Describing the image as
+       * shorter than it really is misdescribes the exact buffer QA is
+       * looking at.
        */
       const visualQa =
         await runVisualQaGate({
@@ -334,7 +338,7 @@ export const advertisementGenerationService = {
             platformFormat.widthPx,
 
           heightPx:
-            platformFormat.heightPx,
+            result.heightPx,
         });
 
       await costTrackingService.record(

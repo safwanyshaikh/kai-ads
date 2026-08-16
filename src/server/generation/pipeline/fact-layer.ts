@@ -1369,13 +1369,14 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // element"). The photograph now reads through the whole composition
     // while the facts keep a known, high-contrast surface.
     //
-    // PANEL_SCRIM is the contrast floor, not a taste setting: at 0.88 the
-    // photograph contributes at most 12% of the surface luminance, so the
-    // panel stays within a few percent of solid #0B1F33 no matter how
-    // bright the frame behind it. Reversed text on it holds well above
-    // the 7:1 the KDL legibility rule requires, which is what lets this
-    // be transparent at all — a lighter scrim would trade a verified fact
-    // against a nicer picture, and facts outrank decoration.
+    // PANEL_SCRIM is not a tuned/arbitrary value — it is KDL §4.3's own
+    // hero-scrim number: "navy scrim ... at 88% opacity", specified so
+    // reversed text clears the KDL §9 4.5:1 minimum-contrast floor
+    // regardless of what the image model produced. Reusing it here rather
+    // than picking a new constant means the identity panel is held to the
+    // exact same contrast law as every other scrim in this file. A
+    // lighter scrim would trade a verified fact's legibility against a
+    // nicer picture, and facts outrank decoration.
     const PANEL_SCRIM = 0.88;
     parts.push(
       `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" ` +

@@ -93,6 +93,15 @@ export interface GeneratePipelineInput {
 export interface GeneratePipelineResult {
   imagePng: Buffer;
 
+  /**
+   * The FINAL rendered height, in pixels — may be taller than
+   * input.heightPx when the fact layer grew the canvas for a dense
+   * requirement. Callers (Visual QA, cost tracking, persistence) must use
+   * this, not the originally requested heightPx, when describing the
+   * actual delivered image.
+   */
+  heightPx: number;
+
   brief: string;
 
   usage: {
@@ -275,8 +284,14 @@ export async function generateAdvertisement(
    * Typesets every verified recruitment fact over the Gemini artwork.
    * Text never shrinks below the legibility floor — when a requirement is
    * large the CANVAS GROWS (factLayer.heightPx) rather than the type
-   * shrinking, so the artwork is re-covered to the grown canvas when that
-   * happens (the fact layer, not Gemini, decides final canvas height).
+   * shrinking, so the artwork's canvas is EXTENDED to the grown height
+   * (the fact layer, not Gemini, decides final canvas height). Extended,
+   * never resized-to-cover: a "cover" resize scales the whole frame up and
+   * crops the sides to fill the new height, which measurably cropped ~11%
+   * off each edge of the real hero photograph on a dense requirement —
+   * exactly what fitWithoutCropping above exists to prevent. Extending
+   * only adds new canvas below the existing artwork; not one pixel of
+   * Gemini's frame is scaled or cropped.
    */
   const factLayer =
     await renderFactLayer({
@@ -290,10 +305,7 @@ export async function generateAdvertisement(
 
   const artworkForCanvas =
     canvasHeightPx > input.heightPx
-      ? await sharp(normalizedArtwork)
-          .resize(input.widthPx, canvasHeightPx, { fit: "cover" })
-          .png()
-          .toBuffer()
+      ? await extendCanvasHeight(normalizedArtwork, input.widthPx, canvasHeightPx)
       : normalizedArtwork;
 
   const imageWithFacts =
@@ -411,6 +423,9 @@ export async function generateAdvertisement(
   return {
     imagePng:
       finalPng,
+
+    heightPx:
+      canvasHeightPx,
 
     brief,
 
@@ -658,6 +673,43 @@ function cleanOptional(
 
   return cleaned ||
     undefined;
+}
+
+/**
+ * Grows the artwork's canvas to a taller height WITHOUT cropping or
+ * rescaling a single pixel of it — the fact layer decided it needs more
+ * room than the requested canvas; the artwork must not pay for that with
+ * a cropped hero. The new region is added below the existing frame,
+ * filled with a colour sampled from the artwork's own bottom edge so the
+ * seam reads as a continuation rather than a hard cut. That region sits
+ * almost entirely beneath the identity panel (see fact-layer.ts's
+ * canvas-height solve), so exact texture there matters far less than
+ * never touching the photograph itself.
+ */
+export async function extendCanvasHeight(
+  image: Buffer,
+  widthPx: number,
+  targetHeightPx: number,
+): Promise<Buffer> {
+  const metadata = await sharp(image).metadata();
+  const sourceHeight = metadata.height ?? targetHeightPx;
+  const extra = targetHeightPx - sourceHeight;
+  if (extra <= 0) return image;
+
+  const { data } = await sharp(image)
+    .extract({ left: 0, top: Math.max(0, sourceHeight - 1), width: widthPx, height: 1 })
+    .resize(1, 1, { fit: "cover" })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const r = data[0] ?? 20;
+  const g = data[1] ?? 20;
+  const b = data[2] ?? 20;
+
+  return sharp(image)
+    .extend({ bottom: extra, background: { r, g, b } })
+    .png()
+    .toBuffer();
 }
 
 /* ========================================================================== */
