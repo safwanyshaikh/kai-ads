@@ -17,6 +17,7 @@ import {
   API_ROUTES,
   APP_ROUTES,
 } from "@/lib/constants";
+import { displayTitle } from "@/lib/display-title";
 
 import { patchJson } from "@/lib/api-client";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
@@ -451,8 +452,13 @@ export function AdvertisementCanvas({
                           "—"}
                       </span>
 
+                      {/* Display-only correction, exactly as the generated
+                          advertisement typesets it — the stored fact this
+                          reads from is never rewritten. */}
                       <p className="min-w-0 text-[15px] font-extrabold leading-tight">
-                        {position.title}
+                        {displayTitle(
+                          position.title,
+                        )}
                       </p>
                     </div>
                   ),

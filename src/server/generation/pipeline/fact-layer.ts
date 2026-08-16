@@ -1,6 +1,7 @@
 import "../font-config"; // FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
 import { brandingStripHeight } from "./branding-overlay";
+import { displayTitle } from "@/lib/display-title";
 import type { AdvertisementFacts } from "./types";
 
 /**
@@ -422,59 +423,6 @@ function wrap(text: string, maxWidth: number, size: number, maxLines: number): s
   }
   if (line) lines.push(line);
   return lines.slice(0, maxLines);
-}
-
-/**
- * Display-only spelling normalisation for obvious source/OCR defects.
- *
- * The stored recruitment fact remains authoritative and untouched — this
- * corrects only what is TYPESET, and only for tokens that are not English
- * words at all and have exactly one plausible reading in a job title
- * ("Adminstator" -> "Administrator"). Anything genuinely ambiguous, and
- * any word that exists in ordinary English (e.g. "manger"), is left
- * exactly as the source wrote it: publishing an agency's own wording
- * unchanged is safer than guessing at a role it may really have meant.
- * Casing of the source token is preserved by the caller, which uppercases
- * for display anyway.
- */
-const TITLE_SPELLING_FIXES: Record<string, string> = {
-  adminstator: "Administrator",
-  administator: "Administrator",
-  adminstrator: "Administrator",
-  qualality: "Quality",
-  quallity: "Quality",
-  qualiity: "Quality",
-  enginer: "Engineer",
-  engneer: "Engineer",
-  enginner: "Engineer",
-  techncian: "Technician",
-  techinician: "Technician",
-  technican: "Technician",
-  mechnical: "Mechanical",
-  electrican: "Electrician",
-  supervisar: "Supervisor",
-  carpender: "Carpenter",
-};
-
-/**
- * The role title as it should be TYPESET — never as it is stored. Applied
- * at every draw and at every measurement, so the planner and the renderer
- * can never disagree about how wide a title is.
- */
-function displayTitle(title: string): string {
-  return title
-    .split(/(\s+)/)
-    .map((token) => {
-      if (/^\s+$/.test(token)) return token;
-      // Punctuation (e.g. a trailing slash or hyphen) is preserved around
-      // the word so "Adminstator/HR" normalises without losing structure.
-      const match = token.match(/^([^A-Za-z]*)([A-Za-z]+)([^A-Za-z]*)$/);
-      if (!match) return token;
-      const [, lead, word, trail] = match;
-      const fix = TITLE_SPELLING_FIXES[word.toLowerCase()];
-      return fix ? `${lead}${fix}${trail}` : token;
-    })
-    .join("");
 }
 
 /**
@@ -1411,11 +1359,27 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     parts.push(
       `<line x1="0" y1="${edgeLeft}" x2="${W}" y2="${edgeRight}" stroke="${pal.accent}" stroke-width="${Math.max(2, Math.round(W * 0.0028))}"/>`,
     );
-    // The identity panel: solid brand ink, covering the photo beneath it
-    // entirely below the seam. Every fact from here to the trust strip
-    // sits on one known, flat, high-contrast surface.
+    // The identity panel: brand ink as a SCRIM, not as a lid.
+    //
+    // Painted fully opaque, this polygon covered every pixel of Gemini's
+    // artwork below the seam — on a dense requirement that is ~80% of the
+    // canvas, so the "visual hero campaign" archetype rendered as a
+    // text-heavy structural list and Visual QA rejected it for exactly
+    // that ("VISUAL_HERO requires a strong visual/photographic campaign
+    // element"). The photograph now reads through the whole composition
+    // while the facts keep a known, high-contrast surface.
+    //
+    // PANEL_SCRIM is the contrast floor, not a taste setting: at 0.88 the
+    // photograph contributes at most 12% of the surface luminance, so the
+    // panel stays within a few percent of solid #0B1F33 no matter how
+    // bright the frame behind it. Reversed text on it holds well above
+    // the 7:1 the KDL legibility rule requires, which is what lets this
+    // be transparent at all — a lighter scrim would trade a verified fact
+    // against a nicer picture, and facts outrank decoration.
+    const PANEL_SCRIM = 0.88;
     parts.push(
-      `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" fill="${pal.ink}"/>`,
+      `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" ` +
+        `fill="${pal.ink}" fill-opacity="${PANEL_SCRIM}"/>`,
     );
     // The faintest lift toward the top of the panel gives it depth
     // without ever being visible as a "gradient" — a matte surface, not

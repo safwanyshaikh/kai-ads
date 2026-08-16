@@ -296,6 +296,49 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     expect(r.svgMarkup).toContain("SITE SUPERVISOR");
   });
 
+  it("derives the headline vacancy total from the positions themselves, never a stale total", async () => {
+    // The headline number and the visible per-role quantities are the same
+    // fact stated twice; if they can disagree, one of them is wrong on a
+    // published advertisement. Same 19 roles, but PQCS carries 8 instead
+    // of 5, so the only correct total is 130 — a renderer reading a stored
+    // or cached total would still print 127 here.
+    const f = saudiFacts();
+    f.positions = f.positions.map((p) => (p.title === "PQCS" ? { ...p, count: 8 } : p));
+    expect(f.positions.reduce((s, p) => s + (p.count ?? 0), 0)).toBe(130);
+
+    const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
+    expect(r.svgMarkup).toContain("130 VACANCIES · 19 ROLES");
+    expect(r.svgMarkup).not.toContain("127 VACANCIES");
+    expect(r.svgMarkup.toUpperCase()).toContain("PQCS (8 NOS)");
+  });
+
+  it("does not paint an opaque lid over the Gemini artwork", async () => {
+    // The identity panel used to be a solid fill covering every pixel
+    // below the seam — on a dense requirement that is most of the canvas,
+    // so the campaign archetype rendered as a text-heavy list and Visual
+    // QA rejected it for having no visual/photographic element.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
+    const { data, info } = await sharp(r.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+
+    // Sample a horizontal line through the middle of the identity panel,
+    // away from any glyph, and confirm the layer is a scrim not a lid.
+    const y = Math.round(info.height * 0.85);
+    let translucent = 0;
+    let opaque = 0;
+    for (let x = 0; x < info.width; x++) {
+      const alpha = data[(y * info.width + x) * info.channels + 3];
+      if (alpha === 255) opaque++;
+      else if (alpha > 0) translucent++;
+    }
+    expect(translucent).toBeGreaterThan(opaque);
+
+    // ...but still dark enough to guarantee reversed text stays legible
+    // over an unknown photograph (KDL contrast floor).
+    const midAlpha = data[(y * info.width + Math.round(info.width / 2)) * info.channels + 3];
+    expect(midAlpha).toBeGreaterThanOrEqual(200);
+    expect(midAlpha).toBeLessThan(255);
+  });
+
   it("keeps the hero-led campaign composition for the real 19-role requirement", async () => {
     const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
     expect(r.themeSelection.theme).toBe("PREMIUM_CAMPAIGN");
