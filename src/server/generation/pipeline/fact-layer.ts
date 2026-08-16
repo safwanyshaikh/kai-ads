@@ -1128,7 +1128,15 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const need = dense
       ? Math.max(input.heightPx, dtpMastheadH + dtpChromeH + (plan.bodyH - plan.headingH) + pad + stripAt)
       : poster
-        ? posterPhotoBand + hero.contentH + highlights.height + plan.bodyH + pad + stripAt
+        ? // No flat `pad` here: stripAt already carries KDL's own 0.025H
+          // clearance gap above the trust strip (docs/012 §4.1). Adding a
+          // second, flat 0.06W pad on top of it double-reserved breathing
+          // room — measured at ~92px of genuinely empty navy panel between
+          // the last drawn role row and the trust strip on a real 19-role
+          // generation with no benefits/interview to fill it. Every other
+          // section here (hero, highlights, the list) already reserves
+          // exactly what it draws.
+          posterPhotoBand + hero.contentH + highlights.height + plan.bodyH + stripAt
         : heroAt + plan.bodyH + pad + stripAt;
     // Converge rather than only grow: shrink for a short requirement, grow
     // for a dense one, stop once the solve stabilises (stripAt/heroAt are
