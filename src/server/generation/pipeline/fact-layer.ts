@@ -291,10 +291,16 @@ export interface ThemeSelection {
 }
 
 /**
- * Recruiters never choose a theme. KAI reads the shape of the requirement
- * and picks — position count first, then how much information each role
- * actually carries, because twelve roles each with salary, qualification
- * and certifications is a denser page than twenty bare titles.
+ * Recruiters never choose a theme. KAI reads the DESTINATION of the
+ * advertisement — social/campaign, or an explicit print/newspaper slot —
+ * never the position count. A social recruitment advertisement keeps its
+ * Gemini visual hero regardless of how many roles it carries; role count
+ * affects density (tier, columns, canvas height — see planBody/planHero),
+ * never whether the hero exists at all. AAT_DTP (the photography-free
+ * classified composition) is reachable ONLY through an explicit
+ * printOrNewspaper destination or an explicit override — never inferred
+ * from role count, which previously stripped the hero off any campaign
+ * with more than 15 roles.
  */
 export function selectTheme(
   facts: AdvertisementFacts,
@@ -316,20 +322,12 @@ export function selectTheme(
   }
 
   const roles = facts.positions.length;
-  if (roles > 15) {
-    return {
-      theme: "AAT_DTP",
-      reason: `${roles} positions — a ruled table carries them legibly; a campaign layout could not.`,
-      fromOverride: false,
-    };
-  }
-
   return {
     theme: "PREMIUM_CAMPAIGN",
     reason:
       roles <= 3
         ? `${roles} position${roles === 1 ? "" : "s"} — a hero-led campaign gives each role full weight.`
-        : `${roles} positions — a campaign layout keeps attention while holding every role.`,
+        : `${roles} positions — a campaign layout keeps the Gemini visual hero while holding every role.`,
     fromOverride: false,
   };
 }
@@ -626,6 +624,34 @@ function planBody(
   };
 }
 
+/** Gulf destinations stripped generically, even when they don't match facts.country verbatim. */
+const GULF_COUNTRIES = ["Saudi Arabia", "UAE", "United Arab Emirates", "Qatar", "Kuwait", "Bahrain", "Oman"];
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * The destination appears once in the top hierarchy, not twice. A
+ * CRM-style header ("Construction Project — Saudi Arabia") restates the
+ * country the composition already states on its own line — this strips
+ * ONLY a trailing " <separator> <country>" suffix, never a country word
+ * appearing elsewhere in a legitimate project name, because the pattern
+ * is anchored to the end of the string. facts.country is always checked;
+ * the fixed Gulf list is checked too, so a header naming a different Gulf
+ * destination than facts.country (a stale/mismatched source header) still
+ * gets its own redundant suffix removed.
+ */
+function stripDestinationSuffix(header: string, country?: string | null): string {
+  const names = Array.from(
+    new Set([country, ...GULF_COUNTRIES].filter((c): c is string => Boolean(c?.trim())).map((c) => c.trim())),
+  );
+  if (names.length === 0) return header;
+  const alternation = names.map(escapeRegExp).join("|");
+  const pattern = new RegExp(`\\s*[—–-]\\s*(?:${alternation})\\s*$|\\s*·\\s*(?:${alternation})\\s*$`, "i");
+  return header.replace(pattern, "").trim();
+}
+
 /**
  * Measures the hero block so the hero box can be sized to hold it. Laying
  * the hero out by accumulating y without knowing the box height is what
@@ -642,7 +668,7 @@ function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: nu
   const MIN_PRINT_PT = 7;
   const floor = Math.max(px(LEGIBILITY_FLOOR), dpi ? Math.round((MIN_PRINT_PT / 72) * dpi) : 0);
 
-  const stated = facts.header || `Hiring — ${facts.country}`;
+  const stated = stripDestinationSuffix(facts.header, facts.country) || `Hiring — ${facts.country}`;
   const headline = dna.motifs.uppercaseHeadline ? stated.toUpperCase() : stated;
   const headlineSize = fit(headline, contentW, px(T.D1), px(T.H3), true);
   const headlineLines = wrapLines(headline, contentW, headlineSize);
@@ -948,7 +974,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const fillSlot = Boolean(input.printOrNewspaper);
   const pal: Palette = dna.palette;
   let H = input.heightPx;
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) {
     if (fillSlot) break;
     const heroAt = Math.max(
       Math.min(Math.round(heroFrac * H), heroCap),
@@ -961,12 +987,27 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // position list rather than occupying a separate photo-bound box that
     // ends where the list begins — so its reserve is ADDITIVE with the
     // panel's own content, not folded into heroAt the way DOCUMENT's is.
+    //
+    // Social/premium campaign output (poster and the plain hero regime) is
+    // sized to its OWN content, not floored at the requested input.heightPx
+    // — a short requirement must not carry hundreds of px of dead white
+    // canvas below it just because a taller platform format was asked for.
+    // AAT_DTP keeps its floor at the requested height: a bought print slot
+    // is filled exactly, never left short, per the DTP fillSlot convention
+    // below (this branch only runs for an explicit AAT_DTP override without
+    // printOrNewspaper — the ordinary print path skips this loop entirely).
     const need = dense
       ? Math.max(input.heightPx, dtpMastheadH + dtpChromeH + (plan.bodyH - plan.headingH) + pad + stripAt)
       : poster
-        ? Math.max(input.heightPx, posterPhotoBand + hero.contentH + plan.bodyH + pad + stripAt)
-        : Math.max(input.heightPx, heroAt + plan.bodyH + pad + stripAt);
-    if (need <= H) break;
+        ? posterPhotoBand + hero.contentH + plan.bodyH + pad + stripAt
+        : heroAt + plan.bodyH + pad + stripAt;
+    // Converge rather than only grow: shrink for a short requirement, grow
+    // for a dense one, stop once the solve stabilises (stripAt/heroAt are
+    // the only H-dependent terms, so this settles in a handful of steps).
+    if (Math.abs(need - H) <= 1) {
+      H = need;
+      break;
+    }
     H = need;
   }
 

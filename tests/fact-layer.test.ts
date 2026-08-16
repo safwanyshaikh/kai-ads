@@ -121,3 +121,73 @@ describe("Fact Layer — headline count", () => {
     expect(one.png.length).toBeGreaterThan(0);
   });
 });
+
+describe("Fact Layer — commercial readiness fixes (Step 4)", () => {
+  it("FIX 1: keeps the Gemini visual hero for 18+ roles instead of switching to AAT_DTP", async () => {
+    const r = await renderFactLayer({ facts: facts(18), widthPx: 1080, heightPx: 1350 });
+    expect(r.themeSelection.theme).toBe("PREMIUM_CAMPAIGN");
+    // A meaningful hero reservation, not just a thin masthead bar — the DTP
+    // masthead this used to fall back to reserved ~15% of width at most.
+    expect(r.artworkHeightPx).toBeGreaterThan(Math.round(1080 * 0.25));
+  });
+
+  it("FIX 1: an explicit printOrNewspaper request can still reach AAT_DTP", async () => {
+    const r = await renderFactLayer({
+      facts: facts(18),
+      widthPx: 1080,
+      heightPx: 1350,
+      printOrNewspaper: true,
+    });
+    expect(r.themeSelection.theme).toBe("AAT_DTP");
+  });
+
+  it("FIX 2: a short requirement does not carry the full requested canvas as dead white space", async () => {
+    // One role on a canvas requested for a much longer story format (9:16) —
+    // the campaign composition must not preserve ~900px of unused height.
+    const r = await renderFactLayer({ facts: facts(1), widthPx: 1080, heightPx: 1920 });
+    expect(r.heightPx).toBeLessThan(1920);
+  });
+
+  it("FIX 2: a dense requirement still grows the canvas rather than shrinking type", async () => {
+    const r = await renderFactLayer({ facts: facts(30), widthPx: 1080, heightPx: 1080 });
+    expect(r.heightPx).toBeGreaterThan(1080);
+  });
+
+  it("FIX 3: the destination is not duplicated when the header carries a country suffix", async () => {
+    const withSuffix = facts(5, {
+      header: "Construction Project — Saudi Arabia",
+      country: "Saudi Arabia",
+      industry: "Construction",
+    });
+    // The AAT_DTP masthead is where the duplication was found (a standalone
+    // destination bar plus the raw, unstripped header) — exercised directly
+    // via printOrNewspaper so the fix is verified in the composition that
+    // actually had the defect.
+    const r = await renderFactLayer({
+      facts: withSuffix,
+      widthPx: 1080,
+      heightPx: 1350,
+      printOrNewspaper: true,
+    });
+    const occurrences = (r.svgMarkup.match(/SAUDI ARABIA/g) ?? []).length;
+    expect(occurrences).toBe(1);
+  });
+
+  it("FIX 3: a legitimate project name is not destroyed just because it contains a country word elsewhere", async () => {
+    const r = await renderFactLayer({
+      facts: facts(5, { header: "Qatar Gas Expansion Project", country: "Qatar" }),
+      widthPx: 1080,
+      heightPx: 1350,
+      printOrNewspaper: true,
+    });
+    expect(r.svgMarkup).toMatch(/QATAR GAS EXPANSION PROJECT/);
+  });
+
+  it("confirms every source position still renders after all three fixes, at 18 roles", async () => {
+    const many = facts(18);
+    const r = await renderFactLayer({ facts: many, widthPx: 1080, heightPx: 1350 });
+    for (const p of many.positions) {
+      expect(r.svgMarkup).toContain(p.title.toUpperCase());
+    }
+  });
+});
