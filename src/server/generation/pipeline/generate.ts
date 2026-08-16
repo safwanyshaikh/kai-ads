@@ -2,6 +2,7 @@ import { buildCreativeBrief } from "./creative-brief";
 import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
+import { renderFactLayer } from "./fact-layer";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import sharp from "sharp";
 import { getEnv } from "@/lib/env";
@@ -120,9 +121,9 @@ export interface GeneratePipelineResult {
  *        ↓
  * CAMPAIGN CREATIVE BRIEF
  *        ↓
- * GEMINI COMPLETE ADVERTISEMENT
+ * GEMINI BACKGROUND ARTWORK
  *        ↓
- * PRESERVE GEMINI COMPOSITION
+ * KAI DETERMINISTIC FACT LAYER
  *        ↓
  * KAI VERIFIED TRUST LAYER
  *        ↓
@@ -132,33 +133,37 @@ export interface GeneratePipelineResult {
  *
  * ----------------------------------------------------------------------------
  *
+ * RESTORED (commercial readiness audit, Step 1 — fact-layer.ts):
+ *
+ * Gemini is background/visual artwork ONLY. It is never the source of
+ * truth for recruitment text. Every verified fact — campaign headline,
+ * country, industry, project/employer, exact position names, exact
+ * vacancy counts, salary, benefits, interview, campaign contact, and any
+ * source-supplied footer note — is typeset deterministically by
+ * `fact-layer.ts`, over the Gemini artwork, beneath the KAI trust layer.
+ *
  * GEMINI OWNS:
  *
- *   - campaign headline presentation
- *   - country / industry presentation
- *   - project story
- *   - hero visual
- *   - recruitment presentation
- *   - role grouping
- *   - benefits presentation
- *   - interview presentation
- *   - campaign CTA presentation
- *   - typography
- *   - colour
- *   - spacing
- *   - composition
- *   - footer composition
+ *   - hero photography / environment / workers / machinery
+ *   - lighting, atmosphere, visual composition
+ *   - decorative visual elements only
  *
  * KAI OWNS:
  *
- *   - exact source facts
+ *   - campaign headline, country, industry, project/employer
+ *   - exact positions and exact vacancy counts
+ *   - salary, benefits, interview, campaign contact (when present)
  *   - verified agency identity
  *   - exact approved agency logo
  *   - exact RC / registration
  *   - exact approved agency information
  *   - exact verification QR
  *
- * KAI DOES NOT REBUILD THE RECRUITMENT BODY AFTER GEMINI.
+ * Gemini's own output must contain NO readable recruitment text — see
+ * creative-brief.ts (not changed in this step; still asks Gemini to
+ * compose full advertisement text, so its output currently still
+ * duplicates what the fact layer now draws — tracked as a follow-up,
+ * not part of this port).
  * ============================================================================
  */
 export async function generateAdvertisement(
@@ -264,16 +269,50 @@ export async function generateAdvertisement(
 
   /**
    * ------------------------------------------------------------------------
+   * STEP 5.5 — KAI DETERMINISTIC FACT LAYER
+   * ------------------------------------------------------------------------
+   *
+   * Typesets every verified recruitment fact over the Gemini artwork.
+   * Text never shrinks below the legibility floor — when a requirement is
+   * large the CANVAS GROWS (factLayer.heightPx) rather than the type
+   * shrinking, so the artwork is re-covered to the grown canvas when that
+   * happens (the fact layer, not Gemini, decides final canvas height).
+   */
+  const factLayer =
+    await renderFactLayer({
+      facts: input.facts,
+      widthPx: input.widthPx,
+      heightPx: input.heightPx,
+    });
+
+  const canvasHeightPx =
+    factLayer.heightPx;
+
+  const artworkForCanvas =
+    canvasHeightPx > input.heightPx
+      ? await sharp(normalizedArtwork)
+          .resize(input.widthPx, canvasHeightPx, { fit: "cover" })
+          .png()
+          .toBuffer()
+      : normalizedArtwork;
+
+  const imageWithFacts =
+    await sharp(artworkForCanvas)
+      .composite([{ input: factLayer.png, left: 0, top: 0 }])
+      .png()
+      .toBuffer();
+
+  /**
+   * ------------------------------------------------------------------------
    * STEP 6 — SELECT TRUST FOOTER TREATMENT
    * ------------------------------------------------------------------------
    *
-   * This is only the visual treatment.
-   *
-   * Gemini still owns the overall advertisement composition.
+   * Reads the composited artwork (background + facts) to choose a footer
+   * treatment; never modifies it.
    */
   const footerSelection =
     await selectFooterStyle(
-      normalizedArtwork,
+      imageWithFacts,
       input.footerStyle,
     );
 
@@ -304,13 +343,13 @@ export async function generateAdvertisement(
   const finalPng =
     await applyBrandingOverlay({
       imagePng:
-        normalizedArtwork,
+        imageWithFacts,
 
       widthPx:
         input.widthPx,
 
       heightPx:
-        input.heightPx,
+        canvasHeightPx,
 
       /**
        * Facts remain available for compatibility and
