@@ -44,12 +44,17 @@ describe("buildMergedExtractionText", () => {
     expect(buildMergedExtractionText({ instructions: "  ", rawText: "", attachmentTexts: [] })).toBe("");
   });
 
-  it("caps the merged text at 20000 characters", () => {
+  it("Step 6: does not truncate merged text beyond 20000 characters — chunking, not truncation, handles capacity", () => {
+    const rawText = "a".repeat(15000);
+    const attachmentText = "b".repeat(15000);
     const merged = buildMergedExtractionText({
-      rawText: "a".repeat(15000),
-      attachmentTexts: [{ fileName: "big.pdf", text: "b".repeat(15000) }],
+      rawText,
+      attachmentTexts: [{ fileName: "big.pdf", text: attachmentText }],
     });
-    expect(merged.length).toBe(20000);
+    const expected = [rawText, `--- ATTACHMENT: big.pdf ---\n${attachmentText}`].join("\n\n");
+    expect(merged).toBe(expected);
+    expect(merged.length).toBeGreaterThan(20000);
+    expect(merged).toContain(attachmentText);
   });
 
   // Sprint 006 Bug 006: merged text ends up echoed back inside

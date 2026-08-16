@@ -9,12 +9,11 @@ import {
 } from "../extraction-result.schema";
 import { enforceSourceGrounding } from "../openai/kai-extraction-engine";
 import { AiInvalidResponseError, AiRateLimitError, AiTimeoutError, AiNotConfiguredError } from "../openai/errors";
+import { chunkText, EXTRACTION_CHUNK_CHARS } from "../text-chunking";
+import { mergeExtractionResults, type ChunkExtractionOutcome } from "../extraction-merge";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("kai-gemini-extraction-engine");
-
-/** "Do not send unnecessary content to the AI provider" — same hard cap as the OpenAI engine. */
-const MAX_INPUT_CHARS = 20000;
 
 interface KaiExtractionInput {
   text?: string;
@@ -70,27 +69,82 @@ export async function runKaiGeminiExtraction(input: KaiExtractionInput): Promise
 
 const responseJsonSchema = z.toJSONSchema(extractionResultSchema);
 
+/**
+ * Step 6: no source text is silently discarded — same chunk-and-merge
+ * behaviour as the OpenAI engine's runTextExtraction (see the doc comment
+ * there), sharing the same chunking/merge utilities so both providers stay
+ * identical here.
+ */
 async function runTextExtraction(
   client: ReturnType<typeof getGeminiTextClient>,
   text: string,
   startedAt: number,
 ): Promise<KaiExtractionOutcome> {
-  const truncated = text.slice(0, MAX_INPUT_CHARS);
   const model = getKaiTextModel();
+  const chunks = chunkText(text, EXTRACTION_CHUNK_CHARS);
 
-  const response = await client.models.generateContent({
-    model,
-    contents: truncated,
-    config: {
-      systemInstruction: buildKaiSystemPrompt(),
-      responseMimeType: "application/json",
-      responseJsonSchema,
+  log.info(
+    {
+      sourceChars: text.length,
+      chunkCount: chunks.length,
+      chunkBoundaries: chunks.map((c) => ({ startChar: c.startChar, endChar: c.endChar })),
     },
-  });
+    "Gemini KAI extraction: source text chunked",
+  );
 
-  const outcome = toOutcome(response, startedAt, truncated, model);
-  outcome.result = enforceSourceGrounding(outcome.result, truncated);
-  return outcome;
+  const outcomes: ChunkExtractionOutcome[] = [];
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let hasTokenUsage = false;
+
+  for (const chunk of chunks) {
+    const response = await client.models.generateContent({
+      model,
+      contents: chunk.text,
+      config: {
+        systemInstruction: buildKaiSystemPrompt(),
+        responseMimeType: "application/json",
+        responseJsonSchema,
+      },
+    });
+
+    const chunkOutcome = toOutcome(response, startedAt, chunk.text, model);
+    const grounded = enforceSourceGrounding(chunkOutcome.result, chunk.text);
+    outcomes.push({ chunk, result: grounded });
+
+    log.info(
+      { chunkIndex: chunk.index, chunkChars: chunk.text.length, positionsFound: grounded.positions.length },
+      "Gemini KAI extraction: chunk extracted",
+    );
+
+    if (chunkOutcome.usage.inputTokens != null) {
+      inputTokens += chunkOutcome.usage.inputTokens;
+      hasTokenUsage = true;
+    }
+    if (chunkOutcome.usage.outputTokens != null) {
+      outputTokens += chunkOutcome.usage.outputTokens;
+      hasTokenUsage = true;
+    }
+  }
+
+  const merged = mergeExtractionResults(outcomes);
+  merged.originalSourceText = text;
+
+  const mergedVacancies = merged.positions.reduce((sum, p) => sum + (p.quantity.value ?? 1), 0);
+  log.info(
+    { chunkCount: chunks.length, mergedPositions: merged.positions.length, mergedVacancies },
+    "Gemini KAI extraction: chunk merge complete",
+  );
+
+  return {
+    result: merged,
+    model,
+    usage: {
+      inputTokens: hasTokenUsage ? inputTokens : null,
+      outputTokens: hasTokenUsage ? outputTokens : null,
+      latencyMs: Date.now() - startedAt,
+    },
+  };
 }
 
 /**

@@ -12,12 +12,11 @@ import {
   type ExtractionResult,
 } from "../extraction-result.schema";
 import { AiInvalidResponseError, AiRateLimitError, AiTimeoutError, AiNotConfiguredError } from "./errors";
+import { chunkText, EXTRACTION_CHUNK_CHARS } from "../text-chunking";
+import { mergeExtractionResults, type ChunkExtractionOutcome } from "../extraction-merge";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("kai-extraction-engine");
-
-/** "Do not send unnecessary content to the AI provider" — a hard cap regardless of caller-side limits. */
-const MAX_INPUT_CHARS = 20000;
 
 interface KaiExtractionInput {
   text?: string;
@@ -74,23 +73,81 @@ export async function runKaiExtraction(input: KaiExtractionInput): Promise<KaiEx
   }
 }
 
+/**
+ * Step 6: no source text is silently discarded. Text within
+ * EXTRACTION_CHUNK_CHARS of a single call behaves exactly as before (one
+ * call, one result). Longer text is split into ordered chunks, every
+ * chunk is sent to the model and grounded against its own text, and the
+ * structured results are merged (see extraction-merge.ts) so a position
+ * appearing after character 20,000 is never lost.
+ */
 async function runTextExtraction(
   client: ReturnType<typeof getOpenAiClient>,
   text: string,
   startedAt: number,
 ): Promise<KaiExtractionOutcome> {
-  const truncated = text.slice(0, MAX_INPUT_CHARS);
+  const model = getKaiTextModel();
+  const chunks = chunkText(text, EXTRACTION_CHUNK_CHARS);
 
-  const response = await client.responses.parse({
-    model: getKaiTextModel(),
-    instructions: buildKaiSystemPrompt(),
-    input: truncated,
-    text: { format: zodTextFormat(extractionResultSchema, "kai_extraction_result") },
-  });
+  log.info(
+    {
+      sourceChars: text.length,
+      chunkCount: chunks.length,
+      chunkBoundaries: chunks.map((c) => ({ startChar: c.startChar, endChar: c.endChar })),
+    },
+    "KAI extraction: source text chunked",
+  );
 
-  const outcome = toOutcome(response, startedAt, truncated, getKaiTextModel());
-  outcome.result = enforceSourceGrounding(outcome.result, truncated);
-  return outcome;
+  const outcomes: ChunkExtractionOutcome[] = [];
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let hasTokenUsage = false;
+
+  for (const chunk of chunks) {
+    const response = await client.responses.parse({
+      model,
+      instructions: buildKaiSystemPrompt(),
+      input: chunk.text,
+      text: { format: zodTextFormat(extractionResultSchema, "kai_extraction_result") },
+    });
+
+    const chunkOutcome = toOutcome(response, startedAt, chunk.text, model);
+    const grounded = enforceSourceGrounding(chunkOutcome.result, chunk.text);
+    outcomes.push({ chunk, result: grounded });
+
+    log.info(
+      { chunkIndex: chunk.index, chunkChars: chunk.text.length, positionsFound: grounded.positions.length },
+      "KAI extraction: chunk extracted",
+    );
+
+    if (chunkOutcome.usage.inputTokens != null) {
+      inputTokens += chunkOutcome.usage.inputTokens;
+      hasTokenUsage = true;
+    }
+    if (chunkOutcome.usage.outputTokens != null) {
+      outputTokens += chunkOutcome.usage.outputTokens;
+      hasTokenUsage = true;
+    }
+  }
+
+  const merged = mergeExtractionResults(outcomes);
+  merged.originalSourceText = text;
+
+  const mergedVacancies = merged.positions.reduce((sum, p) => sum + (p.quantity.value ?? 1), 0);
+  log.info(
+    { chunkCount: chunks.length, mergedPositions: merged.positions.length, mergedVacancies },
+    "KAI extraction: chunk merge complete",
+  );
+
+  return {
+    result: merged,
+    model,
+    usage: {
+      inputTokens: hasTokenUsage ? inputTokens : null,
+      outputTokens: hasTokenUsage ? outputTokens : null,
+      latencyMs: Date.now() - startedAt,
+    },
+  };
 }
 
 /**

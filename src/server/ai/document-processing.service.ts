@@ -7,7 +7,6 @@ import { stripInvalidPostgresChars } from "@/lib/sanitize-text";
 const log = createLogger("document-processing");
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024; // matches storageService's advertisement-source limit
-const MAX_EXTRACTED_CHARS = 20000; // mirrors kai-extraction-engine's MAX_INPUT_CHARS
 
 type DocumentProcessingResult =
   | { kind: "text"; text: string }
@@ -232,7 +231,7 @@ async function extractPdfText(
       // not a failure. The caller routes this to vision/OCR instead.
       return { kind: "no-text" };
     }
-    return { kind: "text", text: text.slice(0, MAX_EXTRACTED_CHARS) };
+    return { kind: "text", text };
   } catch (error) {
     if (error instanceof UnsupportedDocumentError) throw error;
     if (pdfParseModule && error instanceof pdfParseModule.PasswordException) {
@@ -265,7 +264,7 @@ async function extractDocxText(data: Buffer): Promise<string> {
     if (!text) {
       throw new UnsupportedDocumentError("No readable text was found in this DOCX file.");
     }
-    return text.slice(0, MAX_EXTRACTED_CHARS);
+    return text;
   } catch (error) {
     if (error instanceof UnsupportedDocumentError) throw error;
     log.warn({ err: error }, "DOCX appears corrupt or unparseable");

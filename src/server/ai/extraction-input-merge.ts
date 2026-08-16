@@ -1,13 +1,5 @@
 import { stripInvalidPostgresChars } from "@/lib/sanitize-text";
 
-/**
- * Mirrors document-processing.service's MAX_EXTRACTED_CHARS and the
- * kai-extraction-engine's MAX_INPUT_CHARS: the merged multi-source text
- * is capped to the same budget a single source already gets, so the
- * composer never sends the provider more than any existing path does.
- */
-const MAX_MERGED_CHARS = 20000;
-
 export interface AttachmentText {
   fileName: string;
   text: string;
@@ -25,8 +17,11 @@ export interface AttachmentText {
  * guidance should frame everything after it), then the pasted
  * requirement, then each attachment's extracted text under a labeled
  * separator. The labels only say where text came from — they never add
- * content, so Truth Brain grounding is unaffected. Everything is
- * sanitized and capped exactly like the single-source paths.
+ * content, so Truth Brain grounding is unaffected. Sanitized, but never
+ * truncated here (Step 6): capacity-driven chunking happens once, at the
+ * single choke point closest to the model call
+ * (kai-extraction-engine.ts), not at every text-assembly stage upstream
+ * of it.
  */
 export function buildMergedExtractionText(parts: {
   instructions?: string | null;
@@ -51,5 +46,5 @@ export function buildMergedExtractionText(parts: {
     sections.push(`--- ATTACHMENT: ${attachment.fileName} ---\n${text}`);
   }
 
-  return stripInvalidPostgresChars(sections.join("\n\n")).slice(0, MAX_MERGED_CHARS);
+  return stripInvalidPostgresChars(sections.join("\n\n"));
 }
