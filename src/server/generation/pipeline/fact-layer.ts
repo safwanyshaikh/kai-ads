@@ -453,6 +453,51 @@ function roleDetail(p: AdvertisementFacts["positions"][number]): string {
   return bits.join(" · ");
 }
 
+/**
+ * The N highest-volume roles, purely for FEATURED EMPHASIS — this never
+ * replaces the full position list (every role still prints below it with
+ * its own exact count; see renderPosterBody). Only roles with a verified
+ * count can be ranked at all; ties keep source order. Capped at 4 so the
+ * strip stays a hook, not a second list.
+ */
+function topDemandRoles(
+  facts: AdvertisementFacts,
+  max = 4,
+): AdvertisementFacts["positions"] {
+  return facts.positions
+    .map((p, index) => ({ p, index }))
+    .filter(({ p }) => typeof p.count === "number" && p.count > 0)
+    .sort((a, b) => (b.p.count as number) - (a.p.count as number) || a.index - b.index)
+    .slice(0, max)
+    .map(({ p }) => p);
+}
+
+/**
+ * Qualification/certification keywords a candidate would actually search
+ * for (e.g. "PMP", "NEBOSH", "Primavera P6") — collected ONLY from
+ * facts.positions[].qualification/certifications, which are themselves
+ * source-grounded fields (Truth Brain rule). Nothing here is invented:
+ * when no position carries a qualification or certification, this
+ * returns an empty array and the caller omits the section entirely,
+ * exactly as every other optional fact in this file already behaves.
+ */
+function candidateHookKeywords(facts: AdvertisementFacts): string[] {
+  const seen = new Set<string>();
+  const keywords: string[] = [];
+  for (const p of facts.positions) {
+    const values = [p.qualification, ...(p.certifications ?? [])];
+    for (const raw of values) {
+      const value = raw?.trim();
+      if (!value) continue;
+      const key = value.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      keywords.push(value);
+    }
+  }
+  return keywords.slice(0, 8);
+}
+
 export interface FactLayerInput {
   facts: AdvertisementFacts;
   widthPx: number;
@@ -656,6 +701,52 @@ function planBody(
     bodyH: headingH + listH + extraH,
   };
 }
+
+/**
+ * Featured-demand strip, drawn above the full position list on POSTER
+ * (commercial content strategy, not a data change): a label, the top
+ * roles by verified count, and any real qualification/certification
+ * keywords — a candidate hook. Purely additive: this reserves its own
+ * height so the canvas-height solve can never mistake it for space the
+ * full list already owns, and the full list below it is untouched.
+ * Skipped entirely (zero height) when there is nothing to feature —
+ * fewer than 2 counted roles, or a single-role requirement where a
+ * "featured" strip above a one-line list would just repeat it.
+ */
+function planHighlights(dna: DesignDNA, facts: AdvertisementFacts, W: number, tier: Tier) {
+  const T = dna.type;
+  const px = (f: number) => Math.round(f * W);
+  const contentW = W - px(dna.layout.margin) * 2;
+  const floor = Math.max(px(LEGIBILITY_FLOOR), 0);
+
+  const featured = facts.positions.length > 2 ? topDemandRoles(facts) : [];
+  const hookKeywords = candidateHookKeywords(facts);
+
+  if (featured.length === 0 && hookKeywords.length === 0) {
+    return { featured, hookKeywords, labelSize: 0, roleSize: 0, hookSize: 0, height: 0 };
+  }
+
+  const labelSize = Math.max(floor, Math.round(px(T.Caption) * 0.92));
+  const roleSize = Math.max(floor, tier === "T1" || tier === "T2" ? px(T.BodyL) : px(T.Body));
+  const hookSize = Math.max(floor, Math.round(px(T.Caption) * 0.9));
+
+  let height = 0;
+  if (featured.length > 0) {
+    height += Math.round(labelSize * 1.6) + px(0.014);
+    height += featured.length * Math.round(roleSize * 1.35);
+    height += px(0.018);
+  }
+  if (hookKeywords.length > 0) {
+    const hookLine = hookKeywords.join("   ·   ");
+    const hookLines = wrapLines(hookLine, contentW, hookSize).length;
+    height += hookLines * Math.round(hookSize * 1.5) + px(0.014);
+  }
+  height += px(0.02);
+
+  return { featured, hookKeywords, labelSize, roleSize, hookSize, height };
+}
+
+type Highlights = ReturnType<typeof planHighlights>;
 
 /** Gulf destinations stripped generically, even when they don't match facts.country verbatim. */
 const GULF_COUNTRIES = ["Saudi Arabia", "UAE", "United Arab Emirates", "Qatar", "Kuwait", "Bahrain", "Oman"];
@@ -968,6 +1059,11 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // it are untouched, they just measure and draw a different string.
   const heroFacts = poster && facts.country ? { ...facts, header: facts.country } : facts;
   const hero = planHero(dna, heroFacts, W, input.dpi);
+  // Featured-demand strip — POSTER only (see planHighlights); zero height
+  // everywhere else, so this never affects AAT_DTP's fixed-slot maths.
+  const highlights: Highlights = poster
+    ? planHighlights(dna, facts, W, tier)
+    : { featured: [], hookKeywords: [], labelSize: 0, roleSize: 0, hookSize: 0, height: 0 };
   const pad = px(0.06);
 
   // Solve for the canvas height that holds every fact at the floor. The
@@ -1032,7 +1128,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const need = dense
       ? Math.max(input.heightPx, dtpMastheadH + dtpChromeH + (plan.bodyH - plan.headingH) + pad + stripAt)
       : poster
-        ? posterPhotoBand + hero.contentH + plan.bodyH + pad + stripAt
+        ? posterPhotoBand + hero.contentH + highlights.height + plan.bodyH + pad + stripAt
         : heroAt + plan.bodyH + pad + stripAt;
     // Converge rather than only grow: shrink for a short requirement, grow
     // for a dense one, stop once the solve stabilises (stripAt/heroAt are
@@ -1490,6 +1586,46 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     y += px(0.024);
     parts.push(`<rect x="${panelX}" y="${y}" width="${px(0.1)}" height="3" fill="${pal.accent}"/>`);
     y += px(0.03);
+
+    // Featured-demand strip: emphasis only. Every role it names also
+    // appears, with its own exact count, in the full list drawn right
+    // below — this never substitutes for that list (Factual Integrity
+    // Law, docs/010 Amendment 1: no verified role may be omitted).
+    if (highlights.height > 0) {
+      if (highlights.featured.length > 0) {
+        parts.push(
+          `<text x="${panelX}" y="${y + highlights.labelSize}" font-family="KaiSans, sans-serif" ` +
+            `font-size="${highlights.labelSize}" font-weight="700" fill="${pal.accent}" ` +
+            `letter-spacing="2.5">HIGH-DEMAND OPPORTUNITIES</text>`,
+        );
+        y += Math.round(highlights.labelSize * 1.6) + px(0.014);
+        const roleLineH = Math.round(highlights.roleSize * 1.35);
+        for (const p of highlights.featured) {
+          const line = posterRoleLine(p);
+          const ls = fit(line, panelW, highlights.roleSize, plan.floor, true);
+          parts.push(
+            `<text x="${panelX}" y="${y + Math.round(highlights.roleSize * 0.85)}" font-family="KaiSans, sans-serif" ` +
+              `font-size="${ls}" font-weight="800" fill="${pal.reversed}" letter-spacing="0.3">${esc(line)}</text>`,
+          );
+          y += roleLineH;
+        }
+        y += px(0.018);
+      }
+      if (highlights.hookKeywords.length > 0) {
+        const hookLine = highlights.hookKeywords.join("   ·   ");
+        const hookLines = wrapLines(hookLine, panelW, highlights.hookSize);
+        for (const line of hookLines) {
+          y += Math.round(highlights.hookSize * 1.1);
+          parts.push(
+            `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${highlights.hookSize}" ` +
+              `font-weight="700" fill="${pal.accent}" opacity="0.9">${esc(line.toUpperCase())}</text>`,
+          );
+          y += Math.round(highlights.hookSize * 0.4);
+        }
+        y += px(0.014);
+      }
+      y += px(0.02);
+    }
 
     const posterBody = renderPosterBody(facts, W, y - px(0.014) - Math.round(plan.headingH), plan, pal);
     parts.push(posterBody.svg);

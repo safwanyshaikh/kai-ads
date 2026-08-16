@@ -339,6 +339,65 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     expect(midAlpha).toBeLessThan(255);
   });
 
+  it("features the top roles by verified count without ever omitting any role from the full list", async () => {
+    const f = saudiFacts();
+    const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
+    const svg = r.svgMarkup;
+
+    expect(svg).toContain("HIGH-DEMAND OPPORTUNITIES");
+    // The four highest-count roles in the dataset.
+    expect(svg).toContain("HVAC TECHNICIAN (45 NOS)");
+    expect(svg).toContain("WPR (25 NOS)");
+
+    // Factual Integrity Law (docs/010 Amendment 1): the featured strip is
+    // purely additive — every one of the 19 roles still appears, each
+    // with its own exact count, so total "(N NOS)" occurrences must be at
+    // least 19 (the full list) even though up to 4 repeat in the strip.
+    const nosCount = (svg.match(/NOS\)/g) ?? []).length;
+    expect(nosCount).toBeGreaterThanOrEqual(19);
+    for (const [, count] of SAUDI_19) {
+      expect(svg).toContain(`(${count} NOS)`);
+    }
+  });
+
+  it("surfaces real qualification/certification keywords as a candidate hook, never invented ones", async () => {
+    const f = saudiFacts();
+    f.positions = f.positions.map((p) =>
+      p.title === "Project Manager" ? { ...p, qualification: "PMP" } : p,
+    );
+    f.positions = f.positions.map((p) =>
+      p.title === "HSE Manager" ? { ...p, certifications: ["NEBOSH"] } : p,
+    );
+    const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
+    expect(r.svgMarkup.toUpperCase()).toContain("PMP");
+    expect(r.svgMarkup.toUpperCase()).toContain("NEBOSH");
+  });
+
+  it("omits the featured strip entirely when there is nothing to feature", async () => {
+    // No verified counts, no qualifications, no certifications anywhere.
+    const bare = facts(3).positions.map((p) => ({ title: p.title }));
+    const r = await renderFactLayer({
+      facts: facts(3, { positions: bare }),
+      widthPx: 1080,
+      heightPx: 1350,
+    });
+    expect(r.svgMarkup).not.toContain("HIGH-DEMAND OPPORTUNITIES");
+  });
+
+  it("does not feature roles on a very short requirement where it would just repeat the list", async () => {
+    const r = await renderFactLayer({
+      facts: facts(2, {
+        positions: [
+          { title: "Welder", count: 5 },
+          { title: "Fitter", count: 3 },
+        ],
+      }),
+      widthPx: 1080,
+      heightPx: 1350,
+    });
+    expect(r.svgMarkup).not.toContain("HIGH-DEMAND OPPORTUNITIES");
+  });
+
   it("keeps the hero-led campaign composition for the real 19-role requirement", async () => {
     const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
     expect(r.themeSelection.theme).toBe("PREMIUM_CAMPAIGN");
