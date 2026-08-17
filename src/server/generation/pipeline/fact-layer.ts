@@ -1554,28 +1554,49 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     parts.push(
       `<line x1="0" y1="${edgeLeft}" x2="${W}" y2="${edgeRight}" stroke="${pal.accent}" stroke-width="${Math.max(2, Math.round(W * 0.0028))}"/>`,
     );
-    // The identity panel: brand ink as a SCRIM, not as a lid.
+    // The identity panel: brand ink as a GRADIENT scrim, not a lid.
     //
-    // Painted fully opaque, this polygon covered every pixel of Gemini's
-    // artwork below the seam — on a dense requirement that is ~80% of the
-    // canvas, so the "visual hero campaign" archetype rendered as a
-    // text-heavy structural list and Visual QA rejected it for exactly
-    // that ("VISUAL_HERO requires a strong visual/photographic campaign
-    // element"). The photograph now reads through the whole composition
-    // while the facts keep a known, high-contrast surface.
+    // Painted fully opaque, this polygon used to cover every pixel of
+    // Gemini's artwork below the seam — on a dense requirement that is
+    // ~80% of the canvas, so the "visual hero campaign" archetype
+    // rendered as a text-heavy structural list and Visual QA rejected it
+    // for exactly that. A flat 0.88 fixed that but still darkened the
+    // headline/employer/badge area needlessly — that block is large,
+    // bold text that tolerates far less scrim than the dense small-
+    // caption role list below it actually needs, and product direction
+    // (LOCK 2) is explicit that the photograph must stay "clearly
+    // recognisable", not just technically present behind a heavy wash.
     //
-    // PANEL_SCRIM is not a tuned/arbitrary value — it is KDL §4.3's own
-    // hero-scrim number: "navy scrim ... at 88% opacity", specified so
-    // reversed text clears the KDL §9 4.5:1 minimum-contrast floor
-    // regardless of what the image model produced. Reusing it here rather
-    // than picking a new constant means the identity panel is held to the
-    // exact same contrast law as every other scrim in this file. A
-    // lighter scrim would trade a verified fact's legibility against a
-    // nicer picture, and facts outrank decoration.
-    const PANEL_SCRIM = 0.88;
+    // So the scrim now grades: lighter right at the seam, reaching KDL
+    // §4.3's own hero-scrim opacity (0.88 — the still-unchanged, still
+    // KDL-§9-4.5:1-contrast-floor-compliant value) by the point the
+    // dense list actually starts, and holding there through the rest of
+    // the panel — so the one region genuinely at legibility risk keeps
+    // exactly the protection it already had; only the region with
+    // nothing but large bold headline text gets to show more photograph.
+    const PANEL_SCRIM_LIGHT = 0.55;
+    const PANEL_SCRIM_FULL = 0.88;
+    const panelBottom = H - stripH;
+    // Where the dense list begins, estimated the same way the
+    // canvas-height solve above already does (panelTop + hero.contentH +
+    // highlights.height) — this scrim is drawn before that point is
+    // reached in the actual draw sequence, so it can only be estimated,
+    // not read back; clamped so a degenerate panel (near-zero height)
+    // never produces an invalid or inverted gradient.
+    const listStartEstimate = panelTop + hero.contentH + highlights.height;
+    const scrimTransition = Math.min(
+      0.92,
+      Math.max(0.08, (listStartEstimate - panelTop) / Math.max(1, panelBottom - panelTop)),
+    );
     parts.push(
-      `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" ` +
-        `fill="${pal.ink}" fill-opacity="${PANEL_SCRIM}"/>`,
+      `<defs><linearGradient id="panelScrim" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="${PANEL_SCRIM_LIGHT}"/>` +
+        `<stop offset="${scrimTransition}" stop-color="${pal.ink}" stop-opacity="${PANEL_SCRIM_FULL}"/>` +
+        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="${PANEL_SCRIM_FULL}"/>` +
+        `</linearGradient></defs>`,
+    );
+    parts.push(
+      `<polygon points="0,${edgeLeft} ${W},${edgeRight} ${W},${H - stripH} 0,${H - stripH}" fill="url(#panelScrim)"/>`,
     );
     // The faintest lift toward the top of the panel gives it depth
     // without ever being visible as a "gradient" — a matte surface, not
@@ -1643,9 +1664,18 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     for (const l of hero.headlineLines) {
       const ls = Math.min(hero.headlineSize, fit(l, panelW, hero.headlineSize, plan.floor, true));
       y += Math.round(ls * 0.86);
+      // A thin ink stroke behind the fill — the KDL §4.3 scrim guarantees
+      // legibility through darkening the WHOLE panel; the headline is
+      // rank 1 ("always the largest element", KDL §4.4) and the one line
+      // most exposed by lightening that scrim near the seam (LOCK 2), so
+      // it also gets its own, scrim-independent contrast guarantee: dark
+      // ink immediately at the glyph edge reads clearly against literally
+      // any background, at any scrim opacity. Never a "typography system"
+      // change — same font, weight, size and tracking as before.
       parts.push(
         `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" ` +
-          `fill="${pal.reversed}" letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
+          `fill="${pal.reversed}" stroke="${pal.ink}" stroke-width="${Math.max(1, Math.round(ls * 0.045))}" ` +
+          `stroke-linejoin="round" paint-order="stroke fill" letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
       );
       y += Math.round(ls * 0.28);
     }

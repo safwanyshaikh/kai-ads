@@ -297,6 +297,22 @@ export const advertisementGenerationService = {
                 agency,
               ),
 
+            // LOCK 1 — verified Agency Profile only, never the
+            // recruitment requirement. Independent of contactLine above
+            // (which blends campaign/agency contact and is no longer
+            // used by the trust footer at all).
+            agencyOfficialPhone:
+              agency.phone ??
+              null,
+
+            agencyOfficialEmail:
+              agency.officialEmail ??
+              null,
+
+            agencyWebsite:
+              agency.website ??
+              null,
+
             footerStyle:
               agency.footerStyle,
 

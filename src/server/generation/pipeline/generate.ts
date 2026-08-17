@@ -69,6 +69,23 @@ export interface GeneratePipelineInput {
 
   /**
    * ------------------------------------------------------------------------
+   * VERIFIED AGENCY OFFICIAL CONTACT (LOCK 1)
+   * ------------------------------------------------------------------------
+   *
+   * Source of truth for the trust footer's phone/email/website — the
+   * verified Agency Profile ONLY, never the recruitment requirement.
+   * Independent of campaignContact/contactLine above: a source PDF with
+   * no email or phone must not leave the footer blank when the agency's
+   * own profile has one. Falls back to agencyProfile's own fields when
+   * not supplied directly, so a caller populating the canonical
+   * `agencyProfile` object alone still works.
+   */
+  agencyOfficialPhone?: string | null;
+  agencyOfficialEmail?: string | null;
+  agencyWebsite?: string | null;
+
+  /**
+   * ------------------------------------------------------------------------
    * AGENCY REGISTERED ADDRESS
    * ------------------------------------------------------------------------
    *
@@ -393,12 +410,36 @@ export async function generateAdvertisement(
        *
        * Prefer campaign email/phone, then legacy
        * contactLine.
+       *
+       * No longer rendered in the trust footer (LOCK 1) — kept only so
+       * buildCampaignContactLine's result isn't silently discarded for
+       * any other caller still reading it from the returned pipeline
+       * input shape. The footer's own contact fields are below.
        */
       contactLine:
         buildCampaignContactLine(
           campaignContact,
           input.contactLine,
         ),
+
+      /**
+       * LOCK 1 — verified Agency Profile only, independent of whether
+       * the recruitment requirement mentions any contact detail at all.
+       */
+      officialPhone:
+        input.agencyOfficialPhone ??
+        agencyProfile.officialPhone ??
+        null,
+
+      officialEmail:
+        input.agencyOfficialEmail ??
+        agencyProfile.officialEmail ??
+        null,
+
+      website:
+        input.agencyWebsite ??
+        agencyProfile.website ??
+        null,
 
       /**
        * IMPORTANT:

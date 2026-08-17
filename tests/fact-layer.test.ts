@@ -535,3 +535,74 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     expect((r.svgMarkup.match(/NOS\)/g) ?? []).length).toBeGreaterThanOrEqual(19);
   });
 });
+
+describe("Fact Layer — LOCK 2: background photograph stays visible through the identity panel", () => {
+  it("lets meaningfully more photograph through near the seam than deep in the role list", async () => {
+    // Product direction: the flat 0.88 scrim protected the dense list
+    // correctly but needlessly darkened the large bold headline/employer
+    // area above it. The panel scrim is now a gradient — lighter right
+    // after the seam, reaching full protection by where the list starts.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1920 });
+    const grey = await sharp({
+      create: { width: 1080, height: r.heightPx, channels: 3, background: { r: 200, g: 200, b: 200 } },
+    })
+      .png()
+      .toBuffer();
+    const composed = await sharp(grey).composite([{ input: r.png, left: 0, top: 0 }]).png().toBuffer();
+    const { data, info } = await sharp(composed).raw().toBuffer({ resolveWithObject: true });
+
+    function avgLum(yStart: number, yEnd: number): number {
+      let sum = 0;
+      let n = 0;
+      for (let y = yStart; y < yEnd; y++) {
+        for (let x = 150; x < info.width - 150; x += 10) {
+          const i = (y * info.width + x) * info.channels;
+          sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+          n++;
+        }
+      }
+      return sum / n;
+    }
+
+    // Just below the seam (identity block: headline/employer/badge) vs
+    // deep in the dense role list — both regions are well inside the
+    // panel for this dataset's known geometry.
+    const nearSeam = avgLum(450, 520);
+    const deepInList = avgLum(1100, 1200);
+    expect(nearSeam).toBeGreaterThan(deepInList + 15);
+  });
+
+  it("keeps the headline legible via its own stroke even against a near-white background", async () => {
+    const r = await renderFactLayer({
+      facts: facts(2, { positions: [{ title: "Welder", count: 5 }, { title: "Fitter", count: 3 }] }),
+      widthPx: 1080,
+      heightPx: 1920,
+    });
+    // The stroke is drawn as part of the headline <text> element itself —
+    // present regardless of what's beneath it.
+    expect(r.svgMarkup).toMatch(/SAUDI ARABIA<\/text>/);
+    const headlineNode = r.svgMarkup.match(/<text[^>]*>SAUDI ARABIA<\/text>/)?.[0] ?? "";
+    expect(headlineNode).toContain("stroke=");
+    expect(headlineNode).toContain('paint-order="stroke fill"');
+  });
+
+  it("still meets the KDL contrast floor deep in the dense list, unchanged from before", async () => {
+    // The list region kept its original, already-tested 0.88 protection —
+    // this is the same worst-case-bright-background check used to prove
+    // the panel wasn't a lid, applied specifically to the list depth.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1920 });
+    const { data, info } = await sharp(r.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const y = 1150; // well inside the role list for this dataset
+    let opaqueOrNearOpaque = 0;
+    let total = 0;
+    for (let x = 0; x < info.width; x += 5) {
+      const alpha = data[(y * info.width + x) * info.channels + 3];
+      total++;
+      if (alpha >= 220) opaqueOrNearOpaque++;
+    }
+    // Most of the row at list depth should still be at (near-)full scrim
+    // opacity — a regression here would mean the "full protection by the
+    // time the list starts" boundary drifted upward into the list itself.
+    expect(opaqueOrNearOpaque / total).toBeGreaterThan(0.5);
+  });
+});

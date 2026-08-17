@@ -35,10 +35,26 @@ export interface BrandingOverlayInput {
   registrationNumber?: string | null;
 
   /**
-   * CAMPAIGN CONTACT.
+   * VERIFIED AGENCY OFFICIAL CONTACT.
    *
-   * This is allowed to appear in the trust/action area,
-   * but must never be confused with the registered office.
+   * SOURCE OF TRUTH: the verified Agency Profile only — never the
+   * recruitment requirement, never a campaign/candidate contact. These
+   * render whenever the profile has them, independent of whether the
+   * source PDF mentions any contact detail at all. A candidate-facing
+   * contact from the requirement (facts.contact) is a separate concern,
+   * already rendered in its own callout by the fact layer — it must
+   * never substitute for these here.
+   */
+  officialPhone?: string | null;
+  officialEmail?: string | null;
+  website?: string | null;
+
+  /**
+   * @deprecated No longer rendered in the trust footer — a campaign
+   * contact number is not verified agency identity and must not be
+   * presented as if it were (see officialPhone/officialEmail above).
+   * Retained on the type only for source compatibility with existing
+   * callers; passing it is a no-op.
    */
   contactLine?: string | null;
 
@@ -122,6 +138,21 @@ const FOOTER_HEIGHT_PCT =
  *
  * Gemini creates the advertisement.
  * KAI protects identity.
+ *
+ * CLIENT / EMPLOYER LOGO PROTECTION:
+ *
+ * A verified client/employer logo, wherever a future creative-placement
+ * decision puts it (header, hero, supporting area), is composited into
+ * `input.imagePng` BEFORE it reaches this function — this file never
+ * receives or places a client logo itself. The footer's protection is
+ * therefore structural, not a check on the client logo's own placement:
+ * `renderTrustFooter` is always composited LAST, at a FIXED height and
+ * position derived only from widthPx/heightPx, fully opaque across its
+ * entire band. Nothing composited into `imagePng` beforehand — a client
+ * logo included — can show through, shift, or shrink this region, no
+ * matter where in the rest of the canvas it was placed. See
+ * tests/branding-overlay-client-logo-protection.test.ts for the
+ * regression proof.
  * ============================================================================
  */
 
@@ -133,6 +164,11 @@ export async function applyBrandingOverlay(
    *
    * We do not inspect facts here for layout decisions.
    * We do not rebuild the creative.
+   *
+   * This includes any client/employer logo a creative-placement decision
+   * has already composited into input.imagePng elsewhere in the canvas —
+   * this function only ever adds the trust footer on top, last, and never
+   * inspects or moves anything already there.
    */
   const footer =
     await renderTrustFooter(
@@ -316,10 +352,18 @@ async function renderTrustFooter(
       input.registrationNumber,
     );
 
-  const contact =
-    cleanText(
-      input.contactLine,
-    );
+  // Verified Agency Profile only — see the interface doc comment.
+  // Joined onto one line the same way the (now-removed) campaign contact
+  // line combined multiple pieces, so an agency with both still reads as
+  // one tidy line rather than two.
+  const officialContact = [
+    cleanText(input.officialPhone),
+    cleanText(input.officialEmail),
+  ]
+    .filter(Boolean)
+    .join("   ·   ");
+
+  const website = cleanText(input.website);
 
   const address =
     cleanText(
@@ -417,26 +461,59 @@ async function renderTrustFooter(
   /* AGENCY IDENTITY                                                         */
   /* ---------------------------------------------------------------------- */
 
-  let textY =
-    Math.round(
-      heightPx *
-        0.36,
-    );
+  // Font sizes are computed up front — independent of Y — so the text
+  // block's total height is known BEFORE any line is placed, and the
+  // whole block can be vertically centred in the footer rather than
+  // anchored at a fixed offset regardless of how many fields the Agency
+  // Profile actually has. A profile with only a name (no registration,
+  // address, phone/email or website — all optional per LOCK 1) previously
+  // left a single line stranded near the top with a large dead gap below
+  // it, reading as an incomplete/empty footer rather than a deliberately
+  // compact one.
+  const agencyFont = agencyName ? fitFont(agencyName, textWidth, Math.round(heightPx * 0.22), 16) : 0;
+  const registrationText = registration
+    ? /^reg\.?/i.test(registration)
+      ? registration
+      : `REG. ${registration}`
+    : "";
+  const registrationFont = registrationText
+    ? fitFont(registrationText, textWidth, Math.round(heightPx * 0.095), 11)
+    : 0;
+  const addressFont = address ? fitFont(address, textWidth, Math.round(heightPx * 0.075), 10) : 0;
+  const officialContactFont = officialContact
+    ? fitFont(officialContact, textWidth, Math.round(heightPx * 0.08), 10)
+    : 0;
+  const websiteFont = website ? fitFont(website, textWidth, Math.round(heightPx * 0.07), 9) : 0;
+
+  // Same line-advance multipliers the draw calls below apply, kept in one
+  // place so centering can never drift from what's actually drawn.
+  const AGENCY_ADVANCE = 1.05;
+  const REGISTRATION_ADVANCE = 1.15;
+  const ADDRESS_ADVANCE = 1.1;
+  const OFFICIAL_CONTACT_ADVANCE = 1.1;
+  const WEBSITE_ADVANCE = 1.1;
+
+  let blockHeight = 0;
+  if (agencyFont) blockHeight += Math.round(agencyFont * AGENCY_ADVANCE);
+  if (registrationFont) blockHeight += Math.round(registrationFont * REGISTRATION_ADVANCE);
+  if (addressFont) blockHeight += Math.round(addressFont * ADDRESS_ADVANCE);
+  if (officialContactFont) blockHeight += Math.round(officialContactFont * OFFICIAL_CONTACT_ADVANCE);
+  if (websiteFont) blockHeight += Math.round(websiteFont * WEBSITE_ADVANCE);
+
+  // The space above the first baseline (a font's ascent) isn't part of
+  // the increments above, so it's added once here to get the block's
+  // true visual extent for centering.
+  const leading = agencyFont
+    ? Math.round(agencyFont * 0.8)
+    : registrationFont
+      ? Math.round(registrationFont * 0.8)
+      : Math.round(heightPx * 0.12);
+
+  let textY = Math.max(leading, Math.round((heightPx - (leading + blockHeight)) / 2) + leading);
 
   if (
     agencyName
   ) {
-    const agencyFont =
-      fitFont(
-        agencyName,
-        textWidth,
-        Math.round(
-          heightPx *
-            0.22,
-        ),
-        16,
-      );
-
     svg.push(`
       <text
         x="${textLeft}"
@@ -451,7 +528,7 @@ async function renderTrustFooter(
     textY +=
       Math.round(
         agencyFont *
-          1.05,
+          AGENCY_ADVANCE,
       );
   }
 
@@ -460,26 +537,8 @@ async function renderTrustFooter(
   /* ---------------------------------------------------------------------- */
 
   if (
-    registration
+    registrationText
   ) {
-    const registrationText =
-      /^reg\.?/i.test(
-        registration,
-      )
-        ? registration
-        : `REG. ${registration}`;
-
-    const registrationFont =
-      fitFont(
-        registrationText,
-        textWidth,
-        Math.round(
-          heightPx *
-            0.095,
-        ),
-        11,
-      );
-
     svg.push(`
       <text
         x="${textLeft}"
@@ -497,7 +556,7 @@ async function renderTrustFooter(
     textY +=
       Math.round(
         registrationFont *
-          1.15,
+          REGISTRATION_ADVANCE,
       );
   }
 
@@ -508,17 +567,6 @@ async function renderTrustFooter(
   if (
     address
   ) {
-    const addressFont =
-      fitFont(
-        address,
-        textWidth,
-        Math.round(
-          heightPx *
-            0.075,
-        ),
-        10,
-      );
-
     svg.push(`
       <text
         x="${textLeft}"
@@ -538,28 +586,46 @@ async function renderTrustFooter(
     textY +=
       Math.round(
         addressFont *
-          1.1,
+          ADDRESS_ADVANCE,
       );
   }
 
   /* ---------------------------------------------------------------------- */
-  /* CAMPAIGN CONTACT                                                        */
+  /* OFFICIAL AGENCY CONTACT — verified profile only (LOCK 1)                */
   /* ---------------------------------------------------------------------- */
 
   if (
-    contact
+    officialContact
   ) {
-    const contactFont =
-      fitFont(
-        contact,
-        textWidth,
-        Math.round(
-          heightPx *
-            0.075,
-        ),
-        10,
-      );
+    svg.push(`
+      <text
+        x="${textLeft}"
+        y="${Math.min(
+          heightPx -
+            8,
+          textY,
+        )}"
+        font-family="KaiSans, sans-serif"
+        font-size="${officialContactFont}"
+        font-weight="700"
+        fill="${GOLD}"
+      >${esc(officialContact)}</text>
+    `);
 
+    textY +=
+      Math.round(
+        officialContactFont *
+          OFFICIAL_CONTACT_ADVANCE,
+      );
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* WEBSITE                                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  if (
+    website
+  ) {
     svg.push(`
       <text
         x="${textLeft}"
@@ -569,10 +635,11 @@ async function renderTrustFooter(
           textY,
         )}"
         font-family="KaiSans, sans-serif"
-        font-size="${contactFont}"
-        font-weight="700"
-        fill="${GOLD}"
-      >${esc(contact)}</text>
+        font-size="${websiteFont}"
+        font-weight="500"
+        fill="${WHITE}"
+        opacity="0.70"
+      >${esc(website)}</text>
     `);
   }
 
