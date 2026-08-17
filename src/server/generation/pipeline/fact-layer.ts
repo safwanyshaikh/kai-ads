@@ -443,6 +443,97 @@ function posterRoleLine(p: AdvertisementFacts["positions"][number]): string {
   return p.count != null ? `${title} (${p.count} NOS)` : title;
 }
 
+/**
+ * Splits row indices into `cols` columns, in strict source order — never
+ * jumping a role out of sequence — but choosing each split point by
+ * cumulative HEIGHT rather than a fixed item count. A count-only split
+ * (ceil(n/cols) per column) put a title that happened to wrap onto two
+ * lines in one column and not the other, so that column ran visibly
+ * taller than its neighbour and the shorter column left a real, empty
+ * gap above the trust strip that nothing else filled — measured at 92px
+ * between the two columns' last rows on the real 19-role requirement.
+ * Each column boundary is still picked greedily left-to-right (the
+ * reading order every reference recruitment column uses), just balanced
+ * against the actual height of what's being placed, recomputing the
+ * target from the height still remaining so an early heavy item can't
+ * starve every column after it.
+ */
+export function splitColumnsByHeight(rowHeights: number[], cols: number): number[][] {
+  const n = rowHeights.length;
+  if (n === 0) return Array.from({ length: cols }, () => []);
+  if (cols <= 1) return [Array.from({ length: n }, (_, i) => i)];
+
+  // Classic "split an array into K contiguous parts, minimizing the
+  // tallest part" (binary search on the answer + a greedy feasibility
+  // check) — provably optimal, unlike a single-pass local comparison,
+  // which can commit to including one disproportionately tall row (a
+  // wrapped title) because it looked closer to a per-column target in
+  // isolation, then have nothing left to rebalance the columns after it.
+  const total = rowHeights.reduce((a, b) => a + b, 0);
+  const tallestRow = Math.max(...rowHeights);
+
+  const columnsNeededFor = (limit: number): number => {
+    let count = 1;
+    let sum = 0;
+    for (const h of rowHeights) {
+      if (sum + h > limit) {
+        count++;
+        sum = h;
+      } else {
+        sum += h;
+      }
+    }
+    return count;
+  };
+
+  let lo = tallestRow;
+  let hi = total;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (columnsNeededFor(mid) <= cols) hi = mid;
+    else lo = mid + 1;
+  }
+
+  // `lo` is now the minimum possible height for the tallest column.
+  // Materialize the actual row groups with one more greedy pass at that
+  // bound — deterministic, and always in strict source order.
+  const columns: number[][] = [];
+  let current: number[] = [];
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const h = rowHeights[i];
+    if (sum + h > lo && current.length > 0) {
+      columns.push(current);
+      current = [];
+      sum = 0;
+    }
+    current.push(i);
+    sum += h;
+  }
+  if (current.length > 0) columns.push(current);
+
+  // The optimal-max split can legitimately need fewer than `cols` groups
+  // (e.g. one dominant row already sets the achievable max on its own) —
+  // correct for minimizing height, but a rendered grid with an entirely
+  // empty trailing column looks broken. When there are enough rows to
+  // give every requested column at least one, split the largest group by
+  // row COUNT (not re-optimizing height) until every column is filled;
+  // this only ever fires on the rare extreme case the height-optimal
+  // pass didn't already need `cols` groups for.
+  while (columns.length < cols && n >= cols) {
+    let biggest = 0;
+    for (let c = 1; c < columns.length; c++) {
+      if (columns[c].length > columns[biggest].length) biggest = c;
+    }
+    if (columns[biggest].length < 2) break;
+    const mid = Math.ceil(columns[biggest].length / 2);
+    const second = columns[biggest].splice(mid);
+    columns.splice(biggest + 1, 0, second);
+  }
+  while (columns.length < cols) columns.push([]);
+  return columns;
+}
+
 /** Detail string for one role — only ever built from values that are present. */
 function roleDetail(p: AdvertisementFacts["positions"][number]): string {
   const bits: string[] = [];
@@ -657,10 +748,10 @@ function planBody(
     );
   });
   const perCol = Math.ceil(facts.positions.length / cols);
-  let listH = 0;
-  for (let c = 0; c < cols; c++) {
-    listH = Math.max(listH, rowHeights.slice(c * perCol, (c + 1) * perCol).reduce((a, b) => a + b, 0));
-  }
+  const columns = splitColumnsByHeight(rowHeights, cols);
+  const listH = Math.max(
+    ...columns.map((col) => col.reduce((sum, idx) => sum + rowHeights[idx], 0)),
+  );
   const rowH = rowHeights[0] ?? 0;
 
   const headingH = Math.round(px(T.H2) * 1.6);
@@ -696,7 +787,7 @@ function planBody(
 
   return {
     cols, colW, margin, contentW, gutter, titleSize, detailSize, showDetail,
-    rowGap, badgeW, salaryW, hasSalary, perCol, rowH, rowHeights, listH, headingH, extraH, floor, lineFactor,
+    rowGap, badgeW, salaryW, hasSalary, perCol, columns, rowH, rowHeights, listH, headingH, extraH, floor, lineFactor,
     maxLines: MAX_LINES,
     bodyH: headingH + listH + extraH,
   };
@@ -1926,7 +2017,7 @@ function renderPosterBody(
   pal: Palette,
 ): { svg: string; endY: number } {
   const px = (f: number) => Math.round(f * W);
-  const { colW, cols, gutter, titleSize, detailSize, showDetail, perCol, floor, margin } = plan;
+  const { colW, cols, gutter, titleSize, detailSize, showDetail, floor, margin } = plan;
   const parts: string[] = [];
 
   // The heading rule and label stay unclaimed on a poster — a candidate
@@ -1939,8 +2030,13 @@ function renderPosterBody(
   for (let c = 0; c < cols; c++) {
     const colX = margin + c * (colW + gutter);
     let rowTopCursor = startY;
-    let rowIndex = c * perCol;
-    for (const p of facts.positions.slice(c * perCol, (c + 1) * perCol)) {
+    // plan.columns balances each column by actual row HEIGHT, not a flat
+    // item count — a title that wraps to a second line no longer makes
+    // one column visibly taller than the other with empty space beneath
+    // the shorter one. Still strict source order: a role is never moved
+    // out of sequence, only the column boundary shifts.
+    for (const rowIndex of plan.columns[c]) {
+      const p = facts.positions[rowIndex];
       const rowTop = rowTopCursor;
       const cy = rowTop + Math.round(titleSize * 0.92);
       const bs = Math.round(titleSize * 0.42);
@@ -1981,7 +2077,6 @@ function renderPosterBody(
         }
       }
       rowTopCursor += plan.rowHeights[rowIndex] ?? Math.max(ly - rowTop, 1);
-      rowIndex++;
     }
   }
 
@@ -2068,7 +2163,7 @@ function renderBody(
   const T = dna.type;
   const M = dna.motifs;
   const px = (f: number) => Math.round(f * W);
-  const { colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, perCol, floor } = plan;
+  const { colW, cols, gutter, titleSize, detailSize, showDetail, rowGap, badgeW, floor } = plan;
   const margin = plan.margin;
   const parts: string[] = [];
 
@@ -2120,8 +2215,11 @@ function renderBody(
     // drift up by ~0.92x titleSize against its own text — cumulative, so by
     // row nine the vacancy-count cell no longer matched its role.
     let rowTopCursor = startY - Math.round(titleSize * 0.92);
-    let rowIndex = c * perCol;
-    for (const p of facts.positions.slice(c * perCol, (c + 1) * perCol)) {
+    // plan.columns balances each column by actual row height rather than
+    // a flat item count — see splitColumnsByHeight; still strict source
+    // order within and across columns.
+    for (const rowIndex of plan.columns[c]) {
+      const p = facts.positions[rowIndex];
       // Each role is a card. SVG paints in document order, so the row's
       // marks are collected first and the card is emitted beneath them
       // once its true height is known.
@@ -2229,7 +2327,6 @@ function renderBody(
       // "PLAIN" draws no furniture at all — the type carries the row.
       parts.push(...rowParts);
       rowTopCursor += plan.rowHeights[rowIndex] ?? cardH + 1;
-      rowIndex++;
     }
   }
 

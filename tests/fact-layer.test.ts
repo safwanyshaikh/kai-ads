@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { renderFactLayer, LayoutCapacityError } from "@/server/generation/pipeline/fact-layer";
+import { renderFactLayer, LayoutCapacityError, splitColumnsByHeight } from "@/server/generation/pipeline/fact-layer";
 import type { AdvertisementFacts } from "@/server/generation/pipeline/types";
 
 function facts(count: number, over: Partial<AdvertisementFacts> = {}): AdvertisementFacts {
@@ -442,5 +442,96 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     const i = (y * info.width + x) * info.channels;
     const luminance = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
     expect(luminance).toBeLessThan(100);
+  });
+
+  it("balances the two role-list columns by actual row height, not a flat item count", async () => {
+    // A count-only split (ceil(n/cols) per column) could put a title that
+    // wraps to a second line in one column and not the other, leaving
+    // that column visibly taller — measured at a 92px gap between the
+    // two columns' last rows on the real 19-role requirement, which read
+    // as a large empty area under the shorter column. Still strict
+    // source order: no role jumps out of sequence, only the column
+    // boundary shifts to where it balances height.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1920 });
+    const nodes = [...r.svgMarkup.matchAll(/<text x="(\d+)"[^>]*\by="(\d+)"[^>]*>(.*?)<\/text>/g)].map((m) => ({
+      x: Number(m[1]),
+      y: Number(m[2]),
+      text: m[3],
+    }));
+    const byX = new Map<number, number[]>();
+    for (const n of nodes) {
+      if (!byX.has(n.x)) byX.set(n.x, []);
+      byX.get(n.x)!.push(n.y);
+    }
+    // The two list columns carry the most stacked lines at any single x —
+    // more than the hero/highlight-strip block, which shares the panel's
+    // left margin with the left list column but is far shorter.
+    const listColumns = [...byX.values()].sort((a, b) => b.length - a.length).slice(0, 2);
+    expect(listColumns.every((ys) => ys.length >= 8)).toBe(true);
+    const lastY = listColumns.map((ys) => Math.max(...ys));
+    expect(Math.abs(lastY[0] - lastY[1])).toBeLessThan(40);
+  });
+
+  it("splitColumnsByHeight: every row appears exactly once, in strict source order", () => {
+    const rowHeights = [30, 30, 60, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]; // 19 rows, one taller
+    const columns = splitColumnsByHeight(rowHeights, 2);
+    const flattened = columns.flat();
+    expect(flattened).toEqual([...flattened].sort((a, b) => a - b)); // strictly increasing = source order
+    expect(flattened).toHaveLength(rowHeights.length);
+    expect(new Set(flattened).size).toBe(rowHeights.length); // no duplicates, none dropped
+  });
+
+  it("splitColumnsByHeight: balances by height, not raw count, when one row is taller", () => {
+    // A single taller row (a title wrapped to two lines) — a count-only
+    // split would still put 5 vs 5 items regardless of this, but a
+    // height-only split gives the heavy-row column one fewer item so
+    // both columns end up close in total height.
+    const rowHeights = [30, 30, 30, 60, 30, 30, 30, 30, 30, 30]; // 10 rows, one 2x tall
+    const columns = splitColumnsByHeight(rowHeights, 2);
+    const heights = columns.map((col) => col.reduce((sum, i) => sum + rowHeights[i], 0));
+    expect(Math.abs(heights[0] - heights[1])).toBeLessThan(35);
+  });
+
+  it("splitColumnsByHeight: achieves the mathematically optimal balance even when a single row dominates", () => {
+    // A row 6.6x taller than its neighbours must land entirely in one
+    // column — no contiguous split can avoid that column absorbing it —
+    // so the best any split can do is minimize the RESULTING max column
+    // height, not force near-equal columns (which is impossible here).
+    const rowHeights = [30, 30, 30, 200, 30, 30, 30, 30, 30, 30]; // 10 rows
+    const columns = splitColumnsByHeight(rowHeights, 2);
+    const heights = columns.map((col) => col.reduce((sum, i) => sum + rowHeights[i], 0));
+    // The true optimum for this exact input is 290/180 (split right after
+    // the tall row) — verified by checking every possible split point.
+    let bestMax = Infinity;
+    for (let k = 1; k < rowHeights.length; k++) {
+      const a = rowHeights.slice(0, k).reduce((s, h) => s + h, 0);
+      const b = rowHeights.slice(k).reduce((s, h) => s + h, 0);
+      bestMax = Math.min(bestMax, Math.max(a, b));
+    }
+    expect(Math.max(...heights)).toBe(bestMax);
+  });
+
+  it("splitColumnsByHeight: falls back to a plain sequential split when every row is equal height", () => {
+    const rowHeights = Array(10).fill(30);
+    const columns = splitColumnsByHeight(rowHeights, 2);
+    expect(columns[0]).toEqual([0, 1, 2, 3, 4]);
+    expect(columns[1]).toEqual([5, 6, 7, 8, 9]);
+  });
+
+  it("splitColumnsByHeight: never produces an empty column while rows remain", () => {
+    const rowHeights = [500, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+    const columns = splitColumnsByHeight(rowHeights, 3);
+    expect(columns.flat()).toHaveLength(rowHeights.length);
+    for (const col of columns) expect(col.length).toBeGreaterThan(0);
+  });
+
+  it("still renders all 19 real roles, in full, after balancing the columns by height", async () => {
+    // The balanced split must never drop, duplicate, or invent a role —
+    // only shift where the column boundary falls.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1920 });
+    for (const [, count] of SAUDI_19) {
+      expect(r.svgMarkup).toContain(`(${count} NOS)`);
+    }
+    expect((r.svgMarkup.match(/NOS\)/g) ?? []).length).toBeGreaterThanOrEqual(19);
   });
 });
