@@ -463,163 +463,228 @@ async function renderTrustFooter(
   }
 
   /* ---------------------------------------------------------------------- */
-  /* AGENCY IDENTITY — fixed sizes, block vertically centred in the footer   */
+  /* AGENCY IDENTITY — responsive: compact stack, or wide two-column         */
   /* ---------------------------------------------------------------------- */
   //
-  // Spec sizes are absolute px (not proportional to footer height, which
-  // itself now barely varies — 250-300px) so the footer reads the same
-  // regardless of platform format. fitFont is still applied as a
-  // shrink-only safety net: the PREFERRED size is the spec value, never
-  // exceeded, only reduced far enough to avoid clipping an unusually long
-  // agency name/registration/address string.
-  // Agency name is the DOMINANT footer text — sized closer to the
-  // registration/contact lines' bigger sibling than a same-weight label,
-  // so identity reads before any other line does.
+  // Final Footer Identity Pass (2026-08): a fixed stacked column wastes a
+  // wide footer's right-hand space — the renderer must measure what it
+  // actually has (identityColumnWidth / contactColumnWidth below) and
+  // choose compact-stack vs wide-two-column from that measurement, never
+  // from a hard-coded percentage. Registration is NEVER shortened — only
+  // fitFont's shrink-only sizing (never substring truncation) is applied,
+  // in both modes.
   const AGENCY_NAME_SIZE = 36;
+  const REGISTRATION_LABEL_SIZE = 12;
   const REGISTRATION_SIZE = 14;
   const CONTACT_SIZE = 13;
   const WEBSITE_SIZE = 12;
   const ADDRESS_SIZE = 11;
 
-  const agencyFont = agencyName ? fitFont(agencyName, textWidth, AGENCY_NAME_SIZE, 20) : 0;
-  const registrationText = registration
-    ? /^reg\.?/i.test(registration)
-      ? registration
-      : `REG. ${registration}`
-    : "";
-  const registrationFont = registrationText ? fitFont(registrationText, textWidth, REGISTRATION_SIZE, 10) : 0;
-  const officialContactFont = officialContact ? fitFont(officialContact, textWidth, CONTACT_SIZE, 9) : 0;
-  const websiteFont = website ? fitFont(website, textWidth, WEBSITE_SIZE, 8) : 0;
-  const addressFont = address ? fitFont(address, textWidth, ADDRESS_SIZE, 8) : 0;
+  // Wide mode's contact column has real room to spare (that's the whole
+  // point of the two-column composition) — sized larger than the compact
+  // stack's fixed sizes so the space is actively used rather than small
+  // text floating in a wide box, while staying well under the agency
+  // name so it never competes for dominance.
+  const WIDE_REGISTRATION_SIZE = 17;
+  const WIDE_CONTACT_SIZE = 17;
+  const WIDE_ADDRESS_SIZE = 14;
+  const WIDE_WEBSITE_SIZE = 15;
 
-  // Sequential flow, but the BLOCK is vertically centred in the footer
-  // rather than pinned to a fixed top offset. Top-anchoring left a
-  // visibly dead band beneath a sparse profile (agency name + registration
-  // only, say) — nothing filled the rest of a 250-300px footer. Centring
-  // the block as a whole (using only the lines that actually render) uses
-  // the space intentionally regardless of how many fields the verified
-  // profile has, without inventing decorative filler. Priority order per
-  // spec: Agency Name -> Registration -> Phone+Email -> Website ->
-  // Address, each omitted cleanly (no placeholder, no gap left behind)
-  // when the field is absent.
-  const lineGap = (font: number, mult: number) => Math.round(font * mult);
-  const presentLines: Array<{ font: number; gap: number }> = [];
-  if (agencyName) presentLines.push({ font: agencyFont, gap: lineGap(agencyFont, 1.2) });
-  if (registrationText) presentLines.push({ font: registrationFont, gap: lineGap(registrationFont, 1.29) });
-  if (officialContact) presentLines.push({ font: officialContactFont, gap: lineGap(officialContactFont, 1.38) });
-  if (website) presentLines.push({ font: websiteFont, gap: lineGap(websiteFont, 1.33) });
-  if (address) presentLines.push({ font: addressFont, gap: 0 });
+  const IDENTITY_MIN_WIDTH = 260;
+  const CONTACT_MIN_WIDTH = 220;
+  const COLUMN_GAP = Math.max(20, Math.round(widthPx * 0.025));
 
-  const blockHeight = presentLines.reduce((sum, l, i) => sum + (i === presentLines.length - 1 ? l.font : l.gap), 0);
-  let textY = presentLines.length
-    ? Math.round((heightPx - blockHeight) / 2 + presentLines[0].font * 0.78)
-    : Math.round(heightPx * 0.155) + agencyFont;
+  const hasContactFields = Boolean(officialContact || website || address);
+  const isWide = hasContactFields && textWidth >= IDENTITY_MIN_WIDTH + COLUMN_GAP + CONTACT_MIN_WIDTH;
 
-  if (
-    agencyName
-  ) {
-    svg.push(`
-      <text
-        x="${textLeft}"
-        y="${textY}"
-        font-family="KaiSans, sans-serif"
-        font-size="${agencyFont}"
-        font-weight="700"
-        letter-spacing="0.2"
-        fill="${WHITE}"
-      >${esc(agencyName)}</text>
-    `);
-
-    textY += Math.round(agencyFont * 1.2);
+  interface FooterLine {
+    text: string;
+    size: number;
+    minSize: number;
+    weight: string;
+    opacity: number;
+    gapMultiplier: number;
+    letterSpacing?: string;
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* REGISTRATION                                                            */
-  /* ---------------------------------------------------------------------- */
-
-  if (
-    registrationText
-  ) {
-    svg.push(`
-      <text
-        x="${textLeft}"
-        y="${Math.min(heightPx - 8, textY)}"
-        font-family="KaiSans, sans-serif"
-        font-size="${registrationFont}"
-        font-weight="600"
-        fill="${WHITE}"
-        opacity="0.88"
-      >${esc(
-        registrationText,
-      )}</text>
-    `);
-
-    textY += Math.round(registrationFont * 1.29);
+  /**
+   * Fits, vertically centres and draws a column of lines against its OWN
+   * measured width — the mechanism that lets identity and contact sit
+   * side-by-side in wide mode without either one over- or under-sizing
+   * its type for the space it actually has.
+   */
+  function drawColumn(x: number, maxWidth: number, lines: FooterLine[]): void {
+    if (lines.length === 0) return;
+    const fitted = lines.map((l) => ({ ...l, font: fitFont(l.text, maxWidth, l.size, l.minSize) }));
+    const blockHeight = fitted.reduce(
+      (sum, l, i) => sum + (i === fitted.length - 1 ? l.font : Math.round(l.font * l.gapMultiplier)),
+      0,
+    );
+    let y = Math.round((heightPx - blockHeight) / 2 + fitted[0].font * 0.78);
+    for (const l of fitted) {
+      svg.push(`
+        <text
+          x="${x}"
+          y="${Math.min(heightPx - 6, Math.max(l.font, y))}"
+          font-family="KaiSans, sans-serif"
+          font-size="${l.font}"
+          font-weight="${l.weight}"
+          ${l.letterSpacing ? `letter-spacing="${l.letterSpacing}"` : ""}
+          fill="${WHITE}"
+          opacity="${l.opacity}"
+        >${esc(l.text)}</text>
+      `);
+      y += Math.round(l.font * l.gapMultiplier);
+    }
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* OFFICIAL AGENCY CONTACT — phone + email, verified profile only (LOCK 1) */
-  /* ---------------------------------------------------------------------- */
+  if (isWide) {
+    // LEFT: primary Agency Identity block — name, then the FULL verified
+    // registration number on its own label + value line (never merged
+    // into a truncated "REG. 1234" form).
+    const identityColWidth = Math.max(
+      IDENTITY_MIN_WIDTH,
+      Math.round(textWidth * 0.52),
+    );
+    const contactColWidth = textWidth - identityColWidth - COLUMN_GAP;
+    const contactColX = textLeft + identityColWidth + COLUMN_GAP;
 
-  if (
-    officialContact
-  ) {
-    svg.push(`
-      <text
-        x="${textLeft}"
-        y="${Math.min(heightPx - 8, textY)}"
-        font-family="KaiSans, sans-serif"
-        font-size="${officialContactFont}"
-        font-weight="500"
-        fill="${WHITE}"
-        opacity="0.92"
-      >${esc(officialContact)}</text>
-    `);
+    const identityLines: FooterLine[] = [];
+    if (agencyName) {
+      identityLines.push({
+        text: agencyName,
+        size: AGENCY_NAME_SIZE,
+        minSize: 20,
+        weight: "700",
+        opacity: 1,
+        gapMultiplier: 1.25,
+        letterSpacing: "0.2",
+      });
+    }
+    if (registration) {
+      identityLines.push({
+        text: "MEA / RA REGISTRATION:",
+        size: REGISTRATION_LABEL_SIZE,
+        minSize: 9,
+        weight: "600",
+        opacity: 0.7,
+        gapMultiplier: 1.15,
+      });
+      identityLines.push({
+        text: registration,
+        size: WIDE_REGISTRATION_SIZE,
+        minSize: 10,
+        weight: "600",
+        opacity: 0.92,
+        gapMultiplier: 1,
+      });
+    }
+    drawColumn(textLeft, identityColWidth, identityLines);
 
-    textY += Math.round(officialContactFont * 1.38);
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* WEBSITE                                                                  */
-  /* ---------------------------------------------------------------------- */
-
-  if (
-    website
-  ) {
-    svg.push(`
-      <text
-        x="${textLeft}"
-        y="${Math.min(heightPx - 8, textY)}"
-        font-family="KaiSans, sans-serif"
-        font-size="${websiteFont}"
-        font-weight="500"
-        fill="${WHITE}"
-        opacity="0.75"
-      >${esc(website)}</text>
-    `);
-
-    textY += Math.round(websiteFont * 1.33);
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* REGISTERED ADDRESS — lowest priority, only when there's real room left */
-  /* ---------------------------------------------------------------------- */
-
-  if (
-    address &&
-    textY + addressFont <= heightPx - 10
-  ) {
-    svg.push(`
-      <text
-        x="${textLeft}"
-        y="${Math.min(heightPx - 5, textY)}"
-        font-family="KaiSans, sans-serif"
-        font-size="${addressFont}"
-        font-weight="500"
-        fill="${WHITE}"
-        opacity="0.65"
-      >${esc(address)}</text>
-    `);
+    // RIGHT: contact/verification information zone — each field on its
+    // own labelled line, using the space instead of stacking underneath
+    // the agency name.
+    const contactLines: FooterLine[] = [];
+    if (cleanText(input.officialEmail)) {
+      contactLines.push({
+        text: `Official Email: ${cleanText(input.officialEmail)}`,
+        size: WIDE_CONTACT_SIZE,
+        minSize: 9,
+        weight: "500",
+        opacity: 0.92,
+        gapMultiplier: 1.35,
+      });
+    }
+    if (cleanText(input.officialPhone)) {
+      contactLines.push({
+        text: `Phone / WhatsApp: ${cleanText(input.officialPhone)}`,
+        size: WIDE_CONTACT_SIZE,
+        minSize: 9,
+        weight: "500",
+        opacity: 0.92,
+        gapMultiplier: 1.35,
+      });
+    }
+    if (address) {
+      contactLines.push({
+        text: `Registered Address: ${address}`,
+        size: WIDE_ADDRESS_SIZE,
+        minSize: 8,
+        weight: "500",
+        opacity: 0.75,
+        gapMultiplier: 1.35,
+      });
+    }
+    if (website) {
+      contactLines.push({
+        text: `Website: ${website}`,
+        size: WIDE_WEBSITE_SIZE,
+        minSize: 8,
+        weight: "500",
+        opacity: 0.75,
+        gapMultiplier: 1,
+      });
+    }
+    drawColumn(contactColX, contactColWidth, contactLines);
+  } else {
+    // COMPACT: single stacked identity column — every mandatory field
+    // still renders, spacing/secondary font sizes shrink before anything
+    // is dropped, and the whole block stays vertically centred so a
+    // sparse profile never leaves a dead band under it.
+    const registrationText = registration ? registration : "";
+    const lines: FooterLine[] = [];
+    if (agencyName) {
+      lines.push({
+        text: agencyName,
+        size: AGENCY_NAME_SIZE,
+        minSize: 18,
+        weight: "700",
+        opacity: 1,
+        gapMultiplier: 1.2,
+        letterSpacing: "0.2",
+      });
+    }
+    if (registrationText) {
+      lines.push({
+        text: registrationText,
+        size: REGISTRATION_SIZE,
+        minSize: 9,
+        weight: "600",
+        opacity: 0.88,
+        gapMultiplier: 1.29,
+      });
+    }
+    if (officialContact) {
+      lines.push({
+        text: officialContact,
+        size: CONTACT_SIZE,
+        minSize: 9,
+        weight: "500",
+        opacity: 0.92,
+        gapMultiplier: 1.38,
+      });
+    }
+    if (website) {
+      lines.push({
+        text: website,
+        size: WEBSITE_SIZE,
+        minSize: 8,
+        weight: "500",
+        opacity: 0.75,
+        gapMultiplier: 1.33,
+      });
+    }
+    if (address) {
+      lines.push({
+        text: address,
+        size: ADDRESS_SIZE,
+        minSize: 8,
+        weight: "500",
+        opacity: 0.65,
+        gapMultiplier: 1,
+      });
+    }
+    drawColumn(textLeft, textWidth, lines);
   }
 
   /* ---------------------------------------------------------------------- */
