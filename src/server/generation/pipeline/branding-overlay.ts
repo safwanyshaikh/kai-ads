@@ -88,9 +88,6 @@ const GOLD =
 const WHITE =
   "#FFFFFF";
 
-const FOOTER_HEIGHT_PCT =
-  0.105;
-
 /**
  * ============================================================================
  * KAI TRUST LAYER — FINAL ARCHITECTURE
@@ -203,17 +200,19 @@ export async function applyBrandingOverlay(
  */
 function footerHeight(
   widthPx: number,
-  heightPx: number,
+  _heightPx: number,
 ): number {
-  return Math.max(
-    110,
-    Math.round(
-      Math.min(
-        heightPx *
-          FOOTER_HEIGHT_PCT,
-        widthPx *
-          0.15,
-      ),
+  // The footer is a protected identity/trust composition, sized like the
+  // genre's own compact professional footers — a fraction of canvas
+  // WIDTH, not of however tall a dense role list happens to make the
+  // canvas. 0.25 * 1080 lands exactly on the spec's own preferred target
+  // (270px); clamped to the given 250-300px range for other canvas
+  // widths in use (1200, 1600).
+  return Math.min(
+    300,
+    Math.max(
+      250,
+      Math.round(widthPx * 0.25),
     ),
   );
 }
@@ -273,41 +272,27 @@ async function renderTrustFooter(
       input.heightPx,
     );
 
+  // 48px at the reference 1080px width (0.0444 * 1080 = 48).
   const outerPadding =
     Math.max(
-      18,
+      32,
       Math.round(
         widthPx *
-          0.028,
+          0.0444,
       ),
     );
 
-  const logoSize =
-    input.agencyLogoPng
-      ? Math.min(
-          Math.round(
-            heightPx *
-              0.56,
-          ),
-          Math.round(
-            widthPx *
-              0.10,
-          ),
-        )
-      : 0;
+  // Logo bounding box: max 150x82, contain, aspect preserved — computed
+  // against the ACTUAL source asset below (normaliseLogoToBox), never a
+  // synthetic placeholder shape.
+  const LOGO_BOX_W = 150;
+  const LOGO_BOX_H = 82;
+  const logoBoxW = input.agencyLogoPng ? LOGO_BOX_W : 0;
 
+  // 120-128px square, right side.
   const qrSize =
     input.qrPng
-      ? Math.min(
-          Math.round(
-            heightPx *
-              0.72,
-          ),
-          Math.round(
-            widthPx *
-              0.105,
-          ),
-        )
+      ? 124
       : 0;
 
   const qrLeft =
@@ -318,14 +303,17 @@ async function renderTrustFooter(
   const logoLeft =
     outerPadding;
 
+  const IDENTITY_TO_LOGO_GAP =
+    Math.round(
+      widthPx *
+        0.02,
+    );
+
   const textLeft =
-    logoSize > 0
+    logoBoxW > 0
       ? logoLeft +
-        logoSize +
-        Math.round(
-          widthPx *
-            0.018,
-        )
+        logoBoxW +
+        IDENTITY_TO_LOGO_GAP
       : outerPadding;
 
   const textRight =
@@ -428,88 +416,86 @@ async function renderTrustFooter(
   /* ---------------------------------------------------------------------- */
   /* VERIFIED AGENCY LOGO                                                    */
   /* ---------------------------------------------------------------------- */
+  //
+  // The actual approved/uploaded Agency Profile asset — never a
+  // placeholder shape. Fit inside the 150x82 box (object-fit: contain),
+  // aspect preserved, never distorted. Whatever transparency the source
+  // asset already has is preserved as-is (no background is added or
+  // removed here) — a logo uploaded with a dominant white background is
+  // an asset-pipeline concern to fix at upload time, not something this
+  // render step can safely repaint without risking a legitimate white
+  // logo element.
 
   if (
     input.agencyLogoPng &&
-    logoSize > 0
+    logoBoxW > 0
   ) {
     const logo =
-      await normaliseImage(
+      await normaliseLogoToBox(
         input.agencyLogoPng,
-        logoSize,
+        LOGO_BOX_W,
+        LOGO_BOX_H,
       );
 
     svg.push(`
       <image
         href="${toDataUri(
-          logo,
+          logo.buffer,
         )}"
-        x="${logoLeft}"
+        x="${logoLeft +
+          Math.round(
+            (LOGO_BOX_W -
+              logo.width) /
+              2,
+          )}"
         y="${Math.round(
           (heightPx -
-            logoSize) /
+            logo.height) /
             2,
         )}"
-        width="${logoSize}"
-        height="${logoSize}"
+        width="${logo.width}"
+        height="${logo.height}"
         preserveAspectRatio="xMidYMid meet"
       />
     `);
   }
 
   /* ---------------------------------------------------------------------- */
-  /* AGENCY IDENTITY                                                         */
+  /* AGENCY IDENTITY — fixed sizes, top-anchored sequential flow             */
   /* ---------------------------------------------------------------------- */
+  //
+  // Spec sizes are absolute px (not proportional to footer height, which
+  // itself now barely varies — 250-300px) so the footer reads the same
+  // regardless of platform format. fitFont is still applied as a
+  // shrink-only safety net: the PREFERRED size is the spec value, never
+  // exceeded, only reduced far enough to avoid clipping an unusually long
+  // agency name/registration/address string.
+  const AGENCY_NAME_SIZE = 30;
+  const REGISTRATION_SIZE = 14;
+  const CONTACT_SIZE = 13;
+  const WEBSITE_SIZE = 12;
+  const ADDRESS_SIZE = 11;
 
-  // Font sizes are computed up front — independent of Y — so the text
-  // block's total height is known BEFORE any line is placed, and the
-  // whole block can be vertically centred in the footer rather than
-  // anchored at a fixed offset regardless of how many fields the Agency
-  // Profile actually has. A profile with only a name (no registration,
-  // address, phone/email or website — all optional per LOCK 1) previously
-  // left a single line stranded near the top with a large dead gap below
-  // it, reading as an incomplete/empty footer rather than a deliberately
-  // compact one.
-  const agencyFont = agencyName ? fitFont(agencyName, textWidth, Math.round(heightPx * 0.22), 16) : 0;
+  const agencyFont = agencyName ? fitFont(agencyName, textWidth, AGENCY_NAME_SIZE, 18) : 0;
   const registrationText = registration
     ? /^reg\.?/i.test(registration)
       ? registration
       : `REG. ${registration}`
     : "";
-  const registrationFont = registrationText
-    ? fitFont(registrationText, textWidth, Math.round(heightPx * 0.095), 11)
-    : 0;
-  const addressFont = address ? fitFont(address, textWidth, Math.round(heightPx * 0.075), 10) : 0;
-  const officialContactFont = officialContact
-    ? fitFont(officialContact, textWidth, Math.round(heightPx * 0.08), 10)
-    : 0;
-  const websiteFont = website ? fitFont(website, textWidth, Math.round(heightPx * 0.07), 9) : 0;
+  const registrationFont = registrationText ? fitFont(registrationText, textWidth, REGISTRATION_SIZE, 10) : 0;
+  const officialContactFont = officialContact ? fitFont(officialContact, textWidth, CONTACT_SIZE, 9) : 0;
+  const websiteFont = website ? fitFont(website, textWidth, WEBSITE_SIZE, 8) : 0;
+  const addressFont = address ? fitFont(address, textWidth, ADDRESS_SIZE, 8) : 0;
 
-  // Same line-advance multipliers the draw calls below apply, kept in one
-  // place so centering can never drift from what's actually drawn.
-  const AGENCY_ADVANCE = 1.05;
-  const REGISTRATION_ADVANCE = 1.15;
-  const ADDRESS_ADVANCE = 1.1;
-  const OFFICIAL_CONTACT_ADVANCE = 1.1;
-  const WEBSITE_ADVANCE = 1.1;
-
-  let blockHeight = 0;
-  if (agencyFont) blockHeight += Math.round(agencyFont * AGENCY_ADVANCE);
-  if (registrationFont) blockHeight += Math.round(registrationFont * REGISTRATION_ADVANCE);
-  if (addressFont) blockHeight += Math.round(addressFont * ADDRESS_ADVANCE);
-  if (officialContactFont) blockHeight += Math.round(officialContactFont * OFFICIAL_CONTACT_ADVANCE);
-  if (websiteFont) blockHeight += Math.round(websiteFont * WEBSITE_ADVANCE);
-
-  // The space above the first baseline (a font's ascent) isn't part of
-  // the increments above, so it's added once here to get the block's
-  // true visual extent for centering.
-  const leading = agencyFont
-    ? Math.round(agencyFont * 0.8)
-    : registrationFont
-      ? Math.round(registrationFont * 0.8)
-      : Math.round(heightPx * 0.12);
-
-  let textY = Math.max(leading, Math.round((heightPx - (leading + blockHeight)) / 2) + leading);
+  // Sequential, top-anchored flow — never vertically scattered, never
+  // centre-stretched to fill the footer artificially. Priority order per
+  // spec: Agency Name -> Registration -> Phone+Email -> Website ->
+  // Address, each omitted cleanly (no placeholder, no gap left behind)
+  // when the field is absent, so the block never has a "hole" in the
+  // middle. Starts near the spec's own Y~42 target and lets the logo/QR
+  // — vertically centred independently — provide the footer's visual
+  // balance rather than stretching text down to match them.
+  let textY = Math.round(heightPx * 0.155) + agencyFont; // first baseline ~= spec Y~42 for a 270px footer at 30px type
 
   if (
     agencyName
@@ -520,16 +506,13 @@ async function renderTrustFooter(
         y="${textY}"
         font-family="KaiSans, sans-serif"
         font-size="${agencyFont}"
-        font-weight="900"
+        font-weight="700"
+        letter-spacing="0.2"
         fill="${WHITE}"
       >${esc(agencyName)}</text>
     `);
 
-    textY +=
-      Math.round(
-        agencyFont *
-          AGENCY_ADVANCE,
-      );
+    textY += Math.round(agencyFont * 1.2);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -542,56 +525,22 @@ async function renderTrustFooter(
     svg.push(`
       <text
         x="${textLeft}"
-        y="${textY}"
+        y="${Math.min(heightPx - 8, textY)}"
         font-family="KaiSans, sans-serif"
         font-size="${registrationFont}"
-        font-weight="650"
+        font-weight="600"
         fill="${WHITE}"
-        opacity="0.82"
+        opacity="0.88"
       >${esc(
         registrationText,
       )}</text>
     `);
 
-    textY +=
-      Math.round(
-        registrationFont *
-          REGISTRATION_ADVANCE,
-      );
+    textY += Math.round(registrationFont * 1.29);
   }
 
   /* ---------------------------------------------------------------------- */
-  /* REGISTERED ADDRESS                                                      */
-  /* ---------------------------------------------------------------------- */
-
-  if (
-    address
-  ) {
-    svg.push(`
-      <text
-        x="${textLeft}"
-        y="${Math.min(
-          heightPx -
-            8,
-          textY,
-        )}"
-        font-family="KaiSans, sans-serif"
-        font-size="${addressFont}"
-        font-weight="500"
-        fill="${WHITE}"
-        opacity="0.70"
-      >${esc(address)}</text>
-    `);
-
-    textY +=
-      Math.round(
-        addressFont *
-          ADDRESS_ADVANCE,
-      );
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* OFFICIAL AGENCY CONTACT — verified profile only (LOCK 1)                */
+  /* OFFICIAL AGENCY CONTACT — phone + email, verified profile only (LOCK 1) */
   /* ---------------------------------------------------------------------- */
 
   if (
@@ -600,23 +549,16 @@ async function renderTrustFooter(
     svg.push(`
       <text
         x="${textLeft}"
-        y="${Math.min(
-          heightPx -
-            8,
-          textY,
-        )}"
+        y="${Math.min(heightPx - 8, textY)}"
         font-family="KaiSans, sans-serif"
         font-size="${officialContactFont}"
-        font-weight="700"
-        fill="${GOLD}"
+        font-weight="500"
+        fill="${WHITE}"
+        opacity="0.92"
       >${esc(officialContact)}</text>
     `);
 
-    textY +=
-      Math.round(
-        officialContactFont *
-          OFFICIAL_CONTACT_ADVANCE,
-      );
+    textY += Math.round(officialContactFont * 1.38);
   }
 
   /* ---------------------------------------------------------------------- */
@@ -629,17 +571,36 @@ async function renderTrustFooter(
     svg.push(`
       <text
         x="${textLeft}"
-        y="${Math.min(
-          heightPx -
-            5,
-          textY,
-        )}"
+        y="${Math.min(heightPx - 8, textY)}"
         font-family="KaiSans, sans-serif"
         font-size="${websiteFont}"
         font-weight="500"
         fill="${WHITE}"
-        opacity="0.70"
+        opacity="0.75"
       >${esc(website)}</text>
+    `);
+
+    textY += Math.round(websiteFont * 1.33);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* REGISTERED ADDRESS — lowest priority, only when there's real room left */
+  /* ---------------------------------------------------------------------- */
+
+  if (
+    address &&
+    textY + addressFont <= heightPx - 10
+  ) {
+    svg.push(`
+      <text
+        x="${textLeft}"
+        y="${Math.min(heightPx - 5, textY)}"
+        font-family="KaiSans, sans-serif"
+        font-size="${addressFont}"
+        font-weight="500"
+        fill="${WHITE}"
+        opacity="0.65"
+      >${esc(address)}</text>
     `);
   }
 
@@ -702,31 +663,27 @@ async function renderTrustFooter(
         qrSize,
       );
 
+    // 10-11px label, weight 600 — the QR + its label are one vertically-
+    // centred unit within the footer, not the QR centred independently
+    // with the label pinned to the bottom edge (which visually detaches
+    // the two and can crowd the last few px of the footer).
+    const qrFont = 11;
+    const qrLabelGap = Math.round(qrSize * 0.09);
+    const qrBlockH = qrSize + qrLabelGap + Math.round(qrFont * 1.3);
+    const qrTop = Math.round((heightPx - qrBlockH) / 2);
+
     svg.push(`
       <image
         href="${toDataUri(
           qr,
         )}"
         x="${qrLeft}"
-        y="${Math.round(
-          (heightPx -
-            qrSize) /
-            2,
-        )}"
+        y="${qrTop}"
         width="${qrSize}"
         height="${qrSize}"
         preserveAspectRatio="xMidYMid meet"
       />
     `);
-
-    const qrFont =
-      Math.max(
-        9,
-        Math.round(
-          heightPx *
-            0.065,
-        ),
-      );
 
     svg.push(`
       <text
@@ -735,13 +692,14 @@ async function renderTrustFooter(
             qrSize /
               2,
         )}"
-        y="${heightPx - 5}"
+        y="${qrTop + qrSize + qrLabelGap + Math.round(qrFont * 0.9)}"
         text-anchor="middle"
         font-family="KaiSans, sans-serif"
         font-size="${qrFont}"
-        font-weight="800"
+        font-weight="600"
+        letter-spacing="0.6"
         fill="${WHITE}"
-        opacity="0.80"
+        opacity="0.85"
       >SCAN TO VERIFY</text>
     `);
   }
@@ -833,6 +791,35 @@ async function normaliseImage(
     )
     .png()
     .toBuffer();
+}
+
+/**
+ * Fits an image inside a maxW x maxH box (object-fit: contain), aspect
+ * preserved, and returns its ACTUAL rendered dimensions so the caller can
+ * centre it — a logo box is rarely the source asset's own aspect ratio,
+ * so resizing alone (without reporting back the real output size) would
+ * either stretch it or leave the caller positioning against the wrong
+ * dimensions.
+ */
+async function normaliseLogoToBox(
+  image: Buffer,
+  maxW: number,
+  maxH: number,
+): Promise<{ buffer: Buffer; width: number; height: number }> {
+  const buffer =
+    await sharp(image)
+      .resize(maxW, maxH, {
+        fit: "inside",
+        withoutEnlargement: false,
+      })
+      .png()
+      .toBuffer();
+  const metadata = await sharp(buffer).metadata();
+  return {
+    buffer,
+    width: metadata.width ?? maxW,
+    height: metadata.height ?? maxH,
+  };
 }
 
 function toDataUri(

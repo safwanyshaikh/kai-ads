@@ -342,10 +342,12 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     }
     expect(translucent).toBeGreaterThan(opaque);
 
-    // ...but still dark enough to guarantee reversed text stays legible
-    // over an unknown photograph (KDL contrast floor).
+    // ...but still meaningfully dark (LOCK 2 Zone C target: ~0.45-0.60 —
+    // panel text at this depth is protected by its own stroke now, not
+    // scrim opacity alone, so this is deliberately much lower than an
+    // earlier iteration's 0.88).
     const midAlpha = data[(y * info.width + Math.round(info.width / 2)) * info.channels + 3];
-    expect(midAlpha).toBeGreaterThanOrEqual(200);
+    expect(midAlpha).toBeGreaterThanOrEqual(100);
     expect(midAlpha).toBeLessThan(255);
   });
 
@@ -586,10 +588,7 @@ describe("Fact Layer — LOCK 2: background photograph stays visible through the
     expect(headlineNode).toContain('paint-order="stroke fill"');
   });
 
-  it("still meets the KDL contrast floor deep in the dense list, unchanged from before", async () => {
-    // The list region kept its original, already-tested 0.88 protection —
-    // this is the same worst-case-bright-background check used to prove
-    // the panel wasn't a lid, applied specifically to the list depth.
+  it("keeps the dense list region within LOCK 2's Zone C target (~0.45-0.60), not the old 0.88", async () => {
     const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1920 });
     const { data, info } = await sharp(r.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     const y = 1150; // well inside the role list for this dataset
@@ -598,11 +597,19 @@ describe("Fact Layer — LOCK 2: background photograph stays visible through the
     for (let x = 0; x < info.width; x += 5) {
       const alpha = data[(y * info.width + x) * info.channels + 3];
       total++;
-      if (alpha >= 220) opaqueOrNearOpaque++;
+      if (alpha >= 120 && alpha <= 165) opaqueOrNearOpaque++; // ~0.47-0.65 opacity
     }
-    // Most of the row at list depth should still be at (near-)full scrim
-    // opacity — a regression here would mean the "full protection by the
-    // time the list starts" boundary drifted upward into the list itself.
     expect(opaqueOrNearOpaque / total).toBeGreaterThan(0.5);
+  });
+
+  it("protects every panel text element with its own stroke, not scrim opacity alone", async () => {
+    // LOCK 2 explicitly asks for local contrast, not global opacity —
+    // this is what makes the much-lighter panel (previous test) safe:
+    // every text element on it carries a scrim-independent guarantee.
+    const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1920 });
+    const strokedTextCount = (r.svgMarkup.match(/<text[^>]*stroke="/g) ?? []).length;
+    // Headline + ribbon + employer + sub + meta + highlight label + 4
+    // featured roles + 19 role-list lines (at least) + benefits.
+    expect(strokedTextCount).toBeGreaterThan(25);
   });
 });

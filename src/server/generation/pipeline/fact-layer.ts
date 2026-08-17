@@ -386,6 +386,20 @@ const widthFactor = (text: string, bold = false) => {
 const textWidth = (text: string, size: number, bold = false) =>
   text.length * size * widthFactor(text, bold);
 
+/**
+ * A thin ink stroke behind a text fill — the same technique proven on the
+ * POSTER headline (LOCK 2): a scrim guarantees legibility for the whole
+ * panel at once, but this composition's panel scrim is now much lighter
+ * (LOCK 2's zoned target: 0.25-0.60, well under what a flat scrim would
+ * need to guarantee contrast against an unknown bright photo on its own).
+ * Every other panel text element gets its own scrim-independent contrast
+ * guarantee via this same outline, rather than relying on panel opacity
+ * to protect all of them. Never a typography change — same font, weight,
+ * size and tracking wherever it's applied.
+ */
+const textStroke = (inkColor: string, fontSize: number) =>
+  `stroke="${inkColor}" stroke-width="${Math.max(1, Math.round(fontSize * 0.045))}" stroke-linejoin="round" paint-order="stroke fill"`;
+
 function fit(text: string, maxWidth: number, preferred: number, min: number, bold = false): number {
   let size = preferred;
   while (size > min && textWidth(text, size, bold) > maxWidth) size -= 1;
@@ -1526,10 +1540,15 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // reads as though it was graded FOR this advertisement's palette,
     // not dropped in from a generic stock library.
     parts.push(
+      // LOCK 2, Zone A (image-led hero, above the seam): target 0.05-0.15
+      // — the agency-name chip carries its own solid contrast guarantee
+      // now (see the identity mark below), so this tint no longer needs
+      // to protect any text on its own; it's purely a "graded FOR this
+      // frame" polish, kept within the zone's own target range.
       `<defs><linearGradient id="pt" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.22"/>` +
+        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.12"/>` +
         `<stop offset="0.55" stop-color="${pal.ink}" stop-opacity="0.02"/>` +
-        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.4"/>` +
+        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.15"/>` +
         `</linearGradient></defs>`,
     );
 
@@ -1567,15 +1586,19 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // (LOCK 2) is explicit that the photograph must stay "clearly
     // recognisable", not just technically present behind a heavy wash.
     //
-    // So the scrim now grades: lighter right at the seam, reaching KDL
-    // §4.3's own hero-scrim opacity (0.88 — the still-unchanged, still
-    // KDL-§9-4.5:1-contrast-floor-compliant value) by the point the
-    // dense list actually starts, and holding there through the rest of
-    // the panel — so the one region genuinely at legibility risk keeps
-    // exactly the protection it already had; only the region with
-    // nothing but large bold headline text gets to show more photograph.
-    const PANEL_SCRIM_LIGHT = 0.55;
-    const PANEL_SCRIM_FULL = 0.88;
+    // LOCK 2 (2026-08 visibility spec) tightened this further: the panel
+    // is now zoned per the spec's own targets — Zone B (headline/campaign
+    // metadata) ~0.25-0.40, Zone C (dense role list) ~0.45-0.60 — well
+    // under what a flat scrim would need to GUARANTEE contrast against an
+    // unknown bright photo on its own (that guarantee required ~0.87,
+    // proven when this was still a flat 0.88). Going this much lighter is
+    // only safe because every text element the scrim used to protect
+    // alone now also carries its own scrim-independent stroke (see
+    // textStroke, applied throughout this panel) — a local, per-element
+    // contrast guarantee, exactly the "local contrast problem, not a
+    // global opacity problem" LOCK 2 asks for.
+    const PANEL_SCRIM_LIGHT = 0.32;
+    const PANEL_SCRIM_FULL = 0.55;
     const panelBottom = H - stripH;
     // Where the dense list begins, estimated the same way the
     // canvas-height solve above already does (panelTop + hero.contentH +
@@ -1656,7 +1679,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       const ribbonS = Math.max(plan.floor, Math.round(ribbonH * 0.5));
       parts.push(
         `<text x="${panelX}" y="${ribbonY + Math.round(ribbonH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
-          `font-weight="700" fill="${pal.accent}" letter-spacing="3">${esc(ribbonText)}</text>`,
+          `font-weight="700" fill="${pal.accent}" ${textStroke(pal.ink, ribbonS)} letter-spacing="3">${esc(ribbonText)}</text>`,
       );
     }
 
@@ -1674,8 +1697,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       // change — same font, weight, size and tracking as before.
       parts.push(
         `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" ` +
-          `fill="${pal.reversed}" stroke="${pal.ink}" stroke-width="${Math.max(1, Math.round(ls * 0.045))}" ` +
-          `stroke-linejoin="round" paint-order="stroke fill" letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
+          `fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
       );
       y += Math.round(ls * 0.28);
     }
@@ -1685,7 +1707,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       y += Math.round(es * 0.78);
       parts.push(
         `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="500" ` +
-          `fill="${pal.accent}">${esc(facts.employer)}</text>`,
+          `fill="${pal.accent}" ${textStroke(pal.ink, es)}>${esc(facts.employer)}</text>`,
       );
       y += Math.round(es * 0.3);
     }
@@ -1695,7 +1717,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       y += Math.round(ss * 0.75);
       parts.push(
         `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ss}" font-weight="400" ` +
-          `fill="${pal.reversed}" opacity="0.72" letter-spacing="2">${esc(hero.sub.toUpperCase())}</text>`,
+          `fill="${pal.reversed}" fill-opacity="0.72" ${textStroke(pal.ink, ss)} letter-spacing="2">${esc(hero.sub.toUpperCase())}</text>`,
       );
       y += Math.round(ss * 0.3);
     }
@@ -1704,7 +1726,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       const ms = Math.min(hero.metaSize, fit(hero.meta, panelW, hero.metaSize, plan.floor));
       y += Math.round(ms * 0.8);
       parts.push(
-        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ms}" fill="${pal.reversed}" opacity="0.62">${esc(hero.meta)}</text>`,
+        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ms}" fill="${pal.reversed}" fill-opacity="0.62" ${textStroke(pal.ink, ms)}>${esc(hero.meta)}</text>`,
       );
       y += Math.round(ms * 0.35);
     }
@@ -1744,7 +1766,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       if (highlights.featured.length > 0) {
         parts.push(
           `<text x="${panelX}" y="${y + highlights.labelSize}" font-family="KaiSans, sans-serif" ` +
-            `font-size="${highlights.labelSize}" font-weight="700" fill="${pal.accent}" ` +
+            `font-size="${highlights.labelSize}" font-weight="700" fill="${pal.accent}" ${textStroke(pal.ink, highlights.labelSize)} ` +
             `letter-spacing="2.5">HIGH-DEMAND OPPORTUNITIES</text>`,
         );
         y += Math.round(highlights.labelSize * 1.6) + px(0.014);
@@ -1754,7 +1776,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
           const ls = fit(line, panelW, highlights.roleSize, plan.floor, true);
           parts.push(
             `<text x="${panelX}" y="${y + Math.round(highlights.roleSize * 0.85)}" font-family="KaiSans, sans-serif" ` +
-              `font-size="${ls}" font-weight="800" fill="${pal.reversed}" letter-spacing="0.3">${esc(line)}</text>`,
+              `font-size="${ls}" font-weight="800" fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="0.3">${esc(line)}</text>`,
           );
           y += roleLineH;
         }
@@ -1767,7 +1789,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
           y += Math.round(highlights.hookSize * 1.1);
           parts.push(
             `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${highlights.hookSize}" ` +
-              `font-weight="700" fill="${pal.accent}" opacity="0.9">${esc(line.toUpperCase())}</text>`,
+              `font-weight="700" fill="${pal.accent}" fill-opacity="0.9" ${textStroke(pal.ink, highlights.hookSize)}>${esc(line.toUpperCase())}</text>`,
           );
           y += Math.round(highlights.hookSize * 0.4);
         }
@@ -2092,7 +2114,7 @@ function renderPosterBody(
         const ls = fit(line, tw, titleSize, floor, true);
         parts.push(
           `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="700" ` +
-            `fill="${pal.reversed}" letter-spacing="0.5">${esc(line)}</text>`,
+            `fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="0.5">${esc(line)}</text>`,
         );
         ly += Math.round(titleSize * plan.lineFactor);
       }
@@ -2101,7 +2123,7 @@ function renderPosterBody(
         if (d) {
           const ds = fit(d, tw, detailSize, floor);
           parts.push(
-            `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.reversed}" opacity="0.78">${esc(d)}</text>`,
+            `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.reversed}" fill-opacity="0.78" ${textStroke(pal.ink, ds)}>${esc(d)}</text>`,
           );
           ly += Math.round(detailSize * 1.3);
         }
@@ -2126,7 +2148,7 @@ function renderPosterBody(
       parts.push(iconGlyph(kind, bx + iconR, rowMidY, iconR, pal.accent));
       const tx = bx + iconR * 2 + Math.round(px(0.008));
       parts.push(
-        `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="600" fill="${pal.reversed}">${esc(label)}</text>`,
+        `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="600" fill="${pal.reversed}" ${textStroke(pal.ink, s)}>${esc(label)}</text>`,
       );
       bx = tx + Math.round(textWidth(label, s, true)) + px(0.03);
       if (bx > margin + plan.contentW * 0.94) break; // never truncates a fact — overflow benefits still verified, just not iconised on this row
