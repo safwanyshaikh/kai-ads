@@ -55,6 +55,7 @@ Legend:
 | Constitutional Capability | Status | Implementation | Phase |
 |---|---|---|---|
 | Requirement Intelligence | ✅ | `src/server/generation/pipeline/requirement-intelligence.ts` | Production |
+| Content Intelligence Model (statement taxonomy, role-family clustering, compression eligibility, DTP capacity pre-flight) | ⚠️ | `src/server/generation/pipeline/content-intelligence.ts` — builds the model and enforces the capacity law before a Gemini call is spent (wired into `generate.ts` STEP 3.5). Compressed/clustered content is NOT yet consumed by the renderer's row layout (`fact-layer.ts` still typesets every position flatly, per docs/010 Amendment 1) — visual family-box composition is a follow-on step, not yet built. | Phase 2 |
 | Creative Brief | ✅ | `src/server/generation/pipeline/creative-brief.ts` | Production |
 | One GPT Image call | ✅ | `src/server/generation/pipeline/generate.ts` | Production |
 | Branding Overlay | ✅ | `src/server/generation/pipeline/branding-overlay.ts` | Production |

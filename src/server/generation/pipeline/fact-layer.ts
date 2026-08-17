@@ -252,9 +252,23 @@ void RESERVED_TOP;
  */
 const MAX_ASPECT = 4.0;
 
+/**
+ * `reason` distinguishes WHERE capacity ran out, for callers that want to
+ * react differently (e.g. surface "book a taller slot" vs "this campaign
+ * is too broad to compress into one advertisement"). `undefined` is the
+ * original, pre-existing meaning: fact-layer's own height/aspect solve
+ * ran out of room. `"content-exceeds-max-tier"` is raised by the DTP
+ * Decision Engine's pre-flight check (content-intelligence.ts) before a
+ * Gemini call is even spent — same error, same law, earlier stage.
+ */
+export type LayoutCapacityReason = "content-exceeds-max-tier" | undefined;
+
 export class LayoutCapacityError extends Error {
   readonly code = "LAYOUT_CAPACITY";
-  constructor(readonly unplaced: string[]) {
+  constructor(
+    readonly unplaced: string[],
+    readonly reason?: LayoutCapacityReason,
+  ) {
     super(
       `Advertisement cannot be rendered without omitting verified information at minimum readability. Unplaced: ${unplaced.join("; ")}`,
     );

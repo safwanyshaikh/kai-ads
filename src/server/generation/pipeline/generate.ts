@@ -3,6 +3,7 @@ import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
 import { renderFactLayer } from "./fact-layer";
+import { campaignFromAdvertisementFacts, enforceDtpCapacity } from "./content-intelligence";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import sharp from "sharp";
 import { getEnv } from "@/lib/env";
@@ -240,6 +241,26 @@ export async function generateAdvertisement(
           input.theme,
       },
     );
+
+  /**
+   * ------------------------------------------------------------------------
+   * STEP 3.5 — DTP CAPACITY PRE-FLIGHT (Content Intelligence)
+   * ------------------------------------------------------------------------
+   *
+   * Not to be confused with `requirement-intelligence.ts` (STEP 1's
+   * `buildAdvertisementFacts` — DB record grounding/currency). This stage
+   * classifies and clusters the already-grounded positions into the
+   * Content Intelligence Model and estimates whether the requirement can
+   * be held at minimum readability BEFORE a Gemini call is spent. This reuses
+   * fact-layer's own capacity law (MAX_ASPECT) rather than inventing a
+   * second one — see content-intelligence.ts. A requirement that fails
+   * here would also fail inside renderFactLayer's own solve; catching it
+   * here just means the failure is free instead of a wasted image call.
+   */
+  enforceDtpCapacity(
+    campaignFromAdvertisementFacts(input.facts),
+    input.widthPx,
+  );
 
   /**
    * ------------------------------------------------------------------------
