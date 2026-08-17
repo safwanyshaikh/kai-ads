@@ -1559,10 +1559,14 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       // now (see the identity mark below), so this tint no longer needs
       // to protect any text on its own; it's purely a "graded FOR this
       // frame" polish, kept within the zone's own target range.
+      // Commercial Lock (2026-08): pushed to the low end of LOCK 2's own
+      // Zone A target (0.05-0.15) — the range itself is unchanged, this
+      // moves within it toward maximum photo visibility, since the
+      // agency-name chip already carries its own contrast guarantee.
       `<defs><linearGradient id="pt" x1="0" y1="0" x2="0" y2="1">` +
-        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.12"/>` +
+        `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0.08"/>` +
         `<stop offset="0.55" stop-color="${pal.ink}" stop-opacity="0.02"/>` +
-        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.15"/>` +
+        `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.1"/>` +
         `</linearGradient></defs>`,
     );
 
@@ -1611,8 +1615,14 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // textStroke, applied throughout this panel) — a local, per-element
     // contrast guarantee, exactly the "local contrast problem, not a
     // global opacity problem" LOCK 2 asks for.
-    const PANEL_SCRIM_LIGHT = 0.32;
-    const PANEL_SCRIM_FULL = 0.55;
+    // Commercial Lock (2026-08): pushed toward the low end of LOCK 2's own
+    // Zone B/C targets (0.25-0.40 / 0.45-0.60 respectively) — the approved
+    // ranges are unchanged, this moves within them for maximum photograph
+    // visibility (workers/cranes/machinery/project scale must read
+    // clearly), safe only because every panel text element still carries
+    // its own scrim-independent contrast guarantee via textStroke().
+    const PANEL_SCRIM_LIGHT = 0.26;
+    const PANEL_SCRIM_FULL = 0.48;
     const panelBottom = H - stripH;
     // Where the dense list begins, estimated the same way the
     // canvas-height solve above already does (panelTop + hero.contentH +

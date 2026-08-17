@@ -282,17 +282,19 @@ async function renderTrustFooter(
       ),
     );
 
-  // Logo bounding box: max 150x82, contain, aspect preserved — computed
-  // against the ACTUAL source asset below (normaliseLogoToBox), never a
-  // synthetic placeholder shape.
-  const LOGO_BOX_W = 150;
-  const LOGO_BOX_H = 82;
+  // Logo bounding box: contain, aspect preserved — computed against the
+  // ACTUAL source asset below (normaliseLogoToBox), never a synthetic
+  // placeholder shape. Sized to genuinely read as prominent inside a
+  // ~270px footer (roughly 60% of the band height), not a small chip
+  // competing for attention with the QR.
+  const LOGO_BOX_W = 190;
+  const LOGO_BOX_H = 140;
   const logoBoxW = input.agencyLogoPng ? LOGO_BOX_W : 0;
 
-  // 120-128px square, right side.
+  // 124-132px square, right side.
   const qrSize =
     input.qrPng
-      ? 124
+      ? 128
       : 0;
 
   const qrLeft =
@@ -461,7 +463,7 @@ async function renderTrustFooter(
   }
 
   /* ---------------------------------------------------------------------- */
-  /* AGENCY IDENTITY — fixed sizes, top-anchored sequential flow             */
+  /* AGENCY IDENTITY — fixed sizes, block vertically centred in the footer   */
   /* ---------------------------------------------------------------------- */
   //
   // Spec sizes are absolute px (not proportional to footer height, which
@@ -470,13 +472,16 @@ async function renderTrustFooter(
   // shrink-only safety net: the PREFERRED size is the spec value, never
   // exceeded, only reduced far enough to avoid clipping an unusually long
   // agency name/registration/address string.
-  const AGENCY_NAME_SIZE = 30;
+  // Agency name is the DOMINANT footer text — sized closer to the
+  // registration/contact lines' bigger sibling than a same-weight label,
+  // so identity reads before any other line does.
+  const AGENCY_NAME_SIZE = 36;
   const REGISTRATION_SIZE = 14;
   const CONTACT_SIZE = 13;
   const WEBSITE_SIZE = 12;
   const ADDRESS_SIZE = 11;
 
-  const agencyFont = agencyName ? fitFont(agencyName, textWidth, AGENCY_NAME_SIZE, 18) : 0;
+  const agencyFont = agencyName ? fitFont(agencyName, textWidth, AGENCY_NAME_SIZE, 20) : 0;
   const registrationText = registration
     ? /^reg\.?/i.test(registration)
       ? registration
@@ -487,15 +492,28 @@ async function renderTrustFooter(
   const websiteFont = website ? fitFont(website, textWidth, WEBSITE_SIZE, 8) : 0;
   const addressFont = address ? fitFont(address, textWidth, ADDRESS_SIZE, 8) : 0;
 
-  // Sequential, top-anchored flow — never vertically scattered, never
-  // centre-stretched to fill the footer artificially. Priority order per
+  // Sequential flow, but the BLOCK is vertically centred in the footer
+  // rather than pinned to a fixed top offset. Top-anchoring left a
+  // visibly dead band beneath a sparse profile (agency name + registration
+  // only, say) — nothing filled the rest of a 250-300px footer. Centring
+  // the block as a whole (using only the lines that actually render) uses
+  // the space intentionally regardless of how many fields the verified
+  // profile has, without inventing decorative filler. Priority order per
   // spec: Agency Name -> Registration -> Phone+Email -> Website ->
   // Address, each omitted cleanly (no placeholder, no gap left behind)
-  // when the field is absent, so the block never has a "hole" in the
-  // middle. Starts near the spec's own Y~42 target and lets the logo/QR
-  // — vertically centred independently — provide the footer's visual
-  // balance rather than stretching text down to match them.
-  let textY = Math.round(heightPx * 0.155) + agencyFont; // first baseline ~= spec Y~42 for a 270px footer at 30px type
+  // when the field is absent.
+  const lineGap = (font: number, mult: number) => Math.round(font * mult);
+  const presentLines: Array<{ font: number; gap: number }> = [];
+  if (agencyName) presentLines.push({ font: agencyFont, gap: lineGap(agencyFont, 1.2) });
+  if (registrationText) presentLines.push({ font: registrationFont, gap: lineGap(registrationFont, 1.29) });
+  if (officialContact) presentLines.push({ font: officialContactFont, gap: lineGap(officialContactFont, 1.38) });
+  if (website) presentLines.push({ font: websiteFont, gap: lineGap(websiteFont, 1.33) });
+  if (address) presentLines.push({ font: addressFont, gap: 0 });
+
+  const blockHeight = presentLines.reduce((sum, l, i) => sum + (i === presentLines.length - 1 ? l.font : l.gap), 0);
+  let textY = presentLines.length
+    ? Math.round((heightPx - blockHeight) / 2 + presentLines[0].font * 0.78)
+    : Math.round(heightPx * 0.155) + agencyFont;
 
   if (
     agencyName
