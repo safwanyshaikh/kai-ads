@@ -446,32 +446,23 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     expect(luminance).toBeLessThan(100);
   });
 
-  it("balances the two role-list columns by actual row height, not a flat item count", async () => {
-    // A count-only split (ceil(n/cols) per column) could put a title that
-    // wraps to a second line in one column and not the other, leaving
-    // that column visibly taller — measured at a 92px gap between the
-    // two columns' last rows on the real 19-role requirement, which read
-    // as a large empty area under the shorter column. Still strict
-    // source order: no role jumps out of sequence, only the column
-    // boundary shifts to where it balances height.
+  it("groups the real 19-role requirement by family instead of a flat two-column dump", async () => {
+    // Superseded by role-family grouping (see "groups positions by role
+    // family..." below): a dense, multi-family requirement like this one
+    // now renders as one flowing, labelled column instead of a raw
+    // height-balanced two-column split — the flat-list column-balance
+    // behaviour is still exercised directly by splitColumnsByHeight's own
+    // unit tests below, and still used for smaller/homogeneous
+    // requirements where grouping would not help (see the T1/T2 tests
+    // elsewhere in this file).
     const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1920 });
-    const nodes = [...r.svgMarkup.matchAll(/<text x="(\d+)"[^>]*\by="(\d+)"[^>]*>(.*?)<\/text>/g)].map((m) => ({
-      x: Number(m[1]),
-      y: Number(m[2]),
-      text: m[3],
-    }));
-    const byX = new Map<number, number[]>();
-    for (const n of nodes) {
-      if (!byX.has(n.x)) byX.set(n.x, []);
-      byX.get(n.x)!.push(n.y);
-    }
-    // The two list columns carry the most stacked lines at any single x —
-    // more than the hero/highlight-strip block, which shares the panel's
-    // left margin with the left list column but is far shorter.
-    const listColumns = [...byX.values()].sort((a, b) => b.length - a.length).slice(0, 2);
-    expect(listColumns.every((ys) => ys.length >= 8)).toBe(true);
-    const lastY = listColumns.map((ys) => Math.max(...ys));
-    expect(Math.abs(lastY[0] - lastY[1])).toBeLessThan(40);
+    expect(r.svgMarkup).toMatch(/font-weight="700" letter-spacing="1" fill="[^"]+"[^>]*>HVAC &amp; MECHANICAL</);
+    expect(r.svgMarkup).toContain("PROCUREMENT &amp; COMMERCIAL");
+    expect(r.svgMarkup).toContain("PLANNING &amp; PROJECT CONTROLS");
+    // Still strict source order and full factual disclosure: every role
+    // renders exactly once with its own exact vacancy count.
+    const nosCount = (r.svgMarkup.match(/NOS\)/g) ?? []).length;
+    expect(nosCount).toBeGreaterThanOrEqual(19);
   });
 
   it("splitColumnsByHeight: every row appears exactly once, in strict source order", () => {

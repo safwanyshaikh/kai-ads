@@ -59,9 +59,24 @@ describe("Branding Engine reads the Agency Profile", () => {
     expect(service).toMatch(/contact\.email\s*\?\?\s*agency\.officialEmail/);
   });
 
-  it("prints office address and website from the profile", () => {
+  it("prints office address from the profile", () => {
     expect(service).toContain("buildAddressLine");
     expect(service).toMatch(/agency\.officeAddress/);
+  });
+
+  it("never falls back the Registered Address line to the website — a real bug found via a live render", () => {
+    // A real generated advertisement showed "Registered Address:
+    // https://www.example.com" — buildAddressLine used to join
+    // officeAddress and website together (or fall back to website alone
+    // when officeAddress was empty), mislabelling the website URL as a
+    // physical address. The footer already has its own separate
+    // "Website:" line — Registered Address must only ever come from
+    // officeAddress, or be omitted.
+    const buildAddressLineSource = service.slice(
+      service.indexOf("function buildAddressLine"),
+      service.indexOf("function buildAddressLine") + 500,
+    );
+    expect(buildAddressLineSource).not.toMatch(/agency\.website/);
   });
 
   it("counts profile contact details when checking the ad has a contact", () => {

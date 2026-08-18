@@ -901,25 +901,14 @@ function buildAddressLine(
     officeAddress?:
       | string
       | null;
-
-    website?:
-      | string
-      | null;
   },
 ): string | null {
-  const parts = [
-    agency.officeAddress,
-    agency.website,
-  ].filter(
-    (
-      value,
-    ): value is string =>
-      Boolean(value),
-  );
-
-  return parts.length > 0
-    ? parts.join(
-        "  ·  ",
-      )
-    : null;
+  // Registered Address only — never falls back to the website. The trust
+  // footer already has its own separate "Website:" line (see LOCK 1 /
+  // the Final Footer Identity Pass), so falling back here duplicated the
+  // website URL under the "Registered Address" label whenever an
+  // agency's officeAddress was empty, which is a factual mislabel, not a
+  // reasonable substitute.
+  const address = agency.officeAddress?.trim();
+  return address ? address : null;
 }

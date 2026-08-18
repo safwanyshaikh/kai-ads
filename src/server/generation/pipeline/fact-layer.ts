@@ -682,6 +682,93 @@ function innerSvg(fullMarkup: string): string {
 type Plan = ReturnType<typeof planBody>;
 
 /**
+ * Role-family grouping ("define the JD group-wise, show what's common"):
+ * clusters positions by functional keyword — the same six families visible
+ * in every real reference recruitment poster (Project/Management,
+ * Procurement/Commercial, Planning/Controls, HVAC/Mechanical,
+ * Electrical/IT, General Trades) — so the dense role list reads as
+ * organised sections instead of one flat 19-line dump. Deliberately a
+ * small, self-contained classifier here (not imported from
+ * content-intelligence.ts) to avoid a circular module dependency; the
+ * rule set is intentionally identical to content-intelligence.ts's
+ * classifyFamily — unifying the two is a follow-up, not a factual
+ * concern (this only ever affects ORDER and grouping, never which facts
+ * render or their vacancy counts).
+ */
+interface RoleFamilyGroup {
+  label: string;
+  positionIndexes: number[];
+  /** A qualification genuinely shared by 2+ members — never invented. */
+  commonQualification: string | null;
+}
+
+/** One drawable line in the grouped role list — see planBody/renderPosterBody. */
+type BodyEntry =
+  | { kind: "familyHeader"; label: string }
+  | { kind: "position"; idx: number }
+  | { kind: "common"; text: string };
+
+const ROLE_FAMILY_RULES: Array<{ label: string; test: RegExp }> = [
+  { label: "PROJECT & MANAGEMENT", test: /\b(manager|director|project\s*(lead|manager)|superintend)/i },
+  { label: "PROCUREMENT & COMMERCIAL", test: /\b(procure|purchas|commercial|contract|buyer|cost\s*control)/i },
+  { label: "PLANNING & PROJECT CONTROLS", test: /\b(planner|planning|scheduler|project\s*control|estimat)/i },
+  { label: "HVAC & MECHANICAL", test: /\b(hvac|mechanic|fitter|welder|pipefitter|rigger|plumb)/i },
+  { label: "ELECTRICAL & IT", test: /\b(electric|instrument|control\s*system|it\b|network|automation)/i },
+];
+const GENERAL_TRADES_LABEL = "GENERAL TRADES";
+
+function classifyRoleFamily(title: string): string {
+  for (const rule of ROLE_FAMILY_RULES) {
+    if (rule.test.test(title)) return rule.label;
+  }
+  return GENERAL_TRADES_LABEL;
+}
+
+/**
+ * Groups positions by family, preserving each family's first-appearance
+ * order and each member's original relative order within its family —
+ * grouping only ever reorders for READING clarity, it never drops,
+ * merges or renumbers a role. Returns null when grouping would not help
+ * (fewer than 2 distinct families, e.g. a small or homogeneous
+ * requirement) so callers can fall back to the plain flat list.
+ */
+function groupPositionsByFamily(positions: AdvertisementFacts["positions"]): RoleFamilyGroup[] | null {
+  const order: string[] = [];
+  const byLabel = new Map<string, number[]>();
+  positions.forEach((p, idx) => {
+    const label = classifyRoleFamily(p.title);
+    if (!byLabel.has(label)) {
+      byLabel.set(label, []);
+      order.push(label);
+    }
+    byLabel.get(label)!.push(idx);
+  });
+  if (order.length < 2) return null;
+
+  return order.map((label) => {
+    const positionIndexes = byLabel.get(label)!;
+    // A qualification is "common" only when it is the SAME verified text
+    // on 2+ members of this family — never a summary, never invented.
+    const counts = new Map<string, number>();
+    for (const idx of positionIndexes) {
+      const q = positions[idx].qualification?.trim();
+      if (!q) continue;
+      const key = q.toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    let commonQualification: string | null = null;
+    for (const idx of positionIndexes) {
+      const q = positions[idx].qualification?.trim();
+      if (q && (counts.get(q.toLowerCase()) ?? 0) >= 2) {
+        commonQualification = q;
+        break;
+      }
+    }
+    return { label, positionIndexes, commonQualification };
+  });
+}
+
+/**
  * Plans the body before anything is drawn (KDL §10.2.1). Column count is
  * chosen so the longest verified title fits at the legibility floor, which
  * is what makes truncation impossible.
@@ -780,8 +867,23 @@ function planBody(
     salaryW = hasSalary ? Math.max(Math.round(colW * 0.34), salaryNeed + Math.round(gutter / 2)) : 0;
   }
 
+  // Role-family grouping ("define the JD group-wise, show what's
+  // common"): only for POSTER, and only once there's enough content to
+  // organise — a 2-3 role requirement reads fine flat. Forces a single
+  // column: splitting family sections across a height-balanced
+  // multi-column layout would either duplicate a header at the top of
+  // two columns or separate a family from its own common-requirement
+  // line. Every position still gets its own row with its own exact
+  // vacancy count — grouping only ever reorders for readability.
+  const grouped = poster && facts.positions.length >= 4 ? groupPositionsByFamily(facts.positions) : null;
+  if (grouped) {
+    cols = 1;
+    colW = contentW;
+    salaryW = hasSalary ? Math.max(Math.round(colW * 0.34), salaryNeed + Math.round(gutter / 2)) : 0;
+  }
+
   const anyDetail = showDetail && facts.positions.some((p) => roleDetail(p));
-  const rowHeights = facts.positions.map((p) => {
+  const positionRowHeight = (p: AdvertisementFacts["positions"][number]) => {
     const lines = Math.min(
       MAX_LINES,
       wrapLines(measuredTitle(p), colW - badgeW - salaryW, titleSize).length,
@@ -789,12 +891,42 @@ function planBody(
     return Math.round(
       titleSize * lineFactor * lines + (anyDetail && roleDetail(p) ? detailSize * 1.3 : 0) + rowGap,
     );
-  });
-  const perCol = Math.ceil(facts.positions.length / cols);
-  const columns = splitColumnsByHeight(rowHeights, cols);
-  const listH = Math.max(
-    ...columns.map((col) => col.reduce((sum, idx) => sum + rowHeights[idx], 0)),
-  );
+  };
+
+  let rowHeights: number[];
+  let columns: number[][];
+  let listH: number;
+  let perCol: number;
+  let groupedEntries: BodyEntry[] | null = null;
+
+  if (grouped) {
+    const familyHeaderH = Math.round(detailSize * 1.9 + rowGap);
+    const commonLineH = Math.round(detailSize * 1.5 + rowGap);
+    const entries: BodyEntry[] = [];
+    const heights: number[] = [];
+    for (const family of grouped) {
+      entries.push({ kind: "familyHeader", label: family.label });
+      heights.push(familyHeaderH);
+      for (const idx of family.positionIndexes) {
+        entries.push({ kind: "position", idx });
+        heights.push(positionRowHeight(facts.positions[idx]));
+      }
+      if (family.commonQualification) {
+        entries.push({ kind: "common", text: `Common requirement: ${family.commonQualification}` });
+        heights.push(commonLineH);
+      }
+    }
+    groupedEntries = entries;
+    rowHeights = heights;
+    columns = [grouped.flatMap((f) => f.positionIndexes)];
+    listH = heights.reduce((sum, h) => sum + h, 0);
+    perCol = facts.positions.length;
+  } else {
+    rowHeights = facts.positions.map(positionRowHeight);
+    perCol = Math.ceil(facts.positions.length / cols);
+    columns = splitColumnsByHeight(rowHeights, cols);
+    listH = Math.max(...columns.map((col) => col.reduce((sum, idx) => sum + rowHeights[idx], 0)));
+  }
   const rowH = rowHeights[0] ?? 0;
 
   const headingH = Math.round(px(T.H2) * 1.6);
@@ -833,6 +965,7 @@ function planBody(
     rowGap, badgeW, salaryW, hasSalary, perCol, columns, rowH, rowHeights, listH, headingH, extraH, floor, lineFactor,
     maxLines: MAX_LINES,
     bodyH: headingH + listH + extraH,
+    groupedEntries,
   };
 }
 
@@ -2178,56 +2311,107 @@ function renderPosterBody(
   // and the drawing never disagree about where content actually starts.
   const startY = heroPx + plan.headingH + px(0.014);
 
-  for (let c = 0; c < cols; c++) {
-    const colX = margin + c * (colW + gutter);
-    let rowTopCursor = startY;
-    // plan.columns balances each column by actual row HEIGHT, not a flat
-    // item count — a title that wraps to a second line no longer makes
-    // one column visibly taller than the other with empty space beneath
-    // the shorter one. Still strict source order: a role is never moved
-    // out of sequence, only the column boundary shifts.
-    for (const rowIndex of plan.columns[c]) {
-      const p = facts.positions[rowIndex];
-      const rowTop = rowTopCursor;
-      const cy = rowTop + Math.round(titleSize * 0.92);
-      const bs = Math.round(titleSize * 0.42);
-      // A small triangular bullet — the trade convention this whole genre
-      // uses instead of a numbered badge or a card.
+  // A single position row — the bullet, the wrapped title (with its
+  // verified vacancy count folded in) and, when the tier shows it, the
+  // per-role detail line. Shared by both the flat and the grouped
+  // layouts below so a role renders identically either way.
+  const drawPositionRow = (p: AdvertisementFacts["positions"][number], colX: number, rowTop: number, tw: number) => {
+    const cy = rowTop + Math.round(titleSize * 0.92);
+    const bs = Math.round(titleSize * 0.42);
+    // A small triangular bullet — the trade convention this whole genre
+    // uses instead of a numbered badge or a card.
+    parts.push(
+      `<path d="M ${colX} ${cy - bs} L ${colX + bs} ${cy - Math.round(bs * 0.42)} L ${colX} ${cy + Math.round(bs * 0.16)} Z" fill="${pal.accent}"/>`,
+    );
+    // Planner and renderer share one column geometry, always: plan.badgeW
+    // IS this composition's bullet + gap (see planBody), and the measure
+    // below is the exact width planBody wrapped against. Deriving a
+    // second, slightly different measure here is what let a wrapped
+    // second line escape the row box the planner had reserved.
+    const tx = colX + plan.badgeW;
+    let ly = cy;
+    // The verified vacancy count per role — "(20 NOS)" — is the trade
+    // convention this genre actually uses. Folded into the wrapped
+    // title itself rather than a separate badge, so it can never be
+    // silently dropped and is measured exactly like the rest of the line.
+    const lines = wrap(posterRoleLine(p), tw, titleSize, plan.maxLines);
+    for (const line of lines) {
+      const ls = fit(line, tw, titleSize, floor, true);
       parts.push(
-        `<path d="M ${colX} ${cy - bs} L ${colX + bs} ${cy - Math.round(bs * 0.42)} L ${colX} ${cy + Math.round(bs * 0.16)} Z" fill="${pal.accent}"/>`,
+        `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="700" ` +
+          `fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="0.5">${esc(line)}</text>`,
       );
-      // Planner and renderer share one column geometry, always: plan.badgeW
-      // IS this composition's bullet + gap (see planBody), and the measure
-      // below is the exact width planBody wrapped against. Deriving a
-      // second, slightly different measure here is what let a wrapped
-      // second line escape the row box the planner had reserved.
-      const tx = colX + plan.badgeW;
-      const tw = colW - plan.badgeW - plan.salaryW;
-      let ly = cy;
-      // The verified vacancy count per role — "(20 NOS)" — is the trade
-      // convention this genre actually uses. Folded into the wrapped
-      // title itself rather than a separate badge, so it can never be
-      // silently dropped and is measured exactly like the rest of the line.
-      const lines = wrap(posterRoleLine(p), tw, titleSize, plan.maxLines);
-      for (const line of lines) {
-        const ls = fit(line, tw, titleSize, floor, true);
+      ly += Math.round(titleSize * plan.lineFactor);
+    }
+    if (showDetail) {
+      const d = roleDetail(p);
+      if (d) {
+        const ds = fit(d, tw, detailSize, floor);
         parts.push(
-          `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="700" ` +
-            `fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="0.5">${esc(line)}</text>`,
+          `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.reversed}" fill-opacity="0.78" ${textStroke(pal.ink, ds)}>${esc(d)}</text>`,
         );
-        ly += Math.round(titleSize * plan.lineFactor);
+        ly += Math.round(detailSize * 1.3);
       }
-      if (showDetail) {
-        const d = roleDetail(p);
-        if (d) {
-          const ds = fit(d, tw, detailSize, floor);
-          parts.push(
-            `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.reversed}" fill-opacity="0.78" ${textStroke(pal.ink, ds)}>${esc(d)}</text>`,
-          );
-          ly += Math.round(detailSize * 1.3);
-        }
+    }
+  };
+
+  if (plan.groupedEntries) {
+    // Role-family grouping: one flowing column — a family header, its
+    // roles (each still its own row with its own exact vacancy count),
+    // then, only when genuinely shared, one "Common requirement" line
+    // for that family. Every position from plan.groupedEntries is drawn
+    // exactly once; grouping only ever reorders and labels, it never
+    // drops or merges a verified fact.
+    const colX = margin;
+    const tw = colW - plan.badgeW - plan.salaryW;
+    let rowTopCursor = startY;
+    for (let i = 0; i < plan.groupedEntries.length; i++) {
+      const entry = plan.groupedEntries[i];
+      const h = plan.rowHeights[i];
+      if (entry.kind === "familyHeader") {
+        const fy = rowTopCursor + Math.round(detailSize * 1.1);
+        parts.push(
+          `<text x="${colX}" y="${fy}" font-family="KaiSans, sans-serif" font-size="${detailSize}" ` +
+            `font-weight="700" letter-spacing="1" fill="${pal.accent}" ${textStroke(pal.ink, detailSize)}>${esc(entry.label)}</text>`,
+        );
+        // Anchored to the BOTTOM of this row's own reserved height, not
+        // offset from the text baseline — a baseline-relative offset sat
+        // close enough to overlap glyph descenders once stroke width was
+        // added to the label text.
+        const ruleY = rowTopCursor + h - 4;
+        parts.push(
+          `<rect x="${colX}" y="${ruleY}" width="${Math.round(tw * 0.14)}" height="2" fill="${pal.accent}" fill-opacity="0.6"/>`,
+        );
+      } else if (entry.kind === "position") {
+        drawPositionRow(facts.positions[entry.idx], colX, rowTopCursor, tw);
+      } else {
+        // Common requirement — the one shared qualification this family's
+        // members actually carry, verbatim, never a paraphrase.
+        const cy = rowTopCursor + Math.round(detailSize * 1.05);
+        const cs = Math.max(floor, Math.round(detailSize * 0.94));
+        parts.push(
+          `<text x="${colX}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${cs}" font-style="italic" ` +
+            `fill="${pal.reversed}" fill-opacity="0.72" ${textStroke(pal.ink, cs)}>${esc(entry.text)}</text>`,
+        );
       }
-      rowTopCursor += plan.rowHeights[rowIndex] ?? Math.max(ly - rowTop, 1);
+      rowTopCursor += h;
+    }
+  } else {
+    for (let c = 0; c < cols; c++) {
+      const colX = margin + c * (colW + gutter);
+      let rowTopCursor = startY;
+      // plan.columns balances each column by actual row HEIGHT, not a flat
+      // item count — a title that wraps to a second line no longer makes
+      // one column visibly taller than the other with empty space beneath
+      // the shorter one. Still strict source order: a role is never moved
+      // out of sequence, only the column boundary shifts.
+      for (const rowIndex of plan.columns[c]) {
+        const p = facts.positions[rowIndex];
+        const rowTop = rowTopCursor;
+        const tw = colW - plan.badgeW - plan.salaryW;
+        drawPositionRow(p, colX, rowTop, tw);
+        rowTopCursor += plan.rowHeights[rowIndex] ?? Math.max(titleSize, 1);
+      }
     }
   }
 
