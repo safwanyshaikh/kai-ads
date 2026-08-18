@@ -26,6 +26,7 @@ import { runTrustCheck } from "@/server/generation/trust-validation.service";
 import { isValidThemeKey } from "@/server/generation/theme-recommendation.service";
 import {
   getPlatformFormat,
+  socialFeedMaxHeightPx,
   isValidPlatformFormatKey,
 } from "@/lib/platform-formats";
 import { ImageProviderNotImplementedError } from "@/server/ai/image";
@@ -300,6 +301,14 @@ export const advertisementGenerationService = {
 
             footerStyle:
               agency.footerStyle,
+
+            // Social Format Law (LOCKED) — null for Story/DTP/other
+            // formats, which this law does not constrain.
+            socialFeedMaxHeightPx:
+              socialFeedMaxHeightPx(
+                platformFormat.family,
+                platformFormat.widthPx,
+              ),
           },
         );
 

@@ -106,6 +106,15 @@ export interface GeneratePipelineInput {
   footerStyle?: FooterStyle | null;
 
   brandBadges?: string[] | null;
+
+  /**
+   * Social Format Law (LOCKED) — the hard vertical ceiling for a
+   * SOCIAL_FEED render (see socialFeedMaxHeightPx in
+   * src/lib/platform-formats.ts). Omit for Story/print/other formats,
+   * which are not subject to this law. See fact-layer.ts's own field of
+   * the same name for the full behaviour.
+   */
+  socialFeedMaxHeightPx?: number | null;
 }
 
 export interface GeneratePipelineResult {
@@ -355,6 +364,7 @@ export async function generateAdvertisement(
       widthPx: input.widthPx,
       heightPx: input.heightPx,
       headerZoneHasStrongSubject,
+      socialFeedMaxHeightPx: input.socialFeedMaxHeightPx ?? null,
     });
 
   const canvasHeightPx =

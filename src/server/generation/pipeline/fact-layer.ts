@@ -2,6 +2,7 @@ import "../font-config"; // FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
 import { brandingStripHeight } from "./branding-overlay";
 import { displayTitle } from "@/lib/display-title";
+import { isApprovedDtpWidthPx, nearestApprovedDtpSlot, DTP_DEFAULT_DPI } from "@/lib/dtp-format-law";
 import type { AdvertisementFacts } from "./types";
 
 /**
@@ -261,7 +262,10 @@ const MAX_ASPECT = 4.0;
  * Decision Engine's pre-flight check (content-intelligence.ts) before a
  * Gemini call is even spent — same error, same law, earlier stage.
  */
-export type LayoutCapacityReason = "content-exceeds-max-tier" | undefined;
+export type LayoutCapacityReason =
+  | "content-exceeds-max-tier"
+  | "social-feed-exceeds-max-height"
+  | undefined;
 
 export class LayoutCapacityError extends Error {
   readonly code = "LAYOUT_CAPACITY";
@@ -647,6 +651,20 @@ export interface FactLayerInput {
    * only by giving the agency mark more presence.
    */
   headerZoneHasStrongSubject?: boolean;
+  /**
+   * Social Format Law (LOCKED): the hard vertical ceiling for a
+   * SOCIAL_FEED render — 1440px at the canonical 1080px width (see
+   * socialFeedMaxHeightPx in src/lib/platform-formats.ts). When a dense
+   * requirement would need more room than this, the canvas does NOT
+   * keep growing past it — generation fails closed with
+   * LayoutCapacityError (reason: "social-feed-exceeds-max-height"),
+   * exactly the same fail-closed discipline the print fillSlot path
+   * already uses for a booked physical slot. Omitted entirely for
+   * SOCIAL_STORY/SOCIAL_OTHER formats and for print (printOrNewspaper),
+   * which keep their own existing behaviour — this is never applied
+   * outside the Social Feed family.
+   */
+  socialFeedMaxHeightPx?: number | null;
 }
 
 export interface FactLayerResult {
@@ -1432,6 +1450,19 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   }
 
   if (fillSlot) {
+    // DTP Format Law (LOCKED): the renderer must select an approved
+    // physical slot before rendering — never an arbitrary giant canvas.
+    // Checked against the Assignments Abroad Times appointment-ad
+    // column widths (2/4/6/8/10 columns = 6.0/12.7/19.4/26.1/32.8cm) at
+    // the request's own DPI (standard newsprint 300dpi when unspecified).
+    const dpi = input.dpi ?? DTP_DEFAULT_DPI;
+    if (!isApprovedDtpWidthPx(W, dpi)) {
+      const nearest = nearestApprovedDtpSlot(W, dpi);
+      throw new LayoutCapacityError([
+        `${W}px at ${dpi}dpi is not an approved DTP column width. The nearest approved slot is ` +
+          `${nearest.columns} columns (${nearest.widthCm}cm) — select an approved physical slot before rendering.`,
+      ]);
+    }
     H = input.heightPx;
     const stripFixed = brandingStripHeight(W, H, hasContact);
     // In a bought slot the masthead scales to the column, not the other way
@@ -1504,6 +1535,23 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       plan.listH += add * rowsPerCol;
       plan.bodyH += add * rowsPerCol;
     }
+  }
+
+  // Social Format Law: a SOCIAL_FEED render has a hard ceiling well
+  // below the generic MAX_ASPECT bound — checked first (it is always
+  // the tighter of the two whenever it applies) so a dense requirement
+  // never grows into an A4-like poster under the Feed format. Print
+  // (fillSlot) is never subject to this — it has its own physical-slot
+  // capacity law below.
+  if (input.socialFeedMaxHeightPx && H > input.socialFeedMaxHeightPx && !fillSlot) {
+    throw new LayoutCapacityError(
+      [
+        `${total} positions need a ${H}px canvas at minimum readability, beyond the Social Feed format's ` +
+          `${input.socialFeedMaxHeightPx}px hard ceiling. Move this requirement to Story/Reel (1080x1920) or a DTP ` +
+          `print slot, or reduce the requirement.`,
+      ],
+      "social-feed-exceeds-max-height",
+    );
   }
 
   if (H > W * MAX_ASPECT && !fillSlot) {

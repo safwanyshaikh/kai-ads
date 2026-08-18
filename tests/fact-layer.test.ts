@@ -142,9 +142,10 @@ describe("Fact Layer — commercial readiness fixes (Step 4)", () => {
   });
 
   it("FIX 1: an explicit printOrNewspaper request can still reach AAT_DTP", async () => {
+    // 1500px @ 300dpi = 12.7cm — an approved DTP column width (4 columns).
     const r = await renderFactLayer({
       facts: facts(18),
-      widthPx: 1080,
+      widthPx: 1500,
       heightPx: 1350,
       printOrNewspaper: true,
     });
@@ -175,7 +176,7 @@ describe("Fact Layer — commercial readiness fixes (Step 4)", () => {
     // actually had the defect.
     const r = await renderFactLayer({
       facts: withSuffix,
-      widthPx: 1080,
+      widthPx: 1500, // 300dpi -> 12.7cm, an approved DTP column width
       heightPx: 1350,
       printOrNewspaper: true,
     });
@@ -186,7 +187,7 @@ describe("Fact Layer — commercial readiness fixes (Step 4)", () => {
   it("FIX 3: a legitimate project name is not destroyed just because it contains a country word elsewhere", async () => {
     const r = await renderFactLayer({
       facts: facts(5, { header: "Qatar Gas Expansion Project", country: "Qatar" }),
-      widthPx: 1080,
+      widthPx: 1500, // 300dpi -> 12.7cm, an approved DTP column width
       heightPx: 1350,
       printOrNewspaper: true,
     });
