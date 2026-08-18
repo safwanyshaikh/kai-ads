@@ -106,12 +106,39 @@ describe("Branding Overlay v2 — footer band", () => {
     expect(meta.height).toBe(heightPx);
   });
 
-  it("returns the original image untouched when no branding fields are provided", async () => {
+  it("still paints the protected trust footer band when no branding fields are provided, never a silent no-op", async () => {
+    // The footer is an unconditionally opaque, protected trust zone (see
+    // the sibling "QR never collides..." test above and LOCK 1/the Final
+    // Commercial Lock) — it is never a passthrough, even for a totally
+    // empty Agency Profile, because "leftover space" is exactly the
+    // dead-footer defect that architecture exists to prevent. A missing
+    // profile must not silently skip compositing.
     const widthPx = 1024;
     const heightPx = 1536;
     const original = await solidBackground(widthPx, heightPx);
     const result = await applyBrandingOverlay({ imagePng: original, widthPx, heightPx });
-    expect(result).toBe(original);
+
+    // Same dimensions, but genuinely different pixels — the navy/gold
+    // footer chrome always composites over the source.
+    const meta = await sharp(result).metadata();
+    expect(meta.width).toBe(widthPx);
+    expect(meta.height).toBe(heightPx);
+    expect(result.equals(original)).toBe(false);
+
+    // The footer band itself: solid navy (not the plain background colour)
+    // with the gold top rule, painted fully opaque.
+    const footerHeightPx = Math.min(300, Math.max(250, Math.round(widthPx * 0.25)));
+    const { data, info } = await sharp(result)
+      .extract({ left: 0, top: heightPx - footerHeightPx, width: widthPx, height: footerHeightPx })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const midRow = Math.round(footerHeightPx / 2);
+    const i = (midRow * info.width + Math.round(info.width / 2)) * info.channels;
+    // Solid background was (30,40,60) — the footer paints its own navy
+    // gradient (#0B1F33 -> #102A44), fully opaque (alpha 255).
+    expect(data[i + 3]).toBe(255);
+    expect([data[i], data[i + 1], data[i + 2]]).not.toEqual([30, 40, 60]);
   });
 });
 

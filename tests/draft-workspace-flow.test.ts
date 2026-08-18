@@ -18,7 +18,10 @@ describe("Create Advertisement presentation flow", () => {
 
   it("routes extraction failures to recovery, never straight to the editor", () => {
     // Both hard-failure branches (request failed, unparseable payload).
-    const failureBranches = source.match(/setStep\("recovery"\)/g) ?? [];
+    // Whitespace-tolerant: this codebase's own formatting puts a single
+    // call argument on its own line (`setStep(\n  "recovery",\n)`), not
+    // just the single-line `setStep("recovery")` form.
+    const failureBranches = source.match(/setStep\(\s*"recovery"\s*,?\s*\)/g) ?? [];
     expect(failureBranches.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -29,8 +32,10 @@ describe("Create Advertisement presentation flow", () => {
   });
 
   it("only reaches the manual editor through an explicit choice or a partial result", () => {
-    // handleContinueManually is the sole path that promotes recovery to manual.
-    expect(source).toMatch(/function handleContinueManually\(\)[\s\S]*?setStep\("manual"\)/);
+    // handleContinueManually is the sole path that promotes recovery to
+    // manual — whitespace-tolerant for the same multi-line call-argument
+    // formatting as above.
+    expect(source).toMatch(/function handleContinueManually\(\)[\s\S]*?setStep\(\s*"manual"\s*,?\s*\)/);
   });
 
   it("speaks to the recruiter rather than naming internal pipeline stages", () => {

@@ -52,9 +52,11 @@ describe("Branding Engine reads the Agency Profile", () => {
   });
 
   it("lets a per-campaign contact override the profile", () => {
-    // Advertisement value first, profile second — an override, not the default.
-    expect(service).toMatch(/contact\.phone \?\? agency\.phone/);
-    expect(service).toMatch(/contact\.email \?\? agency\.officialEmail/);
+    // Advertisement value first, profile second — an override, not the
+    // default. Whitespace is tolerant of the codebase's own formatting
+    // (each `??` operand on its own line), not just a single-line style.
+    expect(service).toMatch(/contact\.phone\s*\?\?\s*agency\.phone/);
+    expect(service).toMatch(/contact\.email\s*\?\?\s*agency\.officialEmail/);
   });
 
   it("prints office address and website from the profile", () => {

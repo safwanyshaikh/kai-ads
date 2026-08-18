@@ -252,8 +252,18 @@ export function brandingStripHeight(
   );
 }
 
+/**
+ * Stale since footerHeight() became width-proportional (25% of width,
+ * clamped 250-300px) rather than height-proportional: the footer's share
+ * of canvas HEIGHT now varies by aspect ratio instead of being a fixed
+ * percentage, and is largest (worst case, for any caller that wants a
+ * safe upper bound) exactly when width == height, where it is precisely
+ * 25% — the value below. Not consumed anywhere in the pipeline itself
+ * (`brandingStripHeight` is the real, current source of truth); retained
+ * as a documented compatibility constant for existing callers/tests.
+ */
 export const BRANDING_RESERVED_HEIGHT_PCT =
-  10.5;
+  25;
 
 /* -------------------------------------------------------------------------- */
 /* TRUST FOOTER                                                                */

@@ -514,13 +514,23 @@ export function resolveAuthHostConfig(
   /**
    * IMPORTANT:
    *
-   * Production always falls back to the permanent KAI URL.
+   * Production prefers Vercel's own stable production-project host
+   * (VERCEL_PROJECT_PRODUCTION_URL) — that is the project's real served
+   * domain, not an ephemeral deployment URL — over both a manually-set
+   * BETTER_AUTH_URL (which is easy to leave stale/pointed at a
+   * placeholder — see the test with that exact name) and the generic
+   * KAI_CANONICAL_URL constant, which is only the last-resort default
+   * for a production deployment that hasn't told us its real host at
+   * all.
    *
-   * It does NOT fall back to a temporary Vercel deployment URL.
+   * It does NOT fall back to a temporary Vercel deployment URL
+   * (VERCEL_URL / VERCEL_BRANCH_URL) — those change on every deploy.
    */
   const fallback =
     isProductionDeployment
-      ? KAI_CANONICAL_URL
+      ? env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : KAI_CANONICAL_URL
       : env.BETTER_AUTH_URL ??
         env.APP_URL ??
         "http://localhost:3000";

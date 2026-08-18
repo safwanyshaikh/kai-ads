@@ -65,9 +65,11 @@ describe("Reserved branding strip", () => {
     // 1024x3084: a purely height-proportional band would be ~540px tall and
     // its agency name and contact line would overflow horizontally.
     expect(brandingStripHeight(1024, 3084, true)).toBeLessThan(Math.round(3084 * 0.175));
-    // On a square canvas the original proportional geometry is unchanged.
-    expect(brandingStripHeight(1024, 1024, true)).toBe(
-      Math.round(1024 * 0.13) + Math.round(1024 * 0.045),
-    );
+    // footerHeight is width-proportional (25% of width, clamped
+    // 250-300px) — height is not a factor at all, so the same 1024px
+    // width produces the same strip height regardless of canvas height.
+    const expectedAt1024Width = Math.min(300, Math.max(250, Math.round(1024 * 0.25)));
+    expect(brandingStripHeight(1024, 1024, true)).toBe(expectedAt1024Width);
+    expect(brandingStripHeight(1024, 3084, true)).toBe(expectedAt1024Width);
   });
 });
