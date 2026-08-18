@@ -316,6 +316,24 @@ export async function generateAdvertisement(
 
   /**
    * ------------------------------------------------------------------------
+   * STEP 5.4 — HEADER SAFE ZONE: READ GEMINI'S OWN ARTWORK
+   * ------------------------------------------------------------------------
+   *
+   * Final Commercial Layout Lock: measures whether Gemini's own header
+   * band already carries a strong visual subject, so the deterministic
+   * header treatment below can adapt WITHOUT ever cropping, replacing or
+   * second-guessing Gemini's creative work — see
+   * assessHeaderZoneVisualWeight and fact-layer.ts's
+   * headerZoneHasStrongSubject.
+   */
+  const headerZoneHasStrongSubject =
+    await assessHeaderZoneVisualWeight(
+      normalizedArtwork,
+      input.widthPx,
+    );
+
+  /**
+   * ------------------------------------------------------------------------
    * STEP 5.5 — KAI DETERMINISTIC FACT LAYER
    * ------------------------------------------------------------------------
    *
@@ -336,6 +354,7 @@ export async function generateAdvertisement(
       facts: input.facts,
       widthPx: input.widthPx,
       heightPx: input.heightPx,
+      headerZoneHasStrongSubject,
     });
 
   const canvasHeightPx =
@@ -748,6 +767,52 @@ function cleanOptional(
  * canvas-height solve), so exact texture there matters far less than
  * never touching the photograph itself.
  */
+/**
+ * Header Safe Zone (Final Commercial Layout Lock) — reads whether
+ * Gemini's own artwork already carries a strong visual subject in the
+ * top header band (roughly the top 0.34 of canvas width, matching
+ * fact-layer.ts's posterPhotoBand — an approximation is fine here since
+ * this only decides how much presence the identity mark gets, not any
+ * geometry). A flat sky/gradient/plain surface has very low local
+ * luminance variance; real photographic subject matter — machinery,
+ * people, structure, texture — produces meaningfully more. Defaults to
+ * "has a strong subject" (the safe, minimal-treatment reading) whenever
+ * the artwork is too short to sample a header band at all.
+ */
+export async function assessHeaderZoneVisualWeight(
+  artwork: Buffer,
+  widthPx: number,
+): Promise<boolean> {
+  const meta = await sharp(artwork).metadata();
+  const height = meta.height ?? widthPx;
+  const bandHeight = Math.min(height, Math.round(widthPx * 0.34));
+  if (bandHeight < 4) return true;
+
+  const { data, info } = await sharp(artwork)
+    .extract({ left: 0, top: 0, width: widthPx, height: bandHeight })
+    .resize(48, 48, { fit: "fill" })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  let sum = 0;
+  const lumas: number[] = [];
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i] / 255;
+    const g = data[i + 1] / 255;
+    const b = data[i + 2] / 255;
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    lumas.push(luma);
+    sum += luma;
+  }
+  const mean = sum / lumas.length;
+  const variance = lumas.reduce((acc, l) => acc + (l - mean) ** 2, 0) / lumas.length;
+  const stdDev = Math.sqrt(variance);
+
+  const HEADER_FLAT_STDDEV_THRESHOLD = 0.05;
+  return stdDev >= HEADER_FLAT_STDDEV_THRESHOLD;
+}
+
 export async function extendCanvasHeight(
   image: Buffer,
   widthPx: number,

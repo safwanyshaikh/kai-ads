@@ -632,6 +632,21 @@ export interface FactLayerInput {
   theme?: AdTheme | null;
   /** Explicit print / newspaper destination — forces the AAT/DTP language. */
   printOrNewspaper?: boolean;
+  /**
+   * Header Safe Zone (Final Commercial Layout Lock): whether Gemini's own
+   * artwork already carries a strong visual subject in the top header
+   * band. Measured upstream (see generate.ts's `assessHeaderZoneVisualWeight`)
+   * from the ACTUAL composited artwork — this module never sees pixels,
+   * it only reads this one signal. When `true` or omitted (the default,
+   * used by every caller that renders standalone — tests, previews — and
+   * has no artwork to measure), the header stays minimal so it never
+   * competes with or obscures a real photographic subject. When
+   * explicitly `false` (Gemini's own header band measured flat/empty),
+   * the identity treatment is allowed to claim a little more of that
+   * otherwise-wasted space — never by cropping or replacing the artwork,
+   * only by giving the agency mark more presence.
+   */
+  headerZoneHasStrongSubject?: boolean;
 }
 
 export interface FactLayerResult {
@@ -1162,12 +1177,28 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const heroCap = Math.round(
     (dense ? L.heroCapDense * 0.6 : L.heroCapSparse * (spare ? 1 : 0.81)) * W,
   );
-  // POSTER's photo band is a fixed, modest proportion of WIDTH — not of
-  // the still-unsolved canvas height, and not derived from hero.contentH
-  // the way heroCap is. The panel beneath it is what actually needs to
-  // grow with content, so the photo band must be a stable, independent
+  // POSTER's photo band is a proportion of WIDTH — not of the
+  // still-unsolved canvas height, and not derived from hero.contentH the
+  // way heroCap is. The panel beneath it is what actually needs to grow
+  // with content, so the photo band must be a stable, independent
   // quantity the solve below can safely add to.
-  const posterPhotoBand = Math.round(0.34 * W);
+  //
+  // Header Safe Zone (Final Commercial Layout Lock): the band is no
+  // longer one fixed fraction regardless of the requirement. A dense
+  // T3/T4 list needs its vertical room going to the body, not to a full
+  // 0.34W of header that dwarfs the single-line agency mark actually
+  // drawn there — so the band compresses modestly as density rises. It
+  // never compresses so far that it would crowd the seam or crop the
+  // hero photo; this only ever shrinks the RESERVE, the artwork itself
+  // is never touched or cropped.
+  const HEADER_DENSITY_FACTOR = tier === "T1" || tier === "T2" ? 1 : tier === "T3" ? 0.92 : 0.85;
+  const posterPhotoBand = Math.round(0.34 * W * HEADER_DENSITY_FACTOR);
+  // Signal from generate.ts, measured from Gemini's ACTUAL artwork in the
+  // header band (see assessHeaderZoneVisualWeight). Absent a signal
+  // (standalone renders — tests, previews, no artwork to measure) this
+  // defaults to "assume a real subject is there" so the header treatment
+  // never grows on a guess and risks fighting real photography.
+  const headerZoneHasStrongSubject = input.headerZoneHasStrongSubject ?? true;
   let plan = planBody(dna, facts, tier, W, dense, undefined, false, input.dpi);
   // Every reference recruitment poster leads with the DESTINATION, not
   // with a free-text requirement headline — "SAUDI ARABIA" huge, the
@@ -1591,6 +1622,25 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     parts.push(
       `<line x1="0" y1="${edgeLeft}" x2="${W}" y2="${edgeRight}" stroke="${pal.accent}" stroke-width="${Math.max(2, Math.round(W * 0.0028))}"/>`,
     );
+    // Header Safe Zone: when Gemini's own header-band artwork measured
+    // flat (no strong subject — see headerZoneHasStrongSubject), give
+    // that space a little more intentional presence instead of leaving
+    // it read as empty. This is a soft, full-width accent band at the
+    // BASE of the photo band only — never a solid overlay, never a crop,
+    // never touching the artwork itself — so full-bleed photography is
+    // still visible through it wherever Gemini did paint something.
+    if (!headerZoneHasStrongSubject) {
+      parts.push(
+        `<defs><linearGradient id="headerBase" x1="0" y1="0" x2="0" y2="1">` +
+          `<stop offset="0" stop-color="${pal.ink}" stop-opacity="0"/>` +
+          `<stop offset="1" stop-color="${pal.ink}" stop-opacity="0.22"/>` +
+          `</linearGradient></defs>`,
+      );
+      const headerBaseH = Math.round(posterPhotoBand * 0.32);
+      parts.push(
+        `<rect x="0" y="${Math.max(0, panelTop - headerBaseH)}" width="${W}" height="${headerBaseH}" fill="url(#headerBase)"/>`,
+      );
+    }
     // The identity panel: brand ink as a GRADIENT scrim, not a lid.
     //
     // Painted fully opaque, this polygon used to cover every pixel of
@@ -1669,13 +1719,38 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // other fact in this file already has, and matches how the reference
     // genre itself always sets agency identity on its own contrast card
     // rather than bare on the photo.
-    const markSize = Math.max(plan.floor, px(T.Caption));
-    const markPadX = Math.round(markSize * 0.7);
-    const markPadY = Math.round(markSize * 0.55);
+    // Header Safe Zone: a modestly larger mark when Gemini's own header
+    // band is flat/empty — claiming a bit more of that otherwise-wasted
+    // space for the one piece of identity content that already lives
+    // there, never by adding new content, only by giving it more weight.
+    const headerMarkScale = headerZoneHasStrongSubject ? 1 : 1.15;
     const markText = facts.agencyName.toUpperCase();
-    const markTextW = Math.ceil(textWidth(markText, markSize, false)) + Math.round(markSize * 0.4); // letter-spacing
-    const chipW = markTextW + markPadX * 2;
-    const chipH = markSize + markPadY * 2;
+    // letter-spacing="2" below adds a literal 2px between EVERY character
+    // pair — a reserve that must scale with the string's own length, not
+    // a fixed fraction of font size, or a long agency name silently runs
+    // the chip's text past its own background rectangle.
+    const letterSpacingReserve = () => Math.round(Math.max(0, markText.length - 1) * 2.1);
+    const measureChip = (size: number) => {
+      const padX = Math.round(size * 0.7);
+      const padY = Math.round(size * 0.55);
+      const textW = Math.ceil(textWidth(markText, size, false)) + letterSpacingReserve();
+      return { padX, padY, textW, chipW: textW + padX * 2, chipH: size + padY * 2 };
+    };
+    // Never let the identity chip run past the safe margin — shrink
+    // (never truncate) until it fits, exactly like every other text
+    // element in this file.
+    const maxChipW = Math.round(W - margin * 2);
+    let markSize = Math.max(plan.floor, Math.round(px(T.Caption) * headerMarkScale));
+    let chip = measureChip(markSize);
+    while (chip.chipW > maxChipW && markSize > plan.floor) {
+      markSize -= 1;
+      chip = measureChip(markSize);
+    }
+    const markPadX = chip.padX;
+    const markPadY = chip.padY;
+    const markTextW = chip.textW;
+    const chipW = chip.chipW;
+    const chipH = chip.chipH;
     const chipX = margin;
     const chipY = Math.round(margin * 0.55);
     parts.push(

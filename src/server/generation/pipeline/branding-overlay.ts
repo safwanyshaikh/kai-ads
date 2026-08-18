@@ -352,17 +352,6 @@ async function renderTrustFooter(
       input.registrationNumber,
     );
 
-  // Verified Agency Profile only — see the interface doc comment.
-  // Joined onto one line the same way the (now-removed) campaign contact
-  // line combined multiple pieces, so an agency with both still reads as
-  // one tidy line rather than two.
-  const officialContact = [
-    cleanText(input.officialPhone),
-    cleanText(input.officialEmail),
-  ]
-    .filter(Boolean)
-    .join("   ·   ");
-
   const website = cleanText(input.website);
 
   const address =
@@ -485,10 +474,6 @@ async function renderTrustFooter(
   // in both modes.
   const AGENCY_NAME_SIZE = 36;
   const REGISTRATION_LABEL_SIZE = 12;
-  const REGISTRATION_SIZE = 14;
-  const CONTACT_SIZE = 13;
-  const WEBSITE_SIZE = 12;
-  const ADDRESS_SIZE = 11;
 
   // Wide mode's contact column has real room to spare (that's the whole
   // point of the two-column composition) — sized larger than the compact
@@ -500,12 +485,133 @@ async function renderTrustFooter(
   const WIDE_ADDRESS_SIZE = 14;
   const WIDE_WEBSITE_SIZE = 15;
 
+  // Compact mode's own, smaller sizes — "compact footer = use the height":
+  // still a real, comfortable size (not the narrow-box minimums the old
+  // single-line layout used), just not the wide column's larger scale.
+  const COMPACT_REGISTRATION_SIZE = 15;
+  const COMPACT_CONTACT_SIZE = 13;
+  const COMPACT_ADDRESS_SIZE = 11;
+  const COMPACT_WEBSITE_SIZE = 12;
+
   const IDENTITY_MIN_WIDTH = 260;
   const CONTACT_MIN_WIDTH = 220;
   const COLUMN_GAP = Math.max(20, Math.round(widthPx * 0.025));
+  // The identity column's own floor size (matches buildIdentityLines'
+  // agency-name minSize below) — used to measure how much width the
+  // agency name genuinely needs before ever deciding a two-column split
+  // can hold it without running into the contact column.
+  const AGENCY_NAME_FLOOR = 18;
 
-  const hasContactFields = Boolean(officialContact || website || address);
-  const isWide = hasContactFields && textWidth >= IDENTITY_MIN_WIDTH + COLUMN_GAP + CONTACT_MIN_WIDTH;
+  const officialEmailValue = cleanText(input.officialEmail);
+  const officialPhoneValue = cleanText(input.officialPhone);
+  const hasContactFields = Boolean(officialEmailValue || officialPhoneValue || website || address);
+
+  // Responsive Rule (Final Commercial Layout Lock §7): measure the ACTUAL
+  // available space, not an arbitrary percentage. A long agency name at
+  // its readable floor can need more than IDENTITY_MIN_WIDTH's generic
+  // minimum — sizing the identity column off ONLY a fixed fraction of
+  // textWidth let a long name overflow into the contact column, which
+  // fitFont's shrink-to-floor couldn't rescue once the floor itself no
+  // longer fit. The column is now sized to whichever is larger — the
+  // generic minimum, or what this specific agency name needs — and WIDE
+  // is only chosen when the contact column still has genuine room left
+  // over, not merely when the raw total width crosses a threshold.
+  const agencyNameFloorWidth = agencyName
+    ? Math.ceil(estimateTextWidth(agencyName, AGENCY_NAME_FLOOR, "700"))
+    : 0;
+  const identityColWidth = Math.max(
+    IDENTITY_MIN_WIDTH,
+    agencyNameFloorWidth + Math.round(AGENCY_NAME_FLOOR * 0.7) * 2,
+    Math.round(textWidth * 0.52),
+  );
+  const contactColWidth = textWidth - identityColWidth - COLUMN_GAP;
+  const isWide = hasContactFields && contactColWidth >= CONTACT_MIN_WIDTH;
+
+  // ONE responsive system, not two unrelated footer designs (Final
+  // Commercial Layout Lock §6): both wide and compact render the exact
+  // same labelled fields, in the exact same priority order — "MEA / RA
+  // REGISTRATION:" label + the full number, then Official Email / Phone
+  // per WhatsApp / Registered Address / Website, each its own line. The
+  // only difference is whether they sit in one stacked column or split
+  // across two, and at what size.
+  function buildIdentityLines(registrationSize: number): FooterLine[] {
+    const lines: FooterLine[] = [];
+    if (agencyName) {
+      lines.push({
+        text: agencyName,
+        size: AGENCY_NAME_SIZE,
+        minSize: 18,
+        weight: "700",
+        opacity: 1,
+        gapMultiplier: 1.25,
+        letterSpacing: "0.2",
+      });
+    }
+    if (registration) {
+      lines.push({
+        text: "MEA / RA REGISTRATION:",
+        size: REGISTRATION_LABEL_SIZE,
+        minSize: 9,
+        weight: "600",
+        opacity: 0.7,
+        gapMultiplier: 1.15,
+      });
+      lines.push({
+        text: registration,
+        size: registrationSize,
+        minSize: 10,
+        weight: "600",
+        opacity: 0.92,
+        gapMultiplier: 1,
+      });
+    }
+    return lines;
+  }
+
+  function buildContactLines(contactSize: number, addressSize: number, websiteSize: number): FooterLine[] {
+    const lines: FooterLine[] = [];
+    if (officialEmailValue) {
+      lines.push({
+        text: `Official Email: ${officialEmailValue}`,
+        size: contactSize,
+        minSize: 9,
+        weight: "500",
+        opacity: 0.92,
+        gapMultiplier: 1.35,
+      });
+    }
+    if (officialPhoneValue) {
+      lines.push({
+        text: `Phone / WhatsApp: ${officialPhoneValue}`,
+        size: contactSize,
+        minSize: 9,
+        weight: "500",
+        opacity: 0.92,
+        gapMultiplier: 1.35,
+      });
+    }
+    if (address) {
+      lines.push({
+        text: `Registered Address: ${address}`,
+        size: addressSize,
+        minSize: 8,
+        weight: "500",
+        opacity: 0.75,
+        gapMultiplier: 1.35,
+      });
+    }
+    if (website) {
+      lines.push({
+        text: `Website: ${website}`,
+        size: websiteSize,
+        minSize: 8,
+        weight: "500",
+        opacity: 0.75,
+        gapMultiplier: 1,
+      });
+    }
+    return lines;
+  }
 
   interface FooterLine {
     text: string;
@@ -525,7 +631,7 @@ async function renderTrustFooter(
    */
   function drawColumn(x: number, maxWidth: number, lines: FooterLine[]): void {
     if (lines.length === 0) return;
-    const fitted = lines.map((l) => ({ ...l, font: fitFont(l.text, maxWidth, l.size, l.minSize) }));
+    const fitted = lines.map((l) => ({ ...l, font: fitFont(l.text, maxWidth, l.size, l.minSize, l.weight) }));
     const blockHeight = fitted.reduce(
       (sum, l, i) => sum + (i === fitted.length - 1 ? l.font : Math.round(l.font * l.gapMultiplier)),
       0,
@@ -549,151 +655,28 @@ async function renderTrustFooter(
   }
 
   if (isWide) {
-    // LEFT: primary Agency Identity block — name, then the FULL verified
-    // registration number on its own label + value line (never merged
-    // into a truncated "REG. 1234" form).
-    const identityColWidth = Math.max(
-      IDENTITY_MIN_WIDTH,
-      Math.round(textWidth * 0.52),
-    );
-    const contactColWidth = textWidth - identityColWidth - COLUMN_GAP;
+    // LEFT: primary Agency Identity block. RIGHT: contact/verification
+    // information zone, each field its own labelled line, using the
+    // space instead of stacking underneath the agency name. Column
+    // widths were already measured above (they're what decided isWide).
     const contactColX = textLeft + identityColWidth + COLUMN_GAP;
 
-    const identityLines: FooterLine[] = [];
-    if (agencyName) {
-      identityLines.push({
-        text: agencyName,
-        size: AGENCY_NAME_SIZE,
-        minSize: 20,
-        weight: "700",
-        opacity: 1,
-        gapMultiplier: 1.25,
-        letterSpacing: "0.2",
-      });
-    }
-    if (registration) {
-      identityLines.push({
-        text: "MEA / RA REGISTRATION:",
-        size: REGISTRATION_LABEL_SIZE,
-        minSize: 9,
-        weight: "600",
-        opacity: 0.7,
-        gapMultiplier: 1.15,
-      });
-      identityLines.push({
-        text: registration,
-        size: WIDE_REGISTRATION_SIZE,
-        minSize: 10,
-        weight: "600",
-        opacity: 0.92,
-        gapMultiplier: 1,
-      });
-    }
-    drawColumn(textLeft, identityColWidth, identityLines);
-
-    // RIGHT: contact/verification information zone — each field on its
-    // own labelled line, using the space instead of stacking underneath
-    // the agency name.
-    const contactLines: FooterLine[] = [];
-    if (cleanText(input.officialEmail)) {
-      contactLines.push({
-        text: `Official Email: ${cleanText(input.officialEmail)}`,
-        size: WIDE_CONTACT_SIZE,
-        minSize: 9,
-        weight: "500",
-        opacity: 0.92,
-        gapMultiplier: 1.35,
-      });
-    }
-    if (cleanText(input.officialPhone)) {
-      contactLines.push({
-        text: `Phone / WhatsApp: ${cleanText(input.officialPhone)}`,
-        size: WIDE_CONTACT_SIZE,
-        minSize: 9,
-        weight: "500",
-        opacity: 0.92,
-        gapMultiplier: 1.35,
-      });
-    }
-    if (address) {
-      contactLines.push({
-        text: `Registered Address: ${address}`,
-        size: WIDE_ADDRESS_SIZE,
-        minSize: 8,
-        weight: "500",
-        opacity: 0.75,
-        gapMultiplier: 1.35,
-      });
-    }
-    if (website) {
-      contactLines.push({
-        text: `Website: ${website}`,
-        size: WIDE_WEBSITE_SIZE,
-        minSize: 8,
-        weight: "500",
-        opacity: 0.75,
-        gapMultiplier: 1,
-      });
-    }
-    drawColumn(contactColX, contactColWidth, contactLines);
+    drawColumn(textLeft, identityColWidth, buildIdentityLines(WIDE_REGISTRATION_SIZE));
+    drawColumn(
+      contactColX,
+      contactColWidth,
+      buildContactLines(WIDE_CONTACT_SIZE, WIDE_ADDRESS_SIZE, WIDE_WEBSITE_SIZE),
+    );
   } else {
-    // COMPACT: single stacked identity column — every mandatory field
-    // still renders, spacing/secondary font sizes shrink before anything
-    // is dropped, and the whole block stays vertically centred so a
-    // sparse profile never leaves a dead band under it.
-    const registrationText = registration ? registration : "";
-    const lines: FooterLine[] = [];
-    if (agencyName) {
-      lines.push({
-        text: agencyName,
-        size: AGENCY_NAME_SIZE,
-        minSize: 18,
-        weight: "700",
-        opacity: 1,
-        gapMultiplier: 1.2,
-        letterSpacing: "0.2",
-      });
-    }
-    if (registrationText) {
-      lines.push({
-        text: registrationText,
-        size: REGISTRATION_SIZE,
-        minSize: 9,
-        weight: "600",
-        opacity: 0.88,
-        gapMultiplier: 1.29,
-      });
-    }
-    if (officialContact) {
-      lines.push({
-        text: officialContact,
-        size: CONTACT_SIZE,
-        minSize: 9,
-        weight: "500",
-        opacity: 0.92,
-        gapMultiplier: 1.38,
-      });
-    }
-    if (website) {
-      lines.push({
-        text: website,
-        size: WEBSITE_SIZE,
-        minSize: 8,
-        weight: "500",
-        opacity: 0.75,
-        gapMultiplier: 1.33,
-      });
-    }
-    if (address) {
-      lines.push({
-        text: address,
-        size: ADDRESS_SIZE,
-        minSize: 8,
-        weight: "500",
-        opacity: 0.65,
-        gapMultiplier: 1,
-      });
-    }
+    // COMPACT: the SAME labelled fields as wide mode, in one stacked
+    // column — every mandatory field still renders, spacing/secondary
+    // font sizes shrink before anything is dropped, and the whole block
+    // stays vertically centred so a sparse profile never leaves a dead
+    // band under it.
+    const lines = [
+      ...buildIdentityLines(COMPACT_REGISTRATION_SIZE),
+      ...buildContactLines(COMPACT_CONTACT_SIZE, COMPACT_ADDRESS_SIZE, COMPACT_WEBSITE_SIZE),
+    ];
     drawColumn(textLeft, textWidth, lines);
   }
 
@@ -826,14 +809,28 @@ function cleanText(
   );
 }
 
+/**
+ * Bold glyphs render measurably wider than regular ones at the same
+ * point size — a flat per-character factor undershot a long BOLD (700)
+ * agency name enough to let it overlap the wide footer's contact column
+ * (Final Commercial Layout Lock fix). Keyed on the CSS font-weight
+ * string already carried by FooterLine.weight.
+ */
+const WIDTH_FACTOR_BY_WEIGHT: Record<string, number> = {
+  "500": 0.54,
+  "600": 0.57,
+  "700": 0.62,
+};
+
 function estimateTextWidth(
   text: string,
   fontSize: number,
+  weight: string = "500",
 ): number {
   return (
     text.length *
     fontSize *
-    0.54
+    (WIDTH_FACTOR_BY_WEIGHT[weight] ?? 0.54)
   );
 }
 
@@ -842,6 +839,7 @@ function fitFont(
   maxWidth: number,
   preferred: number,
   minimum: number,
+  weight: string = "500",
 ): number {
   if (!text) {
     return minimum;
@@ -855,6 +853,7 @@ function fitFont(
     estimateTextWidth(
       text,
       size,
+      weight,
     ) > maxWidth
   ) {
     size -= 1;
