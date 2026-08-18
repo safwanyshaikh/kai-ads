@@ -45,6 +45,25 @@ export const agencyRepository = {
     return db.agency.update({ where: { id }, data: { status } });
   },
 
+  /**
+   * Full verified registration identity (see VerifiedAgencyProfile in
+   * src/server/generation/pipeline/types.ts). Admin-only write path — see
+   * agency-verification.service.ts's verify(), the same action that sets
+   * officialVerificationUrl. registrationNumber itself is never touched
+   * here: it stays the short/compact identifier set at registration.
+   */
+  updateRegistrationIdentity(
+    id: string,
+    data: {
+      fullRegistrationNumber?: string;
+      meaRegistrationText?: string;
+      isoCertification?: string;
+      isoLogoUrl?: string;
+    },
+  ): Promise<Agency> {
+    return db.agency.update({ where: { id }, data });
+  },
+
   withDomains(id: string) {
     return db.agency.findUnique({
       where: { id },

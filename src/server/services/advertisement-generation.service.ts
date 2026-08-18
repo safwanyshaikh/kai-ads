@@ -17,6 +17,7 @@ import {
 } from "@/server/generation/qr-renderer";
 import { buildAdvertisementFacts } from "@/server/generation/pipeline/requirement-intelligence";
 import { generateAdvertisement } from "@/server/generation/pipeline/generate";
+import type { VerifiedAgencyProfile } from "@/server/generation/pipeline/types";
 import {
   runVisualQaGate,
   VisualQaGateError,
@@ -280,11 +281,16 @@ export const advertisementGenerationService = {
             qrPng:
               qrResult.png,
 
-            agencyName:
-              agency.name,
-
-            registrationNumber:
-              agency.registrationNumber,
+            // The ONE canonical VerifiedAgencyProfile — resolveAgencyProfile
+            // in generate.ts short-circuits on this and ignores every
+            // legacy flat field below it once supplied, so this is the
+            // actual source of truth for the trust footer, including the
+            // full (never-shortened) registration number.
+            agencyProfile:
+              buildVerifiedAgencyProfile(
+                agency,
+                verification,
+              ),
 
             contactLine:
               buildContactLine(
@@ -292,34 +298,8 @@ export const advertisementGenerationService = {
                 agency,
               ),
 
-            addressLine:
-              buildAddressLine(
-                agency,
-              ),
-
-            // LOCK 1 — verified Agency Profile only, never the
-            // recruitment requirement. Independent of contactLine above
-            // (which blends campaign/agency contact and is no longer
-            // used by the trust footer at all).
-            agencyOfficialPhone:
-              agency.phone ??
-              null,
-
-            agencyOfficialEmail:
-              agency.officialEmail ??
-              null,
-
-            agencyWebsite:
-              agency.website ??
-              null,
-
             footerStyle:
               agency.footerStyle,
-
-            brandBadges:
-              normaliseBadges(
-                agency.brandBadges,
-              ),
           },
         );
 
@@ -896,19 +876,57 @@ function buildContactLine(
 /**
  * Office address and website.
  */
-function buildAddressLine(
+/**
+ * Builds the ONE canonical VerifiedAgencyProfile the pipeline consumes
+ * (see generate.ts's resolveAgencyProfile, which short-circuits on this
+ * object once supplied — nothing here is merged with legacy flat
+ * fields). `fullRegistrationNumber` is the actual fix for a real bug: a
+ * live advertisement rendered its short `registrationNumber` ("9986")
+ * in the footer's full "MEA / RA REGISTRATION" line because nothing
+ * upstream ever populated the richer field this interface has always
+ * had. Nullable fields fall back to null, never fabricated — an agency
+ * that hasn't filled in the new profile fields yet keeps generating
+ * exactly as before (resolveAgencyProfile's own fallback to
+ * registrationNumber only applies when this is unset).
+ */
+function buildVerifiedAgencyProfile(
   agency: {
-    officeAddress?:
-      | string
-      | null;
+    name: string;
+    logoUrl: string;
+    registrationNumber: string;
+    fullRegistrationNumber?: string | null;
+    meaRegistrationText?: string | null;
+    isoCertification?: string | null;
+    isoLogoUrl?: string | null;
+    officeAddress?: string | null;
+    phone?: string | null;
+    officialEmail?: string | null;
+    website?: string | null;
+    brandBadges?: Prisma.JsonValue;
   },
-): string | null {
-  // Registered Address only — never falls back to the website. The trust
-  // footer already has its own separate "Website:" line (see LOCK 1 /
-  // the Final Footer Identity Pass), so falling back here duplicated the
-  // website URL under the "Registered Address" label whenever an
-  // agency's officeAddress was empty, which is a factual mislabel, not a
-  // reasonable substitute.
-  const address = agency.officeAddress?.trim();
-  return address ? address : null;
+  verification: {
+    id: string;
+    status: string;
+    officialVerificationUrl?: string | null;
+  } | null,
+): VerifiedAgencyProfile {
+  return {
+    agencyName: agency.name,
+    logoUrl: agency.logoUrl ?? null,
+    rcNumber: agency.registrationNumber ?? null,
+    fullRegistrationNumber: agency.fullRegistrationNumber ?? null,
+    meaRegistrationText: agency.meaRegistrationText ?? null,
+    isoCertification: agency.isoCertification ?? null,
+    isoLogoUrl: agency.isoLogoUrl ?? null,
+    registeredAddress: agency.officeAddress ?? null,
+    officialPhone: agency.phone ?? null,
+    officialEmail: agency.officialEmail ?? null,
+    website: agency.website ?? null,
+    verificationStatus:
+      (verification?.status as VerifiedAgencyProfile["verificationStatus"]) ?? "UNVERIFIED",
+    verificationId: verification?.id ?? null,
+    verificationUrl: verification?.officialVerificationUrl ?? null,
+    approvedBadges: normaliseBadges(agency.brandBadges),
+  };
 }
+

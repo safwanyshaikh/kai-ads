@@ -176,6 +176,19 @@ model Agency {
   phone         String?
   whatsapp      String?
   officeAddress String?
+
+  // Full verified registration identity (see VerifiedAgencyProfile in
+  // src/server/generation/pipeline/types.ts). `registrationNumber` above
+  // remains the short/compact identifier (rcNumber) used for lookups and
+  // small visual areas — it is NEVER shortened or reused as a stand-in
+  // for the full string. `fullRegistrationNumber` is what the trust
+  // footer renders when present; the pipeline still falls back to
+  // `registrationNumber` only when this is unset, so an agency that
+  // hasn't filled it in yet keeps working (see resolveAgencyProfile).
+  fullRegistrationNumber String?
+  meaRegistrationText    String?
+  isoCertification       String?
+  isoLogoUrl             String?
   /** Optional brand accents, e.g. { "primary": "#0B1F33" }. */
   brandColours  Json?
   /** Optional handles, e.g. { "facebook": "https://..." }. */

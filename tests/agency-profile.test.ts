@@ -59,24 +59,33 @@ describe("Branding Engine reads the Agency Profile", () => {
     expect(service).toMatch(/contact\.email\s*\?\?\s*agency\.officialEmail/);
   });
 
-  it("prints office address from the profile", () => {
-    expect(service).toContain("buildAddressLine");
-    expect(service).toMatch(/agency\.officeAddress/);
+  it("builds the canonical VerifiedAgencyProfile from the agency + verification records", () => {
+    expect(service).toContain("buildVerifiedAgencyProfile");
+    expect(service).toMatch(/registeredAddress:\s*agency\.officeAddress/);
+    expect(service).toMatch(/fullRegistrationNumber:\s*agency\.fullRegistrationNumber/);
   });
 
-  it("never falls back the Registered Address line to the website — a real bug found via a live render", () => {
+  it("never falls back the Registered Address field to the website — a real bug found via a live render", () => {
     // A real generated advertisement showed "Registered Address:
-    // https://www.example.com" — buildAddressLine used to join
-    // officeAddress and website together (or fall back to website alone
+    // https://www.example.com" — the old buildAddressLine helper joined
+    // officeAddress and website together (or fell back to website alone
     // when officeAddress was empty), mislabelling the website URL as a
-    // physical address. The footer already has its own separate
-    // "Website:" line — Registered Address must only ever come from
-    // officeAddress, or be omitted.
-    const buildAddressLineSource = service.slice(
-      service.indexOf("function buildAddressLine"),
-      service.indexOf("function buildAddressLine") + 500,
-    );
-    expect(buildAddressLineSource).not.toMatch(/agency\.website/);
+    // physical address. buildVerifiedAgencyProfile's registeredAddress
+    // field must only ever come from agency.officeAddress.
+    const start = service.indexOf("function buildVerifiedAgencyProfile");
+    const body = service.slice(start, service.indexOf("\n}\n", start));
+    const registeredAddressLine = body.match(/registeredAddress:[^\n,]*/)?.[0] ?? "";
+    expect(registeredAddressLine).not.toMatch(/agency\.website/);
+  });
+
+  it("resolves the full registration number, never the short one, as the pipeline's canonical value", () => {
+    // The whole point of adding fullRegistrationNumber: the real bug was
+    // registrationNumber ("9986", a short/compact identifier) rendering
+    // as if it were the complete verified string. rcNumber keeps the
+    // short identifier for compact areas; fullRegistrationNumber is a
+    // distinct field, never derived from or equal to rcNumber's source.
+    expect(service).toMatch(/rcNumber:\s*agency\.registrationNumber/);
+    expect(service).toMatch(/fullRegistrationNumber:\s*agency\.fullRegistrationNumber\s*\?\?\s*null/);
   });
 
   it("counts profile contact details when checking the ad has a contact", () => {

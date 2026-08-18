@@ -30,6 +30,10 @@ export const agencyVerificationService = {
       evidenceReference?: string;
       licenseValidUntil?: Date;
       notes?: string;
+      fullRegistrationNumber?: string;
+      meaRegistrationText?: string;
+      isoCertification?: string;
+      isoLogoUrl?: string;
     },
   ) {
     const agency = await agencyRepository.findById(agencyId);
@@ -45,6 +49,19 @@ export const agencyVerificationService = {
       reverificationRequired: false,
       notes: input.notes,
     });
+
+    // Full verified registration identity — same admin action, same
+    // trust boundary as officialVerificationUrl above. Only touches
+    // fields actually supplied, so re-verifying an agency whose identity
+    // text is already correct doesn't require re-typing it.
+    const identityUpdate: Record<string, string> = {};
+    if (input.fullRegistrationNumber) identityUpdate.fullRegistrationNumber = input.fullRegistrationNumber;
+    if (input.meaRegistrationText) identityUpdate.meaRegistrationText = input.meaRegistrationText;
+    if (input.isoCertification) identityUpdate.isoCertification = input.isoCertification;
+    if (input.isoLogoUrl) identityUpdate.isoLogoUrl = input.isoLogoUrl;
+    if (Object.keys(identityUpdate).length > 0) {
+      await agencyRepository.updateRegistrationIdentity(agencyId, identityUpdate);
+    }
 
     await auditLogService.record({
       action: AUDIT_ACTIONS.agencyVerificationVerified,
