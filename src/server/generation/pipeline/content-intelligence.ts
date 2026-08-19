@@ -1,4 +1,5 @@
 import type { AdvertisementFacts } from "./types";
+import { classifyRoleFamily } from "@/lib/role-families";
 import { LayoutCapacityError } from "./fact-layer";
 
 /**
@@ -136,6 +137,13 @@ export interface RoleFamily {
   id: string;
   label: string;
   positionTitles: string[];
+  /**
+   * Indexes into RecruitmentCampaign.positions. Index-based rather than
+   * title-based because two positions can legitimately share a title;
+   * the carousel slide plan's "every role maps to exactly one slide"
+   * guarantee has to be provable, and titles cannot prove it.
+   */
+  positionIndexes: number[];
   /** Statements folded into the shared box, with the basis recorded for auditability. */
   commonRequirement: PositionStatement[];
   clusteringBasis: string;
@@ -159,29 +167,11 @@ export interface RecruitmentCampaign {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Functional-keyword clustering, matching the six families visible in both
- * reference advertisements (Project/Management, Procurement/Commercial,
- * Planning/Project Controls, HVAC/Mechanical, Electrical/IT, General
- * Trades). Deterministic and auditable — every position records which
- * keyword rule placed it, so a wrong cluster is debuggable, not opaque.
+ * Clustering rules come from the ONE shared registry in
+ * src/lib/role-families.ts (Final Production Lock §23) — the renderer
+ * classifies with exactly the same rules, so a family can never mean
+ * two different things in two places.
  */
-const FAMILY_RULES: Array<{ id: string; label: string; test: RegExp }> = [
-  { id: "project-management", label: "Project & Management", test: /\b(manager|director|project\s*(lead|manager)|superintend)/i },
-  { id: "procurement-commercial", label: "Procurement & Commercial", test: /\b(procure|purchas|commercial|contract|buyer|cost\s*control)/i },
-  { id: "planning-controls", label: "Planning & Project Controls", test: /\b(planner|planning|scheduler|project\s*control|estimat)/i },
-  { id: "hvac-mechanical", label: "HVAC & Mechanical", test: /\b(hvac|mechanic|fitter|welder|pipefitter|rigger|plumb)/i },
-  { id: "electrical-it", label: "Electrical & IT", test: /\b(electric|instrument|control\s*system|it\b|network|automation)/i },
-];
-const GENERAL_TRADES: { id: string; label: string } = { id: "general-trades", label: "General Trades" };
-
-function classifyFamily(title: string): { id: string; label: string; basis: string } {
-  for (const rule of FAMILY_RULES) {
-    if (rule.test.test(title)) {
-      return { id: rule.id, label: rule.label, basis: `functional keyword match on title against /${rule.test.source}/i` };
-    }
-  }
-  return { id: GENERAL_TRADES.id, label: GENERAL_TRADES.label, basis: "no functional keyword matched — General Trades catch-all" };
-}
 
 /* -------------------------------------------------------------------------- */
 /* CAMPAIGN CONSTRUCTION                                                      */
@@ -214,13 +204,17 @@ function statementsFor(p: PositionSourceRecord): PositionStatement[] {
 export function buildRecruitmentCampaign(records: PositionSourceRecord[]): RecruitmentCampaign {
   const positions: CampaignPosition[] = records.map((r) => ({ ...r, statements: statementsFor(r) }));
 
-  const familyOf = new Map<string, { id: string; label: string; basis: string; members: CampaignPosition[] }>();
-  for (const p of positions) {
-    const f = classifyFamily(p.title);
-    const bucket = familyOf.get(f.id) ?? { id: f.id, label: f.label, basis: f.basis, members: [] };
+  const familyOf = new Map<
+    string,
+    { id: string; label: string; basis: string; members: CampaignPosition[]; indexes: number[] }
+  >();
+  positions.forEach((p, index) => {
+    const f = classifyRoleFamily(p.title);
+    const bucket = familyOf.get(f.id) ?? { id: f.id, label: f.label, basis: f.basis, members: [], indexes: [] };
     bucket.members.push(p);
+    bucket.indexes.push(index);
     familyOf.set(f.id, bucket);
-  }
+  });
 
   const roleFamilies: RoleFamily[] = [];
   for (const bucket of familyOf.values()) {
@@ -246,6 +240,7 @@ export function buildRecruitmentCampaign(records: PositionSourceRecord[]): Recru
       id: bucket.id,
       label: bucket.label,
       positionTitles: bucket.members.map((m) => m.title),
+      positionIndexes: [...bucket.indexes],
       commonRequirement,
       clusteringBasis: bucket.basis,
     });

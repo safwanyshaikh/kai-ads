@@ -65,6 +65,30 @@ reinterprets a constitution. Constitutional sections are NEVER removed or
 rewritten to match what happens to be built; an unimplemented capability is
 recorded there as roadmap. Update it when a capability ships.
 
+## Live architecture & cold storage (Final Production Lock §1, §22)
+
+Only two branches are live: `main` (production) and `restore-fact-layer`
+(current commercial development). There is no third development branch.
+
+**DO NOT source implementation from `archive/*`, `experiment/*`,
+`acceptance-artifacts-*`, `adhoc-single-ad-*`, `certification-artifacts-*`,
+or historical Claude branches** unless the user explicitly requests
+historical analysis. See `archive/README.md` for the live pipeline map.
+
+Single sources of truth — never duplicate these into a renderer:
+
+| Concern | Module |
+|---|---|
+| KDL type roles, families, measured advance widths | `src/lib/kdl-typography.ts` |
+| Role-family clustering rules | `src/lib/role-families.ts` |
+| Social formats + Social Feed height ceiling | `src/lib/platform-formats.ts` |
+| DTP approved physical column slots | `src/lib/dtp-format-law.ts` |
+
+Format law: Social Feed is 1080x1350 canonical, 1080x1440 absolute
+ceiling — a dense requirement fails closed (or is recommended as a
+carousel by `social-product-decision.ts`), never grows past it, and
+never silently becomes Story or DTP.
+
 ## Other governing documents
 
 - `docs/000_PRODUCT_CONSTITUTION.md` — product law (LOCKED).

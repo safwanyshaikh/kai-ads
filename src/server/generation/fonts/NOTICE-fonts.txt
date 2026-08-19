@@ -1,0 +1,31 @@
+KAI Ads — bundled fonts
+=======================
+
+Every font bundled in this directory is licensed under the
+SIL Open Font License, Version 1.1, which permits bundling and
+redistribution with software.
+
+KDL typography roles (see src/lib/kdl-typography.ts):
+
+  KaiDisplay  -> Anton              (c) The Anton Project Authors
+  KaiHeader   -> Oswald             (c) The Oswald Project Authors
+  KaiPosition -> Barlow Condensed   (c) The Barlow Project Authors
+  KaiNumeric  -> Archivo Black      (c) The Archivo Project Authors
+  KaiFine     -> Roboto Condensed   (c) The Roboto Project Authors
+
+Base / fallback:
+
+  KaiSans     -> Liberation Sans    (c) Red Hat, Inc.  — SIL OFL 1.1
+  KaiSerif    -> Liberation Serif   (c) Red Hat, Inc.  — SIL OFL 1.1
+                 (see LICENSE-liberation-fonts.txt)
+
+Full licence text: https://scripts.sil.org/OFL
+
+These files are bundled deliberately rather than fetched at runtime:
+librsvg resolves font families exclusively through fontconfig and
+ignores @font-face inside the SVG, so on a host with no installed fonts
+(Vercel serverless) an unbundled family renders as tofu boxes.
+
+The measured advance-width factors in src/lib/kdl-typography.ts are
+derived from these exact files — re-run scripts/measure-font-metrics.ts
+after changing or replacing any of them.

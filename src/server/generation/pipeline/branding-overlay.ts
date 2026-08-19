@@ -2,6 +2,7 @@ import "../font-config";
 import sharp from "sharp";
 import type { FooterStyle } from "./footer-styles";
 import type { AdvertisementFacts } from "./types";
+import { roleFamily, roleTextWidth, type TypeRole } from "@/lib/kdl-typography";
 
 export interface BrandingOverlayInput {
   /**
@@ -517,7 +518,7 @@ async function renderTrustFooter(
   // is only chosen when the contact column still has genuine room left
   // over, not merely when the raw total width crosses a threshold.
   const agencyNameFloorWidth = agencyName
-    ? Math.ceil(estimateTextWidth(agencyName, AGENCY_NAME_FLOOR, "700"))
+    ? Math.ceil(estimateTextWidth(agencyName, AGENCY_NAME_FLOOR, "DISPLAY"))
     : 0;
   const identityColWidth = Math.max(
     IDENTITY_MIN_WIDTH,
@@ -542,6 +543,7 @@ async function renderTrustFooter(
         size: AGENCY_NAME_SIZE,
         minSize: 18,
         weight: "700",
+        role: "DISPLAY",
         opacity: 1,
         gapMultiplier: 1.25,
         letterSpacing: "0.2",
@@ -553,6 +555,7 @@ async function renderTrustFooter(
         size: REGISTRATION_LABEL_SIZE,
         minSize: 9,
         weight: "600",
+        role: "SECTION",
         opacity: 0.7,
         gapMultiplier: 1.15,
       });
@@ -561,6 +564,7 @@ async function renderTrustFooter(
         size: registrationSize,
         minSize: 10,
         weight: "600",
+        role: "FINE",
         opacity: 0.92,
         gapMultiplier: 1,
       });
@@ -572,6 +576,7 @@ async function renderTrustFooter(
     const lines: FooterLine[] = [];
     if (officialEmailValue) {
       lines.push({
+        role: "FINE",
         text: `Official Email: ${officialEmailValue}`,
         size: contactSize,
         minSize: 9,
@@ -582,6 +587,7 @@ async function renderTrustFooter(
     }
     if (officialPhoneValue) {
       lines.push({
+        role: "FINE",
         text: `Phone / WhatsApp: ${officialPhoneValue}`,
         size: contactSize,
         minSize: 9,
@@ -592,6 +598,7 @@ async function renderTrustFooter(
     }
     if (address) {
       lines.push({
+        role: "FINE",
         text: `Registered Address: ${address}`,
         size: addressSize,
         minSize: 8,
@@ -602,6 +609,7 @@ async function renderTrustFooter(
     }
     if (website) {
       lines.push({
+        role: "FINE",
         text: `Website: ${website}`,
         size: websiteSize,
         minSize: 8,
@@ -618,6 +626,8 @@ async function renderTrustFooter(
     size: number;
     minSize: number;
     weight: string;
+    /** KDL semantic type role — drives both the drawn family and the width estimate. */
+    role: TypeRole;
     opacity: number;
     gapMultiplier: number;
     letterSpacing?: string;
@@ -631,7 +641,7 @@ async function renderTrustFooter(
    */
   function drawColumn(x: number, maxWidth: number, lines: FooterLine[]): void {
     if (lines.length === 0) return;
-    const fitted = lines.map((l) => ({ ...l, font: fitFont(l.text, maxWidth, l.size, l.minSize, l.weight) }));
+    const fitted = lines.map((l) => ({ ...l, font: fitFont(l.text, maxWidth, l.size, l.minSize, l.role) }));
     const blockHeight = fitted.reduce(
       (sum, l, i) => sum + (i === fitted.length - 1 ? l.font : Math.round(l.font * l.gapMultiplier)),
       0,
@@ -642,7 +652,7 @@ async function renderTrustFooter(
         <text
           x="${x}"
           y="${Math.min(heightPx - 6, Math.max(l.font, y))}"
-          font-family="KaiSans, sans-serif"
+          font-family="${roleFamily(l.role)}"
           font-size="${l.font}"
           font-weight="${l.weight}"
           ${l.letterSpacing ? `letter-spacing="${l.letterSpacing}"` : ""}
@@ -702,6 +712,7 @@ async function renderTrustFooter(
             0.07,
         ),
         9,
+        "SECTION",
       );
 
     svg.push(`
@@ -714,7 +725,7 @@ async function renderTrustFooter(
           ),
           heightPx - 12,
         )}"
-        font-family="KaiSans, sans-serif"
+        font-family="${roleFamily("SECTION")}"
         font-size="${badgeFont}"
         font-weight="650"
         fill="${WHITE}"
@@ -770,7 +781,7 @@ async function renderTrustFooter(
         )}"
         y="${qrTop + qrSize + qrLabelGap + Math.round(qrFont * 0.9)}"
         text-anchor="middle"
-        font-family="KaiSans, sans-serif"
+        font-family="${roleFamily("SECTION")}"
         font-size="${qrFont}"
         font-weight="600"
         letter-spacing="0.6"
@@ -810,28 +821,15 @@ function cleanText(
 }
 
 /**
- * Bold glyphs render measurably wider than regular ones at the same
- * point size — a flat per-character factor undershot a long BOLD (700)
- * agency name enough to let it overlap the wide footer's contact column
- * (Final Commercial Layout Lock fix). Keyed on the CSS font-weight
- * string already carried by FooterLine.weight.
+ * Advance width comes from the ONE shared KDL registry
+ * (src/lib/kdl-typography.ts), keyed on the semantic ROLE that will
+ * actually draw the string — the same registry and the same measured
+ * factors the fact layer uses. A local per-weight table here was a
+ * second source for the same constant and could drift from the face
+ * really being rendered.
  */
-const WIDTH_FACTOR_BY_WEIGHT: Record<string, number> = {
-  "500": 0.54,
-  "600": 0.57,
-  "700": 0.62,
-};
-
-function estimateTextWidth(
-  text: string,
-  fontSize: number,
-  weight: string = "500",
-): number {
-  return (
-    text.length *
-    fontSize *
-    (WIDTH_FACTOR_BY_WEIGHT[weight] ?? 0.54)
-  );
+function estimateTextWidth(text: string, fontSize: number, role: TypeRole = "BASE"): number {
+  return roleTextWidth(text, fontSize, role);
 }
 
 function fitFont(
@@ -839,30 +837,12 @@ function fitFont(
   maxWidth: number,
   preferred: number,
   minimum: number,
-  weight: string = "500",
+  role: TypeRole = "BASE",
 ): number {
-  if (!text) {
-    return minimum;
-  }
-
-  let size =
-    preferred;
-
-  while (
-    size > minimum &&
-    estimateTextWidth(
-      text,
-      size,
-      weight,
-    ) > maxWidth
-  ) {
-    size -= 1;
-  }
-
-  return Math.max(
-    minimum,
-    size,
-  );
+  if (!text) return minimum;
+  let size = preferred;
+  while (size > minimum && estimateTextWidth(text, size, role) > maxWidth) size -= 1;
+  return Math.max(minimum, size);
 }
 
 async function normaliseImage(

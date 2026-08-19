@@ -4,6 +4,7 @@ import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay } from "./branding-overlay";
 import { renderFactLayer } from "./fact-layer";
 import { campaignFromAdvertisementFacts, enforceDtpCapacity } from "./content-intelligence";
+import { decideSocialProductForFacts, assertSlidePlanIntegrity, type SocialProductDecision } from "./social-product-decision";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import sharp from "sharp";
 import { getEnv } from "@/lib/env";
@@ -119,6 +120,16 @@ export interface GeneratePipelineInput {
 
 export interface GeneratePipelineResult {
   imagePng: Buffer;
+
+  /**
+   * Social Product Decision (§10A) — whether this requirement's measured
+   * information mass fits one Social Feed image, or deserves a carousel,
+   * with the slide plan when it does. Always computed, so a recruiter is
+   * never silently handed an over-dense single image; the returned
+   * `imagePng` is still the single-image render, and rendering the
+   * planned slides is downstream product work, not this layer's job.
+   */
+  socialProduct: SocialProductDecision;
 
   /**
    * The FINAL rendered height, in pixels — may be taller than
@@ -266,10 +277,26 @@ export async function generateAdvertisement(
    * here would also fail inside renderFactLayer's own solve; catching it
    * here just means the failure is free instead of a wasted image call.
    */
-  enforceDtpCapacity(
-    campaignFromAdvertisementFacts(input.facts),
+  const campaign = campaignFromAdvertisementFacts(input.facts);
+  enforceDtpCapacity(campaign, input.widthPx);
+
+  /**
+   * Social Product Decision (§10A). Measured content mass, not a role
+   * count, decides whether the complete requirement can be communicated
+   * in one Social Feed canvas. When it cannot, the slide plan is checked
+   * for factual integrity here — every position on exactly one slide,
+   * none dropped, none duplicated — so an unsound plan fails loudly
+   * rather than shipping a carousel with a missing role.
+   */
+  const socialProduct = await decideSocialProductForFacts(
+    input.facts,
+    campaign,
     input.widthPx,
+    input.heightPx,
   );
+  if (socialProduct.slides) {
+    assertSlidePlanIntegrity(campaign, socialProduct.slides);
+  }
 
   /**
    * ------------------------------------------------------------------------
@@ -514,6 +541,8 @@ export async function generateAdvertisement(
   return {
     imagePng:
       finalPng,
+
+    socialProduct,
 
     heightPx:
       canvasHeightPx,

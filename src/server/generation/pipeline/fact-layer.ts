@@ -2,6 +2,8 @@ import "../font-config"; // FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
 import { brandingStripHeight } from "./branding-overlay";
 import { displayTitle } from "@/lib/display-title";
+import { roleFamily, roleTextWidth, type TypeRole } from "@/lib/kdl-typography";
+import { classifyRoleFamily } from "@/lib/role-families";
 import { isApprovedDtpWidthPx, nearestApprovedDtpSlot, DTP_DEFAULT_DPI } from "@/lib/dtp-format-law";
 import type { AdvertisementFacts } from "./types";
 
@@ -390,19 +392,14 @@ const esc = (v: string) =>
     .replace(/'/g, "&apos;");
 
 /**
- * Advance-width estimate. Bold uppercase display type is materially wider
- * per character than body text, so it gets a larger factor — using one
- * factor for both is what let a headline run past the right margin.
+ * KDL typography roles come from the ONE shared registry in
+ * src/lib/kdl-typography.ts (Final Production Lock §24) — both this
+ * renderer and the trust footer read the same families and the same
+ * measured advance-width factors, so a role can never mean two
+ * different widths in two places.
  */
-const widthFactor = (text: string, bold = false) => {
-  const upper = text === text.toUpperCase() && /[A-Z]/.test(text);
-  if (bold && upper) return 0.68;
-  if (bold) return 0.60;
-  return upper ? 0.62 : 0.56;
-};
+const textWidth = roleTextWidth;
 
-const textWidth = (text: string, size: number, bold = false) =>
-  text.length * size * widthFactor(text, bold);
 
 /**
  * A thin ink stroke behind a text fill — the same technique proven on the
@@ -418,20 +415,20 @@ const textWidth = (text: string, size: number, bold = false) =>
 const textStroke = (inkColor: string, fontSize: number) =>
   `stroke="${inkColor}" stroke-width="${Math.max(1, Math.round(fontSize * 0.045))}" stroke-linejoin="round" paint-order="stroke fill"`;
 
-function fit(text: string, maxWidth: number, preferred: number, min: number, bold = false): number {
+function fit(text: string, maxWidth: number, preferred: number, min: number, role: TypeRole = "BASE"): number {
   let size = preferred;
-  while (size > min && textWidth(text, size, bold) > maxWidth) size -= 1;
+  while (size > min && textWidth(text, size, role) > maxWidth) size -= 1;
   return Math.max(size, min);
 }
 
 /** All wrapped lines, uncapped — used both to measure and to draw. */
-function wrapLines(text: string, maxWidth: number, size: number): string[] {
+function wrapLines(text: string, maxWidth: number, size: number, role: TypeRole = "BASE"): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let line = "";
   for (const w of words) {
     const next = line ? `${line} ${w}` : w;
-    if (textWidth(next, size) <= maxWidth) line = next;
+    if (textWidth(next, size, role) <= maxWidth) line = next;
     else {
       if (line) lines.push(line);
       line = w;
@@ -441,13 +438,13 @@ function wrapLines(text: string, maxWidth: number, size: number): string[] {
   return lines.length ? lines : [text];
 }
 
-function wrap(text: string, maxWidth: number, size: number, maxLines: number): string[] {
+function wrap(text: string, maxWidth: number, size: number, maxLines: number, role: TypeRole = "BASE"): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let line = "";
   for (const w of words) {
     const next = line ? `${line} ${w}` : w;
-    if (textWidth(next, size) <= maxWidth) line = next;
+    if (textWidth(next, size, role) <= maxWidth) line = next;
     else {
       if (line) lines.push(line);
       line = w;
@@ -567,11 +564,23 @@ export function splitColumnsByHeight(rowHeights: number[], cols: number): number
 }
 
 /** Detail string for one role — only ever built from values that are present. */
-function roleDetail(p: AdvertisementFacts["positions"][number]): string {
+function roleDetail(
+  p: AdvertisementFacts["positions"][number],
+  /**
+   * Statements already displayed once for the whole role family (its
+   * "Common requirement" line). Repeating them under every member is
+   * the exact duplication family grouping exists to remove — it costs
+   * height the Social Feed ceiling cannot spare and reads as a stutter.
+   * Never an omission: the statement is still on the advertisement,
+   * stated once for the family instead of N times.
+   */
+  alreadyShown?: ReadonlySet<string>,
+): string {
+  const shown = (v: string) => alreadyShown?.has(v.trim().toLowerCase()) ?? false;
   const bits: string[] = [];
-  if (p.experience) bits.push(p.experience);
+  if (p.experience && !shown(p.experience)) bits.push(p.experience);
   if (p.salary) bits.push(p.salary);
-  if (p.qualification) bits.push(p.qualification);
+  if (p.qualification && !shown(p.qualification)) bits.push(p.qualification);
   if (p.certifications?.length) bits.push(p.certifications.join(", "));
   return bits.join(" · ");
 }
@@ -665,6 +674,17 @@ export interface FactLayerInput {
    * outside the Social Feed family.
    */
   socialFeedMaxHeightPx?: number | null;
+  /**
+   * Run the canvas-height solve and return immediately, without
+   * rasterizing and without applying the Social Feed ceiling. This is
+   * how the Social Product Decision (social-product-decision.ts) gets
+   * the AUTHORITATIVE required height: it asks the renderer's own solve
+   * rather than maintaining a parallel height model that would drift
+   * from it (Final Production Lock §7 "every rendering stage must
+   * agree", §24 one source only). `png` and `svgMarkup` come back empty
+   * — this mode measures, it never draws.
+   */
+  measureOnly?: boolean;
 }
 
 export interface FactLayerResult {
@@ -705,13 +725,11 @@ type Plan = ReturnType<typeof planBody>;
  * in every real reference recruitment poster (Project/Management,
  * Procurement/Commercial, Planning/Controls, HVAC/Mechanical,
  * Electrical/IT, General Trades) — so the dense role list reads as
- * organised sections instead of one flat 19-line dump. Deliberately a
- * small, self-contained classifier here (not imported from
- * content-intelligence.ts) to avoid a circular module dependency; the
- * rule set is intentionally identical to content-intelligence.ts's
- * classifyFamily — unifying the two is a follow-up, not a factual
- * concern (this only ever affects ORDER and grouping, never which facts
- * render or their vacancy counts).
+ * organised sections instead of one flat 19-line dump. The rules live in
+ * the ONE shared registry (src/lib/role-families.ts) that the Content
+ * Intelligence stage also classifies with, so a family can never mean
+ * two different things in two places. Grouping only ever affects ORDER
+ * and labelling — never which facts render, never their counts.
  */
 interface RoleFamilyGroup {
   label: string;
@@ -723,24 +741,20 @@ interface RoleFamilyGroup {
 /** One drawable line in the grouped role list — see planBody/renderPosterBody. */
 type BodyEntry =
   | { kind: "familyHeader"; label: string }
-  | { kind: "position"; idx: number }
+  | {
+      kind: "position";
+      idx: number;
+      /**
+       * The EXACT detail string this row draws. Carried on the entry
+       * rather than recomputed at draw time so the planner's row height
+       * and the renderer's output can never disagree (§9 geometry
+       * parity) — and so a statement already shown on the family's
+       * "Common requirement" line can be excluded here without the two
+       * sides of the layout drifting apart.
+       */
+      detail: string;
+    }
   | { kind: "common"; text: string };
-
-const ROLE_FAMILY_RULES: Array<{ label: string; test: RegExp }> = [
-  { label: "PROJECT & MANAGEMENT", test: /\b(manager|director|project\s*(lead|manager)|superintend)/i },
-  { label: "PROCUREMENT & COMMERCIAL", test: /\b(procure|purchas|commercial|contract|buyer|cost\s*control)/i },
-  { label: "PLANNING & PROJECT CONTROLS", test: /\b(planner|planning|scheduler|project\s*control|estimat)/i },
-  { label: "HVAC & MECHANICAL", test: /\b(hvac|mechanic|fitter|welder|pipefitter|rigger|plumb)/i },
-  { label: "ELECTRICAL & IT", test: /\b(electric|instrument|control\s*system|it\b|network|automation)/i },
-];
-const GENERAL_TRADES_LABEL = "GENERAL TRADES";
-
-function classifyRoleFamily(title: string): string {
-  for (const rule of ROLE_FAMILY_RULES) {
-    if (rule.test.test(title)) return rule.label;
-  }
-  return GENERAL_TRADES_LABEL;
-}
 
 /**
  * Groups positions by family, preserving each family's first-appearance
@@ -754,7 +768,7 @@ function groupPositionsByFamily(positions: AdvertisementFacts["positions"]): Rol
   const order: string[] = [];
   const byLabel = new Map<string, number[]>();
   positions.forEach((p, idx) => {
-    const label = classifyRoleFamily(p.title);
+    const label = classifyRoleFamily(p.title).heading;
     if (!byLabel.has(label)) {
       byLabel.set(label, []);
       order.push(label);
@@ -860,7 +874,7 @@ function planBody(
   // reserved 86px for a figure that renders 158px wide, so salaries ran
   // straight through the job titles at five columns.
   const salaryNeed = hasSalary
-    ? Math.ceil(Math.max(...facts.positions.map((p) => (p.salary ? textWidth(p.salary, floor, true) : 0))))
+    ? Math.ceil(Math.max(...facts.positions.map((p) => (p.salary ? textWidth(p.salary, floor, "NUMERIC") : 0))))
     : 0;
   let salaryW = hasSalary ? Math.max(Math.round(colW * 0.34), salaryNeed + Math.round(gutter / 2)) : 0;
   // A column must be wide enough for the widest UNBREAKABLE word. Testing
@@ -870,14 +884,14 @@ function planBody(
   // printed straight through the job titles.
   const widestWord = Math.ceil(
     Math.max(
-      ...facts.positions.flatMap((p) => measuredTitle(p).split(/\s+/).map((w) => textWidth(w, floor, true))),
+      ...facts.positions.flatMap((p) => measuredTitle(p).split(/\s+/).map((w) => textWidth(w, floor, "POSITION"))),
       0,
     ),
   );
   const titleFits = () => {
     const avail = colW - badgeW - salaryW;
     return avail >= widestWord &&
-      !facts.positions.some((p) => wrapLines(measuredTitle(p), avail, floor).length > MAX_LINES);
+      !facts.positions.some((p) => wrapLines(measuredTitle(p), avail, floor, "POSITION").length > MAX_LINES);
   };
   while (cols > 1 && !titleFits()) {
     cols -= 1;
@@ -901,14 +915,16 @@ function planBody(
   }
 
   const anyDetail = showDetail && facts.positions.some((p) => roleDetail(p));
-  const positionRowHeight = (p: AdvertisementFacts["positions"][number]) => {
+  const positionRowHeight = (
+    p: AdvertisementFacts["positions"][number],
+    detailOverride?: string,
+  ) => {
     const lines = Math.min(
       MAX_LINES,
-      wrapLines(measuredTitle(p), colW - badgeW - salaryW, titleSize).length,
+      wrapLines(measuredTitle(p), colW - badgeW - salaryW, titleSize, "POSITION").length,
     );
-    return Math.round(
-      titleSize * lineFactor * lines + (anyDetail && roleDetail(p) ? detailSize * 1.3 : 0) + rowGap,
-    );
+    const detail = detailOverride ?? (anyDetail ? roleDetail(p) : "");
+    return Math.round(titleSize * lineFactor * lines + (detail ? detailSize * 1.3 : 0) + rowGap);
   };
 
   let rowHeights: number[];
@@ -925,9 +941,14 @@ function planBody(
     for (const family of grouped) {
       entries.push({ kind: "familyHeader", label: family.label });
       heights.push(familyHeaderH);
+      // Anything hoisted to this family's shared line is not repeated on
+      // its members' own rows (§10A Step 4).
+      const hoisted = new Set<string>();
+      if (family.commonQualification) hoisted.add(family.commonQualification.trim().toLowerCase());
       for (const idx of family.positionIndexes) {
-        entries.push({ kind: "position", idx });
-        heights.push(positionRowHeight(facts.positions[idx]));
+        const detail = showDetail ? roleDetail(facts.positions[idx], hoisted) : "";
+        entries.push({ kind: "position", idx, detail });
+        heights.push(positionRowHeight(facts.positions[idx], detail));
       }
       if (family.commonQualification) {
         entries.push({ kind: "common", text: `Common requirement: ${family.commonQualification}` });
@@ -940,7 +961,7 @@ function planBody(
     listH = heights.reduce((sum, h) => sum + h, 0);
     perCol = facts.positions.length;
   } else {
-    rowHeights = facts.positions.map(positionRowHeight);
+    rowHeights = facts.positions.map((p) => positionRowHeight(p));
     perCol = Math.ceil(facts.positions.length / cols);
     columns = splitColumnsByHeight(rowHeights, cols);
     listH = Math.max(...columns.map((col) => col.reduce((sum, idx) => sum + rowHeights[idx], 0)));
@@ -994,9 +1015,13 @@ function planBody(
  * keywords — a candidate hook. Purely additive: this reserves its own
  * height so the canvas-height solve can never mistake it for space the
  * full list already owns, and the full list below it is untouched.
- * Skipped entirely (zero height) when there is nothing to feature —
- * fewer than 2 counted roles, or a single-role requirement where a
- * "featured" strip above a one-line list would just repeat it.
+ * Skipped entirely (zero height) when there is nothing to feature, and
+ * — critically — when featuring would REPEAT rather than summarise. A
+ * "top roles" strip only earns its ~250px when it covers a genuine
+ * minority of the list: above a 4-role list it simply prints the same
+ * four roles twice, costing height that the Social Feed ceiling
+ * (1080x1440) cannot spare and adding a duplicate-looking row the lock
+ * explicitly forbids (§8: "No duplicate role caused by rendering").
  */
 function planHighlights(dna: DesignDNA, facts: AdvertisementFacts, W: number, tier: Tier) {
   const T = dna.type;
@@ -1004,7 +1029,10 @@ function planHighlights(dna: DesignDNA, facts: AdvertisementFacts, W: number, ti
   const contentW = W - px(dna.layout.margin) * 2;
   const floor = Math.max(px(LEGIBILITY_FLOOR), 0);
 
-  const featured = facts.positions.length > 2 ? topDemandRoles(facts) : [];
+  // The strip must summarise, not echo: it is drawn only when the roles
+  // it features are fewer than half the roles listed below it.
+  const candidates = topDemandRoles(facts);
+  const featured = candidates.length * 2 < facts.positions.length ? candidates : [];
   const hookKeywords = candidateHookKeywords(facts);
 
   if (featured.length === 0 && hookKeywords.length === 0) {
@@ -1023,7 +1051,7 @@ function planHighlights(dna: DesignDNA, facts: AdvertisementFacts, W: number, ti
   }
   if (hookKeywords.length > 0) {
     const hookLine = hookKeywords.join("   ·   ");
-    const hookLines = wrapLines(hookLine, contentW, hookSize).length;
+    const hookLines = wrapLines(hookLine, contentW, hookSize, "FINE").length;
     height += hookLines * Math.round(hookSize * 1.5) + px(0.014);
   }
   height += px(0.02);
@@ -1079,16 +1107,16 @@ function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: nu
 
   const stated = stripDestinationSuffix(facts.header, facts.country) || `Hiring — ${facts.country}`;
   const headline = dna.motifs.uppercaseHeadline ? stated.toUpperCase() : stated;
-  const headlineSize = fit(headline, contentW, px(T.D1), px(T.H3), true);
-  const headlineLines = wrapLines(headline, contentW, headlineSize);
+  const headlineSize = fit(headline, contentW, px(T.D1), px(T.H3), "DISPLAY");
+  const headlineLines = wrapLines(headline, contentW, headlineSize, "DISPLAY");
 
   const employerSize = facts.employer
-    ? fit(facts.employer, contentW, px(T.H1), px(T.H3), true)
+    ? fit(facts.employer, contentW, px(T.H1), px(T.H3), "DISPLAY")
     : 0;
   const sub = [facts.projectType, facts.industry].filter(Boolean).join(" · ");
-  const subSize = sub ? fit(sub, contentW, px(T.H3), floor) : 0;
+  const subSize = sub ? fit(sub, contentW, px(T.H3), floor, "SECTION") : 0;
   const meta = [facts.visaType, facts.dutyHours, facts.rotation].filter(Boolean).join("  ·  ");
-  const metaSize = meta ? fit(meta, contentW, px(T.Caption), floor) : 0;
+  const metaSize = meta ? fit(meta, contentW, px(T.Caption), floor, "SECTION") : 0;
   const badgeH = Math.round(px(T.Caption) * 2.2);
   // Reserves the ribbon banner drawn above the headline in the Premium
   // composition (dense ignores this — it never draws a ribbon). Omitting
@@ -1537,6 +1565,21 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     }
   }
 
+  // Measurement-only exit (see FactLayerInput.measureOnly): the solve
+  // above has produced the height this requirement genuinely needs.
+  // Returned BEFORE the ceiling and aspect gates so the caller sees the
+  // real requirement and can decide what product it deserves, rather
+  // than only that it failed.
+  if (input.measureOnly) {
+    return {
+      png: Buffer.alloc(0),
+      heightPx: H,
+      artworkHeightPx: poster ? posterPhotoBand : 0,
+      themeSelection,
+      svgMarkup: "",
+    };
+  }
+
   // Social Format Law: a SOCIAL_FEED render has a hard ceiling well
   // below the generic MAX_ASPECT bound — checked first (it is always
   // the tighter of the two whenever it applies) so a dense requirement
@@ -1633,18 +1676,18 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // scanning a page of classifieds. "URGENT REQUIREMENT" is stated once,
     // on the strap; printing it here as well said it twice.
     const destination = (facts.country ?? facts.industry ?? "OVERSEAS").toUpperCase();
-    const uSize = fit(destination, innerW * 0.55, Math.round(barH * 0.46), plan.floor, true);
+    const uSize = fit(destination, innerW * 0.55, Math.round(barH * 0.46), plan.floor, "SECTION");
     parts.push(
-      `<text x="${edge + bandPad}" y="${edge + Math.round(barH * 0.68)}" font-family="KaiSans, sans-serif" ` +
+      `<text x="${edge + bandPad}" y="${edge + Math.round(barH * 0.68)}" font-family="${roleFamily("SECTION")}" ` +
         `font-size="${uSize}" font-weight="700" fill="${pal.reversed}" letter-spacing="3">${esc(destination)}</text>`,
     );
     const interviewBit = facts.interview[0]?.date
       ? `INTERVIEW ${facts.interview[0].date}`
       : facts.raLicenseId ?? "";
     if (interviewBit) {
-      const iSize = fit(interviewBit, innerW * 0.42, Math.round(barH * 0.32), plan.floor, true);
+      const iSize = fit(interviewBit, innerW * 0.42, Math.round(barH * 0.32), plan.floor, "FINE");
       parts.push(
-        `<text x="${W - edge - bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+        `<text x="${W - edge - bandPad}" y="${edge + Math.round(barH * 0.66)}" font-family="${roleFamily("FINE")}" ` +
           `font-size="${iSize}" font-weight="700" fill="${pal.accentText === "#FFFFFF" ? pal.reversed : pal.accent}" text-anchor="end">${esc(interviewBit.toUpperCase())}</text>`,
       );
     }
@@ -1665,7 +1708,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     let my = plateTop + Math.round(mastH / 2 - (hero.headlineLines.length - 1) * hero.headlineSize * 0.53);
     for (const l of hero.headlineLines) {
       parts.push(
-        `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
+        `<text x="${Math.round(W / 2)}" y="${my}" font-family="${roleFamily("DISPLAY")}" ` +
           `font-size="${hero.headlineSize}" font-weight="800" fill="${pal.reversed}" text-anchor="middle" ` +
           `letter-spacing="-1">${esc(l.toUpperCase())}</text>`,
       );
@@ -1678,7 +1721,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       // employer's ascent, and its glyphs ran up into the header line above.
       my += Math.max(0, Math.round((hero.employerSize - hero.headlineSize) * 0.8));
       parts.push(
-        `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
+        `<text x="${Math.round(W / 2)}" y="${my}" font-family="${roleFamily("DISPLAY")}" ` +
           `font-size="${hero.employerSize}" font-weight="700" fill="${pal.accentText === "#FFFFFF" ? pal.reversed : pal.accent}" text-anchor="middle">${esc(facts.employer.toUpperCase())}</text>`,
       );
       my += Math.round(hero.employerSize * 1.08);
@@ -1686,7 +1729,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     if (hero.meta && hero.metaSize) {
       my += Math.max(0, Math.round((hero.metaSize - hero.headlineSize) * 0.8));
       parts.push(
-        `<text x="${Math.round(W / 2)}" y="${my}" font-family="KaiSans, sans-serif" ` +
+        `<text x="${Math.round(W / 2)}" y="${my}" font-family="${roleFamily("SECTION")}" ` +
           `font-size="${hero.metaSize}" fill="${pal.reversed}" text-anchor="middle" opacity="0.85">${esc(hero.meta)}</text>`,
       );
     }
@@ -1703,9 +1746,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     ]
       .filter(Boolean)
       .join("   \u2022   ");
-    const strapSize = fit(strapBits, innerW - bandPad * 2, Math.round(strapH * 0.4), plan.floor, true);
+    const strapSize = fit(strapBits, innerW - bandPad * 2, Math.round(strapH * 0.4), plan.floor, "SECTION");
     parts.push(
-      `<text x="${Math.round(W / 2)}" y="${strapY + Math.round(strapH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+      `<text x="${Math.round(W / 2)}" y="${strapY + Math.round(strapH * 0.66)}" font-family="${roleFamily("SECTION")}" ` +
         `font-size="${strapSize}" font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(strapBits)}</text>`,
     );
 
@@ -1914,7 +1957,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const measureChip = (size: number) => {
       const padX = Math.round(size * 0.7);
       const padY = Math.round(size * 0.55);
-      const textW = Math.ceil(textWidth(markText, size, false)) + letterSpacingReserve();
+      const textW = Math.ceil(textWidth(markText, size, "SECTION")) + letterSpacingReserve();
       return { padX, padY, textW, chipW: textW + padX * 2, chipH: size + padY * 2 };
     };
     // Never let the identity chip run past the safe margin — shrink
@@ -1942,7 +1985,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       `<rect x="${chipX}" y="${chipY + chipH - 3}" width="${Math.round(chipW * 0.42)}" height="3" fill="${pal.accent}"/>`,
     );
     parts.push(
-      `<text x="${chipX + markPadX}" y="${chipY + markPadY + Math.round(markSize * 0.82)}" font-family="KaiSans, sans-serif" ` +
+      `<text x="${chipX + markPadX}" y="${chipY + markPadY + Math.round(markSize * 0.82)}" font-family="${roleFamily("SECTION")}" ` +
         `font-size="${markSize}" font-weight="600" fill="${pal.reversed}" letter-spacing="2">${esc(markText)}</text>`,
     );
 
@@ -1958,14 +2001,14 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       ribbonY = panelTop + px(0.05);
       const ribbonS = Math.max(plan.floor, Math.round(ribbonH * 0.5));
       parts.push(
-        `<text x="${panelX}" y="${ribbonY + Math.round(ribbonH * 0.7)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
+        `<text x="${panelX}" y="${ribbonY + Math.round(ribbonH * 0.7)}" font-family="${roleFamily("SECTION")}" font-size="${ribbonS}" ` +
           `font-weight="700" fill="${pal.accent}" ${textStroke(pal.ink, ribbonS)} letter-spacing="3">${esc(ribbonText)}</text>`,
       );
     }
 
     let y = ribbonY > 0 ? ribbonY + ribbonH + px(0.01) : panelTop + px(0.06);
     for (const l of hero.headlineLines) {
-      const ls = Math.min(hero.headlineSize, fit(l, panelW, hero.headlineSize, plan.floor, true));
+      const ls = Math.min(hero.headlineSize, fit(l, panelW, hero.headlineSize, plan.floor, "DISPLAY"));
       y += Math.round(ls * 0.86);
       // A thin ink stroke behind the fill — the KDL §4.3 scrim guarantees
       // legibility through darkening the WHOLE panel; the headline is
@@ -1976,37 +2019,37 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       // any background, at any scrim opacity. Never a "typography system"
       // change — same font, weight, size and tracking as before.
       parts.push(
-        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" ` +
+        `<text x="${panelX}" y="${y}" font-family="${roleFamily("DISPLAY")}" font-size="${ls}" font-weight="800" ` +
           `fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
       );
       y += Math.round(ls * 0.28);
     }
     if (facts.employer && hero.employerSize) {
       y += px(0.016);
-      const es = Math.min(hero.employerSize, fit(facts.employer, panelW, hero.employerSize, plan.floor, true));
+      const es = Math.min(hero.employerSize, fit(facts.employer, panelW, hero.employerSize, plan.floor, "DISPLAY"));
       y += Math.round(es * 0.78);
       parts.push(
-        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="500" ` +
+        `<text x="${panelX}" y="${y}" font-family="${roleFamily("DISPLAY")}" font-size="${es}" font-weight="500" ` +
           `fill="${pal.accent}" ${textStroke(pal.ink, es)}>${esc(facts.employer)}</text>`,
       );
       y += Math.round(es * 0.3);
     }
     if (hero.sub && hero.subSize) {
       y += px(0.014);
-      const ss = Math.min(hero.subSize, fit(hero.sub.toUpperCase(), panelW, hero.subSize, plan.floor));
+      const ss = Math.min(hero.subSize, fit(hero.sub.toUpperCase(), panelW, hero.subSize, plan.floor, "SECTION"));
       y += Math.round(ss * 0.75);
       parts.push(
-        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ss}" font-weight="400" ` +
+        `<text x="${panelX}" y="${y}" font-family="${roleFamily("SECTION")}" font-size="${ss}" font-weight="400" ` +
           `fill="${pal.reversed}" fill-opacity="0.72" ${textStroke(pal.ink, ss)} letter-spacing="2">${esc(hero.sub.toUpperCase())}</text>`,
       );
       y += Math.round(ss * 0.3);
     }
     if (hero.meta && hero.metaSize) {
       y += px(0.01);
-      const ms = Math.min(hero.metaSize, fit(hero.meta, panelW, hero.metaSize, plan.floor));
+      const ms = Math.min(hero.metaSize, fit(hero.meta, panelW, hero.metaSize, plan.floor, "SECTION"));
       y += Math.round(ms * 0.8);
       parts.push(
-        `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ms}" fill="${pal.reversed}" fill-opacity="0.62" ${textStroke(pal.ink, ms)}>${esc(hero.meta)}</text>`,
+        `<text x="${panelX}" y="${y}" font-family="${roleFamily("SECTION")}" font-size="${ms}" fill="${pal.reversed}" fill-opacity="0.62" ${textStroke(pal.ink, ms)}>${esc(hero.meta)}</text>`,
       );
       y += Math.round(ms * 0.35);
     }
@@ -2019,13 +2062,13 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     {
       const countLabel = headlineCountLabel(facts);
       const cs = Math.max(plan.floor, Math.round(hero.badgeH * 0.4));
-      const cw = Math.min(panelW, Math.round(textWidth(countLabel, cs, true) + px(0.055)));
+      const cw = Math.min(panelW, Math.round(textWidth(countLabel, cs, "NUMERIC") + px(0.055)));
       y += px(0.022);
       parts.push(
         `<rect x="${panelX}" y="${y}" width="${cw}" height="${hero.badgeH}" rx="${Math.round(hero.badgeH * 0.5)}" fill="${pal.accent}"/>`,
       );
       parts.push(
-        `<text x="${panelX + Math.round(cw / 2)}" y="${y + Math.round(hero.badgeH * 0.66)}" font-family="KaiSans, sans-serif" ` +
+        `<text x="${panelX + Math.round(cw / 2)}" y="${y + Math.round(hero.badgeH * 0.66)}" font-family="${roleFamily("NUMERIC")}" ` +
           `font-size="${cs}" font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1.5">${esc(countLabel)}</text>`,
       );
       y += hero.badgeH;
@@ -2045,7 +2088,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     if (highlights.height > 0) {
       if (highlights.featured.length > 0) {
         parts.push(
-          `<text x="${panelX}" y="${y + highlights.labelSize}" font-family="KaiSans, sans-serif" ` +
+          `<text x="${panelX}" y="${y + highlights.labelSize}" font-family="${roleFamily("SECTION")}" ` +
             `font-size="${highlights.labelSize}" font-weight="700" fill="${pal.accent}" ${textStroke(pal.ink, highlights.labelSize)} ` +
             `letter-spacing="2.5">HIGH-DEMAND OPPORTUNITIES</text>`,
         );
@@ -2053,9 +2096,9 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         const roleLineH = Math.round(highlights.roleSize * 1.35);
         for (const p of highlights.featured) {
           const line = posterRoleLine(p);
-          const ls = fit(line, panelW, highlights.roleSize, plan.floor, true);
+          const ls = fit(line, panelW, highlights.roleSize, plan.floor, "POSITION");
           parts.push(
-            `<text x="${panelX}" y="${y + Math.round(highlights.roleSize * 0.85)}" font-family="KaiSans, sans-serif" ` +
+            `<text x="${panelX}" y="${y + Math.round(highlights.roleSize * 0.85)}" font-family="${roleFamily("POSITION")}" ` +
               `font-size="${ls}" font-weight="800" fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="0.3">${esc(line)}</text>`,
           );
           y += roleLineH;
@@ -2064,11 +2107,11 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       }
       if (highlights.hookKeywords.length > 0) {
         const hookLine = highlights.hookKeywords.join("   ·   ");
-        const hookLines = wrapLines(hookLine, panelW, highlights.hookSize);
+        const hookLines = wrapLines(hookLine, panelW, highlights.hookSize, "FINE");
         for (const line of hookLines) {
           y += Math.round(highlights.hookSize * 1.1);
           parts.push(
-            `<text x="${panelX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${highlights.hookSize}" ` +
+            `<text x="${panelX}" y="${y}" font-family="${roleFamily("FINE")}" font-size="${highlights.hookSize}" ` +
               `font-weight="700" fill="${pal.accent}" fill-opacity="0.9" ${textStroke(pal.ink, highlights.hookSize)}>${esc(line.toUpperCase())}</text>`,
           );
           y += Math.round(highlights.hookSize * 0.4);
@@ -2095,7 +2138,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       const markLetter = (facts.agencyName.trim().charAt(0) || facts.country?.charAt(0) || "K").toUpperCase();
       const markSize = Math.min(Math.round(leftover * 1.55), Math.round(W * 0.68));
       parts.push(
-        `<text x="${W - margin}" y="${H - stripH - Math.round(leftover * 0.06)}" font-family="KaiSans, sans-serif" ` +
+        `<text x="${W - margin}" y="${H - stripH - Math.round(leftover * 0.06)}" font-family="${roleFamily("DISPLAY")}" ` +
           `font-size="${markSize}" font-weight="800" fill="${pal.reversed}" opacity="0.05" text-anchor="end">${esc(markLetter)}</text>`,
       );
     }
@@ -2132,13 +2175,13 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     headH = Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W));
     parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${pal.ink}"/>`);
     const baseY = headH - Math.round(headH * 0.34);
-    const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor);
+    const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor, "SECTION");
     parts.push(
-      `<text x="${margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(facts.agencyName)}</text>`,
+      `<text x="${margin}" y="${baseY}" font-family="${roleFamily("SECTION")}" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(facts.agencyName)}</text>`,
     );
     if (facts.country) {
       parts.push(
-        `<text x="${W - margin}" y="${baseY}" font-family="KaiSans, sans-serif" font-size="${px(T.Caption)}" fill="${pal.accent}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
+        `<text x="${W - margin}" y="${baseY}" font-family="${roleFamily("FINE")}" font-size="${px(T.Caption)}" fill="${pal.accent}" text-anchor="end" letter-spacing="2">${esc(facts.country.toUpperCase())}</text>`,
       );
     }
     parts.push(`<rect x="${margin}" y="${headH - 5}" width="${px(0.12)}" height="5" fill="${pal.accent}"/>`);
@@ -2152,8 +2195,8 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     if (M.ribbon !== "NONE") {
       const ribbonText = M.ribbonText;
       if (ribbonText) {
-        const ribbonS = fit(ribbonText, Math.round(contentW * 0.5), Math.round(ribbonH * 0.42), plan.floor, true);
-        const ribbonW = Math.round(textWidth(ribbonText, ribbonS, true) + px(0.07));
+        const ribbonS = fit(ribbonText, Math.round(contentW * 0.5), Math.round(ribbonH * 0.42), plan.floor, "SECTION");
+        const ribbonW = Math.round(textWidth(ribbonText, ribbonS, "SECTION") + px(0.07));
         const ribbonOnRight = M.ribbon === "NOTCHED_RIGHT";
         const ribbonX = ribbonOnRight ? W - margin - ribbonW : margin;
         if (M.ribbon === "BAR") {
@@ -2164,7 +2207,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         const ribbonCentre = ribbonX + Math.round(ribbonW / 2);
         parts.push(
           `<text x="${ribbonCentre}" ` +
-            `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="KaiSans, sans-serif" font-size="${ribbonS}" ` +
+            `y="${ribbonY + Math.round(ribbonH * 0.68)}" font-family="${roleFamily("SECTION")}" font-size="${ribbonS}" ` +
             `font-weight="700" fill="${pal.accentText}" text-anchor="middle" letter-spacing="1">${esc(ribbonText)}</text>`,
         );
       }
@@ -2183,30 +2226,30 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const heroRibbonGap = Math.max(px(0.045), Math.round(hero.headlineSize * 0.85));
     let y = ribbonY + ribbonH + (M.ribbon === "NONE" ? px(0.02) : heroRibbonGap);
     for (const l of hero.headlineLines) {
-      const ls = Math.min(hero.headlineSize, fit(l, heroTextW, hero.headlineSize, plan.floor, true));
+      const ls = Math.min(hero.headlineSize, fit(l, heroTextW, hero.headlineSize, plan.floor, "DISPLAY"));
       parts.push(
-        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="800" fill="${pal.reversed}"${anchor} letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="${roleFamily("DISPLAY")}" font-size="${ls}" font-weight="800" fill="${pal.reversed}"${anchor} letter-spacing="${M.headlineTracking}">${esc(l)}</text>`,
       );
       y += Math.round(hero.headlineSize * 1.14);
     }
     if (facts.employer && hero.employerSize) {
       y += px(0.01);
-      const es = Math.min(hero.employerSize, fit(facts.employer, heroTextW, hero.employerSize, plan.floor, true));
+      const es = Math.min(hero.employerSize, fit(facts.employer, heroTextW, hero.employerSize, plan.floor, "DISPLAY"));
       parts.push(
-        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${es}" font-weight="700" fill="${pal.accent}"${anchor}>${esc(facts.employer)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="${roleFamily("DISPLAY")}" font-size="${es}" font-weight="700" fill="${pal.accent}"${anchor}>${esc(facts.employer)}</text>`,
       );
       y += Math.round(hero.employerSize * 1.08);
     }
     if (hero.sub && hero.subSize) {
       y += px(0.006);
       parts.push(
-        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.subSize, fit(hero.sub, heroTextW, hero.subSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.9">${esc(hero.sub)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="${roleFamily("SECTION")}" font-size="${Math.min(hero.subSize, fit(hero.sub, heroTextW, hero.subSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.9">${esc(hero.sub)}</text>`,
       );
       y += Math.round(hero.subSize * 1.15);
     }
     if (hero.meta && hero.metaSize) {
       parts.push(
-        `<text x="${heroX}" y="${y}" font-family="KaiSans, sans-serif" font-size="${Math.min(hero.metaSize, fit(hero.meta, heroTextW, hero.metaSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.75">${esc(hero.meta)}</text>`,
+        `<text x="${heroX}" y="${y}" font-family="${roleFamily("SECTION")}" font-size="${Math.min(hero.metaSize, fit(hero.meta, heroTextW, hero.metaSize, plan.floor))}" fill="${pal.reversed}"${anchor} opacity="0.75">${esc(hero.meta)}</text>`,
       );
       y += Math.round(hero.metaSize * 1.3);
     }
@@ -2222,12 +2265,12 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         const capSize = hero.numeralCaptionSize;
         y += px(0.012) + Math.round(numSize * 0.82);
         parts.push(
-          `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
+          `<text x="${Math.round(W / 2)}" y="${y}" font-family="${roleFamily("NUMERIC")}" font-size="${numSize}" ` +
             `font-weight="800" fill="${pal.accent}" text-anchor="middle" letter-spacing="-2">${esc(numeral.num)}</text>`,
         );
         y += Math.round(capSize * 1.5);
         parts.push(
-          `<text x="${Math.round(W / 2)}" y="${y}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
+          `<text x="${Math.round(W / 2)}" y="${y}" font-family="${roleFamily("SECTION")}" font-size="${capSize}" ` +
             `font-weight="700" fill="${pal.reversed}" text-anchor="middle" letter-spacing="2">${esc(numeral.caption)}</text>`,
         );
       } else {
@@ -2238,11 +2281,11 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
           : Math.min(Math.round(W * 0.1), Math.round(heroPx * 0.18));
         const capSize = Math.max(plan.floor, Math.round(numSize * (display ? 0.2 : 0.32)));
         parts.push(
-          `<text x="${numX}" y="${numBaseline}" font-family="KaiSans, sans-serif" font-size="${numSize}" ` +
+          `<text x="${numX}" y="${numBaseline}" font-family="${roleFamily("NUMERIC")}" font-size="${numSize}" ` +
             `font-weight="800" fill="${pal.accent}" text-anchor="end" letter-spacing="-2">${esc(numeral.num)}</text>`,
         );
         parts.push(
-          `<text x="${numX}" y="${numBaseline + Math.round(capSize * 1.3)}" font-family="KaiSans, sans-serif" font-size="${capSize}" ` +
+          `<text x="${numX}" y="${numBaseline + Math.round(capSize * 1.3)}" font-family="${roleFamily("SECTION")}" font-size="${capSize}" ` +
             `font-weight="700" fill="${pal.reversed}" text-anchor="end" letter-spacing="2">${esc(numeral.caption)}</text>`,
         );
       }
@@ -2296,7 +2339,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     parts.push(iconGlyph("check", boxX + px(0.04) + chipR, chipY, chipR, poster ? pal.accent : pal.ink));
     parts.push(
       `<text x="${boxX + px(0.04) + chipR * 2 + px(0.012)}" y="${chipY + Math.round(chipSize * 0.32)}" ` +
-        `font-family="KaiSans, sans-serif" font-size="${chipSize}" font-weight="700" fill="${calloutText}" ` +
+        `font-family="${roleFamily("SECTION")}" font-size="${chipSize}" font-weight="700" fill="${calloutText}" ` +
         `letter-spacing="1">VERIFIED ADVERTISEMENT</text>`,
     );
     const contactRowY = Math.min(boxY + boxH - Math.round(boxH * 0.24), midY + rowGapV);
@@ -2307,16 +2350,16 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       parts.push(iconGlyph("phone", cx + r, contactRowY, r, calloutText));
       cx += r * 2 + px(0.01);
       parts.push(
-        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" font-weight="700" fill="${calloutText}">${esc(facts.contact.phone)}</text>`,
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="${roleFamily("FINE")}" font-size="${cSize}" font-weight="700" fill="${calloutText}">${esc(facts.contact.phone)}</text>`,
       );
-      cx += Math.round(textWidth(facts.contact.phone, cSize, true)) + px(0.035);
+      cx += Math.round(textWidth(facts.contact.phone, cSize, "FINE")) + px(0.035);
     }
     if (facts.contact.whatsapp) {
       const r = Math.round(cSize * 0.6);
       parts.push(iconGlyph("chat", cx + r, contactRowY, r, calloutMuted));
       cx += r * 2 + px(0.01);
       parts.push(
-        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="KaiSans, sans-serif" font-size="${cSize}" fill="${calloutMuted}">${esc(facts.contact.whatsapp)}</text>`,
+        `<text x="${cx}" y="${contactRowY + Math.round(cSize * 0.32)}" font-family="${roleFamily("FINE")}" font-size="${cSize}" fill="${calloutMuted}">${esc(facts.contact.whatsapp)}</text>`,
       );
     }
   }
@@ -2363,7 +2406,13 @@ function renderPosterBody(
   // verified vacancy count folded in) and, when the tier shows it, the
   // per-role detail line. Shared by both the flat and the grouped
   // layouts below so a role renders identically either way.
-  const drawPositionRow = (p: AdvertisementFacts["positions"][number], colX: number, rowTop: number, tw: number) => {
+  const drawPositionRow = (
+    p: AdvertisementFacts["positions"][number],
+    colX: number,
+    rowTop: number,
+    tw: number,
+    detailOverride?: string,
+  ) => {
     const cy = rowTop + Math.round(titleSize * 0.92);
     const bs = Math.round(titleSize * 0.42);
     // A small triangular bullet — the trade convention this whole genre
@@ -2382,21 +2431,21 @@ function renderPosterBody(
     // convention this genre actually uses. Folded into the wrapped
     // title itself rather than a separate badge, so it can never be
     // silently dropped and is measured exactly like the rest of the line.
-    const lines = wrap(posterRoleLine(p), tw, titleSize, plan.maxLines);
+    const lines = wrap(posterRoleLine(p), tw, titleSize, plan.maxLines, "POSITION");
     for (const line of lines) {
-      const ls = fit(line, tw, titleSize, floor, true);
+      const ls = fit(line, tw, titleSize, floor, "POSITION");
       parts.push(
-        `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="700" ` +
+        `<text x="${tx}" y="${ly}" font-family="${roleFamily("POSITION")}" font-size="${ls}" font-weight="700" ` +
           `fill="${pal.reversed}" ${textStroke(pal.ink, ls)} letter-spacing="0.5">${esc(line)}</text>`,
       );
       ly += Math.round(titleSize * plan.lineFactor);
     }
     if (showDetail) {
-      const d = roleDetail(p);
+      const d = detailOverride ?? roleDetail(p);
       if (d) {
-        const ds = fit(d, tw, detailSize, floor);
+        const ds = fit(d, tw, detailSize, floor, "FINE");
         parts.push(
-          `<text x="${tx}" y="${ly}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.reversed}" fill-opacity="0.78" ${textStroke(pal.ink, ds)}>${esc(d)}</text>`,
+          `<text x="${tx}" y="${ly}" font-family="${roleFamily("FINE")}" font-size="${ds}" fill="${pal.reversed}" fill-opacity="0.78" ${textStroke(pal.ink, ds)}>${esc(d)}</text>`,
         );
         ly += Math.round(detailSize * 1.3);
       }
@@ -2419,7 +2468,7 @@ function renderPosterBody(
       if (entry.kind === "familyHeader") {
         const fy = rowTopCursor + Math.round(detailSize * 1.1);
         parts.push(
-          `<text x="${colX}" y="${fy}" font-family="KaiSans, sans-serif" font-size="${detailSize}" ` +
+          `<text x="${colX}" y="${fy}" font-family="${roleFamily("SECTION")}" font-size="${detailSize}" ` +
             `font-weight="700" letter-spacing="1" fill="${pal.accent}" ${textStroke(pal.ink, detailSize)}>${esc(entry.label)}</text>`,
         );
         // Anchored to the BOTTOM of this row's own reserved height, not
@@ -2431,14 +2480,14 @@ function renderPosterBody(
           `<rect x="${colX}" y="${ruleY}" width="${Math.round(tw * 0.14)}" height="2" fill="${pal.accent}" fill-opacity="0.6"/>`,
         );
       } else if (entry.kind === "position") {
-        drawPositionRow(facts.positions[entry.idx], colX, rowTopCursor, tw);
+        drawPositionRow(facts.positions[entry.idx], colX, rowTopCursor, tw, entry.detail);
       } else {
         // Common requirement — the one shared qualification this family's
         // members actually carry, verbatim, never a paraphrase.
         const cy = rowTopCursor + Math.round(detailSize * 1.05);
         const cs = Math.max(floor, Math.round(detailSize * 0.94));
         parts.push(
-          `<text x="${colX}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${cs}" font-style="italic" ` +
+          `<text x="${colX}" y="${cy}" font-family="${roleFamily("FINE")}" font-size="${cs}" font-style="italic" ` +
             `fill="${pal.reversed}" fill-opacity="0.72" ${textStroke(pal.ink, cs)}>${esc(entry.text)}</text>`,
         );
       }
@@ -2479,9 +2528,9 @@ function renderPosterBody(
       parts.push(iconGlyph(kind, bx + iconR, rowMidY, iconR, pal.accent));
       const tx = bx + iconR * 2 + Math.round(px(0.008));
       parts.push(
-        `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="600" fill="${pal.reversed}" ${textStroke(pal.ink, s)}>${esc(label)}</text>`,
+        `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="${roleFamily("FINE")}" font-size="${s}" font-weight="600" fill="${pal.reversed}" ${textStroke(pal.ink, s)}>${esc(label)}</text>`,
       );
-      bx = tx + Math.round(textWidth(label, s, true)) + px(0.03);
+      bx = tx + Math.round(textWidth(label, s, "FINE")) + px(0.03);
       if (bx > margin + plan.contentW * 0.94) break; // never truncates a fact — overflow benefits still verified, just not iconised on this row
     }
     sy += chipH + px(0.022);
@@ -2496,7 +2545,7 @@ function renderPosterBody(
       const s = Math.max(floor, px(0.0185));
       const label = `INTERVIEW   ${detail}`;
       const boxH = Math.round(s * 2.5);
-      const boxW = Math.min(plan.contentW, Math.round(textWidth(label, s, true) + px(0.06)));
+      const boxW = Math.min(plan.contentW, Math.round(textWidth(label, s, "FINE") + px(0.06)));
       parts.push(
         `<rect x="${margin}" y="${sy}" width="${boxW}" height="${boxH}" rx="${Math.round(boxH * 0.2)}" fill="${pal.ink}" fill-opacity="0.55"/>`,
       );
@@ -2504,10 +2553,10 @@ function renderPosterBody(
       parts.push(iconGlyph("calendar", margin + px(0.024) + iconR, sy + Math.round(boxH / 2), iconR, pal.accent));
       const labelX = margin + px(0.024) + iconR * 2 + px(0.01);
       parts.push(
-        `<text x="${labelX}" y="${sy + Math.round(boxH * 0.63)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${pal.accent}">INTERVIEW</text>`,
+        `<text x="${labelX}" y="${sy + Math.round(boxH * 0.63)}" font-family="${roleFamily("SECTION")}" font-size="${s}" font-weight="700" fill="${pal.accent}">INTERVIEW</text>`,
       );
       parts.push(
-        `<text x="${labelX + Math.round(textWidth("INTERVIEW  ", s, true))}" y="${sy + Math.round(boxH * 0.63)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.reversed}">${esc(detail)}</text>`,
+        `<text x="${labelX + Math.round(textWidth("INTERVIEW  ", s, "SECTION"))}" y="${sy + Math.round(boxH * 0.63)}" font-family="${roleFamily("FINE")}" font-size="${s}" fill="${pal.reversed}">${esc(detail)}</text>`,
       );
       sy += boxH + px(0.02);
     }
@@ -2519,10 +2568,10 @@ function renderPosterBody(
   // truncates, the same rule the position list and benefits row follow.
   if (facts.footer) {
     const s = Math.max(floor, px(0.0135));
-    for (const line of wrapLines(facts.footer, plan.contentW, s)) {
+    for (const line of wrapLines(facts.footer, plan.contentW, s, "FINE")) {
       sy += Math.round(s * 1.1);
       parts.push(
-        `<text x="${margin}" y="${sy}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.reversed}" opacity="0.75">${esc(line)}</text>`,
+        `<text x="${margin}" y="${sy}" font-family="${roleFamily("FINE")}" font-size="${s}" fill="${pal.reversed}" opacity="0.75">${esc(line)}</text>`,
       );
       sy += Math.round(s * 0.5);
     }
@@ -2558,7 +2607,7 @@ function renderBody(
     y = heroPx + px(0.012);
     parts.push(`<rect x="${edge}" y="${y}" width="${innerW}" height="${secH}" fill="${pal.ink}"/>`);
     parts.push(
-      `<text x="${Math.round(W / 2)}" y="${y + Math.round(secH * 0.68)}" font-family="KaiSans, sans-serif" ` +
+      `<text x="${Math.round(W / 2)}" y="${y + Math.round(secH * 0.68)}" font-family="${roleFamily("SECTION")}" ` +
         `font-size="${Math.round(secH * 0.44)}" font-weight="700" fill="${pal.reversed}" text-anchor="middle" ` +
         `letter-spacing="3">POSITIONS AVAILABLE</text>`,
     );
@@ -2566,7 +2615,7 @@ function renderBody(
   } else {
     y = heroPx + px(0.035) + px(T.H2);
     parts.push(
-      `<text x="${margin}" y="${y}" font-family="KaiSans, sans-serif" font-size="${px(T.H2)}" font-weight="700" fill="${pal.ink}">POSITIONS</text>`,
+      `<text x="${margin}" y="${y}" font-family="${roleFamily("SECTION")}" font-size="${px(T.H2)}" font-weight="700" fill="${pal.ink}">POSITIONS</text>`,
     );
     parts.push(`<rect x="${margin}" y="${y + px(0.009)}" width="${px(0.075)}" height="3" fill="${pal.accent}"/>`);
     y += plan.headingH - px(T.H2) + px(0.012);
@@ -2577,11 +2626,11 @@ function renderBody(
   if (dense && plan.hasSalary) {
     const hs = Math.max(floor, Math.round(px(T.Caption) * 0.85));
     parts.push(
-      `<text x="${margin}" y="${y - px(0.004)}" font-family="KaiSans, sans-serif" font-size="${hs}" ` +
+      `<text x="${margin}" y="${y - px(0.004)}" font-family="${roleFamily("SECTION")}" font-size="${hs}" ` +
         `font-weight="700" fill="${pal.muted}" letter-spacing="1">POSITION</text>`,
     );
     parts.push(
-      `<text x="${margin + plan.contentW}" y="${y - px(0.004)}" font-family="KaiSans, sans-serif" font-size="${hs}" ` +
+      `<text x="${margin + plan.contentW}" y="${y - px(0.004)}" font-family="${roleFamily("SECTION")}" font-size="${hs}" ` +
         `font-weight="700" fill="${pal.muted}" text-anchor="end" letter-spacing="1">MONTHLY SALARY</text>`,
     );
     y += Math.round(hs * 1.2);
@@ -2615,7 +2664,7 @@ function renderBody(
           `<rect x="${colX}" y="${cy - Math.round(titleSize * 0.82)}" width="${px(0.042)}" height="${Math.round(titleSize * 1.06)}" rx="3" fill="${pal.accent}"/>`,
         );
         rowParts.push(
-          `<text x="${colX + Math.round(px(0.042) / 2)}" y="${cy - Math.round(titleSize * 0.1)}" font-family="KaiSans, sans-serif" font-size="${bs}" font-weight="700" fill="${pal.ink}" text-anchor="middle">${esc(String(p.count))}</text>`,
+          `<text x="${colX + Math.round(px(0.042) / 2)}" y="${cy - Math.round(titleSize * 0.1)}" font-family="${roleFamily("NUMERIC")}" font-size="${bs}" font-weight="700" fill="${pal.ink}" text-anchor="middle">${esc(String(p.count))}</text>`,
         );
       }
       if (p.count != null && dense && badgeW > 0) {
@@ -2624,7 +2673,7 @@ function renderBody(
         const rh = plan.rowHeights[rowIndex] ?? Math.round(titleSize * 1.6);
         rowParts.push(
           `<text x="${colX + Math.round(badgeW / 2)}" y="${rowTop + Math.round(rh / 2) + Math.round(titleSize * 0.32)}" ` +
-            `font-family="KaiSans, sans-serif" font-size="${Math.round(titleSize * 0.82)}" font-weight="700" ` +
+            `font-family="${roleFamily("NUMERIC")}" font-size="${Math.round(titleSize * 0.82)}" font-weight="700" ` +
             `fill="${pal.ink}" text-anchor="middle">${esc(String(p.count))}</text>`,
         );
       }
@@ -2634,13 +2683,13 @@ function renderBody(
       // Wrapped and measured on the true text — only the drawn glyphs are
       // uppercased in dense mode, matching how both real classifieds set
       // every trade name in the table.
-      const lines = wrap(displayTitle(p.title), tw, titleSize, plan.maxLines);
+      const lines = wrap(displayTitle(p.title), tw, titleSize, plan.maxLines, "POSITION");
       const firstBaseline = cy;
       for (const line of lines) {
         const drawn = M.uppercaseTitles ? line.toUpperCase() : line;
-        const ls = fit(drawn, tw, titleSize, floor);
+        const ls = fit(drawn, tw, titleSize, floor, "POSITION");
         rowParts.push(
-          `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ls}" font-weight="600" fill="${pal.ink}">${esc(drawn)}</text>`,
+          `<text x="${tx}" y="${cy}" font-family="${roleFamily("POSITION")}" font-size="${ls}" font-weight="600" fill="${pal.ink}">${esc(drawn)}</text>`,
         );
         cy += Math.round(titleSize * plan.lineFactor);
       }
@@ -2649,18 +2698,18 @@ function renderBody(
         // column at title weight, on the row's first baseline.
         // Role reads first, salary second. Set at the same weight the two
         // competed and the eye had nowhere to land.
-        const ss = fit(p.salary, plan.salaryW, Math.round(titleSize * 0.92), floor, false);
+        const ss = fit(p.salary, plan.salaryW, Math.round(titleSize * 0.92), floor, "NUMERIC");
         rowParts.push(
-          `<text x="${colX + colWHere}" y="${firstBaseline}" font-family="KaiSans, sans-serif" ` +
+          `<text x="${colX + colWHere}" y="${firstBaseline}" font-family="${roleFamily("NUMERIC")}" ` +
             `font-size="${ss}" font-weight="600" fill="${pal.muted}" text-anchor="end">${esc(p.salary)}</text>`,
         );
       }
       if (showDetail) {
         const d = roleDetail(p);
         if (d) {
-          const ds = fit(d, tw, detailSize, floor);
+          const ds = fit(d, tw, detailSize, floor, "FINE");
           rowParts.push(
-            `<text x="${tx}" y="${cy}" font-family="KaiSans, sans-serif" font-size="${ds}" fill="${pal.muted}">${esc(d)}</text>`,
+            `<text x="${tx}" y="${cy}" font-family="${roleFamily("FINE")}" font-size="${ds}" fill="${pal.muted}">${esc(d)}</text>`,
           );
           cy += Math.round(detailSize * 1.3);
         }
@@ -2721,11 +2770,11 @@ function renderBody(
   if (facts.benefits.length) {
     if (M.benefitStyle === "TEXT_STRIP") {
       const text = facts.benefits.map((b) => (b.detail ? `${b.label}: ${b.detail}` : b.label)).join("   ·   ");
-      const s = fit(text, plan.contentW, px(T.Caption), floor);
+      const s = fit(text, plan.contentW, px(T.Caption), floor, "FINE");
       const barH = Math.round(s * 2.4);
       parts.push(`<rect x="0" y="${sy - Math.round(s * 1.1)}" width="${W}" height="${barH}" fill="${pal.ink}"/>`);
       parts.push(
-        `<text x="${margin}" y="${sy + Math.round(s * 0.42)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.accent}">${esc(text)}</text>`,
+        `<text x="${margin}" y="${sy + Math.round(s * 0.42)}" font-family="${roleFamily("FINE")}" font-size="${s}" fill="${pal.accent}">${esc(text)}</text>`,
       );
       sy += Math.round(s * 2.7);
     } else {
@@ -2744,7 +2793,7 @@ function renderBody(
         if (chips) {
           // A filled pill carrying the benefit, set in accent-on-ink.
           const padX = Math.round(s * 0.7);
-          const pillW = Math.round(textWidth(label, s, true)) + padX * 2;
+          const pillW = Math.round(textWidth(label, s, "FINE")) + padX * 2;
           const pillH = Math.round(s * 2);
           if (bx + pillW > margin + plan.contentW) break;
           parts.push(
@@ -2752,7 +2801,7 @@ function renderBody(
               `rx="${Math.round(pillH / 2)}" fill="${pal.accent}"/>`,
           );
           parts.push(
-            `<text x="${bx + Math.round(pillW / 2)}" y="${rowMidY + Math.round(s * 0.34)}" font-family="KaiSans, sans-serif" ` +
+            `<text x="${bx + Math.round(pillW / 2)}" y="${rowMidY + Math.round(s * 0.34)}" font-family="${roleFamily("FINE")}" ` +
               `font-size="${s}" font-weight="700" fill="${pal.accentText}" text-anchor="middle">${esc(label)}</text>`,
           );
           bx += pillW + Math.round(gap);
@@ -2762,9 +2811,9 @@ function renderBody(
         parts.push(iconGlyph(kind, bx + iconR, rowMidY, iconR, pal.accent));
         const tx = bx + iconR * 2 + Math.round(gap * 0.5);
         parts.push(
-          `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="600" fill="${pal.reversed}">${esc(label)}</text>`,
+          `<text x="${tx}" y="${rowMidY + Math.round(s * 0.32)}" font-family="${roleFamily("FINE")}" font-size="${s}" font-weight="600" fill="${pal.reversed}">${esc(label)}</text>`,
         );
-        bx = tx + Math.round(textWidth(label, s, true)) + gap * 2.2;
+        bx = tx + Math.round(textWidth(label, s, "FINE")) + gap * 2.2;
         if (bx > margin + plan.contentW * 0.92) break; // never truncates a fact — overflow benefits still verified, just not iconised on this row
       }
       sy += chipH * 2 + px(0.02);
@@ -2776,15 +2825,15 @@ function renderBody(
   if (ev) {
     const detail = [ev.date, ev.location].filter(Boolean).join(" · ");
     if (detail) {
-      const s = fit(`INTERVIEW   ${detail}`, plan.contentW, px(T.Caption), floor);
+      const s = fit(`INTERVIEW   ${detail}`, plan.contentW, px(T.Caption), floor, "FINE");
       const iconR = Math.round(s * 0.55);
       parts.push(iconGlyph("calendar", margin + iconR, sy + Math.round(s * 0.55), iconR, pal.ink));
       const tx = margin + iconR * 2 + Math.round(px(0.012));
       parts.push(
-        `<text x="${tx}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" font-weight="700" fill="${pal.ink}">INTERVIEW</text>`,
+        `<text x="${tx}" y="${sy + Math.round(s * 1.1)}" font-family="${roleFamily("SECTION")}" font-size="${s}" font-weight="700" fill="${pal.ink}">INTERVIEW</text>`,
       );
       parts.push(
-        `<text x="${tx + Math.round(textWidth("INTERVIEW   ", s))}" y="${sy + Math.round(s * 1.1)}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.muted}">${esc(detail)}</text>`,
+        `<text x="${tx + Math.round(textWidth("INTERVIEW   ", s, "SECTION"))}" y="${sy + Math.round(s * 1.1)}" font-family="${roleFamily("FINE")}" font-size="${s}" fill="${pal.muted}">${esc(detail)}</text>`,
       );
       sy += Math.round(s * 2.2);
     }
@@ -2795,10 +2844,10 @@ function renderBody(
   // (Factual Integrity Law, docs/010 Amendment 1).
   if (facts.footer) {
     const s = Math.max(floor, px(0.012));
-    for (const line of wrapLines(facts.footer, plan.contentW, s)) {
+    for (const line of wrapLines(facts.footer, plan.contentW, s, "FINE")) {
       sy += Math.round(s * 1.1);
       parts.push(
-        `<text x="${margin}" y="${sy}" font-family="KaiSans, sans-serif" font-size="${s}" fill="${pal.muted}">${esc(line)}</text>`,
+        `<text x="${margin}" y="${sy}" font-family="${roleFamily("FINE")}" font-size="${s}" fill="${pal.muted}">${esc(line)}</text>`,
       );
       sy += Math.round(s * 0.5);
     }
