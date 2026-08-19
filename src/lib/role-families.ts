@@ -55,6 +55,18 @@ export const ROLE_FAMILY_RULES: readonly RoleFamilyRule[] = [
     heading: "ELECTRICAL & IT",
     test: /\b(electric|instrument|control\s*system|it\b|network|automation)/i,
   },
+  {
+    id: "fireproofing-fabrication",
+    label: "Fireproofing / Fabrication",
+    heading: "FIREPROOFING / FABRICATION",
+    test: /\b(fireproof|cable\s*tray|cable\s*try|sheet\s*metal|fabricat|cladding)/i,
+  },
+  {
+    id: "waterproofing-coatings",
+    label: "Waterproofing",
+    heading: "WATERPROOFING",
+    test: /\b(waterproof|membrane|epoxy|spray|foam\s*concrete|polyurethane|polyurea|rig\s*operator)/i,
+  },
 ] as const;
 
 export const GENERAL_TRADES: RoleFamilyRule = {
@@ -73,15 +85,30 @@ export interface RoleFamilyMatch {
   basis: string;
 }
 
-/** Classify one position title into exactly one family. */
-export function classifyRoleFamily(title: string): RoleFamilyMatch {
+/**
+ * Classify one position into exactly one family.
+ *
+ * `sourceDivision` is an OPTIONAL verified grouping signal carried from
+ * the source document itself (e.g. a table heading like "Manpower
+ * Requirement for Waterproofing Div."), when the requirement provides
+ * one. It is matched against the SAME rules as the title, never a
+ * second classifier — a title-only match ("Spray Foam Machine/Rig
+ * Operator" has no obvious trade keyword on its own) is strengthened by
+ * a genuine source-provided division, without ever inventing one when
+ * the source did not supply it.
+ */
+export function classifyRoleFamily(title: string, sourceDivision?: string | null): RoleFamilyMatch {
+  const subject = sourceDivision ? `${sourceDivision} ${title}` : title;
   for (const rule of ROLE_FAMILY_RULES) {
-    if (rule.test.test(title)) {
+    if (rule.test.test(subject)) {
+      const matchedDivision = sourceDivision && !rule.test.test(title) && rule.test.test(sourceDivision);
       return {
         id: rule.id,
         label: rule.label,
         heading: rule.heading,
-        basis: `functional keyword match on title against /${rule.test.source}/i`,
+        basis: matchedDivision
+          ? `source-provided division "${sourceDivision}" matched /${rule.test.source}/i`
+          : `functional keyword match on title against /${rule.test.source}/i`,
       };
     }
   }

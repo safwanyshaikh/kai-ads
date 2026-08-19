@@ -127,6 +127,28 @@ export interface PositionSourceRecord {
   certifications?: string[];
   remarks?: string | null;
   sourceRowIndex?: number;
+
+  /**
+   * A verified grouping label the SOURCE document itself supplied for
+   * this position (e.g. a table heading like "Manpower Requirement for
+   * Waterproofing Div."). Optional: most requirements don't have one.
+   * Never invented at extraction — only carried through when the source
+   * genuinely states it. Consumed by the ONE role-family classifier in
+   * src/lib/role-families.ts as an additional signal alongside the
+   * title, not as a second grouping mechanism.
+   */
+  sourceDivision?: string | null;
+
+  /**
+   * Functional technical duties/skill description — what a role
+   * actually does, e.g. "Knowledge of installation of Epoxy coatings &
+   * Self-levelling epoxies on floors." Deliberately separate from
+   * `qualification`, which is a formal credential (Diploma/Bachelor's):
+   * a trades requirement can state duties with no formal qualification
+   * at all, and cramming duties text into the qualification field would
+   * mislabel a functional description as an academic requirement.
+   */
+  technicalDuties?: string | null;
 }
 
 export interface CampaignPosition extends PositionSourceRecord {
@@ -181,6 +203,7 @@ function statementsFor(p: PositionSourceRecord): PositionStatement[] {
   const raw: string[] = [];
   if (p.qualification) raw.push(p.qualification);
   if (p.experience) raw.push(p.experience);
+  if (p.technicalDuties) raw.push(p.technicalDuties);
   for (const c of p.certifications ?? []) raw.push(c);
   if (p.remarks) {
     // Split on sentence-ish separators so "Candidate hold Saudi Aramco
@@ -209,7 +232,7 @@ export function buildRecruitmentCampaign(records: PositionSourceRecord[]): Recru
     { id: string; label: string; basis: string; members: CampaignPosition[]; indexes: number[] }
   >();
   positions.forEach((p, index) => {
-    const f = classifyRoleFamily(p.title);
+    const f = classifyRoleFamily(p.title, p.sourceDivision);
     const bucket = familyOf.get(f.id) ?? { id: f.id, label: f.label, basis: f.basis, members: [], indexes: [] };
     bucket.members.push(p);
     bucket.indexes.push(index);
@@ -434,6 +457,8 @@ export function campaignFromAdvertisementFacts(facts: AdvertisementFacts): Recru
     experience: p.experience,
     qualification: p.qualification,
     certifications: p.certifications,
+    sourceDivision: p.sourceDivision,
+    technicalDuties: p.technicalDuties,
   }));
   return buildRecruitmentCampaign(records);
 }
@@ -483,4 +508,103 @@ export function compressPresentation(text: string): string {
     out = out.replace(pattern, replacement);
   }
   return out.trim();
+}
+
+/**
+ * Salary is ROLE-SPECIFIC and is deliberately never routed through the
+ * statement/compression pipeline above — nothing in this module tags,
+ * dedups, or hoists a salary string, so two different roles' salary
+ * figures can never be merged into one fake range. This function only
+ * reformats digits already present ("SAR 1300 to SAR 1600 SAR" ->
+ * "SAR 1,300–1,600") — every number is parsed and re-emitted unchanged,
+ * never rounded, widened, or combined across roles. When the text does
+ * not match the expected "SAR X to SAR Y" shape, it is returned exactly
+ * as given: guessing at an unfamiliar salary format risks altering a
+ * verified figure, which this function must never do.
+ */
+export function compressSalaryPresentation(text: string): string {
+  const match = text.match(/SAR\s*([\d,]+)\s*(?:to|-|–)\s*SAR\s*([\d,]+)(?:\s*SAR)?/i);
+  if (!match) return text;
+  const low = Number(match[1].replace(/,/g, ""));
+  const high = Number(match[2].replace(/,/g, ""));
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return text;
+  const fmt = (n: number) => n.toLocaleString("en-US");
+  return text
+    .replace(match[0], `SAR ${fmt(low)}–${fmt(high)}`)
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/* -------------------------------------------------------------------------- */
+/* CANDIDATE-FACING HEADLINE RECONSTRUCTION                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Reconstructs a candidate-facing campaign headline from VERIFIED facts,
+ * for the case where the source/CRM header is not a headline at all —
+ * e.g. "Fireproofing Mason + 8 more roles", which is source data, not
+ * creative copy (see AdvertisementCampaignIdentity's doc comment). This
+ * is the wiring for that existing, previously-unused contract.
+ *
+ * Deliberately grounded ONLY in: the requirement's stated industry, and
+ * the role families its own positions cluster into via the ONE shared
+ * classifier. It never reads `facts.employer` — a headline built here
+ * cannot invent or leak an unverified client/site identity, exactly as
+ * required when the source names a submitting party (e.g. an HR
+ * contact) without naming an actual employer.
+ *
+ * Returns null when nothing grounded is available, so the caller can
+ * fall back to its own generic default rather than receive an invented
+ * headline.
+ */
+export function buildCandidateHeadline(facts: {
+  industry?: string | null;
+  positions: { title: string; sourceDivision?: string | null }[];
+}): string | null {
+  const industry = facts.industry?.trim();
+  if (industry) {
+    return `${industry.toUpperCase()} OPPORTUNITIES`;
+  }
+
+  const labels: string[] = [];
+  const seen = new Set<string>();
+  for (const p of facts.positions) {
+    const family = classifyRoleFamily(p.title, p.sourceDivision);
+    // The catch-all conveys nothing a candidate would recognise as a
+    // headline — better to fall through to null than print it.
+    if (family.id === "general-trades") continue;
+    if (!seen.has(family.label)) {
+      seen.add(family.label);
+      labels.push(family.label);
+    }
+  }
+  if (labels.length === 0) return null;
+  return `${labels.slice(0, 2).join(" & ").toUpperCase()} OPPORTUNITIES`;
+}
+
+/* -------------------------------------------------------------------------- */
+/* URGENCY / CTA                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Translates a VERIFIED urgency signal into a candidate-facing CTA
+ * phrase. Fires ONLY when `facts.urgent === true` — never inferred from
+ * free text at render time, so a requirement the source did not
+ * describe as urgent never gets one invented for it. Uses only the
+ * pre-approved wording ("URGENT HIRING", "APPLY NOW"); never states a
+ * deadline, interview date, or "limited slots" claim that the source
+ * did not itself provide (those already have their own verified fields
+ * — `interview`, etc. — and belong there, not folded into this phrase).
+ *
+ * Returns null when there is no legitimate way to act on it (no
+ * candidate-facing contact at all) or when urgency was not verified.
+ */
+export function buildCandidateCta(facts: {
+  urgent?: boolean | null;
+  contact: { phone?: string; email?: string; whatsapp?: string };
+}): string | null {
+  if (facts.urgent !== true) return null;
+  const hasContact = Boolean(facts.contact.phone || facts.contact.email || facts.contact.whatsapp);
+  if (!hasContact) return null;
+  return "URGENT HIRING — APPLY NOW";
 }

@@ -249,6 +249,15 @@ export interface AdvertisementFacts {
    */
   rotation?: string | null;
 
+  /**
+   * Verified urgency signal — true only when the source itself states
+   * urgency (e.g. "We have an urgent requirement"). Never inferred by
+   * a renderer from free text at draw time, and never used to invent a
+   * deadline: it licenses an allowed CTA phrase ("URGENT HIRING",
+   * "APPLY NOW"), nothing date-specific.
+   */
+  urgent?: boolean | null;
+
   /* ---------------------------------------------------------------------- */
   /* POSITIONS                                                               */
   /* ---------------------------------------------------------------------- */
@@ -273,6 +282,24 @@ export interface AdvertisementFacts {
     certifications?: string[];
 
     ageLimit?: string | null;
+
+    /**
+     * A verified grouping label the SOURCE document itself supplied for
+     * this position (e.g. a table heading like "Manpower Requirement
+     * for Waterproofing Div."). Optional — most requirements don't
+     * carry one, and it is never invented when absent. Consumed by the
+     * one role-family classifier (src/lib/role-families.ts) as an
+     * additional signal alongside the title.
+     */
+    sourceDivision?: string | null;
+
+    /**
+     * Functional technical duties/skill description — what a role
+     * actually does. Deliberately separate from `qualification`, which
+     * is a formal credential: a trades requirement can state duties
+     * with no formal qualification at all.
+     */
+    technicalDuties?: string | null;
   }[];
 
   /**

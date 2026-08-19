@@ -26,6 +26,8 @@ interface AdvertisementRecord {
   dutyHours?: string | null;
   rotation?: string | null;
   legalDisclaimer?: string | null;
+  /** Verified urgency signal — see AdvertisementFacts.urgent. */
+  urgent?: boolean | null;
 }
 
 interface AgencyRecord {
@@ -54,6 +56,8 @@ export function buildAdvertisementFacts(
     qualification?: string | null;
     certifications?: string[];
     ageLimit?: string | null;
+    sourceDivision?: string | null;
+    technicalDuties?: string | null;
   }[];
   const benefits = advertisement.benefits as unknown as { label: string; detail?: string }[];
   // Decision 3: interview is a schemaless Json column — normalizeInterviewEvents
@@ -91,6 +95,7 @@ export function buildAdvertisementFacts(
     dutyHours: advertisement.dutyHours ?? null,
     rotation: advertisement.rotation ?? null,
     legalDisclaimer: advertisement.legalDisclaimer ?? null,
+    urgent: advertisement.urgent ?? null,
     positions: currencyCorrectedPositions,
     benefits: currencyCorrectedBenefits,
     interview,

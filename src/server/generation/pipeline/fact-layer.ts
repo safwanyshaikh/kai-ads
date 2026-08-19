@@ -4,7 +4,12 @@ import { brandingStripHeight } from "./branding-overlay";
 import { displayTitle } from "@/lib/display-title";
 import { roleFamily, roleTextWidth, type TypeRole } from "@/lib/kdl-typography";
 import { classifyRoleFamily } from "@/lib/role-families";
-import { compressPresentation } from "./content-intelligence";
+import {
+  compressPresentation,
+  compressSalaryPresentation,
+  buildCandidateHeadline,
+  buildCandidateCta,
+} from "./content-intelligence";
 import { isApprovedDtpWidthPx, nearestApprovedDtpSlot, DTP_DEFAULT_DPI } from "@/lib/dtp-format-law";
 import type { AdvertisementFacts } from "./types";
 
@@ -581,10 +586,17 @@ function roleDetail(
   const bits: string[] = [];
   // §6: PRESENTATION is compressed, FACTS are not. Experience and
   // qualification wording is abbreviated to an exact equivalent;
-  // salary and certifications are never reworded.
+  // certifications are never reworded. Salary is reformatted for digit
+  // grouping only (compressSalaryPresentation never merges two roles'
+  // ranges — see that function's own contract).
   if (p.experience && !shown(p.experience)) bits.push(compressPresentation(p.experience));
-  if (p.salary) bits.push(p.salary);
+  if (p.salary) bits.push(compressSalaryPresentation(p.salary));
   if (p.qualification && !shown(p.qualification)) bits.push(compressPresentation(p.qualification));
+  // Functional duties/skill description — the primary detail for a role
+  // that states no formal qualification and no experience figure (a
+  // trades requirement can have neither). Never invented when absent;
+  // simply omitted, exactly like every other optional field here.
+  if (p.technicalDuties && !shown(p.technicalDuties)) bits.push(compressPresentation(p.technicalDuties));
   if (p.certifications?.length) bits.push(p.certifications.join(", "));
   return bits.join(" · ");
 }
@@ -772,7 +784,7 @@ function groupPositionsByFamily(positions: AdvertisementFacts["positions"]): Rol
   const order: string[] = [];
   const byLabel = new Map<string, number[]>();
   positions.forEach((p, idx) => {
-    const label = classifyRoleFamily(p.title).heading;
+    const label = classifyRoleFamily(p.title, p.sourceDivision).heading;
     if (!byLabel.has(label)) {
       byLabel.set(label, []);
       order.push(label);
@@ -919,6 +931,16 @@ function planBody(
   }
 
   const anyDetail = showDetail && facts.positions.some((p) => roleDetail(p));
+  // The detail line wraps like the title does — it is no longer only a
+  // short "5-8 yrs · Diploma" phrase; a functional technical-duties
+  // sentence (§4) can run to several lines. Uncapped, unlike the title's
+  // wrap(): a title's column-count solve (titleFits, above) guarantees
+  // it never needs more than MAX_LINES, so truncating past that bound is
+  // provably safe there. Detail text has no such upstream guarantee, so
+  // it is measured with the SAME wrapLines() the row draws with and
+  // every wrapped line is reserved — never silently dropped.
+  const detailLineCount = (detail: string, tw: number) =>
+    detail ? wrapLines(detail, tw, detailSize, "FINE").length : 0;
   const positionRowHeight = (
     p: AdvertisementFacts["positions"][number],
     detailOverride?: string,
@@ -928,7 +950,8 @@ function planBody(
       wrapLines(measuredTitle(p), colW - badgeW - salaryW, titleSize, "POSITION").length,
     );
     const detail = detailOverride ?? (anyDetail ? roleDetail(p) : "");
-    return Math.round(titleSize * lineFactor * lines + (detail ? detailSize * 1.3 : 0) + rowGap);
+    const dLines = detailLineCount(detail, colW - badgeW - salaryW);
+    return Math.round(titleSize * lineFactor * lines + dLines * detailSize * 1.3 + rowGap);
   };
 
   let rowHeights: number[];
@@ -1118,7 +1141,21 @@ function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: nu
   const MIN_PRINT_PT = 7;
   const floor = Math.max(px(LEGIBILITY_FLOOR), dpi ? Math.round((MIN_PRINT_PT / 72) * dpi) : 0);
 
-  const stated = stripDestinationSuffix(facts.header, facts.country) || `Hiring — ${facts.country}`;
+  // The source/CRM header is source data, not automatically the public
+  // headline (see AdvertisementCampaignIdentity's doc comment) — a raw
+  // CRM summary like "Fireproofing Mason + 8 more roles" is exactly the
+  // shape stripDestinationSuffix was never meant to fix (it only strips
+  // a trailing "— Country"). When the header is empty, or matches that
+  // literal "+N more roles" source-dump pattern, a candidate-facing
+  // headline is reconstructed from verified facts (industry, or the
+  // role families the positions themselves cluster into) instead of
+  // typesetting the raw source text. Every other header is untouched.
+  const rawHeader = stripDestinationSuffix(facts.header, facts.country);
+  const isSourceDumpHeader = /\+\s*\d+\s*more\s*roles?\b/i.test(rawHeader);
+  const stated =
+    !rawHeader || isSourceDumpHeader
+      ? buildCandidateHeadline(facts) ?? `Hiring — ${facts.country}`
+      : rawHeader;
   const headline = dna.motifs.uppercaseHeadline ? stated.toUpperCase() : stated;
   const headlineSize = fit(headline, contentW, px(T.D1), px(T.H3), "DISPLAY");
   const headlineLines = wrapLines(headline, contentW, headlineSize, "DISPLAY");
@@ -1128,7 +1165,11 @@ function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: nu
     : 0;
   const sub = [facts.projectType, facts.industry].filter(Boolean).join(" · ");
   const subSize = sub ? fit(sub, contentW, px(T.H3), floor, "SECTION") : 0;
-  const meta = [facts.visaType, facts.dutyHours, facts.rotation].filter(Boolean).join("  ·  ");
+  // §7 Urgency/CTA: fires only from the verified `urgent` fact, never
+  // from parsing the header text — see buildCandidateCta's own contract.
+  const meta = [facts.visaType, facts.dutyHours, facts.rotation, buildCandidateCta(facts)]
+    .filter(Boolean)
+    .join("  ·  ");
   const metaSize = meta ? fit(meta, contentW, px(T.Caption), floor, "SECTION") : 0;
   const badgeH = Math.round(px(T.Caption) * 2.2);
   // Reserves the ribbon banner drawn above the headline in the Premium
@@ -2504,11 +2545,19 @@ function renderPosterBody(
     if (showDetail) {
       const d = detailOverride ?? roleDetail(p);
       if (d) {
-        const ds = fit(d, tw, detailSize, floor, "FINE");
-        parts.push(
-          `<text x="${tx}" y="${ly}" font-family="${roleFamily("FINE")}" font-size="${ds}" fill="${pal.reversed}" fill-opacity="0.78" ${textStroke(pal.ink, ds)}>${esc(d)}</text>`,
-        );
-        ly += Math.round(detailSize * 1.3);
+        // Wrapped, not shrunk-and-clipped: a functional technical-duties
+        // sentence can be several times longer than a "5-8 yrs · Diploma"
+        // phrase, and fit() alone only shrinks a SINGLE line — past the
+        // legibility floor it let the line run straight off the canvas
+        // edge instead of wrapping. wrapLines here is the exact function
+        // positionRowHeight measured with, so the row's reserved height
+        // and what actually draws can never disagree (§9 geometry parity).
+        for (const dLine of wrapLines(d, tw, detailSize, "FINE")) {
+          parts.push(
+            `<text x="${tx}" y="${ly}" font-family="${roleFamily("FINE")}" font-size="${detailSize}" fill="${pal.reversed}" fill-opacity="0.78" ${textStroke(pal.ink, detailSize)}>${esc(dLine)}</text>`,
+          );
+          ly += Math.round(detailSize * 1.3);
+        }
       }
     }
   };
