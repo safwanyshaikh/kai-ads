@@ -1163,11 +1163,22 @@ function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: nu
   const employerSize = facts.employer
     ? fit(facts.employer, contentW, px(T.H1), px(T.H3), "DISPLAY")
     : 0;
-  const sub = [facts.projectType, facts.industry].filter(Boolean).join(" · ");
+  // Final Content Intelligence Correction: urgency is a MESSAGE, not a
+  // number, and it must not be buried behind operational detail. For
+  // POSTER, the headline slot itself is pinned to the country (see
+  // heroFacts above) — the sub-line is the next most prominent slot the
+  // hero actually draws, so a verified urgency signal leads there
+  // rather than a bare "Industry · Project" join. Never fires from
+  // parsing header text — only from the verified `urgent` fact.
+  const projectLine = [facts.projectType, facts.industry].filter(Boolean).join(" · ");
+  const sub = facts.urgent === true && projectLine ? `Urgent Hiring — ${projectLine}` : projectLine;
   const subSize = sub ? fit(sub, contentW, px(T.H3), floor, "SECTION") : 0;
-  // §7 Urgency/CTA: fires only from the verified `urgent` fact, never
-  // from parsing the header text — see buildCandidateCta's own contract.
-  const meta = [facts.visaType, facts.dutyHours, facts.rotation, buildCandidateCta(facts)]
+  // CTA leads the meta line rather than trailing after operational
+  // detail (dutyHours/visaType/rotation) — "what to do" reads before
+  // "what the working hours are". Still fires only from the verified
+  // `urgent` fact, never from parsing the header text — see
+  // buildCandidateCta's own contract.
+  const meta = [buildCandidateCta(facts), facts.visaType, facts.dutyHours, facts.rotation]
     .filter(Boolean)
     .join("  ·  ");
   const metaSize = meta ? fit(meta, contentW, px(T.Caption), floor, "SECTION") : 0;
@@ -1259,12 +1270,17 @@ function campaignTotals(facts: AdvertisementFacts): { vacancies: number; roles: 
   return t;
 }
 
+// Final Content Intelligence Correction: vacancy/role counts are
+// supporting metadata, never the primary marketing message. The role
+// COUNT in particular reads as a database statistic ("9 ROLES") rather
+// than a recruitment hook, so this badge states the vacancy figure
+// alone — still the exact verified number, just without the role-count
+// tail. The individual role TITLES (drawn separately, below) are what
+// actually tell a candidate what's on offer.
 function headlineCountLabel(facts: AdvertisementFacts): string | null {
   const totals = campaignTotals(facts);
   if (totals) {
-    return totals.roles === 1
-      ? `${totals.vacancies} VACANCIES`
-      : `${totals.vacancies} VACANCIES · ${totals.roles} ROLES`;
+    return `${totals.vacancies} VACANCIES`;
   }
 
   const roles = facts.positions.length;
@@ -1273,9 +1289,7 @@ function headlineCountLabel(facts: AdvertisementFacts): string | null {
   if (allCounted) {
     const vacancies = facts.positions.reduce((sum, p) => sum + (p.count ?? 0), 0);
     if (vacancies > roles) {
-      return roles === 1
-        ? `${vacancies} VACANCIES`
-        : `${vacancies} VACANCIES · ${roles} ROLES`;
+      return `${vacancies} VACANCIES`;
     }
   }
   // A canvas that lists no positions (a carousel's trust/CTA slide) has
@@ -2191,7 +2205,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
         parts.push(
           `<text x="${panelX}" y="${y + highlights.labelSize}" font-family="${roleFamily("SECTION")}" ` +
             `font-size="${highlights.labelSize}" font-weight="700" fill="${pal.accent}" ${textStroke(pal.ink, highlights.labelSize)} ` +
-            `letter-spacing="2.5">HIGH-DEMAND OPPORTUNITIES</text>`,
+            `letter-spacing="2.5">HIGH-DEMAND TRADES</text>`,
         );
         y += Math.round(highlights.labelSize * 1.6) + px(0.014);
         const roleLineH = Math.round(highlights.roleSize * 1.35);

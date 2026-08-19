@@ -553,33 +553,44 @@ export function compressSalaryPresentation(text: string): string {
  * required when the source names a submitting party (e.g. an HR
  * contact) without naming an actual employer.
  *
+ * Urgency-forward (Final Content Intelligence Correction, priority
+ * order URGENCY > DESTINATION > PROJECT/INDUSTRY): when the source
+ * verifiably supports urgency, that leads ("URGENT HIRING — X") rather
+ * than a generic "X OPPORTUNITIES" — the candidate-facing headline is a
+ * recruitment message, not a database summary, and a role/vacancy COUNT
+ * is never part of it (that belongs in a supporting badge, computed
+ * elsewhere — see headlineCountLabel).
+ *
  * Returns null when nothing grounded is available, so the caller can
  * fall back to its own generic default rather than receive an invented
  * headline.
  */
 export function buildCandidateHeadline(facts: {
   industry?: string | null;
+  urgent?: boolean | null;
   positions: { title: string; sourceDivision?: string | null }[];
 }): string | null {
   const industry = facts.industry?.trim();
-  if (industry) {
-    return `${industry.toUpperCase()} OPPORTUNITIES`;
+  let opportunity: string | null = industry ? industry.toUpperCase() : null;
+
+  if (!opportunity) {
+    const labels: string[] = [];
+    const seen = new Set<string>();
+    for (const p of facts.positions) {
+      const family = classifyRoleFamily(p.title, p.sourceDivision);
+      // The catch-all conveys nothing a candidate would recognise as a
+      // headline — better to fall through to null than print it.
+      if (family.id === "general-trades") continue;
+      if (!seen.has(family.label)) {
+        seen.add(family.label);
+        labels.push(family.label);
+      }
+    }
+    if (labels.length > 0) opportunity = labels.slice(0, 2).join(" & ").toUpperCase();
   }
 
-  const labels: string[] = [];
-  const seen = new Set<string>();
-  for (const p of facts.positions) {
-    const family = classifyRoleFamily(p.title, p.sourceDivision);
-    // The catch-all conveys nothing a candidate would recognise as a
-    // headline — better to fall through to null than print it.
-    if (family.id === "general-trades") continue;
-    if (!seen.has(family.label)) {
-      seen.add(family.label);
-      labels.push(family.label);
-    }
-  }
-  if (labels.length === 0) return null;
-  return `${labels.slice(0, 2).join(" & ").toUpperCase()} OPPORTUNITIES`;
+  if (!opportunity) return null;
+  return facts.urgent === true ? `URGENT HIRING — ${opportunity}` : `${opportunity} OPPORTUNITIES`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -591,10 +602,18 @@ export function buildCandidateHeadline(facts: {
  * phrase. Fires ONLY when `facts.urgent === true` — never inferred from
  * free text at render time, so a requirement the source did not
  * describe as urgent never gets one invented for it. Uses only the
- * pre-approved wording ("URGENT HIRING", "APPLY NOW"); never states a
- * deadline, interview date, or "limited slots" claim that the source
- * did not itself provide (those already have their own verified fields
- * — `interview`, etc. — and belong there, not folded into this phrase).
+ * pre-approved wording ("APPLY NOW"); never states a deadline, interview
+ * date, or "limited slots" claim that the source did not itself provide
+ * (those already have their own verified fields — `interview`, etc. —
+ * and belong there, not folded into this phrase).
+ *
+ * Deliberately does NOT restate "URGENT HIRING" — the urgency signal
+ * that gates this function is already the lead of the candidate-facing
+ * headline/sub-line wherever this CTA is drawn alongside it (see
+ * buildCandidateHeadline and planHero's `sub`), so repeating it here
+ * read as a copy-paste stutter ("URGENT HIRING — CONSTRUCTION" directly
+ * above "URGENT HIRING — APPLY NOW") rather than confident recruiter
+ * copy. This phrase's one job is the ACTION.
  *
  * Returns null when there is no legitimate way to act on it (no
  * candidate-facing contact at all) or when urgency was not verified.
@@ -606,5 +625,5 @@ export function buildCandidateCta(facts: {
   if (facts.urgent !== true) return null;
   const hasContact = Boolean(facts.contact.phone || facts.contact.email || facts.contact.whatsapp);
   if (!hasContact) return null;
-  return "URGENT HIRING — APPLY NOW";
+  return "APPLY NOW";
 }

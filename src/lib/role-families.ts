@@ -57,14 +57,14 @@ export const ROLE_FAMILY_RULES: readonly RoleFamilyRule[] = [
   },
   {
     id: "fireproofing-fabrication",
-    label: "Fireproofing / Fabrication",
-    heading: "FIREPROOFING / FABRICATION",
+    label: "Fireproofing & Fabrication",
+    heading: "FIREPROOFING & FABRICATION",
     test: /\b(fireproof|cable\s*tray|cable\s*try|sheet\s*metal|fabricat|cladding)/i,
   },
   {
     id: "waterproofing-coatings",
-    label: "Waterproofing",
-    heading: "WATERPROOFING",
+    label: "Waterproofing Specialists",
+    heading: "WATERPROOFING SPECIALISTS",
     test: /\b(waterproof|membrane|epoxy|spray|foam\s*concrete|polyurethane|polyurea|rig\s*operator)/i,
   },
 ] as const;

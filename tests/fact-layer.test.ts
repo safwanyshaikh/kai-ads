@@ -280,7 +280,10 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
 
   it("states the verified vacancy total in the hero rather than leaving its reserved space empty", async () => {
     const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
-    expect(r.svgMarkup).toContain("127 VACANCIES · 19 ROLES");
+    // Final Content Intelligence Correction: the badge states the
+    // vacancy figure alone — role count is supporting metadata, not
+    // part of the primary marketing hook.
+    expect(r.svgMarkup).toContain("127 VACANCIES");
   });
 
   it("normalises unambiguous source spelling defects for display only", async () => {
@@ -318,7 +321,7 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     expect(f.positions.reduce((s, p) => s + (p.count ?? 0), 0)).toBe(130);
 
     const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
-    expect(r.svgMarkup).toContain("130 VACANCIES · 19 ROLES");
+    expect(r.svgMarkup).toContain("130 VACANCIES");
     expect(r.svgMarkup).not.toContain("127 VACANCIES");
     expect(r.svgMarkup.toUpperCase()).toContain("PQCS (8 NOS)");
   });
@@ -357,7 +360,7 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
     const svg = r.svgMarkup;
 
-    expect(svg).toContain("HIGH-DEMAND OPPORTUNITIES");
+    expect(svg).toContain("HIGH-DEMAND TRADES");
     // The four highest-count roles in the dataset.
     expect(svg).toContain("HVAC TECHNICIAN (45 NOS)");
     expect(svg).toContain("WPR (25 NOS)");
@@ -394,7 +397,7 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
       widthPx: 1080,
       heightPx: 1350,
     });
-    expect(r.svgMarkup).not.toContain("HIGH-DEMAND OPPORTUNITIES");
+    expect(r.svgMarkup).not.toContain("HIGH-DEMAND TRADES");
   });
 
   it("does not feature roles on a very short requirement where it would just repeat the list", async () => {
@@ -408,7 +411,7 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
       widthPx: 1080,
       heightPx: 1350,
     });
-    expect(r.svgMarkup).not.toContain("HIGH-DEMAND OPPORTUNITIES");
+    expect(r.svgMarkup).not.toContain("HIGH-DEMAND TRADES");
   });
 
   it("keeps the hero-led campaign composition for the real 19-role requirement", async () => {

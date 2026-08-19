@@ -287,7 +287,7 @@ describe("L. Carousel uses the two source-supported families", () => {
     const familyLabelRoots = new Set(
       roleSlides.flatMap((s) => s.familyLabels.map((l) => l.replace(/\s*\(\d+ of \d+\)$/, ""))),
     );
-    expect(familyLabelRoots).toEqual(new Set(["Fireproofing / Fabrication", "Waterproofing"]));
+    expect(familyLabelRoots).toEqual(new Set(["Fireproofing & Fabrication", "Waterproofing Specialists"]));
     const carried = decision.slides!.flatMap((s) => s.positionIndexes);
     expect(new Set(carried).size).toBe(FIREPROOFING_WATERPROOFING_TOTAL_POSITIONS);
     const vacancies = carried.reduce((n, i) => n + (campaign.positions[i].count ?? 0), 0);
@@ -305,6 +305,16 @@ describe("M. No employer/client is invented from SRACO", () => {
     const headline = buildCandidateHeadline({ industry: "Construction", positions: FIREPROOFING_WATERPROOFING });
     expect(headline).not.toMatch(/sraco/i);
     expect(headline).toBe("CONSTRUCTION OPPORTUNITIES");
+  });
+
+  it("leads with urgency when the source verifiably supports it", () => {
+    const headline = buildCandidateHeadline({
+      industry: "Construction",
+      urgent: true,
+      positions: FIREPROOFING_WATERPROOFING,
+    });
+    expect(headline).toBe("URGENT HIRING — CONSTRUCTION");
+    expect(headline).not.toMatch(/sraco/i);
   });
 
   it("the raw CRM-style header never reaches the canvas, on any composition", async () => {
@@ -334,7 +344,10 @@ describe("M. No employer/client is invented from SRACO", () => {
       printOrNewspaper: true,
     });
     expect(r.svgMarkup).not.toMatch(/\+\s*8\s*more\s*roles/i);
-    expect(r.svgMarkup.toUpperCase()).toContain("CONSTRUCTION OPPORTUNITIES");
+    // realFacts() is genuinely urgent, so the reconstruction leads with
+    // urgency rather than the generic "OPPORTUNITIES" suffix — see the
+    // "leads with urgency" test above for the direct unit-level proof.
+    expect(r.svgMarkup.toUpperCase()).toContain("URGENT HIRING — CONSTRUCTION");
     expect(r.svgMarkup.toUpperCase()).not.toContain("SRACO");
   }, 60_000);
 });
