@@ -1,11 +1,13 @@
 import sharp from "sharp";
 import { renderFactLayer, LayoutCapacityError } from "./fact-layer";
 import { applyBrandingOverlay } from "./branding-overlay";
+import type { FooterStyle } from "./footer-styles";
 import { socialFeedMaxHeightPx, SOCIAL_FEED_PRIMARY } from "@/lib/platform-formats";
 import type { AdvertisementFacts, VerifiedAgencyProfile } from "./types";
 import type { RecruitmentCampaign } from "./content-intelligence";
 import type { SlidePlan, SlideKind } from "./social-product-decision";
 import { factsForSlide, COVER_HOOK_ROLES } from "./social-product-decision";
+import { extendCanvasHeight, fitWithoutCropping } from "./artwork-canvas";
 
 /**
  * SOCIAL CAROUSEL RENDERING (Final Commercial Delivery Directive §3, §7).
@@ -52,6 +54,27 @@ export interface RenderSocialCarouselInput {
    * layer renders on its own (the existing standalone behaviour).
    */
   artworkPng?: Buffer | null;
+
+  /**
+   * Trust-footer identity, already resolved by the caller.
+   *
+   * The single-image path resolves each field from explicit pipeline
+   * input first and the verified agency profile second. A slide's
+   * footer must be the SAME footer, so the resolved values are passed
+   * in rather than re-derived here from the profile alone — two
+   * resolutions would eventually disagree, and the footer is the part
+   * of the advertisement a candidate is asked to trust. Each field
+   * falls back to the agency profile when not supplied.
+   */
+  footer?: {
+    registrationNumber?: string | null;
+    officialPhone?: string | null;
+    officialEmail?: string | null;
+    website?: string | null;
+    addressLine?: string | null;
+    brandBadges?: string[] | null;
+    footerStyle?: FooterStyle | null;
+  };
 }
 
 /**
@@ -118,11 +141,20 @@ export async function renderSocialCarousel(
 
     // Composite over the campaign artwork exactly as the single-image
     // path does, so every slide is the same campaign visually.
+    // The SAME canvas treatment the single-image path applies: the
+    // artwork is fitted without cropping, then the canvas is EXTENDED
+    // downward when the fact layer grew it. A "cover" resize would crop
+    // Gemini's frame, which a single image is never allowed to do — a
+    // slide is not a licence to do it either.
     const base = input.artworkPng
-      ? await sharp(input.artworkPng)
-          .resize(widthPx, layer.heightPx, { fit: "cover", position: "attention" })
-          .png()
-          .toBuffer()
+      ? await (async () => {
+          // Fit to the slide's FINAL height, so the base is always
+          // exactly the canvas the fact layer solved for — a base left
+          // at the requested height would be taller or shorter than the
+          // layer composited onto it.
+          const fitted = await fitWithoutCropping(input.artworkPng!, widthPx, layer.heightPx);
+          return extendCanvasHeight(fitted, widthPx, layer.heightPx);
+        })()
       : await sharp({
           create: { width: widthPx, height: layer.heightPx, channels: 3, background: { r: 11, g: 31, b: 51 } },
         })
@@ -142,14 +174,18 @@ export async function renderSocialCarousel(
       heightPx: layer.heightPx,
       agencyName: input.agencyProfile.agencyName,
       registrationNumber:
-        input.agencyProfile.fullRegistrationNumber ?? input.agencyProfile.rcNumber ?? null,
-      officialPhone: input.agencyProfile.officialPhone ?? null,
-      officialEmail: input.agencyProfile.officialEmail ?? null,
-      website: input.agencyProfile.website ?? null,
-      addressLine: input.agencyProfile.registeredAddress ?? null,
+        input.footer?.registrationNumber ??
+        input.agencyProfile.fullRegistrationNumber ??
+        input.agencyProfile.rcNumber ??
+        null,
+      officialPhone: input.footer?.officialPhone ?? input.agencyProfile.officialPhone ?? null,
+      officialEmail: input.footer?.officialEmail ?? input.agencyProfile.officialEmail ?? null,
+      website: input.footer?.website ?? input.agencyProfile.website ?? null,
+      addressLine: input.footer?.addressLine ?? input.agencyProfile.registeredAddress ?? null,
       agencyLogoPng: input.agencyLogoPng ?? null,
       qrPng: input.qrPng ?? null,
-      brandBadges: input.agencyProfile.approvedBadges ?? null,
+      brandBadges: input.footer?.brandBadges ?? input.agencyProfile.approvedBadges ?? null,
+      footerStyle: input.footer?.footerStyle ?? null,
     });
 
     rendered.push({

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildRecruitmentCampaign,
   compressPresentation,
@@ -172,4 +172,64 @@ describe("Rendered carousel — real 19-role / 127-vacancy source", () => {
     // Factual integrity across the whole product.
     expect(() => assertCarouselIntegrity(campaign, rendered)).not.toThrow();
   }, 120_000);
+});
+
+/**
+ * The directive's core claim: the carousel decision must be REAL
+ * PIPELINE OUTPUT, not a recommendation attached to a single image.
+ * This drives the production entry point end-to-end with a stub image
+ * provider and asserts the pipeline hands back rendered slides.
+ */
+describe("Pipeline delivers the carousel (§3)", () => {
+  it("returns rendered slides for a requirement too dense for one Social Feed canvas", async () => {
+    const artwork = await (await import("sharp")).default({
+      create: { width: 1080, height: 1350, channels: 3, background: { r: 60, g: 70, b: 80 } },
+    })
+      .png()
+      .toBuffer();
+
+    vi.doMock("@/server/ai/image", () => ({
+      getImageGenerationProvider: () => ({
+        generate: async () => ({
+          output: { imageBase64: artwork.toString("base64") },
+          usage: { model: "stub", latencyMs: 1, estimatedCostUsd: 0 },
+        }),
+      }),
+    }));
+    // The Creative Brief is a text-model call; this test is about
+    // delivery, not brief quality, so the brief is stubbed rather than
+    // requiring a text provider.
+    vi.doMock("@/server/generation/pipeline/creative-brief", () => ({
+      buildCreativeBrief: async () => ({
+        brief: "stub creative brief",
+        usage: { model: "stub", latencyMs: 1, estimatedCostUsd: 0 },
+      }),
+    }));
+
+    const { generateAdvertisement } = await import("@/server/generation/pipeline/generate");
+
+    const result = await generateAdvertisement({
+      facts: realSourceFacts(),
+      widthPx: 1080,
+      heightPx: 1350,
+      socialFeedMaxHeightPx: socialFeedMaxHeightPx("SOCIAL_FEED", 1080),
+      agencyProfile,
+    });
+
+    expect(result.socialProduct.product).toBe("CAROUSEL");
+    expect(result.carousel).not.toBeNull();
+    expect(result.carousel!.length).toBeGreaterThan(1);
+    expect(result.carousel![0].kind).toBe("COVER");
+    expect(result.carousel![result.carousel!.length - 1].kind).toBe("TRUST_CTA");
+
+    // Every slide is a real rendered PNG within the format ceiling.
+    const ceiling = socialFeedMaxHeightPx("SOCIAL_FEED", 1080)!;
+    for (const slide of result.carousel!) {
+      expect(slide.png.byteLength).toBeGreaterThan(0);
+      expect(slide.heightPx).toBeLessThanOrEqual(ceiling);
+    }
+
+    // imagePng stays a real advertisement for single-image callers.
+    expect(result.imagePng.byteLength).toBeGreaterThan(0);
+  }, 180_000);
 });

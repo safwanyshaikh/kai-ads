@@ -5,6 +5,8 @@ import { applyBrandingOverlay } from "./branding-overlay";
 import { renderFactLayer } from "./fact-layer";
 import { campaignFromAdvertisementFacts, enforceDtpCapacity } from "./content-intelligence";
 import { decideSocialProductForFacts, assertSlidePlanIntegrity, type SocialProductDecision } from "./social-product-decision";
+import { extendCanvasHeight, fitWithoutCropping } from "./artwork-canvas";
+import { renderSocialCarousel, assertCarouselIntegrity, type CarouselSlideRender } from "./social-carousel";
 import { getImageGenerationProvider } from "@/server/ai/image";
 import sharp from "sharp";
 import { getEnv } from "@/lib/env";
@@ -130,6 +132,21 @@ export interface GeneratePipelineResult {
    * planned slides is downstream product work, not this layer's job.
    */
   socialProduct: SocialProductDecision;
+
+  /**
+   * The RENDERED carousel, when socialProduct.product is CAROUSEL.
+   *
+   * The decision alone was never the deliverable: a requirement too
+   * dense for one Social Feed canvas has to come back as slides a
+   * recruiter can actually publish. Every slide is rendered by the same
+   * fact layer and the same trust footer as the single image — only the
+   * facts each one carries differ — and the set is checked for factual
+   * integrity (every position on exactly one slide, vacancy total
+   * preserved) before it is returned.
+   *
+   * Null for a SINGLE_IMAGE decision, where `imagePng` is the product.
+   */
+  carousel: CarouselSlideRender[] | null;
 
   /**
    * The FINAL rendered height, in pixels — may be taller than
@@ -370,6 +387,70 @@ export async function generateAdvertisement(
 
   /**
    * ------------------------------------------------------------------------
+   * STEP 5.45 — CAROUSEL DELIVERY
+   * ------------------------------------------------------------------------
+   *
+   * When the measured requirement does not fit one Social Feed canvas,
+   * the product IS a carousel — so it is rendered here, not left as a
+   * recommendation for someone downstream to act on. Forcing the
+   * single-image path first would simply raise LayoutCapacityError:
+   * this is the branch that turns "too dense for one canvas" into
+   * something a recruiter can publish.
+   *
+   * It is the same engine. Each slide goes through the same
+   * renderFactLayer and the same applyBrandingOverlay, over the same
+   * Gemini artwork, with the same resolved trust-footer identity. What
+   * differs per slide is only which verified facts it carries.
+   */
+  if (socialProduct.product === "CAROUSEL" && socialProduct.slides) {
+    // The footer treatment is chosen from the artwork rather than from
+    // a fact-composited canvas, because every slide shares one artwork
+    // and must therefore share one treatment — a carousel whose footer
+    // style changed slide to slide would not read as one campaign.
+    const carouselFooter = await selectFooterStyle(normalizedArtwork, input.footerStyle);
+
+    const carousel = await renderSocialCarousel({
+      facts: input.facts,
+      campaign,
+      slides: socialProduct.slides,
+      widthPx: input.widthPx,
+      heightPx: input.heightPx,
+      agencyProfile,
+      agencyLogoPng: input.agencyLogoPng,
+      qrPng: input.qrPng,
+      headerZoneHasStrongSubject,
+      artworkPng: aiArtwork,
+      footer: {
+        registrationNumber:
+          agencyProfile.fullRegistrationNumber ?? agencyProfile.rcNumber ?? null,
+        officialPhone: input.agencyOfficialPhone ?? agencyProfile.officialPhone ?? null,
+        officialEmail: input.agencyOfficialEmail ?? agencyProfile.officialEmail ?? null,
+        website: input.agencyWebsite ?? agencyProfile.website ?? null,
+        addressLine: agencyProfile.registeredAddress ?? input.addressLine ?? null,
+        brandBadges: agencyProfile.approvedBadges ?? input.brandBadges ?? null,
+        footerStyle: carouselFooter.style,
+      },
+    });
+
+    // Factual integrity of the RENDERED product, not just the plan.
+    assertCarouselIntegrity(campaign, carousel);
+
+    return {
+      // The cover, so a caller that only understands one image still
+      // gets a real, complete, publishable advertisement rather than
+      // nothing. The full product is `carousel`.
+      imagePng: carousel[0].png,
+      socialProduct,
+      carousel,
+      heightPx: carousel[0].heightPx,
+      brief,
+      usage,
+      footerSelection: carouselFooter,
+    };
+  }
+
+  /**
+   * ------------------------------------------------------------------------
    * STEP 5.5 — KAI DETERMINISTIC FACT LAYER
    * ------------------------------------------------------------------------
    *
@@ -543,6 +624,9 @@ export async function generateAdvertisement(
       finalPng,
 
     socialProduct,
+
+    /** SINGLE_IMAGE: `imagePng` above is the whole product. */
+    carousel: null,
 
     heightPx:
       canvasHeightPx,
@@ -853,212 +937,13 @@ export async function assessHeaderZoneVisualWeight(
   return stdDev >= HEADER_FLAT_STDDEV_THRESHOLD;
 }
 
-export async function extendCanvasHeight(
-  image: Buffer,
-  widthPx: number,
-  targetHeightPx: number,
-): Promise<Buffer> {
-  const metadata = await sharp(image).metadata();
-  const sourceHeight = metadata.height ?? targetHeightPx;
-  const extra = targetHeightPx - sourceHeight;
-  if (extra <= 0) return image;
-
-  const { data } = await sharp(image)
-    .extract({ left: 0, top: Math.max(0, sourceHeight - 1), width: widthPx, height: 1 })
-    .resize(1, 1, { fit: "cover" })
-    .removeAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const r = data[0] ?? 20;
-  const g = data[1] ?? 20;
-  const b = data[2] ?? 20;
-
-  return sharp(image)
-    .extend({ bottom: extra, background: { r, g, b } })
-    .png()
-    .toBuffer();
-}
-
 /* ========================================================================== */
-/* IMAGE NORMALISATION                                                         */
+/* ARTWORK CANVAS TREATMENT                                                    */
 /* ========================================================================== */
 
 /**
- * Preserve the complete Gemini composition.
- *
- * Gemini image:
- *       ↓
- * complete image preserved
- *       ↓
- * publication dimensions
- *
- * Never:
- *
- * Gemini image
- *       ↓
- * destructive crop
+ * Re-exported from artwork-canvas.ts, which is where the implementation
+ * now lives so the carousel renderer can share it without an import
+ * cycle. Existing callers keep importing it from here.
  */
-async function fitWithoutCropping(
-  image: Buffer,
-  widthPx: number,
-  heightPx: number,
-): Promise<Buffer> {
-  const metadata =
-    await sharp(
-      image,
-    ).metadata();
-
-  const sourceWidth =
-    metadata.width ??
-    widthPx;
-
-  const sourceHeight =
-    metadata.height ??
-    heightPx;
-
-  const scale =
-    Math.min(
-      widthPx /
-        sourceWidth,
-
-      heightPx /
-        sourceHeight,
-    );
-
-  const fittedWidth =
-    Math.max(
-      1,
-      Math.round(
-        sourceWidth *
-          scale,
-      ),
-    );
-
-  const fittedHeight =
-    Math.max(
-      1,
-      Math.round(
-        sourceHeight *
-          scale,
-      ),
-    );
-
-  /**
-   * Exact match.
-   */
-  if (
-    fittedWidth ===
-      widthPx &&
-    fittedHeight ===
-      heightPx
-  ) {
-    return sharp(
-      image,
-    )
-      .resize(
-        widthPx,
-        heightPx,
-        {
-          fit: "inside",
-          withoutEnlargement:
-            false,
-        },
-      )
-      .png()
-      .toBuffer();
-  }
-
-  /**
-   * Resize the entire image.
-   */
-  const fitted =
-    await sharp(
-      image,
-    )
-      .resize(
-        fittedWidth,
-        fittedHeight,
-        {
-          fit: "inside",
-          withoutEnlargement:
-            false,
-        },
-      )
-      .png()
-      .toBuffer();
-
-  /**
-   * Extract a representative colour for the tiny
-   * unavoidable extension.
-   */
-  const {
-    data,
-  } =
-    await sharp(
-      fitted,
-    )
-      .resize(
-        1,
-        1,
-        {
-          fit: "cover",
-        },
-      )
-      .removeAlpha()
-      .raw()
-      .toBuffer({
-        resolveWithObject:
-          true,
-      });
-
-  const r =
-    data[0] ?? 20;
-
-  const g =
-    data[1] ?? 20;
-
-  const b =
-    data[2] ?? 20;
-
-  return sharp({
-    create: {
-      width:
-        widthPx,
-
-      height:
-        heightPx,
-
-      channels: 3,
-
-      background: {
-        r,
-        g,
-        b,
-      },
-    },
-  })
-    .composite([
-      {
-        input:
-          fitted,
-
-        left:
-          Math.round(
-            (
-              widthPx -
-              fittedWidth
-            ) / 2,
-          ),
-
-        top:
-          Math.round(
-            (
-              heightPx -
-              fittedHeight
-            ) / 2,
-          ),
-      },
-    ])
-    .png()
-    .toBuffer();
-}
+export { extendCanvasHeight } from "./artwork-canvas";
