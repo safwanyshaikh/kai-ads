@@ -275,6 +275,22 @@ export interface AdvertisementFacts {
     ageLimit?: string | null;
   }[];
 
+  /**
+   * TRUE campaign totals, when `positions` above carries only a SELECTION
+   * of the campaign (a carousel cover hook, for example) rather than the
+   * whole list.
+   *
+   * Factual Integrity Law: a headline count is a verified fact about the
+   * CAMPAIGN, not about whichever positions happen to be on this canvas.
+   * A cover that shows four hook roles must still say "127 VACANCIES ·
+   * 19 ROLES". When absent, the totals are the positions above — the
+   * ordinary single-image case, where the two are the same thing.
+   */
+  campaignTotals?: {
+    vacancies: number;
+    roles: number;
+  } | null;
+
   /* ---------------------------------------------------------------------- */
   /* BENEFITS                                                                */
   /* ---------------------------------------------------------------------- */
@@ -369,8 +385,12 @@ export interface AdvertisementFacts {
 
   /**
    * LEGACY — migrate to agencyProfile.agencyName.
+   *
+   * Optional: agencyProfile is the canonical source, and a caller that
+   * supplies it must not also be required to restate the same name in a
+   * legacy field that could then disagree with it.
    */
-  agencyName: string;
+  agencyName?: string;
 
   /**
    * LEGACY — migrate to agencyProfile.rcNumber.

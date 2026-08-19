@@ -437,3 +437,50 @@ export function campaignFromAdvertisementFacts(facts: AdvertisementFacts): Recru
   }));
   return buildRecruitmentCampaign(records);
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* PRESENTATION COMPRESSION (§6 JD COMPRESSION LAW)                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Shortens how a requirement is WORDED without changing what it says.
+ *
+ * §6 permits rewriting a long sentence into a shorter equivalent
+ * ("minimum of 5 years of relevant experience" -> "5+ yrs relevant
+ * experience") provided the underlying fact is identical. Every rule
+ * below is a pure abbreviation of a word or a numeric range — no rule
+ * removes a condition, a qualifier, a number, or a distinction.
+ *
+ * Deliberately NOT applied to certifications, eligibility statements,
+ * registration numbers, dates, venues or vacancy counts: those are
+ * matched by NEVER_COMPRESS / handled elsewhere and must survive
+ * verbatim. This only ever touches the qualification/experience detail
+ * line, and it is applied inside the ONE place both the planner and the
+ * renderer read that line from (roleDetail in fact-layer.ts), so the two
+ * can never disagree about the string's width.
+ */
+const PRESENTATION_RULES: Array<[RegExp, string]> = [
+  // "minimum of 5 years" / "minimum 5 years" -> "5+ yrs"
+  [/\bminimum\s+(?:of\s+)?(\d+)\s*(?:\+\s*)?years?\b/gi, "$1+ yrs"],
+  // "5 to 8 years" / "5-8 years" -> "5-8 yrs"
+  [/\b(\d+)\s*(?:to|-|–)\s*(\d+)\s*years?\b/gi, "$1-$2 yrs"],
+  // "10 years" -> "10 yrs"; "10+ years" -> "10+ yrs"
+  [/\b(\d+\s*\+?)\s*years?\b/gi, "$1 yrs"],
+  // Common qualification wording.
+  [/\bBachelor'?s\s+degree\s+in\b/gi, "Bachelor's in"],
+  [/\bMaster'?s\s+degree\s+in\b/gi, "Master's in"],
+  [/\bEngineering\b/g, "Engg."],
+  [/\brelevant\s+experience\b/gi, "relevant exp."],
+  [/\bexperience\b/gi, "exp."],
+  // Collapse whitespace the substitutions may leave behind.
+  [/\s{2,}/g, " "],
+];
+
+export function compressPresentation(text: string): string {
+  let out = text;
+  for (const [pattern, replacement] of PRESENTATION_RULES) {
+    out = out.replace(pattern, replacement);
+  }
+  return out.trim();
+}

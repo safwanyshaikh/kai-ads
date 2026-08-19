@@ -492,6 +492,11 @@ async function renderTrustFooter(
   const COMPACT_REGISTRATION_SIZE = 15;
   const COMPACT_CONTACT_SIZE = 13;
   const COMPACT_ADDRESS_SIZE = 11;
+
+  // KDL readability floor for footer fine print, and how many lines a
+  // single mandatory field may occupy before fitFont takes over.
+  const FOOTER_MIN_READABLE = 11;
+  const FOOTER_ADDRESS_MAX_LINES = 2;
   const COMPACT_WEBSITE_SIZE = 12;
 
   const IDENTITY_MIN_WIDTH = 260;
@@ -572,7 +577,51 @@ async function renderTrustFooter(
     return lines;
   }
 
-  function buildContactLines(contactSize: number, addressSize: number, websiteSize: number): FooterLine[] {
+  /**
+   * Splits a mandatory field across at most `maxLines` lines so it can be
+   * set at a readable size instead of being shrunk toward the floor.
+   *
+   * The registered address is the field that forces this: it is the
+   * longest verified string in the footer and it may never be
+   * abbreviated, truncated or replaced by the website (Final Footer
+   * Identity Pass). Wrapping spends footer height, which the footer has;
+   * shrinking spends legibility, which it does not.
+   */
+  function wrapFooterText(
+    text: string,
+    size: number,
+    role: TypeRole,
+    maxWidth: number,
+    maxLines: number,
+  ): string[] {
+    if (estimateTextWidth(text, size, role) <= maxWidth) return [text];
+    const words = text.split(/\s+/).filter(Boolean);
+    const out: string[] = [];
+    let current = "";
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (current && estimateTextWidth(candidate, size, role) > maxWidth) {
+        out.push(current);
+        current = word;
+        if (out.length === maxLines - 1) break;
+      } else {
+        current = candidate;
+      }
+    }
+    // Whatever remains goes on the final line — never dropped. If it is
+    // still too wide, fitFont shrinks that one line, as before.
+    const consumed = out.join(" ");
+    const rest = consumed ? text.slice(consumed.length).trim() : text;
+    if (rest) out.push(rest);
+    return out;
+  }
+
+  function buildContactLines(
+    contactSize: number,
+    addressSize: number,
+    websiteSize: number,
+    colWidth: number,
+  ): FooterLine[] {
     const lines: FooterLine[] = [];
     if (officialEmailValue) {
       lines.push({
@@ -597,14 +646,25 @@ async function renderTrustFooter(
       });
     }
     if (address) {
-      lines.push({
-        role: "FINE",
-        text: `Registered Address: ${address}`,
-        size: addressSize,
-        minSize: 8,
-        weight: "500",
-        opacity: 0.75,
-        gapMultiplier: 1.35,
+      const addressLines = wrapFooterText(
+        `Registered Address: ${address}`,
+        addressSize,
+        "FINE",
+        colWidth,
+        FOOTER_ADDRESS_MAX_LINES,
+      );
+      addressLines.forEach((text, i) => {
+        lines.push({
+          role: "FINE",
+          text,
+          size: addressSize,
+          minSize: FOOTER_MIN_READABLE,
+          weight: "500",
+          opacity: 0.75,
+          // Continuation lines of one field sit tighter than the gap
+          // between two different fields.
+          gapMultiplier: i === addressLines.length - 1 ? 1.35 : 1.15,
+        });
       });
     }
     if (website) {
@@ -612,7 +672,7 @@ async function renderTrustFooter(
         role: "FINE",
         text: `Website: ${website}`,
         size: websiteSize,
-        minSize: 8,
+        minSize: FOOTER_MIN_READABLE,
         weight: "500",
         opacity: 0.75,
         gapMultiplier: 1,
@@ -641,13 +701,41 @@ async function renderTrustFooter(
    */
   function drawColumn(x: number, maxWidth: number, lines: FooterLine[]): void {
     if (lines.length === 0) return;
-    const fitted = lines.map((l) => ({ ...l, font: fitFont(l.text, maxWidth, l.size, l.minSize, l.role) }));
+    // The column is fitted as ONE block, not line by line. Sizing each
+    // line independently lets a short line keep its full size while a
+    // long one shrinks, which inverts the intended hierarchy (the
+    // address printing larger than the email above it) and splits a
+    // single wrapped field across two different sizes. Scaling the whole
+    // column by the single worst-case factor keeps every relative size
+    // relationship exactly as specified, then the per-line floor and
+    // fitFont catch anything that still overruns.
+    const scale = lines.reduce((s, l) => {
+      const w = estimateTextWidth(l.text, l.size, l.role);
+      return w > maxWidth ? Math.min(s, maxWidth / w) : s;
+    }, 1);
+    const fitted = lines.map((l) => {
+      const scaled = Math.max(l.minSize, Math.round(l.size * scale));
+      return { ...l, font: fitFont(l.text, maxWidth, scaled, l.minSize, l.role) };
+    });
+
+    // Baseline-to-baseline advance. A line's own size sets its natural
+    // leading, but the clearance actually required is governed by the
+    // font of the line BELOW it — a long address that shrank to its
+    // minimum must still advance far enough that the larger website line
+    // under it does not print through its descenders.
+    const advance = (i: number): number =>
+      Math.max(
+        Math.round(fitted[i].font * fitted[i].gapMultiplier),
+        Math.round(fitted[i + 1].font * 1.15),
+      );
+
     const blockHeight = fitted.reduce(
-      (sum, l, i) => sum + (i === fitted.length - 1 ? l.font : Math.round(l.font * l.gapMultiplier)),
+      (sum, l, i) => sum + (i === fitted.length - 1 ? l.font : advance(i)),
       0,
     );
     let y = Math.round((heightPx - blockHeight) / 2 + fitted[0].font * 0.78);
-    for (const l of fitted) {
+    for (let i = 0; i < fitted.length; i++) {
+      const l = fitted[i];
       svg.push(`
         <text
           x="${x}"
@@ -660,7 +748,7 @@ async function renderTrustFooter(
           opacity="${l.opacity}"
         >${esc(l.text)}</text>
       `);
-      y += Math.round(l.font * l.gapMultiplier);
+      if (i < fitted.length - 1) y += advance(i);
     }
   }
 
@@ -675,7 +763,7 @@ async function renderTrustFooter(
     drawColumn(
       contactColX,
       contactColWidth,
-      buildContactLines(WIDE_CONTACT_SIZE, WIDE_ADDRESS_SIZE, WIDE_WEBSITE_SIZE),
+      buildContactLines(WIDE_CONTACT_SIZE, WIDE_ADDRESS_SIZE, WIDE_WEBSITE_SIZE, contactColWidth),
     );
   } else {
     // COMPACT: the SAME labelled fields as wide mode, in one stacked
@@ -685,7 +773,7 @@ async function renderTrustFooter(
     // band under it.
     const lines = [
       ...buildIdentityLines(COMPACT_REGISTRATION_SIZE),
-      ...buildContactLines(COMPACT_CONTACT_SIZE, COMPACT_ADDRESS_SIZE, COMPACT_WEBSITE_SIZE),
+      ...buildContactLines(COMPACT_CONTACT_SIZE, COMPACT_ADDRESS_SIZE, COMPACT_WEBSITE_SIZE, textWidth),
     ];
     drawColumn(textLeft, textWidth, lines);
   }

@@ -585,7 +585,8 @@ function resolveAgencyProfile(
       input.agencyName ??
       input.facts.agencyProfile
         ?.agencyName ??
-      input.facts.agencyName,
+      input.facts.agencyName ??
+      "",
 
     logoUrl:
       input.facts.agencyProfile

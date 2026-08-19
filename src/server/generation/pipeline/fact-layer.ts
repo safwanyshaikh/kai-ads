@@ -4,6 +4,7 @@ import { brandingStripHeight } from "./branding-overlay";
 import { displayTitle } from "@/lib/display-title";
 import { roleFamily, roleTextWidth, type TypeRole } from "@/lib/kdl-typography";
 import { classifyRoleFamily } from "@/lib/role-families";
+import { compressPresentation } from "./content-intelligence";
 import { isApprovedDtpWidthPx, nearestApprovedDtpSlot, DTP_DEFAULT_DPI } from "@/lib/dtp-format-law";
 import type { AdvertisementFacts } from "./types";
 
@@ -578,9 +579,12 @@ function roleDetail(
 ): string {
   const shown = (v: string) => alreadyShown?.has(v.trim().toLowerCase()) ?? false;
   const bits: string[] = [];
-  if (p.experience && !shown(p.experience)) bits.push(p.experience);
+  // §6: PRESENTATION is compressed, FACTS are not. Experience and
+  // qualification wording is abbreviated to an exact equivalent;
+  // salary and certifications are never reworded.
+  if (p.experience && !shown(p.experience)) bits.push(compressPresentation(p.experience));
   if (p.salary) bits.push(p.salary);
-  if (p.qualification && !shown(p.qualification)) bits.push(p.qualification);
+  if (p.qualification && !shown(p.qualification)) bits.push(compressPresentation(p.qualification));
   if (p.certifications?.length) bits.push(p.certifications.join(", "));
   return bits.join(" · ");
 }
@@ -1033,7 +1037,16 @@ function planHighlights(dna: DesignDNA, facts: AdvertisementFacts, W: number, ti
   // it features are fewer than half the roles listed below it.
   const candidates = topDemandRoles(facts);
   const featured = candidates.length * 2 < facts.positions.length ? candidates : [];
-  const hookKeywords = candidateHookKeywords(facts);
+  // Same law for the keyword strip: summarise, never echo. Every value
+  // it would print (qualification, certifications) is already drawn
+  // verbatim on each role's own detail line whenever detail lines are
+  // drawn at all — repeating them above the list is the duplicate the
+  // lock forbids, and it costs height the Feed ceiling cannot spare. The
+  // strip therefore earns its place only in the dense tiers, where
+  // per-role detail is not shown and these keywords are the only place
+  // a candidate can see what is required.
+  const detailLinesAreDrawn = tier === "T1" || tier === "T2";
+  const hookKeywords = detailLinesAreDrawn ? [] : candidateHookKeywords(facts);
 
   if (featured.length === 0 && hookKeywords.length === 0) {
     return { featured, hookKeywords, labelSize: 0, roleSize: 0, hookSize: 0, height: 0 };
@@ -1177,7 +1190,42 @@ function planHero(dna: DesignDNA, facts: AdvertisementFacts, W: number, dpi?: nu
  * fabricated fact. In that case the badge falls back to counting roles,
  * which is always true.
  */
-function headlineCountLabel(facts: AdvertisementFacts): string {
+/**
+ * The TRUE campaign totals when this canvas carries only a selection of
+ * the campaign's positions (a carousel cover hook). Returns null for the
+ * ordinary case, where the positions on the canvas ARE the campaign and
+ * the counts below are computed from them directly.
+ *
+ * A total that does not agree with the positions actually listed here is
+ * only honest because the remaining positions are stated in full
+ * elsewhere in the same product — the carousel planner guarantees that.
+ */
+/**
+ * The verified agency name. `agencyProfile` is the canonical source
+ * (LIVE SCHEMA); the flat `agencyName` field is legacy and remains only
+ * for callers that have not migrated. Reading the legacy field directly
+ * crashed the whole render for any caller that supplied only the
+ * profile — which is what the carousel path does.
+ */
+function agencyNameOf(facts: AdvertisementFacts): string {
+  return facts.agencyProfile?.agencyName ?? facts.agencyName ?? "";
+}
+
+function campaignTotals(facts: AdvertisementFacts): { vacancies: number; roles: number } | null {
+  const t = facts.campaignTotals;
+  if (!t) return null;
+  if (t.roles <= 0 || t.vacancies <= 0) return null;
+  return t;
+}
+
+function headlineCountLabel(facts: AdvertisementFacts): string | null {
+  const totals = campaignTotals(facts);
+  if (totals) {
+    return totals.roles === 1
+      ? `${totals.vacancies} VACANCIES`
+      : `${totals.vacancies} VACANCIES · ${totals.roles} ROLES`;
+  }
+
   const roles = facts.positions.length;
   const allCounted = roles > 0 && facts.positions.every((p) => typeof p.count === "number");
 
@@ -1189,6 +1237,10 @@ function headlineCountLabel(facts: AdvertisementFacts): string {
         : `${vacancies} VACANCIES · ${roles} ROLES`;
     }
   }
+  // A canvas that lists no positions (a carousel's trust/CTA slide) has
+  // no count of its own to state. "0 POSITIONS AVAILABLE" would be a
+  // false statement about a live campaign, so the badge is omitted.
+  if (roles === 0) return null;
   return `${roles} POSITION${roles === 1 ? "" : "S"} AVAILABLE`;
 }
 
@@ -1200,6 +1252,14 @@ function headlineCountLabel(facts: AdvertisementFacts): string {
  * display size with its unit beneath it.
  */
 function heroNumeral(facts: AdvertisementFacts): { num: string; caption: string } | null {
+  const totals = campaignTotals(facts);
+  if (totals) {
+    return {
+      num: String(totals.vacancies),
+      caption: totals.vacancies === 1 ? "VACANCY" : "VACANCIES",
+    };
+  }
+
   const roles = facts.positions.length;
   if (roles === 0) return null;
   const allCounted = roles > 0 && facts.positions.every((p) => typeof p.count === "number");
@@ -1948,7 +2008,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // space for the one piece of identity content that already lives
     // there, never by adding new content, only by giving it more weight.
     const headerMarkScale = headerZoneHasStrongSubject ? 1 : 1.15;
-    const markText = facts.agencyName.toUpperCase();
+    const markText = agencyNameOf(facts).toUpperCase();
     // letter-spacing="2" below adds a literal 2px between EVERY character
     // pair — a reserve that must scale with the string's own length, not
     // a fixed fraction of font size, or a long agency name silently runs
@@ -2059,8 +2119,8 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // reserve turned into dead panel depth AND the advertisement never
     // stated how many jobs it was actually offering: a 127-vacancy
     // requirement published without its own headline number.
-    {
-      const countLabel = headlineCountLabel(facts);
+    const countLabel = headlineCountLabel(facts);
+    if (countLabel) {
       const cs = Math.max(plan.floor, Math.round(hero.badgeH * 0.4));
       const cw = Math.min(panelW, Math.round(textWidth(countLabel, cs, "NUMERIC") + px(0.055)));
       y += px(0.022);
@@ -2135,7 +2195,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     const leftoverTop = Math.max(posterBodyEndY, panelFloor) + px(0.02);
     const leftover = H - stripH - leftoverTop;
     if (leftover > px(0.14)) {
-      const markLetter = (facts.agencyName.trim().charAt(0) || facts.country?.charAt(0) || "K").toUpperCase();
+      const markLetter = (agencyNameOf(facts).trim().charAt(0) || facts.country?.charAt(0) || "K").toUpperCase();
       const markSize = Math.min(Math.round(leftover * 1.55), Math.round(W * 0.68));
       parts.push(
         `<text x="${W - margin}" y="${H - stripH - Math.round(leftover * 0.06)}" font-family="${roleFamily("DISPLAY")}" ` +
@@ -2175,9 +2235,10 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     headH = Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W));
     parts.push(`<rect x="0" y="0" width="${W}" height="${headH}" fill="${pal.ink}"/>`);
     const baseY = headH - Math.round(headH * 0.34);
-    const agencySize = fit(facts.agencyName, contentW * 0.66, px(T.H3), plan.floor, "SECTION");
+    const agencyLabel = agencyNameOf(facts);
+    const agencySize = fit(agencyLabel, contentW * 0.66, px(T.H3), plan.floor, "SECTION");
     parts.push(
-      `<text x="${margin}" y="${baseY}" font-family="${roleFamily("SECTION")}" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(facts.agencyName)}</text>`,
+      `<text x="${margin}" y="${baseY}" font-family="${roleFamily("SECTION")}" font-size="${agencySize}" font-weight="700" fill="${pal.reversed}">${esc(agencyLabel)}</text>`,
     );
     if (facts.country) {
       parts.push(
