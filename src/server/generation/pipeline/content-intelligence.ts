@@ -149,6 +149,14 @@ export interface PositionSourceRecord {
    * mislabel a functional description as an academic requirement.
    */
   technicalDuties?: string | null;
+
+  /**
+   * Destination-market experience stated as its own source requirement,
+   * separate from total experience — see AdvertisementFacts's field of
+   * the same name. Carries the source's mandatory/preferred nuance
+   * verbatim ("Not Mandatory").
+   */
+  gulfExperience?: string | null;
 }
 
 export interface CampaignPosition extends PositionSourceRecord {
@@ -204,6 +212,7 @@ function statementsFor(p: PositionSourceRecord): PositionStatement[] {
   if (p.qualification) raw.push(p.qualification);
   if (p.experience) raw.push(p.experience);
   if (p.technicalDuties) raw.push(p.technicalDuties);
+  if (p.gulfExperience) raw.push(p.gulfExperience);
   for (const c of p.certifications ?? []) raw.push(c);
   if (p.remarks) {
     // Split on sentence-ish separators so "Candidate hold Saudi Aramco
@@ -459,6 +468,7 @@ export function campaignFromAdvertisementFacts(facts: AdvertisementFacts): Recru
     certifications: p.certifications,
     sourceDivision: p.sourceDivision,
     technicalDuties: p.technicalDuties,
+    gulfExperience: p.gulfExperience,
   }));
   return buildRecruitmentCampaign(records);
 }

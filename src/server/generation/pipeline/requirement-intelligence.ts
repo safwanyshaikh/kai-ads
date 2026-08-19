@@ -58,6 +58,7 @@ export function buildAdvertisementFacts(
     ageLimit?: string | null;
     sourceDivision?: string | null;
     technicalDuties?: string | null;
+    gulfExperience?: string | null;
   }[];
   const benefits = advertisement.benefits as unknown as { label: string; detail?: string }[];
   // Decision 3: interview is a schemaless Json column — normalizeInterviewEvents

@@ -300,6 +300,21 @@ export interface AdvertisementFacts {
      * with no formal qualification at all.
      */
     technicalDuties?: string | null;
+
+    /**
+     * Destination-market experience (e.g. "Saudi Aramco / Gulf
+     * experience"), when the source states it as its OWN requirement
+     * distinct from total experience.
+     *
+     * Deliberately separate from `experience`: a Gulf requirement
+     * routinely asks for "5-6 years total, of which 2 years Gulf", and
+     * folding those into one string would merge two different verified
+     * facts. It also carries the mandatory-vs-preferred nuance the
+     * source attaches to it ("Not Mandatory"), which must survive
+     * verbatim — turning a non-mandatory preference into a hard
+     * requirement would disqualify candidates the client would accept.
+     */
+    gulfExperience?: string | null;
   }[];
 
   /**

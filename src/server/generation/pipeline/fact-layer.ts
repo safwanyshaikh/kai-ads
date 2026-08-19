@@ -590,6 +590,14 @@ function roleDetail(
   // grouping only (compressSalaryPresentation never merges two roles'
   // ranges — see that function's own contract).
   if (p.experience && !shown(p.experience)) bits.push(compressPresentation(p.experience));
+  // Destination-market experience is a SEPARATE verified requirement
+  // from total experience, and is labelled so a candidate can tell the
+  // two apart. Its mandatory/preferred nuance is carried verbatim —
+  // "Not Mandatory" must never read as a hard requirement.
+  if (p.gulfExperience && !shown(p.gulfExperience)) {
+    const g = p.gulfExperience.trim();
+    bits.push(/mandator|preferred|optional/i.test(g) ? `Gulf/Aramco exp. ${g}` : `${compressPresentation(g)} Gulf/Aramco`);
+  }
   if (p.salary) bits.push(compressSalaryPresentation(p.salary));
   if (p.qualification && !shown(p.qualification)) bits.push(compressPresentation(p.qualification));
   // Functional duties/skill description — the primary detail for a role

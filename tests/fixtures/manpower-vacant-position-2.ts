@@ -1,17 +1,22 @@
 import type { PositionSourceRecord } from "@/server/generation/pipeline/content-intelligence";
 
 /**
- * Transcribed verbatim from the real source, `Manpower_Vacant_Position2.pdf`
- * (Saudi Aramco Maintenance Project requirement, 19 positions / 127
- * vacancies), used throughout the DTP Intelligence Reverse-Engineering
- * analysis (Outputs A-E) and the compression-vs-visual-preservation
- * self-challenge. Sr. No. numbering restarts mid-document around an
- * internal recruiter note ("Important and need to start Preparation") —
- * confirmed to be a divider row, not a 20th position; the true count is
- * 19 rows summing to 127 vacancies.
+ * SYNTHETIC STRESS FIXTURE — 19 positions summing to 127 vacancies.
  *
- * This fixture is the ground truth for testing the Content Intelligence
- * Model against real data, not a synthetic stress case.
+ * CORRECTION: this file previously described itself as "transcribed
+ * verbatim from the real source, Manpower_Vacant_Position2.pdf". That
+ * was wrong. Checked against the actual PDF, NONE of the titles below
+ * (Piping Engineer, Contracts Engineer, Welder, Rigger, Scaffolder,
+ * Mechanical Fitter, Plumber, …) appear in it; the real requirement
+ * lists Operation Manager, WPR, Time Keeper/HR Executive, Purchaser,
+ * Tile Mason, IT Adminstator, HVAC Technician, DDC Technician, HSE
+ * Manager and so on. Only the shape (19 roles / 127 vacancies) matched.
+ *
+ * It remains useful and is left unchanged as a DENSITY stress case —
+ * many tests assert against these exact titles — but it must never
+ * again be cited as real-source evidence. For that, use
+ * `manpower-vacant-position-real.ts`, which is transcribed from the
+ * actual PDF and carries the same 19/127 totals.
  */
 export const MANPOWER_VACANT_POSITION_2: PositionSourceRecord[] = [
   { title: "Project Manager", count: 1, experience: "15+ years", qualification: "Bachelor's degree in Engineering", sourceRowIndex: 1 },
