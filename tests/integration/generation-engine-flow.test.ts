@@ -116,14 +116,25 @@ describe.skipIf(!process.env.DATABASE_URL && !dbAvailable)(
       ).rejects.toThrow(/duplicate key/i);
     });
 
-    it("STEP 2 — Bootstrap Trial Quota: defaults to 10, shared at the agency level", async () => {
+    it("STEP 2 — Bootstrap Quota: defaults to the closed-beta allowance, shared at the agency level", async () => {
       if (!dbAvailable) return;
       const result = await client.query(
         `INSERT INTO agency_generation_quotas (id, "agencyId", "createdAt", "updatedAt")
          VALUES ($1, $2, now(), now()) RETURNING "totalQuota", "successfulGenerationsUsed"`,
         [randomUUID(), agencyId],
       );
-      expect(result.rows[0].totalQuota).toBe(10);
+      // 50, not the original bootstrap-trial 10: migration
+      // 20260729000000_closed_beta_50_credits deliberately raised the
+      // default because "the bootstrap-trial default of 10 would have
+      // stopped every beta agency a fifth of the way through their
+      // allocation". schema.prisma carries @default(50) and
+      // tests/closed-beta.test.ts asserts that intent directly.
+      //
+      // This assertion said 10 until now only because the whole file
+      // skips without a reachable DATABASE_URL, so it never ran after
+      // the default changed. It is the test that was stale, not the
+      // product.
+      expect(result.rows[0].totalQuota).toBe(50);
       expect(result.rows[0].successfulGenerationsUsed).toBe(0);
     });
 
