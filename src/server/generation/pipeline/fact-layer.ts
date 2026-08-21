@@ -1285,25 +1285,31 @@ function campaignTotals(facts: AdvertisementFacts): { vacancies: number; roles: 
 // alone — still the exact verified number, just without the role-count
 // tail. The individual role TITLES (drawn separately, below) are what
 // actually tell a candidate what's on offer.
+// Final 10/10 Human Recruiter Intelligence Gate: a summed vacancy figure
+// is a database aggregate ACROSS DIFFERENT JOBS — a candidate for one
+// role gets no information from learning that unrelated roles also have
+// openings. It is genuinely persuasive only in the one case where it
+// describes a SINGLE real job: either the canvas lists exactly one role,
+// or the true campaign (campaignTotals) is itself one role shown from a
+// hook selection. Every other case: the number belongs on the job it
+// describes (posterRoleLine already draws "(N NOS)" next to every role),
+// not as a standalone aggregate badge. This generalizes to any source —
+// nothing here is specific to any one requirement's role names or counts.
 function headlineCountLabel(facts: AdvertisementFacts): string | null {
   const totals = campaignTotals(facts);
   if (totals) {
-    return `${totals.vacancies} VACANCIES`;
+    return totals.roles === 1 ? `${totals.vacancies} VACANCIES` : null;
   }
 
   const roles = facts.positions.length;
-  const allCounted = roles > 0 && facts.positions.every((p) => typeof p.count === "number");
+  if (roles === 0) return null;
+  if (roles > 1) return null;
 
+  const allCounted = facts.positions.every((p) => typeof p.count === "number");
   if (allCounted) {
     const vacancies = facts.positions.reduce((sum, p) => sum + (p.count ?? 0), 0);
-    if (vacancies > roles) {
-      return `${vacancies} VACANCIES`;
-    }
+    if (vacancies > 0) return `${vacancies} VACANCIES`;
   }
-  // A canvas that lists no positions (a carousel's trust/CTA slide) has
-  // no count of its own to state. "0 POSITIONS AVAILABLE" would be a
-  // false statement about a live campaign, so the badge is omitted.
-  if (roles === 0) return null;
   return `${roles} POSITION${roles === 1 ? "" : "S"} AVAILABLE`;
 }
 
@@ -1315,17 +1321,18 @@ function headlineCountLabel(facts: AdvertisementFacts): string | null {
  * display size with its unit beneath it.
  */
 function heroNumeral(facts: AdvertisementFacts): { num: string; caption: string } | null {
+  // Same rule as headlineCountLabel: a hero-scale number is only drawn
+  // for a genuinely single job, never a cross-role aggregate.
   const totals = campaignTotals(facts);
   if (totals) {
-    return {
-      num: String(totals.vacancies),
-      caption: totals.vacancies === 1 ? "VACANCY" : "VACANCIES",
-    };
+    return totals.roles === 1
+      ? { num: String(totals.vacancies), caption: totals.vacancies === 1 ? "VACANCY" : "VACANCIES" }
+      : null;
   }
 
   const roles = facts.positions.length;
-  if (roles === 0) return null;
-  const allCounted = roles > 0 && facts.positions.every((p) => typeof p.count === "number");
+  if (roles === 0 || roles > 1) return null;
+  const allCounted = facts.positions.every((p) => typeof p.count === "number");
   if (allCounted) {
     const vacancies = facts.positions.reduce((sum, p) => sum + (p.count ?? 0), 0);
     if (vacancies > 0) return { num: String(vacancies), caption: vacancies === 1 ? "VACANCY" : "VACANCIES" };

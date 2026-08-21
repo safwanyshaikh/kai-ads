@@ -89,10 +89,14 @@ describe("§26 Real source acceptance — 19 roles / 127 vacancies / PQCS 5", ()
     }
   });
 
-  it("headline total equals SUM(positions.count), never a stale field", async () => {
+  it("never states a cross-role aggregate; role-specific counts stay exact and derived", async () => {
+    // Final 10/10 Human Recruiter Intelligence Gate: a 19-role campaign's
+    // summed total is a database aggregate, not a candidate-facing fact
+    // — never a hero badge. The real number belongs to each job.
     const r = await renderFactLayer({ facts: realFacts(), widthPx: FEED_W, heightPx: FEED_H });
-    expect(r.svgMarkup).toContain("127 VACANCIES");
+    expect(r.svgMarkup).not.toContain("127 VACANCIES");
     expect(r.svgMarkup).not.toMatch(/\+\s*more roles/i);
+    expect(r.svgMarkup).toContain("(45 NOS)");
   });
 
   it("SOURCE -> Social Product Decision routes this requirement to a complete carousel", async () => {

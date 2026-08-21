@@ -278,12 +278,33 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     expect(svg).toContain("PQCS (5 NOS)");
   });
 
-  it("states the verified vacancy total in the hero rather than leaving its reserved space empty", async () => {
+  it("never states a cross-role aggregate as the hero badge — it's a database total, not a job", async () => {
+    // Final 10/10 Human Recruiter Intelligence Gate: "127 VACANCIES"
+    // describes 19 DIFFERENT jobs summed together, which tells a
+    // candidate for any one of them nothing. The number belongs on the
+    // role that actually offers it (already drawn as "(N NOS)" next to
+    // every title below) — never as a standalone campaign-wide badge.
     const r = await renderFactLayer({ facts: saudiFacts(), widthPx: 1080, heightPx: 1350 });
-    // Final Content Intelligence Correction: the badge states the
-    // vacancy figure alone — role count is supporting metadata, not
-    // part of the primary marketing hook.
-    expect(r.svgMarkup).toContain("127 VACANCIES");
+    expect(r.svgMarkup).not.toContain("127 VACANCIES");
+    expect(r.svgMarkup).not.toMatch(/\d+\s*POSITIONS?\s*AVAILABLE/i);
+    // The information still reaches the candidate — just attached to
+    // the job it actually describes.
+    expect(r.svgMarkup).toContain("(45 NOS)");
+    expect(r.svgMarkup).toContain("(25 NOS)");
+  });
+
+  it("states a vacancy badge for a genuinely single-role canvas, and keeps it derived, never stale", async () => {
+    // The single-role case is the one place an aggregate figure IS a
+    // real job's headcount, so the badge fires — and it must still be
+    // recomputed from the position itself, never a cached total.
+    const single = facts(0, { positions: [{ title: "HVAC Technician", count: 45 }] });
+    const r1 = await renderFactLayer({ facts: single, widthPx: 1080, heightPx: 1350 });
+    expect(r1.svgMarkup).toContain("45 VACANCIES");
+
+    single.positions = [{ title: "HVAC Technician", count: 60 }];
+    const r2 = await renderFactLayer({ facts: single, widthPx: 1080, heightPx: 1350 });
+    expect(r2.svgMarkup).toContain("60 VACANCIES");
+    expect(r2.svgMarkup).not.toContain("45 VACANCIES");
   });
 
   it("normalises unambiguous source spelling defects for display only", async () => {
@@ -310,20 +331,16 @@ describe("Fact Layer — commercial composition (Step 8)", () => {
     expect(r.svgMarkup).toContain("SITE SUPERVISOR");
   });
 
-  it("derives the headline vacancy total from the positions themselves, never a stale total", async () => {
-    // The headline number and the visible per-role quantities are the same
-    // fact stated twice; if they can disagree, one of them is wrong on a
-    // published advertisement. Same 19 roles, but PQCS carries 8 instead
-    // of 5, so the only correct total is 130 — a renderer reading a stored
-    // or cached total would still print 127 here.
+  it("derives each role's own on-canvas count from its position, never a stale total", async () => {
+    // Same 19 roles, but PQCS carries 8 instead of 5 — a renderer
+    // reading a stored or cached figure for PQCS would still print 5.
     const f = saudiFacts();
     f.positions = f.positions.map((p) => (p.title === "PQCS" ? { ...p, count: 8 } : p));
     expect(f.positions.reduce((s, p) => s + (p.count ?? 0), 0)).toBe(130);
 
     const r = await renderFactLayer({ facts: f, widthPx: 1080, heightPx: 1350 });
-    expect(r.svgMarkup).toContain("130 VACANCIES");
-    expect(r.svgMarkup).not.toContain("127 VACANCIES");
     expect(r.svgMarkup.toUpperCase()).toContain("PQCS (8 NOS)");
+    expect(r.svgMarkup.toUpperCase()).not.toContain("PQCS (5 NOS)");
   });
 
   it("does not paint an opaque lid over the Gemini artwork", async () => {

@@ -121,7 +121,14 @@ describe("Role-family classification", () => {
 
 describe("Rendered output uses the role hierarchy", () => {
   it("draws display, section, position and numeric type in genuinely different faces", async () => {
-    const r = await renderFactLayer({ facts: facts(), widthPx: 1080, heightPx: 1350 });
+    // A single-role canvas is the one case the vacancy badge (NUMERIC
+    // role) legitimately renders for — see the Final 10/10 Human
+    // Recruiter Intelligence Gate: a multi-role aggregate is a database
+    // total, not a job, and is never drawn as a badge.
+    const single = facts({
+      positions: [{ title: "HVAC Technician", count: 10, qualification: "ITI / Diploma in Mechanical Engineering" }],
+    });
+    const r = await renderFactLayer({ facts: single, widthPx: 1080, heightPx: 1350 });
     expect(r.svgMarkup).toContain("KaiDisplay");
     expect(r.svgMarkup).toContain("KaiHeader");
     expect(r.svgMarkup).toContain("KaiPosition");

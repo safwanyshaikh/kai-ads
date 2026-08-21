@@ -71,8 +71,12 @@ export const ROLE_FAMILY_RULES: readonly RoleFamilyRule[] = [
 
 export const GENERAL_TRADES: RoleFamilyRule = {
   id: "general-trades",
-  label: "General Trades",
-  heading: "GENERAL TRADES",
+  // "General Trades" reads as internal taxonomy, not a section heading a
+  // recruiter would actually write (Final 10/10 Human Recruiter
+  // Intelligence Gate, §"Candidate segmentation"). The `id` stays
+  // unchanged — only the human-facing label/heading changed.
+  label: "Other Openings",
+  heading: "OTHER OPENINGS",
   // Never matched directly — the catch-all when no functional rule fits.
   test: /(?!)/,
 };
