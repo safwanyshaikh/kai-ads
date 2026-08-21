@@ -3,7 +3,8 @@
  */
 import fs from "node:fs";
 import sharp from "sharp";
-import { renderDtpPage, dtpTenantLogo, dtpVerificationQr } from "../../src/server/generation/dtp";
+import { renderDtpPage, dtpTenantLogo, dtpVerificationQr, dtpPageAt, DTP_PAGE_CM, DTP_MIN_AD_WIDTH_CM, DTP_MIN_AD_HEIGHT_CM } from "../../src/server/generation/dtp";
+import { pxToCm } from "../../src/lib/dtp-format-law";
 import type { DtpAdvertisement } from "../../src/server/generation/dtp";
 
 const OUT = "/tmp/claude-0/-home-user-kai-ads/50a9e56e-10d5-5f8f-99df-609ee450e470/scratchpad/dtp";
@@ -123,7 +124,7 @@ async function main() {
     "Quarrydale HR", "Ravensworth Overseas", "Sandringham Manpower", "Tarnbrook HR",
     "Uppingham Overseas", "Vandenberg Manpower", "Wrenbury HR", "Yardley Overseas"];
 
-  for (let i = 0; i < FIRMS.length; i++) {
+  for (let i = 0; i < 18; i++) {
     const [country, project, accent] = DESTS[i % DESTS.length];
     const trades = TRADES[i % TRADES.length];
     ads.push({
@@ -134,9 +135,17 @@ async function main() {
         name: FIRMS[i],
         registrationText: i % 2 === 0 ? `Licence: B-${2000 + i}/MUM/PER/1000+/${i}/2026` : null,
       },
-      positions: trades.map(([t, n]) => ({ title: t, count: n })),
+      // Vary the copy depth so blocks sit at a range of heights above
+      // the 8cm minimum, the way a real page mixes booking sizes.
+      positions: (i % 3 === 0
+        ? [...trades, ...TRADES[(i + 1) % TRADES.length], ...TRADES[(i + 2) % TRADES.length]]
+        : i % 3 === 1
+          ? [...trades, ...TRADES[(i + 3) % TRADES.length]]
+          : trades
+      ).map(([t, n]) => ({ title: t, count: n })),
       salary: i % 5 === 0 ? "Attractive salary + OT" : null,
-      benefits: i % 3 === 1 ? ["Food", "Accommodation", "Transport"] : [],
+      benefits: i % 2 === 0 ? ["Food", "Accommodation", "Transport", "Medical insurance"] : [],
+      eligibility: i % 3 === 0 ? ["Passport validity two years minimum", "Gulf experience preferred"] : [],
       interview: i % 6 === 0 ? "Client interview in progress" : null,
       contactPhone: `+91 ${20 + (i % 70)} ${4000 + i} ${1000 + i * 7}`,
       contactEmail: i % 4 === 1 ? `careers@${FIRMS[i].toLowerCase().replace(/[^a-z]/g, "")}.example` : null,
@@ -145,20 +154,29 @@ async function main() {
   }
 
   for (const format of ["png", "jpg", "pdf"] as const) {
+    const geometry = dtpPageAt(150);
     const r = await renderDtpPage({
       masthead: { title: "Overseas Assignments", edition: "Saturday, 18 July 2026 · Classified Recruitment", pageLabel: "3" },
       advertisements: ads,
+      page: geometry,
     }, format);
     const f = `${OUT}/dtp-page.${format}`;
     fs.writeFileSync(f, r.buffer);
     if (format === "png") {
-      console.log(`layout: ${r.layout.columnCount} columns @ ${r.layout.columnWidthPx}px, masthead ${r.layout.mastheadHeightPx}px`);
+      const dpi = geometry.dpi;
+      console.log(`page: ${r.layout.widthPx}x${r.layout.heightPx}px @${dpi}dpi = ${pxToCm(r.layout.widthPx, dpi).toFixed(1)} x ${pxToCm(r.layout.heightPx, dpi).toFixed(1)} cm`);
+      console.log(`grid: ${r.layout.columnCount} columns @ ${r.layout.columnWidthPx}px = ${pxToCm(r.layout.columnWidthPx, dpi).toFixed(2)}cm (minimum saleable ${DTP_MIN_AD_WIDTH_CM}cm)`);
+      const hs = r.layout.placements.map(p => p.heightPx);
+      const minCm = pxToCm(Math.min(...hs), dpi), maxCm = pxToCm(Math.max(...hs), dpi);
+      console.log(`block heights: ${minCm.toFixed(2)}cm .. ${maxCm.toFixed(2)}cm (minimum saleable ${DTP_MIN_AD_HEIGHT_CM}cm)`);
+      const under = r.layout.placements.filter(p => pxToCm(p.heightPx, dpi) < DTP_MIN_AD_HEIGHT_CM - 0.05 || pxToCm(p.widthPx, dpi) < DTP_MIN_AD_WIDTH_CM - 0.05);
+      console.log(`blocks below the minimum saleable slot: ${under.length}`);
+      void DTP_PAGE_CM;
       console.log(`placed: ${r.layout.placements.length}/${ads.length}, unplaced: [${r.layout.unplaced.join(",")}]`);
       const perCol = new Map<number, number>();
       for (const p of r.layout.placements) perCol.set(p.column, (perCol.get(p.column) ?? 0) + 1);
       console.log("ads per column:", [...perCol.entries()].sort().map(([c, n]) => `c${c}=${n}`).join(" "));
-      const heights = r.layout.placements.map((p) => p.heightPx);
-      console.log(`block heights: min ${Math.min(...heights)} max ${Math.max(...heights)} (variable = ${new Set(heights).size > 1})`);
+
       await sharp(r.buffer).resize({ width: 1000 }).toFile(`${OUT}/dtp-page-preview.png`);
     }
     console.log(`${format.toUpperCase().padEnd(3)} ${r.buffer.length} bytes -> ${f}`);

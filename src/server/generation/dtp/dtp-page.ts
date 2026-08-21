@@ -24,15 +24,83 @@ import {
   type DtpBlockMeasurement,
 } from "./dtp-ad-block";
 import { DTP_TYPE, dtpFamily, dtpSize } from "./dtp-typography";
+import { cmToPx, DTP_DEFAULT_DPI } from "@/lib/dtp-format-law";
 
-/** A4 at 300dpi, portrait — a real print page, deterministic. */
-export const DTP_PAGE = {
-  widthPx: 2480,
-  heightPx: 3508,
-  marginPx: 60,
-  gutterPx: 24,
+/**
+ * The page in PHYSICAL units, because a classified page is sold in
+ * centimetres, not pixels.
+ *
+ * These are not arbitrary: DTP_APPROVED_COLUMN_SLOTS (the locked format
+ * law) prices Assignments Abroad Times appointment advertisements at
+ * 2/4/6/8/10 columns = 6.0/12.7/19.4/26.1/32.8cm, so the smallest
+ * saleable advertisement is 6.0cm wide, and the minimum booking is
+ * 6 x 8cm. The widest slot, 32.8cm, IS the page's live area.
+ *
+ * Five grid columns of exactly the 6.0cm minimum, separated by 0.7cm
+ * gutters, span 5(6.0) + 4(0.7) = 32.8cm — the full live width, exactly.
+ * The five-column grid and the format law are therefore the same
+ * geometry, not two competing ones, and one grid column is precisely
+ * one minimum-size advertisement.
+ */
+export const DTP_PAGE_CM = {
+  /** Live area = the law's widest approved slot. */
+  liveWidthCm: 32.8,
+  /**
+   * Broadsheet depth.
+   *
+   * 53cm rather than a round 50: the column must divide into whole
+   * minimum bookings, because a remainder smaller than 8cm can never be
+   * sold and simply prints as a band of white at the foot of every
+   * column. At 53cm the live column takes six 8cm advertisements with
+   * little left over; at 50cm it took five and stranded 7.2cm.
+   */
+  liveHeightCm: 53.0,
+  marginCm: 1.0,
+  /** One grid column = the minimum saleable advertisement width. */
+  columnCm: 6.0,
+  gutterCm: 0.7,
   columns: 5,
 } as const;
+
+/** Minimum saleable advertisement: 6cm x 8cm. Below this is unpublishable. */
+export const DTP_MIN_AD_WIDTH_CM = 6.0;
+export const DTP_MIN_AD_HEIGHT_CM = 8.0;
+
+/** Resolves the physical page to pixels at a given reproduction DPI. */
+export function dtpPageAt(dpi: number = DTP_DEFAULT_DPI) {
+  const px = (cm: number) => cmToPx(cm, dpi);
+  const marginPx = px(DTP_PAGE_CM.marginCm);
+  const gutterPx = px(DTP_PAGE_CM.gutterCm);
+  const columnPx = px(DTP_PAGE_CM.columnCm);
+
+  // The page is exactly as wide as the grid it carries.
+  //
+  // Deriving it from liveWidthCm instead would round each centimetre
+  // value independently, and those roundings do not have to agree: at
+  // 300dpi the five 6.0cm columns plus four 0.7cm gutters plus two 1.0cm
+  // margins come to 4113px while 34.8cm rounds to 4110 — a three-pixel
+  // shortfall that puts the last column across the right margin. Summing
+  // the parts that are actually drawn makes that impossible by
+  // construction.
+  const widthPx = marginPx * 2 + columnPx * DTP_PAGE_CM.columns + gutterPx * (DTP_PAGE_CM.columns - 1);
+
+  return {
+    dpi,
+    widthPx,
+    heightPx: px(DTP_PAGE_CM.liveHeightCm + DTP_PAGE_CM.marginCm * 2),
+    marginPx,
+    gutterPx,
+    columns: DTP_PAGE_CM.columns,
+    columnPx,
+    minAdHeightPx: px(DTP_MIN_AD_HEIGHT_CM),
+  };
+}
+
+/**
+ * Default page: newsprint reproduction DPI, the same default the format
+ * law uses.
+ */
+export const DTP_PAGE = dtpPageAt(DTP_DEFAULT_DPI);
 
 export interface DtpMasthead {
   /** Publication title, e.g. the classified section's name. */
@@ -73,14 +141,21 @@ export interface DtpPageLayout {
 /** Vertical gap between stacked advertisements — deliberate, and small. */
 const BLOCK_GAP_RATIO = 0.014;
 
-export function dtpColumnWidth(page = DTP_PAGE): number {
-  const usable = page.widthPx - page.marginPx * 2 - page.gutterPx * (page.columns - 1);
-  return Math.floor(usable / page.columns);
+/**
+ * The grid column width.
+ *
+ * Taken from the format law (6.0cm), never derived by dividing whatever
+ * width the page happens to be — a column computed that way can silently
+ * fall below the minimum saleable slot, which is exactly the defect this
+ * geometry replaced.
+ */
+export function dtpColumnWidth(page: typeof DTP_PAGE = DTP_PAGE): number {
+  return page.columnPx;
 }
 
 function mastheadHeight(page: typeof DTP_PAGE): number {
   // Compact by intent (spec §19): the grid starts immediately below.
-  return Math.round(page.widthPx * 0.052);
+  return cmToPx(2.2, page.dpi);
 }
 
 /**
@@ -109,7 +184,10 @@ export function layoutDtpPage(input: DtpPageInput): DtpPageLayout {
   const bottom = page.heightPx - page.marginPx;
   const columnDepth = bottom - top;
 
-  const measurements = input.advertisements.map((ad) => measureDtpBlock(ad, colW));
+  // Every block is at least the minimum saleable slot (6cm x 8cm).
+  const measurements = input.advertisements.map((ad) =>
+    measureDtpBlock(ad, colW, page.minAdHeightPx),
+  );
   const totalStack = measurements.reduce((sum, m) => sum + m.heightPx + gap, 0);
 
   // The share each column should carry, bounded by the page depth. When
@@ -124,14 +202,28 @@ export function layoutDtpPage(input: DtpPageInput): DtpPageLayout {
   let cursorY = top;
   let inColumn = 0;
 
+  // Running total of what is still to be placed, so balancing can tell
+  // whether moving on would strand copy that still has room on the page.
+  let remainingStack = totalStack;
+
   measurements.forEach((measured, index) => {
-    // Move on when this column has taken its share, or genuinely cannot
-    // hold the block. Never leave a column empty to do it.
-    while (
-      column < page.columns &&
-      inColumn > 0 &&
-      (cursorY + measured.heightPx > bottom || cursorY - top >= target)
-    ) {
+    remainingStack -= measured.heightPx + gap;
+
+    while (column < page.columns && inColumn > 0) {
+      const cannotFit = cursorY + measured.heightPx > bottom;
+      const tookItsShare = cursorY - top >= target;
+
+      // Balancing is a preference, never a reason to push copy off a
+      // page that still has depth for it. Moving on is only allowed if
+      // the columns that remain can still absorb everything left; the
+      // physical fit check is absolute and always wins.
+      const columnsAfterThis = page.columns - column - 1;
+      const capacityAfterThis = columnsAfterThis * columnDepth;
+      const balancingIsSafe = tookItsShare && remainingStack <= capacityAfterThis;
+
+      if (!cannotFit && !balancingIsSafe) break;
+      if (cannotFit && columnsAfterThis === 0) break;
+
       column += 1;
       cursorY = top;
       inColumn = 0;
@@ -240,7 +332,7 @@ export function renderDtpPageSvg(input: DtpPageInput): { svg: string; layout: Dt
     const ad = input.advertisements[placement.index];
     let measured = measurements.get(placement.index);
     if (!measured) {
-      measured = measureDtpBlock(ad, colW);
+      measured = measureDtpBlock(ad, colW, page.minAdHeightPx);
       measurements.set(placement.index, measured);
     }
     parts.push(renderDtpBlock(ad, placement.x, placement.y, colW, measured));

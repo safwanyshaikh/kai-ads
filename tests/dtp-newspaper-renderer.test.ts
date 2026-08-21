@@ -12,7 +12,13 @@ import {
   renderDtpPage,
   type DtpAdvertisement,
 } from "@/server/generation/dtp";
+import {
+  DTP_MIN_AD_WIDTH_CM,
+  DTP_MIN_AD_HEIGHT_CM,
+  dtpPageAt,
+} from "@/server/generation/dtp";
 import { brandAsset, BrandIdentityViolationError } from "@/lib/brand-identity";
+import { isApprovedDtpWidthPx, pxToCm } from "@/lib/dtp-format-law";
 
 /**
  * DTP NEWSPAPER RENDERER — spec §25.
@@ -215,12 +221,18 @@ describe("DTP-013/016/017/018 — page packing", () => {
     }),
   );
 
-  it("packs many advertisements across every column", () => {
+  it("packs advertisements across every column, up to what the page physically holds", () => {
     const layout = layoutDtpPage(page(many));
-    expect(layout.placements.length).toBe(many.length);
-    expect(layout.unplaced).toEqual([]);
     const used = new Set(layout.placements.map((p) => p.column));
     expect(used.size).toBe(5);
+
+    // A page holds a whole number of minimum bookings, not however many
+    // advertisements it is handed: five columns of 8cm slots down a 53cm
+    // live column is thirty. The surplus is reported, not silently
+    // dropped — asserting that all 60 fit would only be true of blocks
+    // smaller than the minimum saleable slot.
+    expect(layout.placements.length).toBe(30);
+    expect(layout.placements.length + layout.unplaced.length).toBe(many.length);
   });
 
   it("no advertisement overlaps another", () => {
@@ -345,6 +357,84 @@ describe("DTP-020 — tenant neutrality", () => {
       for (const tenant of ["yousuf", "gheewala", "novara", "meridian", "continental"]) {
         expect(src, `${file} names a tenant`).not.toContain(tenant);
       }
+    }
+  });
+});
+
+describe("DTP minimum saleable advertisement (6cm x 8cm)", () => {
+  /**
+   * The format law prices Assignments Abroad Times appointment
+   * advertisements in physical slots whose smallest unit is 2 columns =
+   * 6.0cm, and the minimum booking is 6 x 8cm. An advertisement smaller
+   * than that cannot be sold or published, so the renderer may never
+   * produce one — whatever its copy happens to measure.
+   */
+  it("the grid column is exactly the minimum saleable width, and an approved slot", () => {
+    for (const dpi of [150, 300]) {
+      const geometry = dtpPageAt(dpi);
+      expect(pxToCm(geometry.columnPx, dpi)).toBeCloseTo(DTP_MIN_AD_WIDTH_CM, 1);
+      // And it is a width the publication actually sells.
+      expect(isApprovedDtpWidthPx(geometry.columnPx, dpi)).toBe(true);
+    }
+  });
+
+  it("no block is ever shorter than the minimum booking, however little copy it holds", () => {
+    for (const dpi of [150, 300]) {
+      const geometry = dtpPageAt(dpi);
+      const sparse = measureDtpBlock(
+        { headline: "Qatar", tenant: { name: "Novara HR" }, positions: [{ title: "Welder" }] },
+        geometry.columnPx,
+        geometry.minAdHeightPx,
+      );
+      expect(pxToCm(sparse.heightPx, dpi)).toBeGreaterThanOrEqual(DTP_MIN_AD_HEIGHT_CM - 0.05);
+      // The content itself is genuinely smaller — the block is at its
+      // floor because the slot is purchased, not because the content was
+      // padded out to a nominal box.
+      expect(sparse.contentHeightPx).toBeLessThan(sparse.heightPx);
+    }
+  });
+
+  it("a block whose copy exceeds the minimum grows past it", () => {
+    const geometry = dtpPageAt(150);
+    const dense = measureDtpBlock(
+      {
+        headline: "Saudi Arabia",
+        tenant: { name: "Novara HR" },
+        // Genuinely more copy than a minimum booking holds: 22 bare
+        // rows still measure just under 8cm, which is itself a useful
+        // calibration of how much a 6x8cm slot actually carries.
+        positions: Array.from({ length: 30 }, (_, i) => ({
+          title: `Technician Grade ${i + 1}`,
+          count: i + 2,
+        })),
+      },
+      geometry.columnPx,
+      geometry.minAdHeightPx,
+    );
+    expect(dense.heightPx).toBe(dense.contentHeightPx);
+    expect(pxToCm(dense.heightPx, 150)).toBeGreaterThan(DTP_MIN_AD_HEIGHT_CM);
+  });
+
+  it("every placed advertisement on a full page meets the minimum in both dimensions", () => {
+    const geometry = dtpPageAt(150);
+    const ads = Array.from({ length: 30 }, (_, i) =>
+      ad({ tenant: { name: `Agency ${i}` }, positions: [{ title: "Welder", count: i + 1 }] }),
+    );
+    const layout = layoutDtpPage({ ...page(ads), page: geometry });
+    expect(layout.placements.length).toBeGreaterThan(0);
+    for (const p of layout.placements) {
+      expect(pxToCm(p.widthPx, 150)).toBeGreaterThanOrEqual(DTP_MIN_AD_WIDTH_CM - 0.05);
+      expect(pxToCm(p.heightPx, 150)).toBeGreaterThanOrEqual(DTP_MIN_AD_HEIGHT_CM - 0.05);
+    }
+  });
+
+  it("the grid never spans wider than the page it is drawn on", () => {
+    // Independent cm roundings previously made the grid three pixels
+    // wider than the page, putting the last column across the margin.
+    for (const dpi of [150, 300, 600]) {
+      const g = dtpPageAt(dpi);
+      const spanned = g.marginPx * 2 + g.columnPx * g.columns + g.gutterPx * (g.columns - 1);
+      expect(spanned).toBe(g.widthPx);
     }
   });
 });

@@ -60,26 +60,34 @@ export interface DtpTypeSpec {
  */
 export const DTP_TYPE: Readonly<Record<DtpToken, DtpTypeSpec>> = {
   // The black bar headline: destination or campaign, set as tight as
-  // the face allows.
-  DTP_HEADLINE: { role: "DISPLAY", size: 34, weight: 800, tracking: -0.4, leading: 1.02, uppercase: true },
-  // Project / sector line beneath a headline bar.
-  DTP_SUBHEAD: { role: "SECTION", size: 19, weight: 700, tracking: 0.1, leading: 1.12, uppercase: true },
-  // Running copy: eligibility, benefits, instructions.
-  DTP_BODY: { role: "FINE", size: 15, weight: 400, tracking: 0, leading: 1.2, uppercase: false },
-  // Small caps-ish field labels ("INTERVIEW", "BENEFITS").
-  DTP_LABEL: { role: "SECTION", size: 13, weight: 600, tracking: 0.5, leading: 1.15, uppercase: true },
-  // Phone/email — prominent, as the reference pages set them.
-  DTP_CONTACT: { role: "NUMERIC", size: 17, weight: 800, tracking: -0.2, leading: 1.15, uppercase: false },
-  // Licence/registration fine print.
-  DTP_LEGAL: { role: "FINE", size: 11, weight: 400, tracking: 0, leading: 1.15, uppercase: false },
-  // Salary figures.
-  DTP_PRICE: { role: "SECTION", size: 16, weight: 700, tracking: 0, leading: 1.15, uppercase: true },
-  // Vacancy titles and their counts in the position list.
-  DTP_NUMBER: { role: "POSITION", size: 17, weight: 700, tracking: 0, leading: 1.16, uppercase: true },
+  // the face allows. ~14pt.
+  DTP_HEADLINE: { role: "DISPLAY", size: 58, weight: 800, tracking: -0.6, leading: 1.02, uppercase: true },
+  // Project / sector line beneath a headline bar. ~8pt.
+  DTP_SUBHEAD: { role: "SECTION", size: 33, weight: 700, tracking: 0.1, leading: 1.12, uppercase: true },
+  // Running copy: eligibility, benefits, instructions. ~6.5pt.
+  DTP_BODY: { role: "FINE", size: 27, weight: 400, tracking: 0, leading: 1.22, uppercase: false },
+  // Small field labels ("INTERVIEW", "BENEFITS"). ~6pt.
+  DTP_LABEL: { role: "SECTION", size: 25, weight: 600, tracking: 0.4, leading: 1.18, uppercase: true },
+  // Phone/email — prominent, as the reference pages set them. ~8pt.
+  DTP_CONTACT: { role: "NUMERIC", size: 33, weight: 800, tracking: -0.2, leading: 1.18, uppercase: false },
+  // Licence/registration fine print. ~5pt.
+  DTP_LEGAL: { role: "FINE", size: 21, weight: 400, tracking: 0, leading: 1.16, uppercase: false },
+  // Salary figures. ~7.5pt.
+  DTP_PRICE: { role: "SECTION", size: 31, weight: 700, tracking: 0, leading: 1.18, uppercase: true },
+  // Vacancy titles and their counts. ~7.5pt.
+  DTP_NUMBER: { role: "POSITION", size: 31, weight: 700, tracking: 0, leading: 1.2, uppercase: true },
 } as const;
 
-/** The reference column width the sizes above are quoted at. */
-export const DTP_REFERENCE_COLUMN_PX = 452;
+/**
+ * The reference column the sizes above are quoted at: the format law's
+ * minimum saleable advertisement width, 6.0cm, at newsprint 300dpi.
+ *
+ * Quoting against the real minimum slot is what keeps the point sizes
+ * physical. Sizes were previously quoted against an arbitrary 452px
+ * column — 3.83cm, narrower than any approved slot — which made every
+ * classified render around two-thirds of its intended physical size.
+ */
+export const DTP_REFERENCE_COLUMN_PX = 709;
 
 /** A token's size for a given column width. */
 export function dtpSize(token: DtpToken, columnWidthPx: number): number {

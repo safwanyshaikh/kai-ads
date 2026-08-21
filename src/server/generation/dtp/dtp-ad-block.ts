@@ -225,7 +225,10 @@ function contentLines(ad: DtpAdvertisement, colW: number): Line[] {
 }
 
 export interface DtpBlockMeasurement {
+  /** The height the block occupies — content, or the minimum slot. */
   heightPx: number;
+  /** What the content alone needed, before the minimum slot was applied. */
+  contentHeightPx: number;
   headlineBarH: number;
   logoH: number;
   qrH: number;
@@ -240,7 +243,29 @@ function assetHeights(ad: DtpAdvertisement, colW: number): { logoH: number; qrH:
   return { logoH, qrH };
 }
 
-export function measureDtpBlock(ad: DtpAdvertisement, colW: number): DtpBlockMeasurement {
+/**
+ * Measures the block, floored at the minimum saleable advertisement.
+ *
+ * `minHeightPx` is NOT a reserved box, and flooring to it is not a
+ * retreat from the space-collapsing rule. The two answer different
+ * questions: collapsing decides how much room the CONTENT takes, and
+ * the floor states how much room the ADVERTISER BOUGHT. Assignments
+ * Abroad Times sells appointment advertisements in fixed physical
+ * slots whose smallest unit is 6cm x 8cm, so a two-line classified
+ * still occupies 8cm of column — the space is paid for, not wasted.
+ *
+ * The distinction matters in both directions: content still collapses
+ * inside the block (an absent logo or salary adds nothing), and a block
+ * whose content exceeds 8cm still grows to hold it. What can never
+ * happen is a block SMALLER than the minimum slot, which would be
+ * unsaleable — and which is what this renderer produced before the
+ * minimum was applied.
+ */
+export function measureDtpBlock(
+  ad: DtpAdvertisement,
+  colW: number,
+  minHeightPx = 0,
+): DtpBlockMeasurement {
   const pad = Math.round(colW * PAD_RATIO);
   const gap = Math.round(colW * SECTION_GAP_RATIO);
   const inner = colW - pad * 2;
@@ -255,8 +280,9 @@ export function measureDtpBlock(ad: DtpAdvertisement, colW: number): DtpBlockMea
 
   const assetStrip = logoH > 0 || qrH > 0 ? Math.max(logoH, qrH) + gap : 0;
 
-  const heightPx = headlineBarH + pad + bodyH + assetStrip + pad;
-  return { heightPx, headlineBarH, logoH, qrH, lines };
+  const contentHeight = headlineBarH + pad + bodyH + assetStrip + pad;
+  const heightPx = Math.max(contentHeight, minHeightPx);
+  return { heightPx, contentHeightPx: contentHeight, headlineBarH, logoH, qrH, lines };
 }
 
 /**
@@ -298,7 +324,30 @@ export function renderDtpBlock(
     hy += hlLead;
   }
 
-  // Body lines.
+  // Body lines, LED OUT to fill the purchased slot.
+  //
+  // A minimum booking is 6cm x 8cm whether or not the advertiser's copy
+  // fills it, and most classifieds do not: three trades and a phone
+  // number need about 2.5cm. Setting that copy tight at the top would
+  // leave 5cm of white inside a block the advertiser paid for, which
+  // reads as an unfinished advertisement.
+  //
+  // Newspaper compositors answer this by "leading out" — distributing
+  // the surplus into the spaces between lines so the copy occupies its
+  // slot evenly. That is what happens here, and it is the opposite of
+  // the poster renderer's old defect: there a FIXED slab was too tall
+  // for its content and the fix was to shrink the container; here the
+  // container is a fixed, purchased size that cannot shrink, so the
+  // content is spread to meet it.
+  //
+  // The extra per line is capped, so a nearly empty block does not
+  // become absurdly airy; whatever remains after the cap sits below the
+  // copy rather than stretching it further.
+  const surplus = Math.max(0, measurement.heightPx - measurement.contentHeightPx);
+  const gaps = Math.max(1, measurement.lines.length - 1);
+  const maxExtraPerLine = Math.round(colW * 0.045);
+  const extraPerLine = Math.min(maxExtraPerLine, Math.floor(surplus / gaps));
+
   let cy = y + measurement.headlineBarH + pad;
   for (const line of measurement.lines) {
     const size = dtpSize(line.token, colW);
@@ -331,7 +380,7 @@ export function renderDtpBlock(
         }
       }
     }
-    cy += lead;
+    cy += lead + extraPerLine;
   }
 
   // Identity strip: tenant mark left, KAI verification right. Drawn
