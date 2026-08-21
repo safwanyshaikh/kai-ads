@@ -919,18 +919,29 @@ async function renderTrustFooter(
    * Draws a column of lines against its OWN measured width, using the
    * SAME fit/advance calculation that sized the strip (fitFooterColumn).
    *
-   * The block is TOP-ALIGNED inside the padded band, not centred in a
-   * fixed slab. Centring was what turned every unused pixel of a
-   * fixed-height footer into symmetric dead space above and below the
-   * agency name; now the band is only as tall as the content plus its
-   * deliberate breathing space, so the two columns simply start together
-   * at the top padding and end where their content ends.
+   * Centred within the band, floored at `top` — never above the
+   * deliberate top separation from the artwork, but free to centre
+   * below it. This matches the logo and QR, which have always been
+   * vertically centred in the band.
+   *
+   * Why centred rather than pinned to `top`: the band's height is
+   * `max(text content, asset floor) + padding` (see planFooter). When
+   * TEXT sets that height there is barely any slack to place either way
+   * — pinning and centring look the same. But when an ASSET (a logo box
+   * taller than a two-line identity) sets it, pinning the text to the
+   * top stranded 100% of the slack as dead space below the last line,
+   * while the logo sat centred a few rows above it — an asymmetric
+   * result even though the container itself was already correctly
+   * sized. Centring both keeps them visually balanced whichever one
+   * determined the height, and costs nothing when they roughly agree,
+   * since the leftover is then small by construction.
    */
   function drawColumn(x: number, maxWidth: number, lines: FooterLine[], top: number): void {
     if (lines.length === 0) return;
-    const { fitted, advance } = fitFooterColumn(lines, maxWidth);
+    const { fitted, advance, blockHeight } = fitFooterColumn(lines, maxWidth);
 
-    let y = top + Math.round(fitted[0].font * 0.78);
+    const centred = Math.round((heightPx - blockHeight) / 2 + fitted[0].font * 0.78);
+    let y = Math.max(top + Math.round(fitted[0].font * 0.78), centred);
     for (let i = 0; i < fitted.length; i++) {
       const l = fitted[i];
       svg.push(`
