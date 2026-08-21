@@ -48,7 +48,15 @@ describe("Reserved branding strip", () => {
         widthPx: 1024,
         heightPx: 1024,
       });
-      const strip = brandingStripHeight(1024, heightPx, true);
+      // The strip is measured from the footer's REAL content, so the
+      // reservation the fact layer made can only be reproduced here by
+      // asking with the SAME content. That coupling is the point: a
+      // reservation computed from different inputs than the band that
+      // later paints over it is exactly how a fact gets destroyed.
+      const strip = brandingStripHeight(1024, heightPx, true, {
+        agencyName: "Al-Yousuf Enterprises L.L.P.",
+        registrationNumber: "B-0655/MUM/PER/1000+/4-1/4/7914/2007",
+      });
       const { data, info } = await sharp(png)
         .extract({ left: 0, top: heightPx - strip, width: 1024, height: strip })
         .ensureAlpha()

@@ -1,7 +1,7 @@
 import { buildCreativeBrief } from "./creative-brief";
 import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
-import { applyBrandingOverlay } from "./branding-overlay";
+import { applyBrandingOverlay, type FooterContent } from "./branding-overlay";
 import { renderFactLayer } from "./fact-layer";
 import { campaignFromAdvertisementFacts, enforceDtpCapacity } from "./content-intelligence";
 import { decideSocialProductForFacts, assertSlidePlanIntegrity, type SocialProductDecision } from "./social-product-decision";
@@ -248,6 +248,31 @@ export async function generateAdvertisement(
     );
 
   /**
+   * The trust footer's identity, resolved ONCE.
+   *
+   * The reserved strip is sized from the footer's actual content, so the
+   * height the fact layer reserves and the height the Rendering Engine
+   * later paints must come from identical inputs. Resolving this in two
+   * places — with the caller's campaign overrides applied in one and not
+   * the other, or a different registration fallback — would let the band
+   * paint over verified facts, which the Factual Integrity Law forbids.
+   */
+  const footerContent: FooterContent = {
+    agencyName: agencyProfile.agencyName,
+    registrationNumber:
+      agencyProfile.fullRegistrationNumber ?? agencyProfile.rcNumber ?? null,
+    officialPhone: input.agencyOfficialPhone ?? agencyProfile.officialPhone ?? null,
+    officialEmail: input.agencyOfficialEmail ?? agencyProfile.officialEmail ?? null,
+    website: input.agencyWebsite ?? agencyProfile.website ?? null,
+    addressLine: agencyProfile.registeredAddress ?? input.addressLine ?? null,
+    brandBadges: agencyProfile.approvedBadges ?? input.brandBadges ?? null,
+    // Presence of the ACTUAL assets, not merely a URL on the profile:
+    // a logo that failed to load does not occupy footer height.
+    hasLogo: Boolean(input.agencyLogoPng),
+    hasQr: Boolean(input.qrPng),
+  };
+
+  /**
    * ------------------------------------------------------------------------
    * STEP 2 — NORMALISE CAMPAIGN CONTACT
    * ------------------------------------------------------------------------
@@ -473,6 +498,7 @@ export async function generateAdvertisement(
       heightPx: input.heightPx,
       headerZoneHasStrongSubject,
       socialFeedMaxHeightPx: input.socialFeedMaxHeightPx ?? null,
+      footerContent,
     });
 
   const canvasHeightPx =
@@ -555,12 +581,9 @@ export async function generateAdvertisement(
       /**
        * Canonical agency identity.
        */
-      agencyName:
-        agencyProfile.agencyName,
+      agencyName: footerContent.agencyName,
 
-      registrationNumber:
-        agencyProfile.fullRegistrationNumber ??
-        agencyProfile.rcNumber,
+      registrationNumber: footerContent.registrationNumber,
 
       /**
        * Campaign-facing contact is kept separate from
@@ -583,40 +606,24 @@ export async function generateAdvertisement(
       /**
        * LOCK 1 — verified Agency Profile only, independent of whether
        * the recruitment requirement mentions any contact detail at all.
-       */
-      officialPhone:
-        input.agencyOfficialPhone ??
-        agencyProfile.officialPhone ??
-        null,
-
-      officialEmail:
-        input.agencyOfficialEmail ??
-        agencyProfile.officialEmail ??
-        null,
-
-      website:
-        input.agencyWebsite ??
-        agencyProfile.website ??
-        null,
-
-      /**
-       * IMPORTANT:
        *
-       * This is the REGISTERED ADDRESS.
+       * These come from the SAME resolved `footerContent` the fact layer
+       * reserved the strip from (see STEP 1). Re-deriving them here is
+       * what would let the reservation and the band disagree, and a band
+       * taller than its reservation paints over verified facts.
        *
-       * It is never taken from interviewVenue.
+       * `addressLine` is the REGISTERED ADDRESS and is never taken from
+       * interviewVenue.
        */
-      addressLine:
-        agencyProfile.registeredAddress ??
-        input.addressLine ??
-        null,
+      officialPhone: footerContent.officialPhone,
+      officialEmail: footerContent.officialEmail,
+      website: footerContent.website,
+      addressLine: footerContent.addressLine,
 
       footerStyle:
         footerSelection.style,
 
-      brandBadges:
-        agencyProfile.approvedBadges ??
-        input.brandBadges,
+      brandBadges: footerContent.brandBadges,
     });
 
   return {

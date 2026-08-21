@@ -127,7 +127,8 @@ describe("Branding Overlay v2 — footer band", () => {
 
     // The footer band itself: solid navy (not the plain background colour)
     // with the gold top rule, painted fully opaque.
-    const footerHeightPx = Math.min(300, Math.max(250, Math.round(widthPx * 0.25)));
+    // Content-measured band (see planFooter) — detected, not restated.
+    const footerHeightPx = heightPx - (await footerBandTop(result));
     const { data, info } = await sharp(result)
       .extract({ left: 0, top: heightPx - footerHeightPx, width: widthPx, height: footerHeightPx })
       .ensureAlpha()
@@ -233,3 +234,32 @@ describe("Branding Overlay v2 — optional agency address/website line", () => {
     expect(meta.height).toBe(heightPx);
   });
 });
+
+/**
+ * Finds the top of the trust footer band by DETECTING it, rather than
+ * recomputing a height formula in the test.
+ *
+ * The band is no longer a fixed slab: it is measured from the footer's
+ * own content (see planFooter), so a test that hardcodes
+ * `min(300, max(250, W * 0.25))` slices the wrong region and then
+ * measures advertisement body pixels as if they were footer pixels.
+ * Scanning up from the bottom edge for the contiguous KAI-navy fill
+ * finds the real band whatever height it takes.
+ */
+async function footerBandTop(png: Buffer): Promise<number> {
+  const { data, info } = await sharp(png)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let top = info.height;
+  for (let y = info.height - 1; y >= 0; y--) {
+    const i = (y * info.width + 4) * info.channels;
+    const isNavy =
+      Math.abs(data[i] - 0x0b) < 26 &&
+      Math.abs(data[i + 1] - 0x1f) < 26 &&
+      Math.abs(data[i + 2] - 0x33) < 30;
+    if (!isNavy) break;
+    top = y;
+  }
+  return top;
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { renderFactLayer, LayoutCapacityError } from "@/server/generation/pipeline/fact-layer";
-import { applyBrandingOverlay } from "@/server/generation/pipeline/branding-overlay";
+import { applyBrandingOverlay, brandingStripHeight } from "@/server/generation/pipeline/branding-overlay";
 import { buildRecruitmentCampaign } from "@/server/generation/pipeline/content-intelligence";
 import {
   decideSocialProductForFacts,
@@ -312,7 +312,14 @@ describe("§25 M-N Client logo isolation", () => {
   it("M+N. a client logo anywhere in the creative never disturbs the trust footer", async () => {
     const w = FEED_W;
     const h = 1400;
-    const footerH = Math.min(300, Math.max(250, Math.round(w * 0.25)));
+    // The band is content-measured, so its height comes from the renderer
+    // for THIS profile rather than from a restated constant.
+    const footerProfile = {
+      agencyName: "Al-Yousuf Enterprises L.L.P.",
+      registrationNumber: "B-1487/MUM/PART/1000+/9986/2022",
+      officialEmail: "jobs@example-agency.invalid",
+    };
+    const footerH = brandingStripHeight(w, h, true, footerProfile);
     const footerTop = h - footerH;
 
     const clean = await bg(w, h, [10, 10, 10]);

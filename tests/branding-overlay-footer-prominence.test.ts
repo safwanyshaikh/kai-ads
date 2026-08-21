@@ -107,8 +107,10 @@ describe("Trust footer — prominence and no-dead-space regression", () => {
       registrationNumber: "B-0655/MUM/PER/1000+/4-1/4/7914/2007",
     });
     const { data, info } = await sharp(sparse).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    const footerHeightPx = 300;
-    const footerTop = info.height - footerHeightPx;
+    // The band is measured from its own content, so it is detected here
+    // rather than restated as a constant.
+    const footerTop = await footerBandTop(sparse);
+    const footerHeightPx = info.height - footerTop;
 
     // Text is drawn white-on-navy. Count rows within the footer band that
     // contain at least one bright (text) pixel in the identity column.
@@ -125,12 +127,15 @@ describe("Trust footer — prominence and no-dead-space regression", () => {
       }
       if (hasBrightPixel) rowsWithText++;
     }
-    // A top-anchored two-line block (agency name + registration) at these
-    // font sizes only occupies ~70-90px of a 300px footer — vertical
-    // centring must place that same content so it doesn't cluster entirely
-    // in (say) the first third, leaving two-thirds visibly bare. Assert
-    // the text band's vertical midpoint sits within the middle third of
-    // the footer, which top-anchoring at a fixed small offset would fail.
+    // The band no longer has a fixed height for content to be centred
+    // inside, so "not visibly empty" is now a STRONGER property than the
+    // midpoint check this test originally used: the strip is sized to the
+    // content it holds, so the content must occupy the large majority of
+    // it, leaving only the deliberate breathing space above and below.
+    //
+    // Centring inside a fixed slab satisfied the old midpoint assertion
+    // while still leaving ~85px of dead navy above the agency name and
+    // another ~85px below it — the defect this file is named for.
     let firstRow = -1;
     let lastRow = -1;
     for (let y = footerTop; y < info.height; y++) {
@@ -149,9 +154,20 @@ describe("Trust footer — prominence and no-dead-space regression", () => {
       }
     }
     expect(rowsWithText).toBeGreaterThan(0);
-    const textMid = (firstRow + lastRow) / 2 - footerTop;
-    expect(textMid).toBeGreaterThan(footerHeightPx * 0.3);
-    expect(textMid).toBeLessThan(footerHeightPx * 0.7);
+
+    const textExtent = lastRow - firstRow;
+    // The identity block spans most of its band.
+    expect(textExtent / footerHeightPx).toBeGreaterThan(0.45);
+    // Breathing space above the first line is real (the agency name never
+    // merges into the advertisement content above it) but bounded — it is
+    // deliberate separation, not leftover slab.
+    const spaceAbove = firstRow - footerTop;
+    expect(spaceAbove).toBeGreaterThan(8);
+    expect(spaceAbove).toBeLessThan(footerHeightPx * 0.45);
+    // And the band ends shortly after the last line rather than trailing
+    // off into empty navy.
+    const spaceBelow = info.height - lastRow;
+    expect(spaceBelow).toBeLessThan(footerHeightPx * 0.45);
   });
 
   it("keeps the QR clearly visible and unobstructed alongside a prominent logo", async () => {
@@ -178,3 +194,32 @@ describe("Trust footer — prominence and no-dead-space regression", () => {
     expect(qrPixels).toBeGreaterThan(500);
   });
 });
+
+/**
+ * Finds the top of the trust footer band by DETECTING it, rather than
+ * recomputing a height formula in the test.
+ *
+ * The band is no longer a fixed slab: it is measured from the footer's
+ * own content (see planFooter), so a test that hardcodes
+ * `min(300, max(250, W * 0.25))` slices the wrong region and then
+ * measures advertisement body pixels as if they were footer pixels.
+ * Scanning up from the bottom edge for the contiguous KAI-navy fill
+ * finds the real band whatever height it takes.
+ */
+async function footerBandTop(png: Buffer): Promise<number> {
+  const { data, info } = await sharp(png)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let top = info.height;
+  for (let y = info.height - 1; y >= 0; y--) {
+    const i = (y * info.width + 4) * info.channels;
+    const isNavy =
+      Math.abs(data[i] - 0x0b) < 26 &&
+      Math.abs(data[i + 1] - 0x1f) < 26 &&
+      Math.abs(data[i + 2] - 0x33) < 30;
+    if (!isNavy) break;
+    top = y;
+  }
+  return top;
+}

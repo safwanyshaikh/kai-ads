@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { applyBrandingOverlay } from "@/server/generation/pipeline/branding-overlay";
+import { applyBrandingOverlay, trustFooterHeight } from "@/server/generation/pipeline/branding-overlay";
 
 /**
  * CLIENT LOGO RULE — protection proof.
@@ -42,10 +42,18 @@ describe("Trust footer — CLIENT LOGO RULE: the footer region cannot be entered
   it("fully overwrites a foreign mark pre-composited into the footer's reserved region", async () => {
     const widthPx = 1024;
     const heightPx = 1536;
-    // Same footer-height formula the module itself uses (110..0.105H
-    // capped at 0.15W) — reproduced here only to place the foreign mark,
-    // not to duplicate any production logic under test.
-    const footerHeightEstimate = Math.max(110, Math.round(Math.min(heightPx * 0.105, widthPx * 0.15)));
+    // The band's height is measured from its own content, so it is
+    // obtained from the renderer rather than restated here. This test
+    // previously reproduced a formula that had already drifted out of
+    // date, which made it assert protection over a region the footer no
+    // longer occupied.
+    const footerHeightEstimate = trustFooterHeight({
+      imagePng: Buffer.alloc(0),
+      widthPx,
+      heightPx,
+      agencyName: "Protected Agency",
+      registrationNumber: "RC-1234",
+    });
     const footerTop = heightPx - footerHeightEstimate;
 
     const contaminated = await backgroundWithForeignMarkInFooterRegion(widthPx, heightPx, footerTop);

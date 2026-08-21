@@ -37,8 +37,8 @@ describe("Long agency name — no overlap with the contact column", () => {
       addressLine: "Placeholder Address Line, Example City",
     });
 
-    const fh = Math.min(300, Math.max(250, Math.round(widthPx * 0.25)));
-    const footerTop = heightPx - fh;
+    const footerTop = await footerBandTop(png);
+    const fh = heightPx - footerTop;
     const { data, info } = await sharp(png)
       .extract({ left: 0, top: footerTop, width: widthPx, height: fh })
       .ensureAlpha()
@@ -111,8 +111,8 @@ describe("Long agency name — no overlap with the contact column", () => {
       officialPhone: "+00 000 000 0000",
       website: "www.example-agency.invalid",
     });
-    const fh = Math.min(300, Math.max(250, Math.round(widthPx * 0.25)));
-    const footerTop = heightPx - fh;
+    const footerTop = await footerBandTop(png);
+    const fh = heightPx - footerTop;
     const { data, info } = await sharp(png)
       .extract({ left: 0, top: footerTop, width: widthPx, height: fh })
       .ensureAlpha()
@@ -137,3 +137,32 @@ describe("Long agency name — no overlap with the contact column", () => {
     expect(worstRun).toBeLessThan(widthPx * 0.6);
   });
 });
+
+/**
+ * Finds the top of the trust footer band by DETECTING it, rather than
+ * recomputing a height formula in the test.
+ *
+ * The band is no longer a fixed slab: it is measured from the footer's
+ * own content (see planFooter), so a test that hardcodes
+ * `min(300, max(250, W * 0.25))` slices the wrong region and then
+ * measures advertisement body pixels as if they were footer pixels.
+ * Scanning up from the bottom edge for the contiguous KAI-navy fill
+ * finds the real band whatever height it takes.
+ */
+async function footerBandTop(png: Buffer): Promise<number> {
+  const { data, info } = await sharp(png)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let top = info.height;
+  for (let y = info.height - 1; y >= 0; y--) {
+    const i = (y * info.width + 4) * info.channels;
+    const isNavy =
+      Math.abs(data[i] - 0x0b) < 26 &&
+      Math.abs(data[i + 1] - 0x1f) < 26 &&
+      Math.abs(data[i + 2] - 0x33) < 30;
+    if (!isNavy) break;
+    top = y;
+  }
+  return top;
+}

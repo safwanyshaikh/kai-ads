@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { applyBrandingOverlay } from "@/server/generation/pipeline/branding-overlay";
+import { applyBrandingOverlay, trustFooterHeight } from "@/server/generation/pipeline/branding-overlay";
 
 /**
  * FINAL FOOTER IDENTITY PASS (2026-08) — acceptance tests A-F.
@@ -57,10 +57,6 @@ function hasBrightPixel(
   return false;
 }
 
-function footerHeightFor(widthPx: number): number {
-  return Math.min(300, Math.max(250, Math.round(widthPx * 0.25)));
-}
-
 const FULL_AGENCY = "Al Yousuf Enterprises LLP";
 const FULL_RC = "B-0655/MUM/PER/1000+/4-1/4/7914/2007-VALID-UNTIL-2031-EXTENDED-VERIFICATION-CODE-99887766";
 
@@ -83,7 +79,7 @@ describe("Footer Identity Pass — acceptance", () => {
     expect(meta.width).toBe(widthPx);
     expect(meta.height).toBe(heightPx);
 
-    const fh = footerHeightFor(widthPx);
+    const fh = heightPx - (await footerBandTop(png));
     const ctx = await brightRowMask(png, heightPx - fh, fh);
     // Identity text present somewhere in the footer band.
     expect(hasBrightPixel(ctx, 0, widthPx, heightPx - fh, heightPx)).toBe(true);
@@ -120,7 +116,7 @@ describe("Footer Identity Pass — acceptance", () => {
       agencyLogoPng: await tinyLogo(),
       qrPng: await tinyQr(),
     });
-    const fh = footerHeightFor(widthPx);
+    const fh = heightPx - (await footerBandTop(png));
     const ctx = await brightRowMask(png, heightPx - fh, fh);
     const footerTop = heightPx - fh;
 
@@ -174,7 +170,7 @@ describe("Footer Identity Pass — acceptance", () => {
     expect(meta.width).toBe(widthPx);
     expect(meta.height).toBe(heightPx);
 
-    const fh = footerHeightFor(widthPx);
+    const fh = heightPx - (await footerBandTop(png));
     const ctx = await brightRowMask(png, heightPx - fh, fh);
     // The registration line's glyphs must extend across a wide horizontal
     // span (a 90-char string at even a shrunk font cannot fit in a narrow
@@ -218,7 +214,7 @@ describe("Footer Identity Pass — acceptance", () => {
     // replaced by placeholder content that would make the two identical.
     expect(nameAndRegOnly.equals(full)).toBe(false);
 
-    const fh = footerHeightFor(widthPx);
+    const fh = heightPx - (await footerBandTop(nameAndRegOnly));
     const footerTop = heightPx - fh;
     // A sparse profile (2 lines) still centres and fills real vertical
     // space rather than collapsing to a single top-pinned sliver — the
@@ -240,21 +236,31 @@ describe("Footer Identity Pass — acceptance", () => {
   it("TEST E — a pre-composited foreign mark (client-logo stand-in) never disturbs the agency identity footer", async () => {
     const widthPx = 1080;
     const heightPx = 1350;
-    const fh = footerHeightFor(widthPx);
-    const footerTop = heightPx - fh;
 
     const base = await sharp({
       create: { width: widthPx, height: heightPx, channels: 3, background: { r: 10, g: 10, b: 10 } },
     })
       .png()
       .toBuffer();
+    // Ask the renderer how tall its band will be for THIS input — the
+    // height is content-measured, not a constant a test can restate.
+    const bandH = trustFooterHeight({
+      imagePng: base,
+      widthPx,
+      heightPx,
+      agencyName: FULL_AGENCY,
+      registrationNumber: FULL_RC,
+      officialPhone: "+91 22 6666 5353",
+      agencyLogoPng: await tinyLogo(),
+      qrPng: await tinyQr(),
+    });
     const foreignMark = await sharp({
-      create: { width: widthPx, height: heightPx - footerTop, channels: 3, background: { r: 255, g: 0, b: 255 } },
+      create: { width: widthPx, height: bandH, channels: 3, background: { r: 255, g: 0, b: 255 } },
     })
       .png()
       .toBuffer();
     const withForeignMarkBehindFooter = await sharp(base)
-      .composite([{ input: foreignMark, left: 0, top: footerTop }])
+      .composite([{ input: foreignMark, left: 0, top: heightPx - bandH }])
       .png()
       .toBuffer();
 
@@ -278,6 +284,11 @@ describe("Footer Identity Pass — acceptance", () => {
       agencyLogoPng: await tinyLogo(),
       qrPng: await tinyQr(),
     });
+    // The band's height is measured from its own content, so the test
+    // asks the renderer where it starts rather than assuming a slab.
+    const footerTop = await footerBandTop(clean);
+    const fh = heightPx - footerTop;
+
     // The footer band itself is identical whether or not a foreign mark
     // was pre-composited underneath it — full opacity, drawn last.
     const cleanFooterOnly = await sharp(clean).extract({ left: 0, top: footerTop, width: widthPx, height: fh }).raw().toBuffer();
@@ -306,7 +317,7 @@ describe("Footer Identity Pass — acceptance", () => {
     expect(meta.width).toBe(widthPx);
     expect(meta.height).toBe(heightPx);
 
-    const fh = footerHeightFor(widthPx);
+    const fh = heightPx - (await footerBandTop(png));
     const ctx = await brightRowMask(png, heightPx - fh, fh);
     expect(hasBrightPixel(ctx, 0, widthPx, heightPx - fh, heightPx)).toBe(true);
 
@@ -339,7 +350,7 @@ describe("Footer Identity Pass — acceptance", () => {
       registrationNumber: "B-0655/MUM/PER/1000",
       agencyLogoPng: await tinyLogo(),
     });
-    const fh = footerHeightFor(widthPx);
+    const fh = heightPx - (await footerBandTop(identityOnly));
     const footerTop = heightPx - fh;
     const ctx = await brightRowMask(identityOnly, footerTop, fh);
     // No text in the far-right contact zone since nothing was ever meant
@@ -349,3 +360,32 @@ describe("Footer Identity Pass — acceptance", () => {
     expect(rightZone).toBe(false);
   });
 });
+
+/**
+ * Finds the top of the trust footer band by DETECTING it, rather than
+ * recomputing a height formula in the test.
+ *
+ * The band is no longer a fixed slab: it is measured from the footer's
+ * own content (see planFooter), so a test that hardcodes
+ * `min(300, max(250, W * 0.25))` slices the wrong region and then
+ * measures advertisement body pixels as if they were footer pixels.
+ * Scanning up from the bottom edge for the contiguous KAI-navy fill
+ * finds the real band whatever height it takes.
+ */
+async function footerBandTop(png: Buffer): Promise<number> {
+  const { data, info } = await sharp(png)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let top = info.height;
+  for (let y = info.height - 1; y >= 0; y--) {
+    const i = (y * info.width + 4) * info.channels;
+    const isNavy =
+      Math.abs(data[i] - 0x0b) < 26 &&
+      Math.abs(data[i + 1] - 0x1f) < 26 &&
+      Math.abs(data[i + 2] - 0x33) < 30;
+    if (!isNavy) break;
+    top = y;
+  }
+  return top;
+}

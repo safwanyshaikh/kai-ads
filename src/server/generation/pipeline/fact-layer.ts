@@ -1,6 +1,6 @@
 import "../font-config"; // FONTCONFIG_FILE must be set before any rasterization
 import sharp from "sharp";
-import { brandingStripHeight } from "./branding-overlay";
+import { brandingStripHeight, type FooterContent } from "./branding-overlay";
 import { displayTitle } from "@/lib/display-title";
 import { roleFamily, roleTextWidth, type TypeRole } from "@/lib/kdl-typography";
 import { classifyRoleFamily } from "@/lib/role-families";
@@ -709,6 +709,23 @@ export interface FactLayerInput {
    * — this mode measures, it never draws.
    */
   measureOnly?: boolean;
+  /**
+   * The EXACT footer identity the Rendering Engine will later typeset
+   * into the reserved strip.
+   *
+   * The strip is sized from the footer's real content, so the
+   * reservation made here and the band drawn by applyBrandingOverlay
+   * must be computed from IDENTICAL inputs. The pipeline resolves that
+   * identity once (campaign overrides, rcNumber fallbacks, whether logo
+   * and QR assets actually loaded) and hands the same object to both.
+   *
+   * Omitted, the fact layer infers it from `facts.agencyProfile`, which
+   * is correct for standalone renders and tests but cannot know about
+   * caller-level overrides or which image buffers were actually
+   * available. A reservation smaller than the band would let the band
+   * paint over verified facts, so the resolved value always wins.
+   */
+  footerContent?: FooterContent | null;
 }
 
 export interface FactLayerResult {
@@ -1530,6 +1547,27 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // relationship is piecewise — settle it with a short fixed-point loop
   // rather than assuming which regime applies.
   const hasContact = Boolean(facts.contact.phone || facts.contact.email);
+  // The reserved branding strip is sized from the footer's REAL content
+  // (Final Production UI Correction §6): the same verified Agency Profile
+  // fields the overlay will typeset. Reserving a fixed slab sized for the
+  // maximum-content case is what left short-profile advertisements with a
+  // large dead band between the last body content and the agency name.
+  //
+  // Assets (logo/QR) are not held here — the fact layer never loads them —
+  // but their presence changes the strip's floor, so it reports whether
+  // the profile HAS them rather than passing the buffers themselves.
+  const footerContent: FooterContent = input.footerContent ?? {
+    agencyName: agencyNameOf(facts),
+    registrationNumber:
+      facts.agencyProfile?.fullRegistrationNumber ?? facts.fullRegistrationNumber ?? null,
+    officialEmail: facts.agencyProfile?.officialEmail ?? null,
+    officialPhone: facts.agencyProfile?.officialPhone ?? null,
+    website: facts.agencyProfile?.website ?? null,
+    addressLine: facts.agencyProfile?.registeredAddress ?? null,
+    brandBadges: facts.agencyProfile?.approvedBadges ?? null,
+    hasLogo: Boolean(facts.agencyProfile?.logoUrl),
+    hasQr: Boolean(facts.agencyProfile?.verificationUrl ?? facts.agencyProfile?.verificationId),
+  };
   // DTP chrome drawn outside the body: agency rule bar, gold strap and the
   // reversed section bar. Invisible to the solve, these once let the last
   // rows of a long table run under the benefits strap and be clipped.
@@ -1568,7 +1606,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       Math.min(Math.round(heroFrac * H), heroCap),
       Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W)) + hero.contentH,
     );
-    const stripAt = brandingStripHeight(W, H, hasContact) + Math.round(0.025 * H);
+    const stripAt = brandingStripHeight(W, H, hasContact, footerContent) + Math.round(0.025 * H);
     // The DTP section bar replaces planBody()'s own heading; counting both
     // left a band of dead white above the contact bar.
     // POSTER's hero text now lives INSIDE the panel, stacked before the
@@ -1600,11 +1638,22 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     // Converge rather than only grow: shrink for a short requirement, grow
     // for a dense one, stop once the solve stabilises (stripAt/heroAt are
     // the only H-dependent terms, so this settles in a handful of steps).
-    if (Math.abs(need - H) <= 1) {
-      H = need;
+    //
+    // Shrink-to-content exists to remove HUNDREDS of px of dead canvas
+    // under a short requirement — not to miss a requested format by a
+    // hair. A requested canvas is a format contract (1080x1350 is a 4:5
+    // Instagram portrait; 1240x1754 is A4), so a solve that lands just
+    // under it is neither a deliberate compaction nor a valid format:
+    // snap up and let the existing slack branch below give the few
+    // reclaimed pixels to the hero. Only a genuinely shorter requirement
+    // — one needing less than 90% of the request — still shrinks.
+    const snapped =
+      need < input.heightPx && need >= Math.round(input.heightPx * 0.9) ? input.heightPx : need;
+    if (Math.abs(snapped - H) <= 1) {
+      H = snapped;
       break;
     }
-    H = need;
+    H = snapped;
   }
 
   if (fillSlot) {
@@ -1622,7 +1671,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
       ]);
     }
     H = input.heightPx;
-    const stripFixed = brandingStripHeight(W, H, hasContact);
+    const stripFixed = brandingStripHeight(W, H, hasContact, footerContent);
     // In a bought slot the masthead scales to the column, not the other way
     // round. Sized off width alone it ate an entire 8.5cm slot before a
     // single role was placed. A classified gives at most a quarter of its
@@ -1744,7 +1793,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // below the last line. Give the slack to the artwork instead: a one-role
   // advertisement should be photo-led, not half-empty. Capped so the hero
   // never crowds out the facts.
-  const strip = brandingStripHeight(W, H, hasContact);
+  const strip = brandingStripHeight(W, H, hasContact, footerContent);
   if (dense) {
     // The DTP masthead holds its measured content and no more. Donating
     // leftover height to artwork produced a near-empty half-canvas above
@@ -1773,7 +1822,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   if (dense) {
     const FRAME = Math.max(3, Math.round(W * 0.004));
     const inset = Math.round(W * 0.012);
-    const stripHere = brandingStripHeight(W, H, hasContact);
+    const stripHere = brandingStripHeight(W, H, hasContact, footerContent);
     const paperH = H - stripHere;
 
     parts.push(`<rect x="0" y="0" width="${W}" height="${paperH}" fill="${pal.paper}"/>`);
@@ -1913,7 +1962,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   const diag = Math.round(W * 0.055);
   const step = Math.round(W * 0.03);
   const mid = Math.round(W * 0.52);
-  const stripH = brandingStripHeight(W, H, hasContact);
+  const stripH = brandingStripHeight(W, H, hasContact, footerContent);
 
   // The vertical split point for POSTER — the exact same fixed quantity
   // (`posterPhotoBand`) the canvas-height solve above already reserved
