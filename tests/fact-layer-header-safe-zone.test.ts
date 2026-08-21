@@ -37,13 +37,30 @@ describe("Header Safe Zone — adaptive header band", () => {
     // the reserve only compresses, it never disappears).
     expect(sparse.artworkHeightPx).toBeGreaterThan(0);
     expect(dense.artworkHeightPx).toBeGreaterThan(0);
-    // The T3+ (35-role) band is a smaller fraction of ITS OWN canvas width
-    // than the T1/T2 (2-role) band is of its own — the header genuinely
-    // gives ground to body content as density rises, matching the
-    // documented HEADER_DENSITY_FACTOR.
-    const sparseFraction = sparse.artworkHeightPx / 1080;
-    const denseFraction = dense.artworkHeightPx / 1080;
+    // The header gives ground to body content as density rises. That is
+    // now measured against each advertisement's OWN height rather than
+    // against canvas width: the band is capped as a fraction of the
+    // canvas it sits on (POSTER_ARTWORK_MAX_FRACTION), because a band
+    // specified only as 0.34W silently became 35-40% of a SHORT canvas
+    // even while it stayed a modest header on a tall one.
+    //
+    // Measured this way the original intent holds and is stronger — a
+    // dense requirement spends proportionally far less of its
+    // advertisement on the header than a sparse one does.
+    const sparseFraction = sparse.artworkHeightPx / sparse.heightPx;
+    const denseFraction = dense.artworkHeightPx / dense.heightPx;
     expect(denseFraction).toBeLessThan(sparseFraction);
+
+    // And neither may exceed the cap, whatever its density.
+    expect(sparseFraction).toBeLessThanOrEqual(0.23);
+    // A dense requirement keeps a real artwork band (posterArtworkFloor),
+    // which on its taller canvas is still a modest share of the page.
+    expect(denseFraction).toBeLessThanOrEqual(0.23);
+
+    // HEADER_DENSITY_FACTOR still governs the width-derived bound where
+    // that is what binds. 35 roles is T3 (13-40), whose factor is 0.92 —
+    // 0.85 is T4 (41+).
+    expect(dense.artworkHeightPx).toBeLessThanOrEqual(Math.round(0.34 * 1080 * 0.92));
   });
 
   it("defaults to the minimal header treatment when no header-zone signal is supplied (standalone renders never guess)", async () => {

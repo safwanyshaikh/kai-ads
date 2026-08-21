@@ -262,6 +262,16 @@ void RESERVED_TOP;
 const MAX_ASPECT = 4.0;
 
 /**
+ * The most of an advertisement's HEIGHT the POSTER artwork band may take.
+ *
+ * The band is specified as a fraction of width (0.34W), which is correct
+ * for a tall dense canvas and badly wrong for a short one, where it
+ * silently became 35-40% of the whole advertisement. Content decides the
+ * canvas; this stops decoration from deciding it instead.
+ */
+const POSTER_ARTWORK_MAX_FRACTION = 0.22;
+
+/**
  * `reason` distinguishes WHERE capacity ran out, for callers that want to
  * react differently (e.g. surface "book a taller slot" vs "this campaign
  * is too broad to compress into one advertisement"). `undefined` is the
@@ -726,6 +736,35 @@ export interface FactLayerInput {
    * paint over verified facts, so the resolved value always wins.
    */
   footerContent?: FooterContent | null;
+  /**
+   * INTERNAL. Skips the canvas-height solve and renders at exactly this
+   * height.
+   *
+   * The POSTER solve budgets the panel from planned component heights
+   * (`hero.contentH + highlights.height + plan.bodyH`), which is an
+   * upper bound: the drawn body reliably ends above it. On a dense
+   * requirement that overshoot is a few px; on a sparse one it was
+   * 100-150px of empty panel between the last content and the trust
+   * strip, which the renderer then papered over with a 5%-opacity
+   * initial rather than removing.
+   *
+   * The only exact source for where the panel ends is the panel itself,
+   * so the poster path measures its own drawn extent and re-renders once
+   * at the height that extent implies. This field carries that height
+   * into the second pass. It is never set by callers, and the second
+   * pass never recurses again.
+   */
+  internalForcedHeightPx?: number;
+  /**
+   * INTERNAL. The artwork band the first pass settled on.
+   *
+   * The band is capped against canvas HEIGHT, and the tighten pass
+   * lowers that height — so recomputing the band in the second pass
+   * would shrink it, shift the whole panel up, and re-open the gap the
+   * pass exists to close. The band is therefore decided once, from the
+   * naturally solved height, and carried forward unchanged.
+   */
+  internalForcedArtworkPx?: number;
 }
 
 export interface FactLayerResult {
@@ -1518,7 +1557,49 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // hero photo; this only ever shrinks the RESERVE, the artwork itself
   // is never touched or cropped.
   const HEADER_DENSITY_FACTOR = tier === "T1" || tier === "T2" ? 1 : tier === "T3" ? 0.92 : 0.85;
-  const posterPhotoBand = Math.round(0.34 * W * HEADER_DENSITY_FACTOR);
+  /**
+   * The artwork band, capped against the canvas it actually sits on.
+   *
+   * 0.34W alone is blind to how much content sits beneath it. On a dense
+   * requirement the canvas is tall and 0.34W is a modest header; on a
+   * sparse one the canvas is short and the SAME band becomes 35-40% of
+   * the advertisement — a large empty region the reader must travel
+   * through before reaching the recruitment message, with the seam
+   * marking the bottom of it. That is the "stranded agency mark over a
+   * huge empty area" defect: the band never grew, the advertisement
+   * around it shrank.
+   *
+   * Capping it as a fraction of the SOLVED height makes the opening
+   * composition content-driven: the agency mark, the headline and the
+   * destination stay one coherent block whatever the requirement's size.
+   * Dense requirements are unaffected (their 0.34W is already below the
+   * cap); sparse ones reclaim the difference for the recruitment
+   * message.
+   *
+   * H-dependent, so it is evaluated INSIDE the height solve and again
+   * for the draw pass from the settled H — the two must agree about
+   * where the panel begins or the seam and the reserve drift apart.
+   */
+  const posterArtworkWidthCap = Math.round(0.34 * W * HEADER_DENSITY_FACTOR);
+  /**
+   * A dense requirement keeps a genuine artwork band.
+   *
+   * T3/T4 is where the "Gemini visual hero" archetype has to hold: those
+   * requirements are the ones that would otherwise degrade into a thin
+   * masthead over a long table, which is the DTP look the visual hero
+   * exists to avoid. Their canvases are tall, so the floor costs them a
+   * small share of the advertisement.
+   *
+   * T1/T2 gets no floor. Those canvases are short, and a floor there is
+   * exactly how the band became 30-40% of a sparse advertisement — the
+   * defect this cap was introduced to remove.
+   */
+  const posterArtworkFloor = tier === "T3" || tier === "T4" ? Math.round(0.26 * W) : 0;
+  const posterPhotoBandFor = (h: number) =>
+    Math.min(
+      posterArtworkWidthCap,
+      Math.max(posterArtworkFloor, Math.round(POSTER_ARTWORK_MAX_FRACTION * h)),
+    );
   // Signal from generate.ts, measured from Gemini's ACTUAL artwork in the
   // header band (see assessHeaderZoneVisualWeight). Absent a signal
   // (standalone renders — tests, previews, no artwork to measure) this
@@ -1602,6 +1683,10 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   let H = input.heightPx;
   for (let i = 0; i < 8; i++) {
     if (fillSlot) break;
+    if (input.internalForcedHeightPx) {
+      H = input.internalForcedHeightPx;
+      break;
+    }
     const heroAt = Math.max(
       Math.min(Math.round(heroFrac * H), heroCap),
       Math.min(Math.round(L.headerHeight * H), Math.round(0.15 * W)) + hero.contentH,
@@ -1633,7 +1718,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
           // generation with no benefits/interview to fill it. Every other
           // section here (hero, highlights, the list) already reserves
           // exactly what it draws.
-          posterPhotoBand + hero.contentH + highlights.height + plan.bodyH + stripAt
+          posterPhotoBandFor(H) + hero.contentH + highlights.height + plan.bodyH + stripAt
         : heroAt + plan.bodyH + pad + stripAt;
     // Converge rather than only grow: shrink for a short requirement, grow
     // for a dense one, stop once the solve stabilises (stripAt/heroAt are
@@ -1746,10 +1831,24 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
 
   // Measurement-only exit (see FactLayerInput.measureOnly): the solve
   // above has produced the height this requirement genuinely needs.
+  // The artwork band, settled from the final canvas height — declared
+  // before the measure-only return so the Social Product Decision reads
+  // the same band the draw pass will use.
+  const posterPhotoBand = input.internalForcedArtworkPx ?? posterPhotoBandFor(H);
+
   // Returned BEFORE the ceiling and aspect gates so the caller sees the
   // real requirement and can decide what product it deserves, rather
   // than only that it failed.
-  if (input.measureOnly) {
+  //
+  // POSTER is the exception: its final height is only known after the
+  // panel has measured its own drawn extent (see the tighten pass
+  // below), so a measure-only caller must be taken through the same
+  // path rather than handed the pre-correction estimate. Returning early
+  // here would make measureOnly disagree with the real render, which is
+  // exactly what the "every rendering stage must agree" law forbids. The
+  // second pass carries internalForcedHeightPx and so exits here at once
+  // with the corrected height.
+  if (input.measureOnly && (!poster || input.internalForcedHeightPx)) {
     return {
       png: Buffer.alloc(0),
       heightPx: H,
@@ -1765,7 +1864,42 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
   // never grows into an A4-like poster under the Feed format. Print
   // (fillSlot) is never subject to this — it has its own physical-slot
   // capacity law below.
-  if (input.socialFeedMaxHeightPx && H > input.socialFeedMaxHeightPx && !fillSlot) {
+  /**
+   * The height gates must judge the FINAL canvas.
+   *
+   * POSTER settles its height in two steps: the solve produces an upper
+   * bound, then the panel measures its own drawn extent and the canvas
+   * is re-rendered at the height that extent implies. Gating on the
+   * first number rejects advertisements that do fit — and, worse, makes
+   * the measure-only probe (which reports the settled height) disagree
+   * with the real render, which is precisely what the Social Feed
+   * carousel uses to decide how many roles its cover can carry.
+   *
+   * So for a poster these gates are deferred to the pass that holds the
+   * final height: the forced second pass, or the first pass when it
+   * turns out no tightening was needed.
+   */
+  const heightIsFinal = !poster || Boolean(input.internalForcedHeightPx);
+
+  const assertHeightWithinLimits = (h: number): void => {
+    if (input.socialFeedMaxHeightPx && h > input.socialFeedMaxHeightPx && !fillSlot) {
+      throw new LayoutCapacityError(
+        [
+          `${total} positions need a ${h}px canvas at minimum readability, beyond the Social Feed format's ` +
+            `${input.socialFeedMaxHeightPx}px hard ceiling. Move this requirement to Story/Reel (1080x1920) or a DTP ` +
+            `print slot, or reduce the requirement.`,
+        ],
+        "social-feed-exceeds-max-height",
+      );
+    }
+    if (h > W * MAX_ASPECT && !fillSlot) {
+      throw new LayoutCapacityError([
+        `${total} positions need a ${h}px canvas at minimum readability, beyond the ${Math.round(W * MAX_ASPECT)}px publishable limit`,
+      ]);
+    }
+  };
+
+  if (heightIsFinal && input.socialFeedMaxHeightPx && H > input.socialFeedMaxHeightPx && !fillSlot) {
     throw new LayoutCapacityError(
       [
         `${total} positions need a ${H}px canvas at minimum readability, beyond the Social Feed format's ` +
@@ -1776,7 +1910,7 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     );
   }
 
-  if (H > W * MAX_ASPECT && !fillSlot) {
+  if (heightIsFinal && H > W * MAX_ASPECT && !fillSlot) {
     throw new LayoutCapacityError([
       `${total} positions need a ${H}px canvas at minimum readability, beyond the ${Math.round(W * MAX_ASPECT)}px publishable limit`,
     ]);
@@ -2304,22 +2438,88 @@ export async function renderFactLayer(input: FactLayerInput): Promise<FactLayerR
     parts.push(posterBody.svg);
     posterBodyEndY = posterBody.endY;
 
-    // A short requirement leaves real depth in the panel before the trust
-    // strip. Left empty it reads as an unfinished page; filled with a
-    // giant, near-invisible initial it reads as a considered brand mark
-    // claiming its own negative space — the "visual anchor" a flat colour
-    // field needs and a photograph never did. Never mistakeable for a
-    // fact: it is set at 5% opacity, purely typographic depth.
+    // The panel ends where its content ends.
+    //
+    // The solve budgets the panel from PLANNED component heights, which
+    // is an upper bound — the drawn body reliably finishes above it. That
+    // overshoot used to be left in place and filled with a giant
+    // 5%-opacity initial, on the reasoning that an empty panel "reads as
+    // an unfinished page". It does; but the answer is to not have an
+    // empty panel, not to decorate one. A decorative mark must never be
+    // the reason an advertisement is taller than its content (Final
+    // Production UI Correction §2).
+    //
+    // Only the panel knows where it actually ended, so when the leftover
+    // is material the canvas is re-rendered once at the height that
+    // measured extent implies. The second pass runs this identical code
+    // with the corrected H, so nothing is measured twice or estimated.
+    // NB: edgeLeft/edgeRight are the seam's two ends — the TOP of the
+    // panel — so they only ever floor this on a canvas whose body is
+    // shorter than the seam itself. renderPosterBody's endY already
+    // carries its own trailing advance past the last drawn row, so no
+    // further pad is added here; the breathing space below is the whole
+    // deliberate separation.
     const panelFloor = Math.max(edgeLeft, edgeRight);
-    const leftoverTop = Math.max(posterBodyEndY, panelFloor) + px(0.02);
+    const leftoverTop = Math.max(posterBodyEndY, panelFloor);
     const leftover = H - stripH - leftoverTop;
-    if (leftover > px(0.14)) {
-      const markLetter = (agencyNameOf(facts).trim().charAt(0) || facts.country?.charAt(0) || "K").toUpperCase();
-      const markSize = Math.min(Math.round(leftover * 1.55), Math.round(W * 0.68));
-      parts.push(
-        `<text x="${W - margin}" y="${H - stripH - Math.round(leftover * 0.06)}" font-family="${roleFamily("DISPLAY")}" ` +
-          `font-size="${markSize}" font-weight="800" fill="${pal.reversed}" opacity="0.05" text-anchor="end">${esc(markLetter)}</text>`,
-      );
+    const TIGHTEN_THRESHOLD = px(0.03);
+    // measureOnly deliberately takes this path too: the corrected height
+    // IS the height, and a measure that skipped the correction would
+    // report a canvas the renderer never produces.
+    if (leftover > TIGHTEN_THRESHOLD && !input.internalForcedHeightPx && !fillSlot) {
+      // Deliberate breathing space between the last content and the
+      // trust strip (§6) — present, and no longer whatever the estimate
+      // happened to leave over.
+      const breathing = px(0.02);
+      // The band and the tightened height depend on each other: the band
+      // is capped at a fraction of the canvas, and shrinking the canvas
+      // shrinks the band, which lifts the whole panel and shrinks the
+      // canvas again. Iterating that would oscillate, and freezing the
+      // band lets its share of a now-shorter canvas drift above the cap.
+      //
+      // The relationship is linear, so solve it once instead. Everything
+      // below the band moves with it, so with
+      //   K = (content depth below the band) + breathing + strip
+      // the canvas is H = K + band, and the cap says band = 0.22H:
+      //   H = K / (1 - 0.22),  band = H - K
+      // bounded by the width-derived cap, which wins on tall canvases.
+      const belowBand = leftoverTop - posterPhotoBand;
+      const K = belowBand + breathing + stripH;
+      const jointH = Math.round(K / (1 - POSTER_ARTWORK_MAX_FRACTION));
+      const band = Math.min(posterArtworkWidthCap, Math.max(posterArtworkFloor, jointH - K));
+      const tightened = K + band;
+
+      // A requested canvas is a format contract, so the tighten pass
+      // honours the same rule the solve does: shrink freely when the
+      // requirement is genuinely shorter, but never land just under a
+      // requested format (1080x1350 is a 4:5 portrait; 1240x1754 is A4).
+      const snapsToFormat =
+        tightened < input.heightPx && tightened >= Math.round(input.heightPx * 0.9);
+
+      return renderFactLayer({
+        ...input,
+        internalForcedHeightPx: snapsToFormat ? input.heightPx : tightened,
+        // When the canvas snaps back up to the requested format the band
+        // may take its full share of that taller canvas again.
+        internalForcedArtworkPx: snapsToFormat
+          ? posterPhotoBandFor(input.heightPx)
+          : band,
+      });
+    }
+    // No tightening needed, so this IS the final height — the gates the
+    // solve deferred now apply.
+    assertHeightWithinLimits(H);
+
+    // Already tight (or forced): a measure-only caller has its answer and
+    // never needs the raster.
+    if (input.measureOnly) {
+      return {
+        png: Buffer.alloc(0),
+        heightPx: H,
+        artworkHeightPx: posterPhotoBand,
+        themeSelection,
+        svgMarkup: "",
+      };
     }
   } else {
     let seamLeft = heroPx;
