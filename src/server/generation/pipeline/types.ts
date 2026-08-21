@@ -137,10 +137,10 @@ export interface VerifiedAgencyProfile {
  *
  * Example:
  * Agency official email:
- *   jobs@alyousufent.com
+ *   jobs@example-agency.com
  *
  * Campaign application email:
- *   ai@alyousufent.com
+ *   gulf-project@example-agency.com
  */
 export interface AdvertisementCampaignContact {
   name?: string;

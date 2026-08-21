@@ -1075,10 +1075,26 @@ export function AdvertisementCanvas({
               Agency Trust
             </p>
 
-            <p className="mt-1 text-lg font-black uppercase">
-              {data.footer ||
-                "AL YOUSUF ENTERPRISES LLP"}
-            </p>
+            {/*
+              KAI Ads is multi-tenant: the agency identity on a generated
+              advertisement is resolved at render time from the Agency
+              profile, which this preview component does not receive. A
+              hardcoded agency name here rendered ONE tenant's identity as
+              the Agency Trust line of EVERY other tenant's advertisement —
+              a false identity claim on a regulated instrument. No tenant
+              name may ever be a fallback.
+            */}
+            {hasValue(data.footer) ? (
+              <p className="mt-1 text-lg font-black uppercase">
+                {data.footer}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm font-semibold italic text-white/60">
+                Your agency identity is applied
+                automatically from your Agency
+                profile.
+              </p>
+            )}
 
             <p className="mt-1 text-xs text-white/70">
               Agency identity, registration
