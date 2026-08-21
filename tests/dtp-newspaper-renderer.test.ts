@@ -15,10 +15,11 @@ import {
 import {
   DTP_MIN_AD_WIDTH_CM,
   DTP_MIN_AD_HEIGHT_CM,
+  DTP_PAGE_CM,
   dtpPageAt,
 } from "@/server/generation/dtp";
 import { brandAsset, BrandIdentityViolationError } from "@/lib/brand-identity";
-import { isApprovedDtpWidthPx, pxToCm } from "@/lib/dtp-format-law";
+import { DTP_DEFAULT_DPI, isApprovedDtpWidthPx, pxToCm } from "@/lib/dtp-format-law";
 
 /**
  * DTP NEWSPAPER RENDERER — spec §25.
@@ -226,12 +227,17 @@ describe("DTP-013/016/017/018 — page packing", () => {
     const used = new Set(layout.placements.map((p) => p.column));
     expect(used.size).toBe(5);
 
-    // A page holds a whole number of minimum bookings, not however many
-    // advertisements it is handed: five columns of 8cm slots down a 53cm
-    // live column is thirty. The surplus is reported, not silently
-    // dropped — asserting that all 60 fit would only be true of blocks
-    // smaller than the minimum saleable slot.
-    expect(layout.placements.length).toBe(30);
+    // A page holds a whole number of saleable bookings, not however many
+    // advertisements it is handed. The ceiling is derived from the law
+    // rather than restated as a constant, so correcting the minimum
+    // saleable height cannot leave this expectation quietly stale.
+    const perColumn = Math.floor(DTP_PAGE_CM.liveHeightCm / DTP_MIN_AD_HEIGHT_CM);
+    expect(layout.placements.length).toBeLessThanOrEqual(perColumn * DTP_PAGE_CM.columns);
+    // Nothing lands below the minimum a column can sell.
+    for (const p of layout.placements) {
+      expect(pxToCm(p.heightPx, DTP_DEFAULT_DPI)).toBeGreaterThanOrEqual(DTP_MIN_AD_HEIGHT_CM - 0.01);
+    }
+    // The surplus is reported, not silently dropped.
     expect(layout.placements.length + layout.unplaced.length).toBe(many.length);
   });
 

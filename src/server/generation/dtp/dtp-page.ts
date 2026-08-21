@@ -48,11 +48,12 @@ export const DTP_PAGE_CM = {
   /**
    * Broadsheet depth.
    *
-   * 53cm rather than a round 50: the column must divide into whole
-   * minimum bookings, because a remainder smaller than 8cm can never be
-   * sold and simply prints as a band of white at the foot of every
-   * column. At 53cm the live column takes six 8cm advertisements with
-   * little left over; at 50cm it took five and stranded 7.2cm.
+   * UNVERIFIED against a physical AAT page — recorded as an assumption,
+   * not as evidence. The depth divides cleanly into the minimum saleable
+   * booking (6 x 5 cm): a 53cm live column takes ten of them with 3cm
+   * left, so no unsaleable remainder prints as white at the foot of a
+   * column. Replace this with a measured depth when one is obtained;
+   * every dependent geometry is derived, so only this value changes.
    */
   liveHeightCm: 53.0,
   marginCm: 1.0,
@@ -62,9 +63,22 @@ export const DTP_PAGE_CM = {
   columns: 5,
 } as const;
 
-/** Minimum saleable advertisement: 6cm x 8cm. Below this is unpublishable. */
+/**
+ * Minimum saleable advertisement: 6cm x 5cm.
+ *
+ * Evidenced by real release orders, not inferred: three booking slips
+ * price 6 x 5 cm at 1000/sq.cm (B/W) = 30,000 and at 1300/sq.cm
+ * (colour) = 39,000, and a fourth prices 6 x 11 cm at 800/sq.cm =
+ * 52,800. Every one of those multiplications checks out exactly, which
+ * confirms both the 6cm column and that HEIGHT is the purchased
+ * variable.
+ *
+ * This was briefly set to 8cm on my own reading of "minimum", which
+ * would have made 6x5, 6x6 and 6x7 — all real, sold sizes —
+ * unrenderable.
+ */
 export const DTP_MIN_AD_WIDTH_CM = 6.0;
-export const DTP_MIN_AD_HEIGHT_CM = 8.0;
+export const DTP_MIN_AD_HEIGHT_CM = 5.0;
 
 /** Resolves the physical page to pixels at a given reproduction DPI. */
 export function dtpPageAt(dpi: number = DTP_DEFAULT_DPI) {

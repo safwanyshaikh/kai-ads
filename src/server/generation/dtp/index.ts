@@ -20,6 +20,7 @@ import type { DtpAdvertisement } from "./dtp-ad-block";
 export * from "./dtp-typography";
 export * from "./dtp-ad-block";
 export * from "./dtp-page";
+export * from "./dtp-classified";
 
 export type DtpExportFormat = "png" | "jpg" | "pdf";
 
