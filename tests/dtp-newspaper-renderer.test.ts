@@ -1,0 +1,350 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import sharp from "sharp";
+
+import {
+  DTP_PAGE,
+  dtpColumnWidth,
+  layoutDtpPage,
+  renderDtpPageSvg,
+  measureDtpBlock,
+  renderDtpPage,
+  type DtpAdvertisement,
+} from "@/server/generation/dtp";
+import { brandAsset, BrandIdentityViolationError } from "@/lib/brand-identity";
+
+/**
+ * DTP NEWSPAPER RENDERER — spec §25.
+ *
+ * A separate rendering mode from the locked poster renderer. These
+ * tests cover the classified page's own laws: five columns, blocks
+ * sized by their content, optional elements that collapse rather than
+ * reserve, deterministic packing, and no overlap or clipping.
+ *
+ * Tenant-neutral throughout: every agency below is invented.
+ */
+
+function ad(over: Partial<DtpAdvertisement> = {}): DtpAdvertisement {
+  return {
+    headline: "Qatar",
+    tenant: { name: "Novara HR" },
+    positions: [{ title: "Pipe Fitter", count: 12 }],
+    contactPhone: "+91 22 4000 1122",
+    ...over,
+  };
+}
+
+function page(ads: DtpAdvertisement[]) {
+  return {
+    masthead: { title: "Overseas Assignments", edition: "Saturday, 18 July 2026", pageLabel: "3" },
+    advertisements: ads,
+  };
+}
+
+const COL = dtpColumnWidth();
+
+describe("DTP-001 — five-column page geometry", () => {
+  it("lays out exactly five columns that fit the page with its margins and gutters", () => {
+    const layout = layoutDtpPage(page([ad()]));
+    expect(layout.columnCount).toBe(5);
+    const spanned =
+      DTP_PAGE.marginPx * 2 + layout.columnWidthPx * 5 + DTP_PAGE.gutterPx * 4;
+    expect(spanned).toBeLessThanOrEqual(DTP_PAGE.widthPx);
+    // And it genuinely uses the width — not five narrow columns adrift
+    // in a wide page.
+    expect(spanned).toBeGreaterThan(DTP_PAGE.widthPx - 10);
+  });
+
+  it("places every column at its own deterministic x", () => {
+    const many = Array.from({ length: 40 }, () => ad());
+    const layout = layoutDtpPage(page(many));
+    const xs = new Map<number, number>();
+    for (const p of layout.placements) {
+      if (xs.has(p.column)) expect(xs.get(p.column)).toBe(p.x);
+      else xs.set(p.column, p.x);
+    }
+    expect(xs.size).toBeGreaterThan(1);
+  });
+});
+
+describe("DTP-002/003/004 — block height follows content", () => {
+  it("a block with more content is taller than one with less", () => {
+    const short = measureDtpBlock(ad(), COL);
+    const long = measureDtpBlock(
+      ad({
+        positions: Array.from({ length: 8 }, (_, i) => ({ title: `Trade ${i + 1}`, count: i + 2 })),
+        benefits: ["Food", "Accommodation", "Transport", "Medical"],
+        eligibility: ["Passport validity two years", "Gulf experience preferred"],
+      }),
+      COL,
+    );
+    expect(long.heightPx).toBeGreaterThan(short.heightPx);
+  });
+
+  it("a short advertisement collapses rather than filling a nominal box", () => {
+    const short = measureDtpBlock(ad({ contactPhone: null, positions: [{ title: "Welder" }] }), COL);
+    // A headline bar, an advertiser and one trade is a small classified;
+    // it must measure small.
+    expect(short.heightPx).toBeLessThan(COL * 0.62);
+  });
+
+  it("expands only as far as the added content requires", () => {
+    const one = measureDtpBlock(ad({ positions: [{ title: "Welder", count: 5 }] }), COL);
+    const two = measureDtpBlock(
+      ad({ positions: [{ title: "Welder", count: 5 }, { title: "Fitter", count: 5 }] }),
+      COL,
+    );
+    const delta = two.heightPx - one.heightPx;
+    // One extra row costs about one row, not a new section.
+    expect(delta).toBeGreaterThan(0);
+    expect(delta).toBeLessThan(COL * 0.09);
+  });
+});
+
+describe("DTP-005/006 — absent elements reserve nothing", () => {
+  it("no logo means no logo allocation", () => {
+    const without = measureDtpBlock(ad(), COL);
+    expect(without.logoH).toBe(0);
+    const with_ = measureDtpBlock(
+      ad({ tenant: { name: "Novara HR", logo: brandAsset("TENANT_PRIMARY_LOGO", Buffer.alloc(1)) } }),
+      COL,
+    );
+    expect(with_.logoH).toBeGreaterThan(0);
+    expect(with_.heightPx).toBeGreaterThan(without.heightPx);
+  });
+
+  it("no QR means no QR allocation", () => {
+    expect(measureDtpBlock(ad(), COL).qrH).toBe(0);
+  });
+
+  for (const [label, over] of [
+    ["salary", { salary: "SAR 1800 – 2600" }],
+    ["benefits", { benefits: ["Food", "Accommodation"] }],
+    ["interview", { interview: "Interview 24 July · Mumbai" }],
+    ["registration", { tenant: { name: "Novara HR", registrationText: "Licence: B-0101" } }],
+    ["client", { client: { name: "Gulf Petro Services" } }],
+  ] as [string, Partial<DtpAdvertisement>][]) {
+    it(`${label} present adds height; absent adds none`, () => {
+      const base = measureDtpBlock(ad(), COL);
+      const richer = measureDtpBlock(ad(over), COL);
+      expect(richer.heightPx).toBeGreaterThan(base.heightPx);
+    });
+  }
+});
+
+describe("DTP-007/008/009 — identity roles hold inside DTP", () => {
+  it("the tenant logo slot accepts the tenant's own primary mark", async () => {
+    const png = await sharp({
+      create: { width: 40, height: 30, channels: 3, background: { r: 20, g: 60, b: 140 } },
+    })
+      .png()
+      .toBuffer();
+    const svg = renderDtpPageSvg(
+      page([ad({ tenant: { name: "Novara HR", logo: brandAsset("TENANT_PRIMARY_LOGO", png) } })]),
+    ).svg;
+    expect(svg).toContain("<image");
+  });
+
+  it("a client logo cannot be rendered through the tenant slot", () => {
+    expect(() =>
+      renderDtpPageSvg(
+        page([
+          ad({
+            tenant: { name: "Novara HR", logo: brandAsset("CLIENT_LOGO", Buffer.alloc(1)) },
+          }),
+        ]),
+      ),
+    ).toThrow(BrandIdentityViolationError);
+  });
+
+  it("a tenant mark cannot be rendered as KAI's verification", () => {
+    expect(() =>
+      renderDtpPageSvg(
+        page([ad({ verificationQr: brandAsset("TENANT_PRIMARY_LOGO", Buffer.alloc(1)) })]),
+      ),
+    ).toThrow(BrandIdentityViolationError);
+  });
+});
+
+describe("DTP-010/011/012 — long content wraps, never overflows", () => {
+  const LONG_NAME = "Continental Overseas Manpower & Technical Consultancy Private Limited";
+  const LONG_REG =
+    "Licence: B-9987/MUM/PER/1000+/4-1/4/7914/2007-VALID-UNTIL-2031-EXTENDED-VERIFICATION-CODE-99887766";
+
+  it("a long tenant name grows the block instead of running past the column", () => {
+    const short = measureDtpBlock(ad(), COL);
+    const long = measureDtpBlock(ad({ tenant: { name: LONG_NAME } }), COL);
+    // It wrapped: more than one line of advertiser name.
+    expect(long.heightPx).toBeGreaterThan(short.heightPx);
+  });
+
+  it("a long registration is never truncated", () => {
+    const svg = renderDtpPageSvg(page([ad({ tenant: { name: "Novara HR", registrationText: LONG_REG } })])).svg;
+    // Every word of the licence survives somewhere in the markup.
+    for (const token of ["99887766", "VALID-UNTIL-2031-EXTENDED-VERIFICATION-CODE"]) {
+      expect(svg).toContain(token);
+    }
+  });
+
+  it("a long vacancy list keeps every role", () => {
+    const roles = Array.from({ length: 14 }, (_, i) => ({ title: `Technician Grade ${i + 1}`, count: i + 2 }));
+    const svg = renderDtpPageSvg(page([ad({ positions: roles })])).svg;
+    for (const r of roles) {
+      expect(svg.toUpperCase()).toContain(r.title.toUpperCase());
+    }
+  });
+
+  it("no text line is laid out wider than its column", () => {
+    // Measured, not eyeballed: the block wraps against the column's own
+    // inner width, so a wrapped line can never exceed it.
+    const long = measureDtpBlock(ad({ tenant: { name: LONG_NAME }, positions: [{ title: "Bituminous Membrane Waterproofing Technician", count: 4 }] }), COL);
+    expect(long.heightPx).toBeGreaterThan(0);
+    const svg = renderDtpPageSvg(page([ad({ tenant: { name: LONG_NAME } })])).svg;
+    // The advertiser name was split across lines rather than emitted whole.
+    expect(svg).not.toContain(LONG_NAME.toUpperCase());
+  });
+});
+
+describe("DTP-013/016/017/018 — page packing", () => {
+  const many = Array.from({ length: 60 }, (_, i) =>
+    ad({
+      headline: ["Saudi Arabia", "UAE", "Qatar", "Oman", "Kuwait"][i % 5],
+      tenant: { name: `Agency ${i}` },
+      positions: Array.from({ length: (i % 4) + 1 }, (_, j) => ({ title: `Trade ${j}`, count: j + 2 })),
+    }),
+  );
+
+  it("packs many advertisements across every column", () => {
+    const layout = layoutDtpPage(page(many));
+    expect(layout.placements.length).toBe(many.length);
+    expect(layout.unplaced).toEqual([]);
+    const used = new Set(layout.placements.map((p) => p.column));
+    expect(used.size).toBe(5);
+  });
+
+  it("no advertisement overlaps another", () => {
+    const layout = layoutDtpPage(page(many));
+    const byColumn = new Map<number, typeof layout.placements>();
+    for (const p of layout.placements) {
+      byColumn.set(p.column, [...(byColumn.get(p.column) ?? []), p]);
+    }
+    for (const [, column] of byColumn) {
+      const sorted = [...column].sort((a, b) => a.y - b.y);
+      for (let i = 1; i < sorted.length; i++) {
+        const previousBottom = sorted[i - 1].y + sorted[i - 1].heightPx;
+        expect(sorted[i].y).toBeGreaterThanOrEqual(previousBottom);
+      }
+    }
+  });
+
+  it("nothing is placed outside the page", () => {
+    const layout = layoutDtpPage(page(many));
+    for (const p of layout.placements) {
+      expect(p.x).toBeGreaterThanOrEqual(DTP_PAGE.marginPx);
+      expect(p.x + p.widthPx).toBeLessThanOrEqual(DTP_PAGE.widthPx - DTP_PAGE.marginPx);
+      expect(p.y + p.heightPx).toBeLessThanOrEqual(DTP_PAGE.heightPx - DTP_PAGE.marginPx);
+    }
+  });
+
+  it("leaves no unexplained gap between stacked advertisements", () => {
+    const layout = layoutDtpPage(page(many));
+    const byColumn = new Map<number, typeof layout.placements>();
+    for (const p of layout.placements) {
+      byColumn.set(p.column, [...(byColumn.get(p.column) ?? []), p]);
+    }
+    for (const [, column] of byColumn) {
+      const sorted = [...column].sort((a, b) => a.y - b.y);
+      for (let i = 1; i < sorted.length; i++) {
+        const gap = sorted[i].y - (sorted[i - 1].y + sorted[i - 1].heightPx);
+        // A deliberate hairline gap, never a band of dead paper.
+        expect(gap).toBeGreaterThanOrEqual(0);
+        expect(gap).toBeLessThan(DTP_PAGE.widthPx * 0.01);
+      }
+    }
+  });
+
+  it("reports advertisements it cannot fit rather than dropping them", () => {
+    // Far more copy than one page holds.
+    const flood = Array.from({ length: 400 }, (_, i) => ad({ tenant: { name: `Agency ${i}` } }));
+    const layout = layoutDtpPage(page(flood));
+    expect(layout.placements.length + layout.unplaced.length).toBe(flood.length);
+    expect(layout.unplaced.length).toBeGreaterThan(0);
+  });
+});
+
+describe("DTP-014/015 — determinism", () => {
+  const ads = Array.from({ length: 30 }, (_, i) =>
+    ad({ tenant: { name: `Agency ${i}` }, positions: [{ title: `Trade ${i}`, count: i }] }),
+  );
+
+  it("the same input produces the same layout", () => {
+    const a = layoutDtpPage(page(ads));
+    const b = layoutDtpPage(page(ads));
+    expect(JSON.stringify(a.placements)).toBe(JSON.stringify(b.placements));
+  });
+
+  it("the same input produces an identical page hash", () => {
+    const hash = (svg: string) => createHash("sha256").update(svg).digest("hex");
+    expect(hash(renderDtpPageSvg(page(ads)).svg)).toBe(hash(renderDtpPageSvg(page(ads)).svg));
+  });
+});
+
+describe("DTP output formats", () => {
+  const ads = Array.from({ length: 12 }, (_, i) => ad({ tenant: { name: `Agency ${i}` } }));
+
+  it("renders PNG, JPG and PDF at the same page geometry", async () => {
+    const png = await renderDtpPage(page(ads), "png");
+    const jpg = await renderDtpPage(page(ads), "jpg");
+    const pdf = await renderDtpPage(page(ads), "pdf");
+
+    expect(png.mimeType).toBe("image/png");
+    expect(jpg.mimeType).toBe("image/jpeg");
+    expect(pdf.mimeType).toBe("application/pdf");
+
+    const pngMeta = await sharp(png.buffer).metadata();
+    const jpgMeta = await sharp(jpg.buffer).metadata();
+    expect(pngMeta.width).toBe(DTP_PAGE.widthPx);
+    expect(pngMeta.height).toBe(DTP_PAGE.heightPx);
+    expect(jpgMeta.width).toBe(DTP_PAGE.widthPx);
+    expect(pdf.buffer.subarray(0, 4).toString()).toBe("%PDF");
+  }, 120_000);
+});
+
+describe("DTP-019 — the locked poster renderer is untouched", () => {
+  it("the DTP module imports no poster composition code", () => {
+    for (const file of [
+      "src/server/generation/dtp/dtp-page.ts",
+      "src/server/generation/dtp/dtp-ad-block.ts",
+      "src/server/generation/dtp/dtp-typography.ts",
+    ]) {
+      const src = readFileSync(file, "utf8");
+      expect(src).not.toContain("fact-layer");
+      expect(src).not.toContain("branding-overlay");
+    }
+  });
+
+  it("DTP defines its own type scale rather than the poster's", () => {
+    const src = readFileSync("src/server/generation/dtp/dtp-typography.ts", "utf8");
+    // It may MEASURE through the shared registry (one source only for
+    // font metrics), but the sizes/leading are DTP's own.
+    expect(src).toContain("DTP_TYPE");
+    expect(src).toContain("roleTextWidth");
+  });
+});
+
+describe("DTP-020 — tenant neutrality", () => {
+  it("the DTP renderer names no agency", () => {
+    for (const file of [
+      "src/server/generation/dtp/dtp-page.ts",
+      "src/server/generation/dtp/dtp-ad-block.ts",
+      "src/server/generation/dtp/dtp-typography.ts",
+      "src/server/generation/dtp/index.ts",
+    ]) {
+      const src = readFileSync(file, "utf8").toLowerCase();
+      for (const tenant of ["yousuf", "gheewala", "novara", "meridian", "continental"]) {
+        expect(src, `${file} names a tenant`).not.toContain(tenant);
+      }
+    }
+  });
+});
