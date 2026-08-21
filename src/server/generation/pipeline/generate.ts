@@ -2,6 +2,7 @@ import { buildCreativeBrief } from "./creative-brief";
 import { selectFooterStyle } from "./footer-selection";
 import type { FooterStyle } from "./footer-styles";
 import { applyBrandingOverlay, type FooterContent } from "./branding-overlay";
+import type { BrandAsset } from "@/lib/brand-identity";
 import { renderFactLayer } from "./fact-layer";
 import { campaignFromAdvertisementFacts, enforceDtpCapacity } from "./content-intelligence";
 import { decideSocialProductForFacts, assertSlidePlanIntegrity, type SocialProductDecision } from "./social-product-decision";
@@ -35,11 +36,43 @@ export interface GeneratePipelineInput {
    * They belong to the agency profile and must be verified before production
    * publishing.
    */
-  agencyLogoPng?: Buffer | null;
+  agencyLogoPng?: Buffer | BrandAsset | null;
 
-  qrPng?: Buffer | null;
+  qrPng?: Buffer | BrandAsset | null;
 
   agencyProfile?: VerifiedAgencyProfile | null;
+
+  /**
+   * ------------------------------------------------------------------------
+   * CLIENT / HIRING COMPANY IDENTITY — a different party
+   * ------------------------------------------------------------------------
+   *
+   * The hiring company the vacancies are for. It is NOT the tenant: the
+   * tenant is the recruitment agency publishing the advertisement, and
+   * the client is the company it is recruiting for. A requirement may
+   * supply the client's logo, and supplying it must never displace or
+   * stand in for the agency's own verified identity.
+   *
+   * Placement: the client logo belongs to the ARTWORK the advertisement
+   * is built on, composited before the Rendering Engine adds the trust
+   * footer. It never enters the footer's agency-logo slot, the
+   * certification slot, or KAI's verification slot — those belong to the
+   * tenant and to KAI respectively, and `resolveSlotImage` rejects a
+   * CLIENT_LOGO placed in any of them.
+   *
+   * Role-tagging is what makes that enforceable rather than a naming
+   * convention (see @/lib/brand-identity).
+   */
+  clientLogo?: BrandAsset<"CLIENT_LOGO"> | null;
+
+  /**
+   * The hiring company's name, when the requirement names one.
+   *
+   * Distinct from `agencyProfile.agencyName`. Never substituted for it,
+   * and never promoted into the trust footer, which states who is
+   * advertising — not who is hiring.
+   */
+  clientCompanyName?: string | null;
 
   /**
    * Legacy compatibility.

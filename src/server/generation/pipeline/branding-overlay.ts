@@ -3,6 +3,7 @@ import sharp from "sharp";
 import type { FooterStyle } from "./footer-styles";
 import type { AdvertisementFacts } from "./types";
 import { roleFamily, roleTextWidth, type TypeRole } from "@/lib/kdl-typography";
+import { resolveSlotImage, type BrandAsset } from "@/lib/brand-identity";
 
 export interface BrandingOverlayInput {
   /**
@@ -25,9 +26,22 @@ export interface BrandingOverlayInput {
 
   /**
    * VERIFIED AGENCY ASSETS ONLY.
+   *
+   * These slots belong to specific parties and are not interchangeable
+   * (see @/lib/brand-identity). `agencyLogoPng` is the TENANT's primary
+   * mark; `qrPng` is KAI's verification mechanism. A CLIENT / hiring
+   * company logo belongs to neither and must never be passed here — it
+   * is part of the artwork the advertisement is built on, composited
+   * before this function runs.
+   *
+   * Passing a role-tagged BrandAsset makes that enforceable: a mark
+   * carrying the wrong role raises BrandIdentityViolationError rather
+   * than silently publishing one company's identity as another's. A
+   * bare Buffer is still accepted for source compatibility, but cannot
+   * be checked.
    */
-  agencyLogoPng?: Buffer | null;
-  qrPng?: Buffer | null;
+  agencyLogoPng?: Buffer | BrandAsset | null;
+  qrPng?: Buffer | BrandAsset | null;
 
   /**
    * VERIFIED AGENCY IDENTITY.
@@ -852,9 +866,17 @@ async function renderTrustFooter(
     input.agencyLogoPng &&
     logoBoxW > 0
   ) {
+    // The tenant slot accepts ONLY the tenant's own primary mark. A
+    // client / hiring-company logo here would publish that company as
+    // the advertising agency, under the tenant's licence number.
+    const tenantLogoPng = resolveSlotImage(
+      "The trust footer's agency logo slot",
+      ["TENANT_PRIMARY_LOGO"],
+      input.agencyLogoPng,
+    )!;
     const logo =
       await normaliseLogoToBox(
-        input.agencyLogoPng,
+        tenantLogoPng,
         LOGO_BOX_W,
         LOGO_BOX_H,
       );
@@ -1014,9 +1036,17 @@ async function renderTrustFooter(
     input.qrPng &&
     qrSize > 0
   ) {
+    // The QR is KAI's verification mechanism, not agency or client
+    // branding — a tenant or client mark rendered here would present
+    // private artwork as a KAI verification route.
+    const verificationQrPng = resolveSlotImage(
+      "The trust footer's verification QR slot",
+      ["KAI_VERIFICATION_QR"],
+      input.qrPng,
+    )!;
     const qr =
       await normaliseImage(
-        input.qrPng,
+        verificationQrPng,
         qrSize,
       );
 

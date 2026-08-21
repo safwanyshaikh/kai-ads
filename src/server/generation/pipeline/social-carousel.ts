@@ -3,6 +3,7 @@ import { renderFactLayer, LayoutCapacityError } from "./fact-layer";
 import { applyBrandingOverlay } from "./branding-overlay";
 import type { FooterStyle } from "./footer-styles";
 import { socialFeedMaxHeightPx, SOCIAL_FEED_PRIMARY } from "@/lib/platform-formats";
+import type { BrandAsset } from "@/lib/brand-identity";
 import type { AdvertisementFacts, VerifiedAgencyProfile } from "./types";
 import type { RecruitmentCampaign } from "./content-intelligence";
 import type { SlidePlan, SlideKind } from "./social-product-decision";
@@ -44,8 +45,14 @@ export interface RenderSocialCarouselInput {
   widthPx?: number;
   heightPx?: number;
   agencyProfile: VerifiedAgencyProfile;
-  agencyLogoPng?: Buffer | null;
-  qrPng?: Buffer | null;
+  /**
+   * Identity slots, not interchangeable buffers: the tenant's primary
+   * mark and KAI's verification QR. Role-tagged assets are checked at
+   * the slot (see @/lib/brand-identity); a client / hiring-company logo
+   * belongs to the artwork, never to either of these.
+   */
+  agencyLogoPng?: Buffer | BrandAsset | null;
+  qrPng?: Buffer | BrandAsset | null;
   headerZoneHasStrongSubject?: boolean;
   /**
    * Gemini artwork for the campaign. Reused across slides so the whole
