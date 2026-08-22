@@ -48,8 +48,44 @@ export interface DtpClientIdentity {
 export interface DtpPosition {
   title: string;
   count?: number | null;
-  /** Free-form per-role detail, e.g. salary or experience. */
+  /** Per-role PAY, set on its own line beneath the trade name. */
   detail?: string | null;
+  /**
+   * Trade qualification, set inline after the trade name in reading
+   * weight — "FOREMAN- Civil/ Electrical/Mechanical".
+   *
+   * Distinct from `detail` because the references treat them
+   * differently, not as a styling preference: pay is a second display
+   * line under the trade, while a qualification continues the trade
+   * name on the same line. Collapsing both into one field forced one
+   * of the two to be set wrongly.
+   */
+  qualifier?: string | null;
+}
+
+/**
+ * One hiring campaign inside a booking.
+ *
+ * The 6x11 reference is a single purchased advertisement carrying four
+ * of these: each has its own client/project heading, its own interview
+ * dates, its own trades, its own conditions note and its own contact
+ * number, and they share one agency footer and one interview venue.
+ *
+ * The compositor previously assumed one campaign per advertisement,
+ * which meant this entire class of booking — the ordinary shape of a
+ * larger classified — could not be expressed at all.
+ */
+export interface DtpCampaign {
+  /** "Hiring for MASCO - Amiral - Oil & Gas Project". */
+  heading?: string | null;
+  /** "Mumbai on 26th March 2024". */
+  interview?: string | null;
+  positions: DtpPosition[];
+  /** "Must have experience in industrial projects, preferably Oil & Gas." */
+  note?: string | null;
+  /** Campaigns carry their own numbers; the references always do. */
+  contactPhone?: string | null;
+  client?: DtpClientIdentity | null;
 }
 
 /**
@@ -65,7 +101,15 @@ export interface DtpAdvertisement {
   urgency?: string | null;
   tenant: DtpTenantIdentity;
   client?: DtpClientIdentity | null;
-  positions: DtpPosition[];
+  /**
+   * Single-campaign shorthand. Optional because a booking may instead
+   * carry `campaigns`; exactly one of the two supplies the trades, and
+   * the compositor normalises the shorthand into a campaign so both
+   * shapes go down one layout path.
+   */
+  positions?: DtpPosition[];
+  /** Several hiring campaigns in one booking — see DtpCampaign. */
+  campaigns?: DtpCampaign[];
   salary?: string | null;
   eligibility?: string[];
   benefits?: string[];
@@ -144,7 +188,7 @@ function contentLines(ad: DtpAdvertisement, colW: number): Line[] {
     }
   }
 
-  for (const p of ad.positions) {
+  for (const p of ad.positions ?? []) {
     // The count sits at the right edge with dot leaders between, so the
     // title wraps against the width the leaders leave it, not the full
     // column. A long designation therefore takes a second line instead

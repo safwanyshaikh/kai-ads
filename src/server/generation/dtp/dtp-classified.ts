@@ -10,6 +10,10 @@
  *   6 x 5 cm  @ 1300/sq.cm = 39,000  (colour)
  *   6 x 11 cm @  800/sq.cm = 52,800
  *
+ * A fourth slip is labelled "6x56cm" and prices 24,000 at 800/sq.cm.
+ * That is 30 square centimetres — exactly 6x5 — so the label is a typo
+ * the slip's own arithmetic disproves. There is no 6x56 booking.
+ *
  * Three consequences, and they are the whole basis of this module:
  *
  *  1. Width is fixed at 6cm — the classified column. Never derived by
@@ -42,7 +46,7 @@ import {
   dtpWrap,
   type DtpToken,
 } from "./dtp-typography";
-import type { DtpAdvertisement } from "./dtp-ad-block";
+import type { DtpAdvertisement, DtpCampaign, DtpPosition } from "./dtp-ad-block";
 
 /** The classified column: fixed, from the format law's smallest slot. */
 export const DTP_CLASSIFIED_WIDTH_CM = 6.0;
@@ -283,12 +287,39 @@ function text(
   );
 }
 
-/** A reversed (white-on-dark) bar that hugs its own text. */
+/**
+ * A reversed (white-on-dark) bar that hugs its own text — and always
+ * contains it.
+ *
+ * The label is fitted to the measure and wrapped if fitting alone is
+ * not enough. Setting bars at a fixed size instead ran a long master
+ * headline and a long venue line straight off the right edge: "JOBS IN
+ * SAUDI ARABIA - 100% CL" and "...GAMI INDUSTRIAL PAR". A bar carries
+ * the destination, the interview date and the venue — facts, all of
+ * them — so it may shrink or take a second line, but it may not clip.
+ */
 function bar(c: Ctx, y: number, label: string, token: DtpToken, fill: string): number {
-  const size = dtpSize(token, c.colW);
-  const h = Math.round(size * 1.55);
+  const avail = c.W - c.pad * 2;
+  const base = dtpSize(token, c.colW);
+  const floor = Math.max(dtpSize("DTP_LEGAL", c.colW), Math.round(base * 0.62));
+  const size = fitToMeasure(label, token, avail, c.colW, base, floor);
+
+  // Wrapped at the measure the smaller size will actually occupy.
+  const lines = dtpWrap(
+    label, token, Math.round((avail * base) / size), c.colW,
+  );
+  // One line occupies exactly what it did before wrapping existed, so
+  // adding the guarantee costs nothing to the overwhelming majority of
+  // bars that never needed it.
+  const lead = Math.round(size * 1.14);
+  const h = lines.length * lead + Math.round(size * 0.28);
+
   c.parts.push(`<rect x="0" y="${Math.round(y)}" width="${c.W}" height="${h}" fill="${fill}"/>`);
-  text(c, label, token, c.pad, y + h - Math.round(size * 0.42), { fill: PAPER });
+  let ty = y;
+  for (const line of lines) {
+    ty += lead;
+    text(c, line, token, c.pad, ty - Math.round(size * 0.28), { fill: PAPER, size });
+  }
   return y + h;
 }
 
@@ -477,6 +508,29 @@ function wrapProse(c: Ctx, s: string, width: number, scale: number): string[] {
   return dtpWrap(s, "DTP_BODY", Math.round((width * base) / size), c.colW);
 }
 
+/**
+ * The booking's campaigns, however the caller expressed them.
+ *
+ * A classified may advertise several hiring campaigns at once — the
+ * 6x11 reference carries four, each with its own project heading,
+ * interview dates, trades, conditions and contact number. Callers with
+ * a single campaign keep using the flat fields, and one is synthesised
+ * for them, so both shapes go down exactly one layout path.
+ */
+function campaignsOf(ad: DtpAdvertisement): DtpCampaign[] {
+  if (ad.campaigns && ad.campaigns.length > 0) return ad.campaigns;
+  return [{
+    heading: null,
+    interview: ad.interview ?? ad.urgency ?? null,
+    positions: ad.positions ?? [],
+    note: null,
+    // The single-campaign footer already carries the telephone as a
+    // reversed bar; repeating it here would print it twice.
+    contactPhone: null,
+    client: ad.client ?? null,
+  }];
+}
+
 interface BodyLayout {
   /** y of the last baseline drawn. */
   bottom: number;
@@ -505,8 +559,10 @@ interface BodyLayout {
  */
 interface RoleBlock {
   title: string;
-  /** Per-role pay or experience, set beneath the title. */
+  /** Per-role pay, set beneath the title. */
   detail: string | null;
+  /** Trade qualification, continuing the title on the same line. */
+  qualifier: string | null;
   count: string;
   titleSize: number;
   heightPx: number;
@@ -552,7 +608,7 @@ function roleDetailSize(detail: string, titleSize: number, avail: number, colW: 
 }
 
 function buildRoleBlocks(
-  c: Ctx, ad: DtpAdvertisement, plan: DtpSectionPlan, titleMax: number,
+  c: Ctx, positions: DtpPosition[], plan: DtpSectionPlan, titleMax: number,
 ): RoleBlock[] {
   // Never above the ceiling the search is currently probing, or the
   // clamp would silently raise the size the search asked for.
@@ -570,11 +626,11 @@ function buildRoleBlocks(
   // peers, and the reader scans a column, not a ranking.
   // A single compensation structure shared by every trade is stated
   // once, as a panel, rather than repeated identically down the column.
-  const details = ad.positions.map((p) => p.detail ?? null);
+  const details = positions.map((p) => p.detail ?? null);
   const uniform =
     details.length > 1 && details.every((d) => d !== null && d === details[0]);
 
-  const fitted = ad.positions.map((p) => {
+  const fitted = positions.map((p) => {
     const count = typeof p.count === "number" ? String(p.count) : "";
     const base = dtpSize("DTP_NUMBER", c.colW);
     const countBaseW = count ? dtpTextWidth(count, "DTP_NUMBER", c.colW) + c.pad : 0;
@@ -596,6 +652,7 @@ function buildRoleBlocks(
     return {
       title: p.title, count, titleSize,
       detail: plan.roleDetails && !uniform ? (p.detail ?? null) : null,
+      qualifier: p.qualifier ?? null,
     };
   });
 
@@ -605,6 +662,7 @@ function buildRoleBlocks(
   return fitted.map((f) => ({
     title: f.title,
     detail: f.detail,
+    qualifier: f.qualifier,
     count: f.count,
     titleSize: shared,
     heightPx:
@@ -628,6 +686,48 @@ function buildRoleBlocks(
  * newspaper compositor with room to spare sets the trade names larger;
  * body, benefit and legal text stay at their reading sizes.
  */
+/**
+ * Sets a trade's qualification, inline where it fits and beneath where
+ * it does not.
+ *
+ * The "beneath" branch used to move the text down and draw it at the
+ * inline size without wrapping, which simply moved the overrun rather
+ * than resolving it: "Civil / Electrical / Mechanical" measured 756px
+ * across a 709px column. Below the line it is refitted to the full
+ * measure and wrapped, so the fallback is a real fallback.
+ */
+function drawQualifier(
+  c: Ctx, qualifier: string, titleX: number, titleAdvance: number,
+  titleSize: number, countW: number, y: number,
+): number {
+  const inlineSize = Math.max(
+    dtpSize("DTP_LEGAL", c.colW), Math.round(titleSize * 0.66),
+  );
+  const afterTitle = titleX + titleAdvance + Math.round(inlineSize * 0.9);
+  const room = c.W - c.pad - countW - afterTitle;
+  const need = dtpTextWidth(qualifier, "DTP_BODY", c.colW) * inlineSize
+    / dtpSize("DTP_BODY", c.colW);
+
+  if (need <= room && room > 0) {
+    text(c, qualifier, "DTP_BODY", afterTitle, y, { size: inlineSize });
+    return y;
+  }
+
+  const avail = c.W - titleX - c.pad;
+  const size = fitToMeasure(
+    qualifier, "DTP_BODY", avail, c.colW, inlineSize,
+    Math.max(8, dtpSize("DTP_LEGAL", c.colW)),
+  );
+  let ty = y;
+  for (const line of dtpWrap(
+    qualifier, "DTP_BODY", Math.round((avail * dtpSize("DTP_BODY", c.colW)) / size), c.colW,
+  )) {
+    ty += Math.round(size * 1.2);
+    text(c, line, "DTP_BODY", titleX, ty, { size });
+  }
+  return ty;
+}
+
 function layoutBody(
   c: Ctx, input: DtpClassifiedInput, plan: DtpSectionPlan, footerTop: number,
   titleMax: number, blockLead = 0, proseScale = 1,
@@ -640,22 +740,10 @@ function layoutBody(
   const unplaced: string[] = [];
 
   // ---- Destination: reversed, full-bleed, the strongest mark ----
-  const hlSize = dtpSize("DTP_HEADLINE", c.colW);
-  const headerH = Math.round(hlSize * 1.42);
-  c.parts.push(`<rect x="0" y="0" width="${W}" height="${headerH}" fill="${accent}"/>`);
-  text(c, ad.headline, "DTP_HEADLINE", c.pad, headerH - Math.round(hlSize * 0.34), { fill: PAPER });
-  y = headerH;
-
-  // ---- Interview bar, immediately beneath the destination ----
-  // Every reference booking that has an interview date carries it here,
-  // hard against the header, not down among the benefits: it is the
-  // deadline the reader is scanning for. A 6x5 shows it too, which is
-  // why it is no longer gated behind the taller tiers.
-  if (plan.interview && ad.interview) {
-    y = bar(c, y, ad.interview, "DTP_LABEL", INK);
-  } else if (plan.urgency && ad.urgency) {
-    y = bar(c, y, ad.urgency, "DTP_LABEL", INK);
-  }
+  // Fitted, never clipped: a long master headline like "Jobs in Saudi
+  // Arabia - 100% client interview" ran off the measure at the token's
+  // fixed size. It shrinks to the column, and wraps if it must.
+  y = bar(c, 0, ad.headline, "DTP_HEADLINE", accent);
 
   // ---- Industry / client line, set tight under the bars ----
   if (plan.subhead && ad.subhead) {
@@ -690,9 +778,31 @@ function layoutBody(
 
     let logoBox: LogoBox | null = null;
     if (clientPng) {
+      // The height allowance is derived from what the mark needs to stay
+      // readable, not set as a flat fraction.
+      //
+      // A flat 0.18 of the measure gave a square client mark a 128px
+      // band carrying one 33px line of client name — paid column spent
+      // on white. Tightening it to 0.13 then refused a portrait mark
+      // outright, because at that height it could not reach the minimum
+      // readable width. So a tall mark is granted exactly the extra
+      // height it needs to clear that minimum and no more, and a wide
+      // one never takes the extra.
+      const clientMaxW = Math.round(W * 0.30);
+      const clientSize = pngIntrinsicSize(clientPng);
+      if (!clientSize) {
+        throw new DtpAssetError(
+          "The DTP classified's client logo slot", "asset is not a readable PNG",
+        );
+      }
+      const clientAspect = clientSize.widthPx / clientSize.heightPx;
+      const needForLegibility = Math.ceil((W * LOGO_MIN_WIDTH_FRACTION) / clientAspect);
+      const clientMaxH = Math.min(
+        Math.round(W * 0.22),
+        Math.max(Math.round(W * 0.13), needForLegibility),
+      );
       const { drawn } = fitLogo(
-        "The DTP classified's client logo slot", clientPng,
-        Math.round(W * 0.30), Math.round(W * 0.18),
+        "The DTP classified's client logo slot", clientPng, clientMaxW, clientMaxH,
       );
       if (drawn.width < W * LOGO_MIN_WIDTH_FRACTION) {
         throw new DtpAssetError(
@@ -725,43 +835,163 @@ function layoutBody(
     }
     if (logoBox && clientPng) drawLogo(c, clientPng, logoBox);
 
-    bandBottom = bandTop + bandH;
+    // Separation below the band. Without it the mark's lower edge sat
+    // exactly on the interview bar's upper edge and read as a collision.
+    bandBottom = bandTop + bandH + Math.round(c.pad * 0.35);
     y = Math.max(y, bandBottom);
   }
 
-  // ---- Roles, each block ruled off from the next ----
-  const blocks = buildRoleBlocks(c, ad, plan, titleMax);
-  for (const [index, b] of blocks.entries()) {
-    // Lead BETWEEN blocks, never before the first. Applying it to the
-    // first block opened a ruled box with nothing in it directly under
-    // the header — the rule is a separator, and there is nothing above
-    // the first trade to separate it from.
-    const lead = index === 0 ? 0 : blockLead;
-    if (y + b.heightPx + lead > footerTop) {
-      unplaced.push(b.title);
-      continue;
-    }
-    y += Math.round(c.pad * 0.4) + lead;
-    c.parts.push(`<rect x="0" y="${Math.round(y)}" width="${W}" height="2" fill="${INK}"/>`);
-    y += Math.round(b.titleSize * 1.02);
+  // ---- Campaigns ----
+  //
+  // Each campaign is a self-contained hiring block: its own project
+  // heading, its own interview dates, its own trades and conditions,
+  // its own number to ring. They stack down the column and share the
+  // agency footer at the foot of the booking.
+  const campaigns = campaignsOf(ad);
+  const multi = campaigns.length > 1;
+  const allBlocks: RoleBlock[] = [];
 
-    const countW = b.count ? dtpTextWidth(b.count, "DTP_NUMBER", c.colW) + c.pad : 0;
-    text(c, b.title, "DTP_NUMBER", c.pad, y, { size: b.titleSize });
-    if (b.count) {
-      text(c, b.count, "DTP_NUMBER", W - c.pad, y, {
-        anchor: "end", fill: accent, size: b.titleSize,
-      });
-    }
-    void countW;
+  for (const [ci, campaign] of campaigns.entries()) {
+    if (ci > 0) y += Math.round(c.pad * 0.5);
 
-    if (b.detail) {
-      // Bold, not the body weight: in every reference the pay line is
-      // the second-strongest mark in the block, under the trade name.
-      const ds = roleDetailSize(b.detail, b.titleSize, c.W - c.pad * 2, c.colW);
-      y += Math.round(ds * 1.24);
-      text(c, b.detail, "DTP_PRICE", c.pad, y, { size: ds });
+    // Project / client heading, reversed across the measure.
+    if (campaign.heading) {
+      if (y + dtpSize("DTP_LABEL", c.colW) * 1.6 > footerTop) {
+        unplaced.push(`campaign heading: ${campaign.heading}`);
+      } else {
+        y = bar(c, y, campaign.heading, "DTP_LABEL", INK);
+      }
     }
-    y += Math.round(c.pad * 0.3);
+
+    // Interview dates, hard against the heading — the deadline the
+    // reader is scanning for, never buried among the benefits.
+    if (plan.interview && campaign.interview) {
+      if (y + dtpSize("DTP_LABEL", c.colW) * 1.6 > footerTop) {
+        unplaced.push(`interview: ${campaign.interview}`);
+      } else {
+        y = bar(c, y, campaign.interview, "DTP_LABEL", multi ? accent : INK);
+      }
+    }
+
+    const blocks = buildRoleBlocks(c, campaign.positions, plan, titleMax);
+    allBlocks.push(...blocks);
+
+    // TWO ROLE GRAMMARS, both taken from the references, chosen by what
+    // the trade actually carries.
+    //
+    // A trade with its own PAY gets the ruled block: name, then the
+    // figure beneath, then a rule — the 6x5 booking, where three trades
+    // fill the column and each one is a headline.
+    //
+    // A trade carrying only a qualification gets the compact bulleted
+    // line — the 6x11 booking, where four campaigns and twenty trades
+    // share the same column and a rule between every one of them would
+    // eat the space the trades need. Ruling every trade in a dense
+    // booking is what made a 6x11 that the reference prints
+    // comfortably fail as over-capacity here.
+    const ruled = blocks.some((b) => b.detail);
+
+    for (const [index, b] of blocks.entries()) {
+      if (!ruled) {
+        const lead = index === 0 ? 0 : blockLead;
+        const rowH = Math.round(b.titleSize * 1.32);
+        if (y + rowH + lead > footerTop) {
+          unplaced.push(b.title);
+          continue;
+        }
+        y += rowH + lead;
+        const bulletR = Math.max(1, Math.round(b.titleSize * 0.11));
+        c.parts.push(
+          `<circle cx="${c.pad + bulletR}" cy="${Math.round(y - b.titleSize * 0.3)}" ` +
+            `r="${bulletR}" fill="${accent}"/>`,
+        );
+        const titleX = c.pad + bulletR * 4;
+        const countW = b.count ? dtpTextWidth(b.count, "DTP_NUMBER", c.colW) + c.pad : 0;
+        text(c, b.title, "DTP_NUMBER", titleX, y, { size: b.titleSize });
+        if (b.qualifier) {
+          const advance = Math.round((dtpTextWidth(b.title, "DTP_NUMBER", c.colW) * b.titleSize)
+            / dtpSize("DTP_NUMBER", c.colW));
+          y = drawQualifier(c, b.qualifier, titleX, advance, b.titleSize, countW, y);
+        }
+        if (b.count) {
+          text(c, b.count, "DTP_NUMBER", W - c.pad, y, {
+            anchor: "end", fill: accent, size: b.titleSize,
+          });
+        }
+        continue;
+      }
+
+      // Lead BETWEEN blocks, never before the first. Applying it to the
+      // first block opened a ruled box with nothing in it directly under
+      // the header — the rule is a separator, and there is nothing above
+      // the first trade to separate it from.
+      const lead = index === 0 ? 0 : blockLead;
+      if (y + b.heightPx + lead > footerTop) {
+        unplaced.push(b.title);
+        continue;
+      }
+      y += Math.round(c.pad * 0.4) + lead;
+      c.parts.push(`<rect x="0" y="${Math.round(y)}" width="${W}" height="2" fill="${INK}"/>`);
+      y += Math.round(b.titleSize * 1.02);
+
+      const countW = b.count ? dtpTextWidth(b.count, "DTP_NUMBER", c.colW) + c.pad : 0;
+      text(c, b.title, "DTP_NUMBER", c.pad, y, { size: b.titleSize });
+
+      // The qualification continues the trade name on the same line, in
+      // reading weight — "FOREMAN- Civil/ Electrical/Mechanical". Set
+      // beneath as a second display line it would read as pay.
+      if (b.qualifier) {
+        const advance = Math.round((dtpTextWidth(b.title, "DTP_NUMBER", c.colW) * b.titleSize)
+          / dtpSize("DTP_NUMBER", c.colW));
+        y = drawQualifier(c, b.qualifier, c.pad, advance, b.titleSize, countW, y);
+      }
+
+      if (b.count) {
+        text(c, b.count, "DTP_NUMBER", W - c.pad, y, {
+          anchor: "end", fill: accent, size: b.titleSize,
+        });
+      }
+
+      if (b.detail) {
+        // Bold, not the body weight: in every reference the pay line is
+        // the second-strongest mark in the block, under the trade name.
+        const ds = roleDetailSize(b.detail, b.titleSize, c.W - c.pad * 2, c.colW);
+        y += Math.round(ds * 1.24);
+        text(c, b.detail, "DTP_PRICE", c.pad, y, { size: ds });
+      }
+      y += Math.round(c.pad * 0.3);
+    }
+
+    // Conditions that apply to this campaign's trades, banded so they
+    // read as belonging to the block above rather than to the booking.
+    if (campaign.note) {
+      const ns = proseSize(c, proseScale);
+      for (const line of wrapProse(c, campaign.note, W - c.pad * 2, proseScale)) {
+        if (y + ns * 1.25 > footerTop) {
+          unplaced.push(`note: ${campaign.note}`);
+          continue;
+        }
+        y += Math.round(ns * 1.25);
+        text(c, line, "DTP_BODY", c.pad, y, { size: ns });
+      }
+    }
+
+    // The campaign's own number. Each reference campaign has one, and
+    // it is how a reader knows which project they are ringing about.
+    if (campaign.contactPhone) {
+      // Set at label scale, not the footer's contact scale. A campaign
+      // number is a line inside the booking, and giving each one the
+      // weight of the agency's own telephone bar spent roughly a
+      // centimetre of a 6x11 on three restatements of the same idea —
+      // space the references give to a fourth campaign instead.
+      const cs = dtpSize("DTP_LABEL", c.colW);
+      if (y + cs * 1.6 > footerTop) {
+        unplaced.push(`campaign contact: ${campaign.contactPhone}`);
+      } else {
+        y += Math.round(c.pad * 0.25);
+        y = bar(c, y, `Contact: ${campaign.contactPhone}`, "DTP_LABEL", INK);
+      }
+    }
   }
 
   // ---- Salary panel: chosen by the shape of the pay data ----
@@ -771,7 +1001,7 @@ function layoutBody(
   // separating them is how a reader ends up applying for the wrong
   // rate. Where every trade shares one structure, repeating it down the
   // column is noise, and the references set it once as a panel.
-  const perRolePay = blocks.some((b) => b.detail);
+  const perRolePay = allBlocks.some((b) => b.detail);
   const wantsPanel = plan.salary && Boolean(ad.salary) && !perRolePay;
   if (wantsPanel && y + dtpLineHeight("DTP_PRICE", c.colW) * 1.6 >= footerTop) {
     unplaced.push(`salary: ${ad.salary ?? ""}`);
@@ -945,7 +1175,7 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
   // which is where the references carry their air — never as one band
   // above the footer, and never between unrelated sections.
   const saturated = layoutBody({ ...c, parts: [] }, input, plan, footerTop, chosen, 0, chosenProse);
-  const blocks = ad.positions.length;
+  const blocks = campaignsOf(ad).reduce((n, k) => n + k.positions.length, 0);
   const residual = Math.max(0, room - saturated.bottom);
   // Capped. Removing the cap did drive the fill metric to 99%, but the
   // render showed why that number was worthless: three trades in a

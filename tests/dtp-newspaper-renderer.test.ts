@@ -17,6 +17,12 @@ import {
   DTP_MIN_AD_HEIGHT_CM,
   DTP_PAGE_CM,
   DTP_AD_HEIGHTS_CM,
+  type DtpAdHeightCm,
+  dtpTextWidth,
+  dtpSize,
+  dtpFamily,
+  DTP_TYPE,
+  type DtpToken,
   renderDtpClassifiedSvg,
   pngIntrinsicSize,
   DtpAssetError,
@@ -808,5 +814,174 @@ describe("DTP classified — client identity and brand assets", () => {
     const distinctSvg = renderDtpClassifiedSvg({ ad: distinct, heightCm: 9 }).svg;
     expect(distinctSvg).toContain("KD 250");
     expect(distinctSvg).toContain("KD 320");
+  });
+});
+
+/**
+ * Multi-campaign bookings, and the rule that nothing drawn may cross
+ * the trim edge.
+ *
+ * The 6x11 reference is one purchased advertisement carrying several
+ * hiring campaigns, each with its own project heading, interview dates,
+ * trades, conditions and contact number. The compositor assumed one
+ * campaign per booking, so this entire shape — the ordinary form of a
+ * larger classified — could not be expressed.
+ */
+describe("DTP classified — campaigns and the trim edge", () => {
+  const multi: DtpAdvertisement = {
+    headline: "Jobs in Saudi Arabia – 100% client interview",
+    tenant: {
+      name: "Silverline HR Consultants",
+      registrationText: "B-1487/MUM/PART/1000+/9986/2022",
+      logo: brandAsset("TENANT_PRIMARY_LOGO", PNG),
+    },
+    campaigns: [
+      {
+        heading: "Hiring for Masco – Amiral – Oil & Gas Project",
+        interview: "Mumbai on 26th March",
+        positions: [
+          { title: "Foreman", qualifier: "Civil / Electrical / Mechanical" },
+          { title: "WPR", qualifier: "Aramco approved" },
+          { title: "Driver", qualifier: "HD / LD, Saudi licence" },
+        ],
+        note: "Must have experience in industrial projects, preferably Oil & Gas.",
+        contactPhone: "8655960411",
+      },
+      {
+        heading: "Hiring for Exact (Al Rashid Group)",
+        interview: "Mumbai 28th · Vadodara 27th March",
+        positions: [
+          { title: "Pipe Welder", qualifier: "6G Multi-TIG & ARC" },
+          { title: "Rigger Level 3" },
+        ],
+        note: "Must have GCC experience in the relevant industry.",
+        contactPhone: "8655440318",
+      },
+    ],
+    contactPhone: "8655440316",
+    contactEmail: "jobs@example-agency.test",
+  };
+
+  /** Every string the compositor drew, with the size and family used. */
+  function drawn(svg: string) {
+    return [...svg.matchAll(
+      /<text[^>]*x="(-?\d+)"[^>]*font-family="([^"]+)"[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g,
+    )].map(([, x, family, size, content]) => ({
+      x: Number(x), family, size: Number(size), content,
+    }));
+  }
+
+  /** A token sharing each family, so advances are measured correctly. */
+  const TOKEN_BY_FAMILY = new Map(
+    (Object.keys(DTP_TYPE) as DtpToken[]).map((t) => [dtpFamily(t), t]),
+  );
+
+  it("renders every campaign's heading, dates, trades, note and number", () => {
+    const { svg } = renderDtpClassifiedSvg({ ad: multi, heightCm: 11 });
+    // Joined, because a long heading may legitimately take two lines.
+    const all = drawn(svg).map((r) => r.content).join(" ");
+    for (const campaign of multi.campaigns ?? []) {
+      for (const word of (campaign.heading ?? "").toUpperCase().split(/\s+/)) {
+        expect(all).toContain(word);
+      }
+      expect(all).toContain(campaign.contactPhone ?? "");
+      for (const p of campaign.positions) expect(all).toContain(p.title.toUpperCase());
+    }
+    expect(all).toContain("Must have GCC experience in the relevant industry.");
+  });
+
+  it("keeps a trade's qualification with its trade, not below it as pay", () => {
+    const { svg } = renderDtpClassifiedSvg({ ad: multi, heightCm: 11 });
+    const rows = drawn(svg);
+    const trade = rows.find((r) => r.content.includes("WPR"));
+    const qualifier = rows.find((r) => r.content.includes("Aramco approved"));
+    expect(trade).toBeDefined();
+    expect(qualifier).toBeDefined();
+    // To the RIGHT of the trade name, continuing its line.
+    expect((qualifier as { x: number }).x).toBeGreaterThan((trade as { x: number }).x);
+    // And in reading weight, not the display size of the trade.
+    expect((qualifier as { size: number }).size)
+      .toBeLessThan((trade as { size: number }).size);
+  });
+
+  it("never sets any text past the trim edge", () => {
+    // Bars were drawn at a fixed size with no fitting, so a long master
+    // headline printed as "JOBS IN SAUDI ARABIA - 100% CL" and a long
+    // venue as "...GAMI INDUSTRIAL PAR". Checked by measurement here
+    // rather than by eye.
+    const shapes: DtpAdvertisement[] = [
+      multi,
+      // Long everything: the shapes most likely to overrun.
+      {
+        headline: "Mega recruitment for overhead powerline project",
+        tenant: {
+          name: "Continental Overseas Manpower Consultancy",
+          registrationText: "B-1487/MUM/PART/1000+/9986/2022",
+          logo: brandAsset("TENANT_PRIMARY_LOGO", PNG),
+        },
+        positions: [
+          { title: "Overhead Powerline Supervisor / Foreman", detail: "Upto SR 2200 + SR 300 Food" },
+          { title: "Cathodic Protection Foreman / Technician", qualifier: "Aramco approved, Saudi licence" },
+        ],
+        benefits: ["Free food", "Accommodation", "Transport"],
+        contactPhone: "9324995758 / 9324995763",
+        contactEmail: "recruitment@example-agency.test",
+      },
+    ];
+    const cases: { ad: DtpAdvertisement; heightCm: DtpAdHeightCm; venue?: string }[] =
+      shapes.flatMap((ad) =>
+        DTP_AD_HEIGHTS_CM.map((heightCm) => ({
+          ad, heightCm,
+          venue: "Venue for all above: SAFCO Trade Test, Gami Industrial Park, Navi Mumbai",
+        })),
+      );
+    for (const { ad, heightCm, venue } of cases) {
+      let svg: string;
+      let widthPx: number;
+      try {
+        ({ svg, widthPx } = renderDtpClassifiedSvg({ ad, heightCm, interviewVenue: venue }));
+      } catch (error) {
+        // Refusing to place the content is allowed; clipping is not.
+        expect(error).toBeInstanceOf(LayoutCapacityError);
+        continue;
+      }
+      for (const row of drawn(svg)) {
+        if (!row.content.trim()) continue;
+        const token = TOKEN_BY_FAMILY.get(row.family);
+        if (!token) continue;
+        const advance = dtpTextWidth(row.content, token, widthPx)
+          * row.size / dtpSize(token, widthPx);
+        expect(`${row.content} @${Math.round(row.x + advance)}`)
+          .toBe(`${row.content} @${Math.round(Math.min(row.x + advance, widthPx))}`);
+      }
+    }
+  });
+
+  it("wraps a headline too long for the measure instead of clipping it", () => {
+    const long: DtpAdvertisement = {
+      ...multi,
+      headline: "Mega recruitment for overhead powerline project across the Kingdom",
+    };
+    const { svg } = renderDtpClassifiedSvg({ ad: long, heightCm: 12 });
+    // Present in full, across however many lines it took.
+    const headline = drawn(svg).map((r) => r.content).join(" ");
+    expect(headline).toContain("MEGA RECRUITMENT");
+    expect(headline).toContain("KINGDOM");
+  });
+
+  it("still renders a single-campaign booking from the flat fields", () => {
+    const flat: DtpAdvertisement = {
+      headline: "Qatar",
+      tenant: { name: "Meridian Gulf Staffing", registrationText: "B-4410" },
+      positions: [{ title: "Instrument Tech.", count: 8, detail: "QR 2200 + FAT" }],
+      interview: "Interview 12-13 August · Chennai",
+      contactPhone: "8291 898055",
+    };
+    const { svg } = renderDtpClassifiedSvg({ ad: flat, heightCm: 6 });
+    expect(svg).toContain("INSTRUMENT TECH.");
+    expect(svg).toContain("QR 2200 + FAT");
+    // The telephone appears once, in the footer bar — not also repeated
+    // as a campaign contact.
+    expect([...svg.matchAll(/8291 898055/g)]).toHaveLength(1);
   });
 });
