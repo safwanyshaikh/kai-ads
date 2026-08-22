@@ -720,7 +720,13 @@ function drawQualifier(
   const inlineSize = Math.max(
     dtpSize("DTP_LEGAL", c.colW), Math.round(titleSize * 0.66),
   );
-  const afterTitle = titleX + titleAdvance + Math.round(inlineSize * 0.9);
+  // The advance is a measurement, and measurements of this face run
+  // slightly short: "PROCUREMENT MANAGER" placed its qualifier hard
+  // against its own final R with no space at all. Inflate by 2% and
+  // keep a real word space, so a near-miss becomes a wrap rather than
+  // two words printed as one.
+  const afterTitle =
+    titleX + Math.ceil(titleAdvance * 1.02) + Math.round(inlineSize * 0.95);
   const room = c.W - c.pad - countW - afterTitle;
   const need = dtpTextWidth(qualifier, "DTP_BODY", c.colW) * inlineSize
     / dtpSize("DTP_BODY", c.colW);
@@ -769,7 +775,9 @@ function layoutBody(
       y += Math.round(s * 1.12);
       text(c, line, "DTP_SUBHEAD", c.pad, y, { fill: accent });
     }
-    y += Math.round(c.pad * 0.2);
+    // Clear of the descenders. At 0.2 of the padding the subhead's tail
+    // sat on top of the campaign heading bar that follows it.
+    y += Math.round(s * 0.32);
   }
   // ---- Client band: the hiring company, as itself ----
   //

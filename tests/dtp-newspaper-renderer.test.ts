@@ -957,6 +957,65 @@ describe("DTP classified — campaigns and the trim edge", () => {
     }
   });
 
+  it("never runs a qualification into the trade name it follows", () => {
+    // Found by eye on the real-source render, not by the trim-edge
+    // check: "PROCUREMENT MANAGER" and "Mech/Civil, 10-12 years"
+    // printed as one word. Nothing crossed the column edge, so
+    // measuring against the trim could never have caught it — this
+    // measures the gap between two strings sharing a baseline.
+    const ad: DtpAdvertisement = {
+      headline: "Saudi Arabia",
+      tenant: { name: "Northgate Overseas", registrationText: "B-0417" },
+      positions: [
+        { title: "Procurement Manager", count: 1, qualifier: "Mech/Civil, 10-12 years" },
+        { title: "Procurement Engineer – Construction", count: 2, qualifier: "Mech/Civil, 5-6 years" },
+        { title: "Time Keeper / HR Executive", count: 2, qualifier: "Graduate, 4-5 years" },
+        { title: "WPR", count: 25, qualifier: "Civil Engineering, 2 years" },
+      ],
+      contactPhone: "8104962797",
+    };
+    for (const heightCm of DTP_AD_HEIGHTS_CM) {
+      let svg: string;
+      try {
+        ({ svg } = renderDtpClassifiedSvg({ ad, heightCm }));
+      } catch (error) {
+        expect(error).toBeInstanceOf(LayoutCapacityError);
+        continue;
+      }
+
+      const rows = [...svg.matchAll(
+        /<text[^>]*x="(-?\d+)" y="(-?\d+)"[^>]*font-family="([^"]+)"[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g,
+      )].map(([, x, y, family, size, content]) => ({
+        x: Number(x), y: Number(y), family, size: Number(size), content,
+      }));
+
+      // Group by baseline; within a baseline nothing may overlap.
+      const byBaseline = new Map<number, typeof rows>();
+      for (const row of rows) {
+        if (!row.content.trim()) continue;
+        byBaseline.set(row.y, [...(byBaseline.get(row.y) ?? []), row]);
+      }
+      for (const line of byBaseline.values()) {
+        const placed = line
+          .filter((r) => TOKEN_BY_FAMILY.has(r.family))
+          .sort((a, b) => a.x - b.x);
+        for (let i = 0; i + 1 < placed.length; i += 1) {
+          const left = placed[i];
+          const token = TOKEN_BY_FAMILY.get(left.family) as DtpToken;
+          const advance = dtpTextWidth(left.content, token, 709)
+            * left.size / dtpSize(token, 709);
+          // Right-anchored counts are drawn from their end, so only
+          // compare against left-anchored neighbours.
+          if (placed[i + 1].x <= left.x) continue;
+          expect(`${left.content}|${placed[i + 1].content}`)
+            .toBe(placed[i].x + advance <= placed[i + 1].x
+              ? `${left.content}|${placed[i + 1].content}`
+              : `OVERLAP: ${left.content}|${placed[i + 1].content}`);
+        }
+      }
+    }
+  });
+
   it("wraps a headline too long for the measure instead of clipping it", () => {
     const long: DtpAdvertisement = {
       ...multi,
