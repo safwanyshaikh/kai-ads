@@ -105,32 +105,35 @@ export interface DtpSectionPlan {
   footer: "MINIMAL" | "COMPACT" | "FULL";
 }
 
+/**
+ * The purchased height governs TREATMENT, not existence.
+ *
+ * These flags were once a per-tier list of which facts an
+ * advertisement was allowed to carry, and that was the wrong shape for
+ * the problem. A venue supplied for a 6x8 was dropped before capacity
+ * was ever consulted — not because it did not fit, but because a table
+ * said an 8cm booking does not have venues. That is a silent omission
+ * of verified information with a tidier name.
+ *
+ * Content now renders whenever the data exists, and the fitting search
+ * decides what the booking can hold, reporting anything it cannot so
+ * the render fails rather than quietly shrinking the truth. What still
+ * scales with the purchased height is the footer's richness, which is
+ * a question of how much address a small booking prints, not of
+ * whether the agency has one.
+ */
 export function dtpSectionPlan(tier: DtpDensityTier): DtpSectionPlan {
+  const content = {
+    subhead: true, urgency: true, roleDetails: true, benefits: true,
+    salary: true, eligibility: true, interview: true, venue: true,
+  };
   switch (tier) {
     case "COMPACT":
-      // roleDetails and interview are NOT luxuries of a tall booking.
-      // The reference 6x5 carries a per-role pay line under every trade
-      // and an interview-date bar under the header — they are the two
-      // facts a candidate acts on, so they survive at the smallest
-      // size. What a 6x5 gives up is the address block and the benefit
-      // and eligibility prose, not the pay.
-      return {
-        subhead: false, urgency: true, roleDetails: true, benefits: false,
-        salary: true, eligibility: false, interview: true, venue: false,
-        footer: "MINIMAL",
-      };
+      return { ...content, footer: "MINIMAL" };
     case "STANDARD":
-      return {
-        subhead: true, urgency: true, roleDetails: true, benefits: true,
-        salary: true, eligibility: true, interview: true, venue: false,
-        footer: "COMPACT",
-      };
+      return { ...content, footer: "COMPACT" };
     case "FULL":
-      return {
-        subhead: true, urgency: true, roleDetails: true, benefits: true,
-        salary: true, eligibility: true, interview: true, venue: true,
-        footer: "FULL",
-      };
+      return { ...content, footer: "FULL" };
   }
 }
 
@@ -171,6 +174,85 @@ export interface DtpClassifiedResult {
 
 const PAPER = "#FFFFFF";
 const INK = "#111111";
+
+/**
+ * A supplied logo's real pixel dimensions, read from the PNG header.
+ *
+ * Needed because a brand asset is not ours to reshape. Drawing every
+ * logo into a box of fixed proportion is safe only in the sense that
+ * preserveAspectRatio stops it distorting — a tall mark still lands
+ * shrunken inside a wide box with paper either side, which is the
+ * agency's identity rendered badly rather than rendered small.
+ *
+ * Returns null when the buffer is not a PNG we can read. Callers treat
+ * that as a corrupt asset and fail the render (spec §28); they never
+ * fall back to a guessed shape.
+ */
+export function pngIntrinsicSize(png: Buffer): { widthPx: number; heightPx: number } | null {
+  // 8-byte signature, then a 25-byte IHDR whose width and height are
+  // big-endian uint32 at offsets 16 and 20.
+  if (png.length < 24) return null;
+  const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  for (let i = 0; i < SIGNATURE.length; i += 1) {
+    if (png[i] !== SIGNATURE[i]) return null;
+  }
+  const widthPx = png.readUInt32BE(16);
+  const heightPx = png.readUInt32BE(20);
+  if (widthPx <= 0 || heightPx <= 0) return null;
+  return { widthPx, heightPx };
+}
+
+/**
+ * Raised when a supplied brand asset cannot be placed honestly.
+ *
+ * Distinct from LayoutCapacityError: that one means the facts do not
+ * fit, this one means an asset is unreadable or would have to be
+ * printed below the size at which a mark is still a mark.
+ */
+export class DtpAssetError extends Error {
+  readonly code = "DTP_ASSET";
+  constructor(readonly slot: string, readonly reason: string) {
+    super(`${slot}: ${reason}`);
+    this.name = "DtpAssetError";
+  }
+}
+
+/** Smallest width at which a printed logo still reads, as a fraction of the measure. */
+const LOGO_MIN_WIDTH_FRACTION = 0.08;
+
+interface LogoBox { x: number; y: number; width: number; height: number; }
+
+/**
+ * Fits a logo inside a box at its own aspect ratio.
+ *
+ * The asset is never cropped, never stretched and never upscaled past
+ * its own resolution beyond what 300dpi print tolerates — it is placed
+ * at the largest size the box and its intrinsic dimensions both allow.
+ */
+function fitLogo(
+  slot: string, png: Buffer, maxWidth: number, maxHeight: number,
+): { drawn: LogoBox; aspect: number } {
+  const size = pngIntrinsicSize(png);
+  if (!size) throw new DtpAssetError(slot, "asset is not a readable PNG");
+
+  const aspect = size.widthPx / size.heightPx;
+  let width = maxWidth;
+  let height = Math.round(width / aspect);
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = Math.round(height * aspect);
+  }
+  return { drawn: { x: 0, y: 0, width, height }, aspect };
+}
+
+function drawLogo(c: Ctx, png: Buffer, box: LogoBox): void {
+  c.parts.push(
+    `<image href="data:image/png;base64,${png.toString("base64")}" ` +
+      `x="${Math.round(box.x)}" y="${Math.round(box.y)}" ` +
+      `width="${Math.round(box.width)}" height="${Math.round(box.height)}" ` +
+      `preserveAspectRatio="xMidYMid meet"/>`,
+  );
+}
 
 function esc(v: string): string {
   return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -268,6 +350,8 @@ interface FooterPlan {
   licenceH: number;
   /** Reversed telephone bar, reserved rather than left to spare room. */
   contactH: number;
+  /** Height the tenant mark needs at its own aspect ratio. */
+  logoH: number;
   lines: FooterLine[];
   logoW: number;
   textLeft: number;
@@ -284,7 +368,22 @@ function planFooter(c: Ctx, input: DtpClassifiedInput, richness: DtpSectionPlan[
   // 1cm deep — identity is what makes a classified answerable, so it
   // is the last thing a small booking gives up, not the first.
   const hasLogo = Boolean(ad.tenant.logo);
-  const logoW = hasLogo ? Math.round(c.W * (richness === "MINIMAL" ? 0.24 : 0.28)) : 0;
+  const logoMaxW = Math.round(c.W * (richness === "MINIMAL" ? 0.24 : 0.28));
+  // Bounded on BOTH axes. Honouring the aspect ratio alone let a
+  // portrait mark claim a third of a 6x8 booking — 199px wide became
+  // 318px tall — and squeezed the benefits and eligibility out of the
+  // body entirely. A logo is an identifier, not a panel.
+  const logoMaxH = Math.round(c.W * 0.16);
+  const logoFit = hasLogo
+    ? fitLogo(
+        "The DTP classified's tenant logo slot",
+        resolveSlotImage(
+          "The DTP classified's tenant logo slot", ["TENANT_PRIMARY_LOGO"], ad.tenant.logo,
+        ) as Buffer,
+        logoMaxW, logoMaxH,
+      ).drawn
+    : null;
+  const logoW = logoFit ? logoFit.width : 0;
   const textLeft = c.pad + (logoW > 0 ? logoW + Math.round(c.pad * 0.7) : 0);
   const innerW = c.W - textLeft - c.pad;
 
@@ -298,13 +397,13 @@ function planFooter(c: Ctx, input: DtpClassifiedInput, richness: DtpSectionPlan[
 
   const lines = footerLines(input, richness, innerW, c.colW);
   const textH = lines.reduce((sum, l) => sum + dtpLineHeight(l.token, c.colW), 0);
-  const logoH = hasLogo ? Math.round(logoW * 0.6) : 0;
+  const logoH = logoFit ? logoFit.height : 0;
 
   const gutter = richness === "MINIMAL" ? 0.45 : 0.8;
   const heightPx =
     contactH + Math.round(c.pad * gutter) + Math.max(textH, logoH) +
     Math.round(c.pad * gutter) + licenceH;
-  return { heightPx, licenceH, contactH, lines, logoW, textLeft };
+  return { heightPx, licenceH, contactH, lines, logoW, logoH, textLeft };
 }
 
 function renderFooter(c: Ctx, input: DtpClassifiedInput, top: number, fp: FooterPlan): void {
@@ -338,10 +437,13 @@ function renderFooter(c: Ctx, input: DtpClassifiedInput, top: number, fp: Footer
       "The DTP classified's tenant logo slot", ["TENANT_PRIMARY_LOGO"], ad.tenant.logo,
     );
     if (logoPng) {
-      c.parts.push(
-        `<image href="data:image/png;base64,${logoPng.toString("base64")}" x="${c.pad}" y="${Math.round(y)}" ` +
-          `width="${fp.logoW}" height="${Math.round(fp.logoW * 0.6)}" preserveAspectRatio="xMidYMid meet"/>`,
-      );
+      if (fp.logoW < c.W * LOGO_MIN_WIDTH_FRACTION) {
+        throw new DtpAssetError(
+          "The DTP classified's tenant logo slot",
+          "cannot be placed above the minimum size at which a mark still reads",
+        );
+      }
+      drawLogo(c, logoPng, { x: c.pad, y, width: fp.logoW, height: fp.logoH });
     }
   }
 
@@ -349,6 +451,30 @@ function renderFooter(c: Ctx, input: DtpClassifiedInput, top: number, fp: Footer
     y += dtpLineHeight(l.token, c.colW);
     text(c, l.text, l.token, fp.textLeft, y);
   }
+}
+
+/**
+ * Body prose at a chosen scale, with its own legibility floor.
+ *
+ * Spec §6 requires the compositor to compress before it refuses:
+ * benefit and eligibility text set at one fixed size could only ever
+ * overflow, so adding the client band turned a 6x8 that used to render
+ * into a hard capacity failure. Prose now steps down ahead of that,
+ * and never below DTP_LEGAL — the floor at which small print is still
+ * print.
+ */
+function proseSize(c: Ctx, scale: number): number {
+  const floor = dtpSize("DTP_LEGAL", c.colW);
+  return Math.max(floor, Math.round(dtpSize("DTP_BODY", c.colW) * scale));
+}
+
+/** Wraps prose to the measure it will actually be set at. */
+function wrapProse(c: Ctx, s: string, width: number, scale: number): string[] {
+  const size = proseSize(c, scale);
+  const base = dtpSize("DTP_BODY", c.colW);
+  // Wrapping is measured at the base size, so ask for a proportionally
+  // wider measure to get the line breaks the smaller size will produce.
+  return dtpWrap(s, "DTP_BODY", Math.round((width * base) / size), c.colW);
 }
 
 interface BodyLayout {
@@ -442,6 +568,12 @@ function buildRoleBlocks(
   // same list, implying an importance the vacancy data never claimed.
   // The references set the whole list at a single size — the trades are
   // peers, and the reader scans a column, not a ranking.
+  // A single compensation structure shared by every trade is stated
+  // once, as a panel, rather than repeated identically down the column.
+  const details = ad.positions.map((p) => p.detail ?? null);
+  const uniform =
+    details.length > 1 && details.every((d) => d !== null && d === details[0]);
+
   const fitted = ad.positions.map((p) => {
     const count = typeof p.count === "number" ? String(p.count) : "";
     const base = dtpSize("DTP_NUMBER", c.colW);
@@ -461,7 +593,10 @@ function buildRoleBlocks(
       if (next === titleSize) break;
       titleSize = next;
     }
-    return { title: p.title, count, detail: plan.roleDetails ? (p.detail ?? null) : null, titleSize };
+    return {
+      title: p.title, count, titleSize,
+      detail: plan.roleDetails && !uniform ? (p.detail ?? null) : null,
+    };
   });
 
   const shared = fitted.length > 0 ? Math.min(...fitted.map((f) => f.titleSize)) : titleMin;
@@ -495,12 +630,14 @@ function buildRoleBlocks(
  */
 function layoutBody(
   c: Ctx, input: DtpClassifiedInput, plan: DtpSectionPlan, footerTop: number,
-  titleMax: number, blockLead = 0,
+  titleMax: number, blockLead = 0, proseScale = 1,
 ): BodyLayout {
   const { ad } = input;
   const accent = c.accent;
   const W = c.W;
   let y = 0;
+  /** Every verified fact this pass could not place, of any class. */
+  const unplaced: string[] = [];
 
   // ---- Destination: reversed, full-bleed, the strongest mark ----
   const hlSize = dtpSize("DTP_HEADLINE", c.colW);
@@ -529,19 +666,71 @@ function layoutBody(
     }
     y += Math.round(c.pad * 0.2);
   }
-  if (ad.client?.name) {
-    // The hiring company, named as itself — never merged with the
-    // advertising agency's identity.
-    const s = dtpSize("DTP_BODY", c.colW);
-    for (const line of dtpWrap(`Client: ${ad.client.name}`, "DTP_BODY", W - c.pad * 2, c.colW)) {
-      y += Math.round(s * 1.15);
-      text(c, line, "DTP_BODY", c.pad, y);
+  // ---- Client band: the hiring company, as itself ----
+  //
+  // A supplied client logo is rendered HERE, beside the client's own
+  // name, not in the agency footer. Two reasons, and the references
+  // agree on both: the client mark belongs with the client's
+  // information rather than with the advertiser's, and a logo dropped
+  // into the footer reads as the agency's own — exactly the identity
+  // merge the brand-role guard exists to prevent.
+  //
+  // Until now this branch printed only the name. A client logo passed
+  // in was accepted by the type and then silently discarded, which is
+  // the same class of defect as a dropped trade.
+  if (ad.client?.name || ad.client?.logo) {
+    const bodySize = dtpSize("DTP_BODY", c.colW);
+    let bandBottom = y;
+
+    const clientPng = ad.client.logo
+      ? resolveSlotImage(
+          "The DTP classified's client logo slot", ["CLIENT_LOGO"], ad.client.logo,
+        )
+      : null;
+
+    let logoBox: LogoBox | null = null;
+    if (clientPng) {
+      const { drawn } = fitLogo(
+        "The DTP classified's client logo slot", clientPng,
+        Math.round(W * 0.30), Math.round(W * 0.18),
+      );
+      if (drawn.width < W * LOGO_MIN_WIDTH_FRACTION) {
+        throw new DtpAssetError(
+          "The DTP classified's client logo slot",
+          "cannot be placed above the minimum size at which a mark still reads",
+        );
+      }
+      logoBox = { ...drawn, x: W - c.pad - drawn.width, y: 0 };
     }
+
+    const nameWidth = W - c.pad * 2 - (logoBox ? logoBox.width + c.pad : 0);
+    const nameLines = ad.client.name
+      ? dtpWrap(`Client: ${ad.client.name}`, "DTP_BODY", nameWidth, c.colW)
+      : [];
+    const textH = nameLines.length * Math.round(bodySize * 1.15);
+
+    // The band is as tall as the taller of the two, and the name is
+    // centred against the mark. Setting the name from the top instead
+    // left a square client logo standing beside a single short line
+    // with a slab of paper under it — the logo placed correctly and the
+    // band composed carelessly around it.
+    const bandTop = y + Math.round(c.pad * 0.3);
+    const bandH = Math.max(textH, logoBox ? logoBox.height : 0);
+    if (logoBox) logoBox.y = bandTop + Math.round((bandH - logoBox.height) / 2);
+
+    let ty = bandTop + Math.round((bandH - textH) / 2);
+    for (const line of nameLines) {
+      ty += Math.round(bodySize * 1.15);
+      text(c, line, "DTP_BODY", c.pad, ty);
+    }
+    if (logoBox && clientPng) drawLogo(c, clientPng, logoBox);
+
+    bandBottom = bandTop + bandH;
+    y = Math.max(y, bandBottom);
   }
 
   // ---- Roles, each block ruled off from the next ----
   const blocks = buildRoleBlocks(c, ad, plan, titleMax);
-  const unplaced: string[] = [];
   for (const [index, b] of blocks.entries()) {
     // Lead BETWEEN blocks, never before the first. Applying it to the
     // first block opened a ruled box with nothing in it directly under
@@ -575,10 +764,20 @@ function layoutBody(
     y += Math.round(c.pad * 0.3);
   }
 
-  // ---- Salary panel: only when pay is not already on each role ----
+  // ---- Salary panel: chosen by the shape of the pay data ----
+  //
+  // Not one presentation forced on every advertisement. Where trades
+  // are paid differently the figure stays welded to its trade, because
+  // separating them is how a reader ends up applying for the wrong
+  // rate. Where every trade shares one structure, repeating it down the
+  // column is noise, and the references set it once as a panel.
   const perRolePay = blocks.some((b) => b.detail);
+  const wantsPanel = plan.salary && Boolean(ad.salary) && !perRolePay;
+  if (wantsPanel && y + dtpLineHeight("DTP_PRICE", c.colW) * 1.6 >= footerTop) {
+    unplaced.push(`salary: ${ad.salary ?? ""}`);
+  }
   if (
-    plan.salary && ad.salary && !perRolePay &&
+    wantsPanel &&
     y + dtpLineHeight("DTP_PRICE", c.colW) * 1.6 < footerTop
   ) {
     const s = dtpSize("DTP_PRICE", c.colW);
@@ -588,28 +787,42 @@ function layoutBody(
       `<rect x="${c.pad}" y="${Math.round(y)}" width="${W - c.pad * 2}" height="${boxH}" ` +
         `fill="${c.variant === "BW" ? "#EEEEEE" : "#FFE9A8"}" stroke="${INK}" stroke-width="1"/>`,
     );
-    text(c, ad.salary, "DTP_PRICE", W / 2, y + boxH - Math.round(s * 0.45), { anchor: "middle" });
+    text(c, ad.salary ?? "", "DTP_PRICE", W / 2, y + boxH - Math.round(s * 0.45), { anchor: "middle" });
     y += boxH;
   }
 
   // ---- Benefits, run inline as the small bookings do ----
+  //
+  // These `break`s used to be silent. Adding the client band pushed the
+  // eligibility lines off a 6x12 and nothing said so: the render
+  // succeeded, the fill metric stayed healthy, and two verified
+  // conditions of employment simply were not printed. Roles were made
+  // to fail closed earlier; every other fact class was still free to
+  // vanish. They all report now, and the scale search either finds a
+  // size that holds them or the render fails.
   if (plan.benefits && (ad.benefits ?? []).length > 0) {
-    const s = dtpSize("DTP_BODY", c.colW);
+    const s = proseSize(c, proseScale);
     y += Math.round(c.pad * 0.3);
-    for (const line of dtpWrap((ad.benefits ?? []).join(" • "), "DTP_BODY", W - c.pad * 2, c.colW)) {
-      if (y + s * 1.2 > footerTop) break;
+    for (const line of wrapProse(c, (ad.benefits ?? []).join(" • "), W - c.pad * 2, proseScale)) {
+      if (y + s * 1.2 > footerTop) {
+        unplaced.push(`benefit line: ${line}`);
+        continue;
+      }
       y += Math.round(s * 1.2);
-      text(c, line, "DTP_BODY", c.pad, y);
+      text(c, line, "DTP_BODY", c.pad, y, { size: s });
     }
   }
 
   if (plan.eligibility && (ad.eligibility ?? []).length > 0) {
-    const s = dtpSize("DTP_BODY", c.colW);
+    const s = proseSize(c, proseScale);
     for (const item of ad.eligibility ?? []) {
-      for (const line of dtpWrap(item, "DTP_BODY", W - c.pad * 2, c.colW)) {
-        if (y + s * 1.2 > footerTop) break;
+      for (const line of wrapProse(c, item, W - c.pad * 2, proseScale)) {
+        if (y + s * 1.2 > footerTop) {
+          unplaced.push(`eligibility: ${item}`);
+          continue;
+        }
         y += Math.round(s * 1.2);
-        text(c, line, "DTP_BODY", c.pad, y);
+        text(c, line, "DTP_BODY", c.pad, y, { size: s });
       }
     }
   }
@@ -620,6 +833,8 @@ function layoutBody(
     if (y + s * 1.7 < footerTop) {
       y += Math.round(c.pad * 0.3);
       y = bar(c, y, input.interviewVenue, "DTP_LABEL", accent);
+    } else {
+      unplaced.push(`interview venue: ${input.interviewVenue}`);
     }
   }
 
@@ -684,13 +899,27 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
   // from a 6x5 when the default was already too large — the render
   // must first find a scale that places every fact, and only then
   // spend what is left over on setting them bigger.
+  // Two dimensions. The TRADE NAME is searched outermost and prose
+  // inside it, so the largest display size that can be made to work
+  // wins and the reading sizes give way around it.
+  //
+  // Searching prose outermost is the obvious reading of "compress
+  // before you fail", and it produced an advertisement whose benefit
+  // prose was set larger than its job titles — every fact present,
+  // hierarchy inverted. A classified is scanned by trade name; that is
+  // the last thing that may shrink, not the first.
+  const PROSE_STEPS = [1, 0.94, 0.88, 0.82, 0.76];
   let chosen: number | null = null;
-  for (let size = ceiling; size >= floor; size -= 1) {
-    const probe: Ctx = { ...c, parts: [] };
-    const trial = layoutBody(probe, input, plan, footerTop, size);
-    if (trial.unplaced.length === 0 && trial.bottom <= room) {
-      chosen = size;
-      break;
+  let chosenProse = 1;
+  outer: for (let size = ceiling; size >= floor; size -= 1) {
+    for (const prose of PROSE_STEPS) {
+      const probe: Ctx = { ...c, parts: [] };
+      const trial = layoutBody(probe, input, plan, footerTop, size, 0, prose);
+      if (trial.unplaced.length === 0 && trial.bottom <= room) {
+        chosen = size;
+        chosenProse = prose;
+        break outer;
+      }
     }
   }
 
@@ -699,7 +928,10 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
     // for its own content is a commercial decision for the agency to
     // make — buy more depth or advertise fewer trades — not something
     // the renderer may resolve by dropping vacancies.
-    const last = layoutBody({ ...c, parts: [] }, input, plan, footerTop, floor);
+    const last = layoutBody(
+      { ...c, parts: [] }, input, plan, footerTop, floor, 0,
+      PROSE_STEPS[PROSE_STEPS.length - 1],
+    );
     throw new LayoutCapacityError(
       last.unplaced.length > 0 ? last.unplaced : [`${input.heightCm}cm booking body`],
       undefined,
@@ -712,7 +944,7 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
   // residual is opened up INSIDE the role blocks, between the rules,
   // which is where the references carry their air — never as one band
   // above the footer, and never between unrelated sections.
-  const saturated = layoutBody({ ...c, parts: [] }, input, plan, footerTop, chosen);
+  const saturated = layoutBody({ ...c, parts: [] }, input, plan, footerTop, chosen, 0, chosenProse);
   const blocks = ad.positions.length;
   const residual = Math.max(0, room - saturated.bottom);
   // Capped. Removing the cap did drive the fill metric to 99%, but the
@@ -724,7 +956,7 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
     ? Math.min(Math.round(c.W * 0.22), Math.floor(residual / blocks))
     : 0;
 
-  const final = layoutBody(c, input, plan, footerTop, chosen, blockLead);
+  const final = layoutBody(c, input, plan, footerTop, chosen, blockLead, chosenProse);
   const inkBottom = final.bottom;
   const largestGap = Math.max(
     footerTop - inkBottom,

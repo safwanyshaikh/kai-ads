@@ -18,6 +18,8 @@ import {
   DTP_PAGE_CM,
   DTP_AD_HEIGHTS_CM,
   renderDtpClassifiedSvg,
+  pngIntrinsicSize,
+  DtpAssetError,
   dtpPageAt,
 } from "@/server/generation/dtp";
 import { brandAsset, BrandIdentityViolationError } from "@/lib/brand-identity";
@@ -54,8 +56,18 @@ function page(ads: DtpAdvertisement[]) {
 
 const COL = dtpColumnWidth();
 
-/** Any non-empty buffer: the identity guard checks role, not pixels. */
-const PNG = Buffer.alloc(1);
+/**
+ * A real 300x190 PNG, inline so it exists before any fixture is built.
+ *
+ * The identity guard only checks role, but the compositor now reads
+ * intrinsic dimensions from the header to place a mark at its own
+ * aspect ratio — so the Buffer.alloc(1) stand-in these fixtures used
+ * is correctly refused as a corrupt asset.
+ */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAASwAAAC+CAIAAAAAxqXeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAABn0lEQVR42u3TMQ0AAAgEsdeACsTgXw8TGliaVMEll+oBHkUCMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBAwIZgQMCGYEDAhmBBMqAKYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCJgQTAiYEEwImBBMCCZUAUwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYETAgmBEwIJgRMCCYEzgLT+pK9kfJL8wAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 describe("DTP-001 — five-column page geometry", () => {
   it("lays out exactly five columns that fit the page with its margins and gutters", () => {
@@ -596,5 +608,205 @@ describe("DTP classified — the reference grammar", () => {
       ad: { ...base, accent: "#B3121D" }, heightCm: 8, variant: "BW", addressLines,
     });
     expect(r.svg).not.toContain("#B3121D");
+  });
+});
+
+/**
+ * Client identity, brand assets, and the rule that no verified fact of
+ * ANY class may disappear quietly. Roles were made to fail closed
+ * first; these cover everything else that could still vanish.
+ */
+describe("DTP classified — client identity and brand assets", () => {
+  /** A real PNG, so the intrinsic-size reader has something to read. */
+  async function png(w: number, h: number, colour = "#B3121D"): Promise<Buffer> {
+    return sharp({ create: { width: w, height: h, channels: 3, background: colour } })
+      .png().toBuffer();
+  }
+
+  const facts = {
+    headline: "Kuwait",
+    subhead: "Power Transmission",
+    tenant: { name: "Northwind Overseas", registrationText: "B-9987/MUM/PER/1000+/7914/2007" },
+    positions: [
+      { title: "Lineman", count: 14 },
+      { title: "Electrical Technician", count: 12 },
+      { title: "Foreman", count: 5 },
+    ],
+    salary: "KD 180 – 250",
+    benefits: ["Food", "Accommodation", "Transport", "Medical"],
+    eligibility: ["Minimum 5 years Gulf experience"],
+    interview: "Interview 20-21 July · Mumbai",
+    contactPhone: "+91 11 4000 2020",
+    contactEmail: "hire@example-agency.test",
+  } satisfies DtpAdvertisement;
+
+  it("reads a PNG's real dimensions, and rejects what is not a PNG", async () => {
+    expect(pngIntrinsicSize(await png(320, 180))).toEqual({ widthPx: 320, heightPx: 180 });
+    expect(pngIntrinsicSize(Buffer.from("not a png at all, but long enough"))).toBeNull();
+    expect(pngIntrinsicSize(Buffer.alloc(4))).toBeNull();
+  });
+
+  it("renders a supplied client logo instead of discarding it", async () => {
+    // The type accepted client.logo and the classified renderer never
+    // drew it — a supplied brand asset silently dropped.
+    const withLogo: DtpAdvertisement = {
+      ...facts,
+      client: { name: "Gulf Power Contracting", logo: brandAsset("CLIENT_LOGO", await png(320, 320)) },
+    };
+    const bare = renderDtpClassifiedSvg({ ad: facts, heightCm: 9 });
+    const shown = renderDtpClassifiedSvg({ ad: withLogo, heightCm: 9 });
+    expect(bare.svg).not.toContain("<image");
+    expect(shown.svg).toContain("<image");
+  });
+
+  it("places every logo at its own aspect ratio, never a fixed box", async () => {
+    const draw = (svg: string) => {
+      const m = [...svg.matchAll(/<image[^>]*width="(\d+)" height="(\d+)"/g)];
+      return m.map(([, w, h]) => Number(w) / Number(h));
+    };
+    for (const [w, h] of [[400, 100], [320, 320], [180, 360]] as const) {
+      const ad: DtpAdvertisement = {
+        ...facts,
+        client: { name: "Gulf Power", logo: brandAsset("CLIENT_LOGO", await png(w, h)) },
+      };
+      const [aspect] = draw(renderDtpClassifiedSvg({ ad, heightCm: 10 }).svg);
+      expect(aspect).toBeCloseTo(w / h, 1);
+    }
+  });
+
+  it("refuses a corrupt brand asset rather than guessing its shape", () => {
+    const ad: DtpAdvertisement = {
+      ...facts,
+      client: { name: "Gulf Power", logo: brandAsset("CLIENT_LOGO", Buffer.from("nonsense-not-a-png")) },
+    };
+    expect(() => renderDtpClassifiedSvg({ ad, heightCm: 10 })).toThrow(DtpAssetError);
+  });
+
+  it("keeps client and tenant marks in their own slots", async () => {
+    const clientInTenantSlot: DtpAdvertisement = {
+      ...facts,
+      tenant: { ...facts.tenant, logo: brandAsset("CLIENT_LOGO", await png(300, 200)) as never },
+    };
+    expect(() => renderDtpClassifiedSvg({ ad: clientInTenantSlot, heightCm: 10 }))
+      .toThrow(BrandIdentityViolationError);
+
+    const tenantInClientSlot: DtpAdvertisement = {
+      ...facts,
+      client: { name: "Gulf Power", logo: brandAsset("TENANT_PRIMARY_LOGO", await png(300, 200)) as never },
+    };
+    expect(() => renderDtpClassifiedSvg({ ad: tenantInClientSlot, heightCm: 10 }))
+      .toThrow(BrandIdentityViolationError);
+  });
+
+  it("prints a supplied venue at every size, or fails — never drops it", () => {
+    // Gated behind the density tier once, so a venue supplied for a 6x8
+    // was discarded before capacity was ever consulted.
+    for (const h of DTP_AD_HEIGHTS_CM) {
+      let svg: string;
+      try {
+        svg = renderDtpClassifiedSvg({
+          ad: facts, heightCm: h, interviewVenue: "Venue: Turbhe Office, Navi Mumbai",
+        }).svg;
+      } catch (error) {
+        expect(error).toBeInstanceOf(LayoutCapacityError);
+        continue;
+      }
+      expect(svg).toContain("TURBHE OFFICE");
+    }
+  });
+
+  it("reports benefits and eligibility it cannot place, rather than dropping them", () => {
+    const overloaded: DtpAdvertisement = {
+      ...facts,
+      benefits: Array.from({ length: 40 }, (_, i) => `Benefit number ${i + 1}`),
+      eligibility: Array.from({ length: 40 }, (_, i) => `Condition of employment number ${i + 1}`),
+    };
+    let thrown: unknown;
+    try {
+      renderDtpClassifiedSvg({ ad: overloaded, heightCm: 5 });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(LayoutCapacityError);
+    const unplaced = (thrown as LayoutCapacityError).unplaced.join(" ");
+    expect(unplaced).toMatch(/benefit|eligibility/i);
+  });
+
+  it("never sets body prose larger than the trade names above it", () => {
+    // The pressure matters: this is the shape that actually inverted —
+    // six trades, a salary panel, four benefits, an eligibility line, a
+    // venue bar and a full identity footer, all inside 6x8. Searching
+    // prose scale outermost fits everything and settles the trades at
+    // the same size as the body copy; searching display scale first
+    // keeps the trade names ahead of it. Strict >, so equal sizes fail.
+    const dense: DtpAdvertisement = {
+      headline: "Oman",
+      subhead: "Facility Management",
+      urgency: "Urgent requirement for leading FM co.",
+      tenant: {
+        name: "Harbourline Overseas",
+        registrationText: "B-1487/MUM/PART/1000+/9986/2022",
+        logo: brandAsset("TENANT_PRIMARY_LOGO", PNG),
+      },
+      positions: [
+        { title: "Maintenance Supervisor", count: 4 },
+        { title: "Maintenance Engineer", count: 6 },
+        { title: "HVAC Supervisor", count: 4 },
+        { title: "Electrical Supervisor", count: 4 },
+        { title: "Plumber", count: 6 },
+        { title: "Multi Technician", count: 10 },
+      ],
+      salary: "OMR 180 – 260 + Food",
+      benefits: ["Free Accommodation", "Free Transportation", "Medical Insurance", "8 Hours Duty"],
+      eligibility: ["Min. 5 years experience in facility management"],
+      interview: "Client interview in Mumbai · 10-11 July",
+      contactPhone: "81049 62788",
+      contactEmail: "jobs@example-agency.test",
+    };
+    const svg = renderDtpClassifiedSvg({
+      ad: dense, heightCm: 8,
+      interviewVenue: "Venue: Turbhe Office, Navi Mumbai",
+      established: "Estd. 1984",
+      addressLines: [
+        "Arihant Aura, A-601, 6th Floor,",
+        "Opp. Turbhe Railway Station,",
+        "Turbhe MIDC, Navi Mumbai - 400 705.",
+      ],
+    }).svg;
+
+    const drawn = [...svg.matchAll(/<text[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g)]
+      .map(([, size, content]) => ({ size: Number(size), content }));
+
+    const roleSize = drawn.find((t) => t.content.includes("MAINTENANCE SUPERVISOR"))?.size;
+    const proseSizes = drawn
+      .filter((t) => /Accommodation|experience in facility/.test(t.content))
+      .map((t) => t.size);
+
+    expect(roleSize).toBeDefined();
+    expect(proseSizes.length).toBeGreaterThan(0);
+    for (const prose of proseSizes) expect(roleSize as number).toBeGreaterThan(prose);
+  });
+
+  it("states a shared pay structure once, and per-role pay per role", () => {
+    const shared: DtpAdvertisement = {
+      ...facts,
+      positions: facts.positions.map((p) => ({ ...p, detail: "KD 180 – 250" })),
+      salary: "KD 180 – 250",
+    };
+    const distinct: DtpAdvertisement = {
+      ...facts,
+      positions: [
+        { title: "Lineman", detail: "KD 250" },
+        { title: "Foreman", detail: "KD 320" },
+      ],
+      salary: null,
+    };
+    const sharedSvg = renderDtpClassifiedSvg({ ad: shared, heightCm: 9 }).svg;
+    // Once as a panel, not repeated under all three trades.
+    expect([...sharedSvg.matchAll(/KD 180/g)]).toHaveLength(1);
+
+    const distinctSvg = renderDtpClassifiedSvg({ ad: distinct, heightCm: 9 }).svg;
+    expect(distinctSvg).toContain("KD 250");
+    expect(distinctSvg).toContain("KD 320");
   });
 });

@@ -98,6 +98,10 @@ export function dtpTenantLogo(png: Buffer): BrandAsset<"TENANT_PRIMARY_LOGO"> {
 export function dtpVerificationQr(png: Buffer): BrandAsset<"KAI_VERIFICATION_QR"> {
   return brandAsset("KAI_VERIFICATION_QR", png);
 }
+/** The hiring company's own mark — never interchangeable with the tenant's. */
+export function dtpClientLogo(png: Buffer): BrandAsset<"CLIENT_LOGO"> {
+  return brandAsset("CLIENT_LOGO", png);
+}
 
 /** Composes and rasterizes the newspaper page. */
 export async function renderDtpPage(
