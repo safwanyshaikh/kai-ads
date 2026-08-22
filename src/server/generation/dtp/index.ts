@@ -21,6 +21,7 @@ export * from "./dtp-typography";
 export * from "./dtp-ad-block";
 export * from "./dtp-page";
 export * from "./dtp-classified";
+export * from "./dtp-booking";
 
 export type DtpExportFormat = "png" | "jpg" | "pdf";
 

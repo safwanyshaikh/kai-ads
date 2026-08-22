@@ -174,6 +174,23 @@ export interface DtpClassifiedResult {
    * that catches that, and it is what the acceptance test asserts on.
    */
   largestGapRatio: number;
+  /** The size the trade names settled at, in pixels. */
+  roleScalePx: number;
+  /**
+   * True when the trades had to be set below their default size.
+   *
+   * Legal — still above the legibility floor — but it means the booking
+   * carries more than it comfortably holds, which is a commercial fact
+   * the tenant should see before buying that size.
+   *
+   * Deliberately NOT triggered by prose compression. The scale search
+   * maximises display size first and gives way on prose to afford it,
+   * so a reduced prose scale is the normal outcome of a well-set
+   * advertisement, not a symptom of crowding: including it flagged
+   * every height from 6x6 to 6x12 as compressed even where the trade
+   * names were set at three times their default.
+   */
+  compressed: boolean;
 }
 
 const PAPER = "#FFFFFF";
@@ -1207,5 +1224,7 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
     dpi, tier, plan,
     fillRatio: Math.min(1, (inkBottom + (H - footerTop)) / H),
     largestGapRatio: Math.max(0, largestGap) / H,
+    roleScalePx: chosen,
+    compressed: chosen < base,
   };
 }

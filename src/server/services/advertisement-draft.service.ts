@@ -1,10 +1,16 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { deepStripInvalidChars } from "@/lib/sanitize-text";
 import { advertisementDraftRepository } from "@/server/repositories/advertisement-draft.repository";
 import { advertisementService } from "@/server/services/advertisement.service";
 import { auditLogService } from "@/server/services/audit-log.service";
 import { costTrackingService } from "@/server/services/cost-tracking.service";
 import { runKaiIntelligenceEngine, type DraftAttachment } from "@/server/ai/kai-intelligence-engine";
+import {
+  conflictsResolved,
+  detectContentConflicts,
+  type ContentConflict,
+} from "@/server/services/content-conflict.service";
+import type { AdvertisementOutputType } from "@prisma/client";
 import { AiProviderNotImplementedError } from "@/server/ai";
 import type { AiExtractionToolkit } from "@/server/ai";
 import { AUDIT_ACTIONS } from "@/lib/constants";
@@ -15,6 +21,47 @@ import type { CreateDraftInput } from "@/lib/validations/advertisement-draft";
 import type { CreateAdvertisementInput } from "@/lib/validations/advertisement";
 
 const log = createLogger("advertisement-draft-service");
+
+/**
+ * Reads the tenant's free text on its own and reports where it
+ * disagrees with the reconciled extraction.
+ *
+ * Returns [] — and never throws — when there is nothing to compare, or
+ * when the probe itself fails. A conflict probe that breaks must not
+ * take the extraction down with it: the tenant still has their content,
+ * and nothing is generated until they review it either way.
+ */
+async function detectFreeTextConflicts(params: {
+  draft: { instructions: string | null; rawText: string | null; sourceFileUrl: string | null };
+  attachments: DraftAttachment[];
+  merged: Record<string, unknown>;
+  toolkit?: AiExtractionToolkit;
+}): Promise<ContentConflict[]> {
+  const { draft, attachments, merged, toolkit } = params;
+
+  const freeText = draft.instructions?.trim();
+  const hasDocuments = attachments.length > 0 || Boolean(draft.sourceFileUrl);
+  // Nothing to reconcile unless BOTH kinds of source are present.
+  if (!freeText || !hasDocuments) return [];
+
+  try {
+    const probe = await runKaiIntelligenceEngine({
+      sourceType: "PASTE_TEXT",
+      rawText: freeText,
+      sourceFileUrl: null,
+      instructions: null,
+      attachments: [],
+      toolkit,
+    });
+    return detectContentConflicts(
+      merged,
+      probe.result as unknown as Record<string, unknown>,
+    );
+  } catch (error) {
+    log.warn({ err: error }, "free-text conflict probe unavailable");
+    return [];
+  }
+}
 
 export const advertisementDraftService = {
   /** Create Advertisement — the ChatGPT-style composer: pasted text, typed instructions, and/or multiple attachments in one draft. */
@@ -113,8 +160,33 @@ export const advertisementDraftService = {
         advertisementDraftId: id,
       });
 
+      // ---- Conflict probe ----
+      //
+      // The engine returns ONE reconciled result, so a disagreement
+      // between the uploaded documents and the tenant's typed
+      // corrections is invisible by the time it gets here — already
+      // settled, with no record of what was overruled.
+      //
+      // When both kinds of source are present, read the free text once
+      // more on its own and compare. Any reconciled field where the
+      // tenant's text says something different from what the engine
+      // concluded becomes a visible conflict for them to adjudicate,
+      // rather than a number nobody chose.
+      //
+      // One extra call, only when there is actually something to
+      // compare — never for a text-only or document-only draft.
+      const conflicts = await detectFreeTextConflicts({
+        draft,
+        attachments,
+        merged: outcome.result as unknown as Record<string, unknown>,
+        toolkit,
+      });
+
       return advertisementDraftRepository.update(id, {
         status: "EXTRACTED",
+        contentConflicts: conflicts.length > 0
+          ? (conflicts as unknown as Prisma.InputJsonValue)
+          : Prisma.DbNull,
         // Sprint 006 Bug 006: extractedData is a jsonb column, and
         // Postgres hard-rejects a NUL codepoint anywhere inside a jsonb
         // value ("unsupported Unicode escape sequence ... 22P05"). GPT
@@ -175,6 +247,61 @@ export const advertisementDraftService = {
       entityId: id,
       agencyId,
       actorId,
+    });
+
+    return updated;
+  },
+
+  /**
+   * OUTPUT SELECTION — what to produce from the approved content.
+   *
+   * The gate. Generation of any kind is impossible before the tenant
+   * has approved the facts, and this is where that is enforced rather
+   * than in the renderers: a rule spread across three rendering engines
+   * is a rule that will eventually be missing from one of them.
+   *
+   * Choosing an output is not approving content, and approving content
+   * is not choosing an output. Keeping them as two steps is what lets a
+   * tenant approve once and then produce a Black & White classified, a
+   * colour classified and a social post from the same approved facts,
+   * with no opportunity to edit the facts between them.
+   */
+  async selectOutput(
+    id: string,
+    agencyId: string,
+    actorId: string,
+    outputType: AdvertisementOutputType,
+  ) {
+    const draft = await advertisementDraftService.getById(id, agencyId);
+
+    if (!draft.reviewedData) {
+      throw new ConflictError(
+        "Approve the advertisement content before choosing an output format.",
+      );
+    }
+
+    const conflicts = Array.isArray(draft.contentConflicts)
+      ? (draft.contentConflicts as unknown as ContentConflict[])
+      : [];
+    if (!conflictsResolved(conflicts, draft.reviewedData as Record<string, unknown>)) {
+      throw new ConflictError(
+        "Resolve the conflicting details between your documents and your typed " +
+          "content before choosing an output format.",
+      );
+    }
+
+    const updated = await advertisementDraftRepository.update(id, {
+      outputType,
+      status: "STYLE_SELECTED",
+    });
+
+    await auditLogService.record({
+      action: AUDIT_ACTIONS.advertisementDraftReviewed,
+      entity: "AdvertisementDraft",
+      entityId: id,
+      agencyId,
+      actorId,
+      metadata: { outputType },
     });
 
     return updated;

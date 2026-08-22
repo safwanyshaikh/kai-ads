@@ -84,6 +84,22 @@ enum AdvertisementStyle {
   NEWSPAPER
 }
 
+/**
+ * What the tenant asked to be produced from the approved content.
+ *
+ * DTP and Social are separate rendering engines over the SAME approved
+ * facts, and Black & White vs Colour are two modes of DTP — not a
+ * proxy for "DTP vs Social". Modelling them as one flat list keeps that
+ * relationship explicit at the type level, where a boolean pair
+ * (isDtp, isColour) would allow the meaningless "Social in Black &
+ * White".
+ */
+enum AdvertisementOutputType {
+  DTP_BW
+  DTP_COLOUR
+  SOCIAL
+}
+
 enum AdvertisementDraftSourceType {
   PASTE_TEXT
   PDF
@@ -463,6 +479,30 @@ model AdvertisementDraft {
   // every draft created by the older single-source form.
   attachments  Json?
   instructions String?
+
+  /**
+   * The CLIENT's logo, uploaded deliberately by the tenant into its own
+   * field — never a mark harvested from inside an attachment.
+   *
+   * Separate from the agency's own logo, which comes from the tenant's
+   * brand profile. A logo found inside an uploaded PDF may be the
+   * client's, the agency's, a certification badge or decoration, and
+   * guessing wrong attributes one company's identity to another. If
+   * this field is empty the advertisement has no client logo.
+   */
+  clientLogoUrl String?
+
+  /**
+   * Facts that the sources disagree about, awaiting tenant resolution.
+   *
+   * A document saying SAR 1,300 and free text saying SAR 1,400 is not
+   * something the system may quietly settle by preferring one input.
+   * Shape: an array of { field, values: [{ value, source }] }.
+   */
+  contentConflicts Json?
+
+  /** Chosen AFTER content approval — see AdvertisementOutputType. */
+  outputType AdvertisementOutputType?
 
   // AI Extraction Review — populated by the KAI Intelligence Engine
   // (Sprint 003: a real OpenAI-backed implementation of the Sprint 002
