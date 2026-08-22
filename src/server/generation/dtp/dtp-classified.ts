@@ -241,6 +241,22 @@ export class DtpAssetError extends Error {
 /** Smallest width at which a printed logo still reads, as a fraction of the measure. */
 const LOGO_MIN_WIDTH_FRACTION = 0.08;
 
+/**
+ * Smallest the KAI verification QR may be printed, in centimetres.
+ *
+ * A QR is not decoration that can shrink to taste — below a certain
+ * physical size a phone camera stops resolving its modules and the
+ * trust mark becomes a grey square that fails when someone actually
+ * tries it, which is worse than not printing one. 1.2cm at the payload
+ * these URLs carry keeps modules around 0.4mm, which scans in hand.
+ *
+ * It is a PHYSICAL minimum, so it does not shrink with the booking:
+ * the same 1.2cm on a 6x5 as on a 6x12. A small advertisement pays for
+ * it out of its own column, which is the intended trade — the QR is
+ * the reader's route to the licence check.
+ */
+export const DTP_QR_MIN_CM = 1.2;
+
 interface LogoBox { x: number; y: number; width: number; height: number; }
 
 /**
@@ -287,6 +303,8 @@ interface Ctx {
   colW: number;
   accent: string;
   variant: DtpVariant;
+  /** Needed so physical minimums (the QR) convert at the real output DPI. */
+  dpi: number;
   parts: string[];
 }
 
@@ -315,15 +333,26 @@ function text(
  * the destination, the interview date and the venue — facts, all of
  * them — so it may shrink or take a second line, but it may not clip.
  */
-function bar(c: Ctx, y: number, label: string, token: DtpToken, fill: string): number {
+function bar(
+  c: Ctx, y: number, label: string, token: DtpToken, fill: string, setSize?: number,
+): number {
   const avail = c.W - c.pad * 2;
   const base = dtpSize(token, c.colW);
   const floor = Math.max(dtpSize("DTP_LEGAL", c.colW), Math.round(base * 0.62));
-  const size = fitToMeasure(label, token, avail, c.colW, base, floor);
+
+  // `setSize` is a size to SET AT, not a ceiling to fit under.
+  //
+  // Treating it as a ceiling made the hero search do nothing: fitting
+  // shrinks a long headline until it occupies one line, which for
+  // "Saudi Arabia - Aramco Projects" lands well below every ceiling
+  // offered, so every step produced an identical band and the hero was
+  // the same height on a 6x5 and a 6x12. Set at the size and wrapped,
+  // a larger allowance genuinely buys a stronger destination.
+  const size = setSize ?? fitToMeasure(label, token, avail, c.colW, base, floor);
 
   // Wrapped at the measure the smaller size will actually occupy.
   const lines = dtpWrap(
-    label, token, Math.round((avail * base) / size), c.colW,
+    label, token, Math.round((avail * dtpSize(token, c.colW)) / size), c.colW,
   );
   // One line occupies exactly what it did before wrapping existed, so
   // adding the guarantee costs nothing to the overwhelming majority of
@@ -400,6 +429,8 @@ interface FooterPlan {
   contactH: number;
   /** Height the tenant mark needs at its own aspect ratio. */
   logoH: number;
+  /** Reserved square for the KAI verification QR, 0 when none supplied. */
+  qrPx: number;
   lines: FooterLine[];
   logoW: number;
   textLeft: number;
@@ -443,15 +474,21 @@ function planFooter(c: Ctx, input: DtpClassifiedInput, richness: DtpSectionPlan[
     ? Math.round(dtpSize("DTP_CONTACT", c.colW) * 1.55)
     : 0;
 
-  const lines = footerLines(input, richness, innerW, c.colW);
+  // The QR is measured INTO the footer, not laid over it. It sits at
+  // the trailing edge of the identity block and the text column ends
+  // where it begins, so nothing is ever printed underneath it.
+  const qrPx = ad.verificationQr ? cmToPx(DTP_QR_MIN_CM, c.dpi) : 0;
+  const qrGutter = qrPx > 0 ? Math.round(c.pad * 0.6) : 0;
+
+  const lines = footerLines(input, richness, innerW - qrPx - qrGutter, c.colW);
   const textH = lines.reduce((sum, l) => sum + dtpLineHeight(l.token, c.colW), 0);
   const logoH = logoFit ? logoFit.height : 0;
 
   const gutter = richness === "MINIMAL" ? 0.45 : 0.8;
   const heightPx =
-    contactH + Math.round(c.pad * gutter) + Math.max(textH, logoH) +
+    contactH + Math.round(c.pad * gutter) + Math.max(textH, logoH, qrPx) +
     Math.round(c.pad * gutter) + licenceH;
-  return { heightPx, licenceH, contactH, lines, logoW, logoH, textLeft };
+  return { heightPx, licenceH, contactH, lines, logoW, logoH, qrPx, textLeft };
 }
 
 function renderFooter(c: Ctx, input: DtpClassifiedInput, top: number, fp: FooterPlan): void {
@@ -498,6 +535,27 @@ function renderFooter(c: Ctx, input: DtpClassifiedInput, top: number, fp: Footer
   for (const l of fp.lines) {
     y += dtpLineHeight(l.token, c.colW);
     text(c, l.text, l.token, fp.textLeft, y);
+  }
+
+  // ---- KAI verification QR ----
+  //
+  // KAI's own trust mark, not the tenant's and not the client's. The
+  // slot accepts only the KAI role, so an agency logo or a client's
+  // marketing QR cannot be printed here as if KAI had verified it.
+  if (fp.qrPx > 0) {
+    const qrPng = resolveSlotImage(
+      "The DTP classified's KAI verification QR slot",
+      ["KAI_VERIFICATION_QR"],
+      ad.verificationQr,
+    );
+    if (qrPng) {
+      const qrTop = top + Math.round(c.pad * 0.5);
+      c.parts.push(
+        `<image href="data:image/png;base64,${qrPng.toString("base64")}" ` +
+          `x="${c.W - c.pad - fp.qrPx}" y="${qrTop}" ` +
+          `width="${fp.qrPx}" height="${fp.qrPx}" preserveAspectRatio="xMidYMid meet"/>`,
+      );
+    }
   }
 }
 
@@ -753,7 +811,7 @@ function drawQualifier(
 
 function layoutBody(
   c: Ctx, input: DtpClassifiedInput, plan: DtpSectionPlan, footerTop: number,
-  titleMax: number, blockLead = 0, proseScale = 1,
+  titleMax: number, blockLead = 0, proseScale = 1, heroMax?: number,
 ): BodyLayout {
   const { ad } = input;
   const accent = c.accent;
@@ -763,10 +821,17 @@ function layoutBody(
   const unplaced: string[] = [];
 
   // ---- Destination: reversed, full-bleed, the strongest mark ----
-  // Fitted, never clipped: a long master headline like "Jobs in Saudi
-  // Arabia - 100% client interview" ran off the measure at the token's
-  // fixed size. It shrinks to the column, and wraps if it must.
-  y = bar(c, 0, ad.headline, "DTP_HEADLINE", accent);
+  //
+  // Fitted, never clipped — a long master headline shrinks to the
+  // column and wraps if it must — and SIZED BY THE SOLVE rather than by
+  // the token.
+  //
+  // A hero fixed at the token's size is the same reserved-box mistake
+  // the footer used to make, just at the other end of the page: it took
+  // 14% of a 6x5 and 6% of a 6x12, so the hero grew weaker exactly as
+  // the advertisement got bigger. It now competes for the paid column
+  // like everything else — see the hero search in the caller.
+  y = bar(c, 0, ad.headline, "DTP_HEADLINE", accent, heroMax);
 
   // ---- Industry / client line, set tight under the bars ----
   if (plan.subhead && ad.subhead) {
@@ -932,14 +997,21 @@ function layoutBody(
         );
         const titleX = c.pad + bulletR * 4;
         const countW = b.count ? dtpTextWidth(b.count, "DTP_NUMBER", c.colW) + c.pad : 0;
-        text(c, b.title, "DTP_NUMBER", titleX, y, { size: b.titleSize });
+        // The count belongs to the TRADE's baseline, not to wherever
+        // the cursor ended up. Drawing it after the qualifier had
+        // wrapped beneath the trade left "45" sitting alongside
+        // "Diploma / Polytechnic, 5 years" instead of alongside "HVAC
+        // TECHNICIAN" — a vacancy figure attached, to the eye, to the
+        // wrong line.
+        const titleBaseline = y;
+        text(c, b.title, "DTP_NUMBER", titleX, titleBaseline, { size: b.titleSize });
         if (b.qualifier) {
           const advance = Math.round((dtpTextWidth(b.title, "DTP_NUMBER", c.colW) * b.titleSize)
             / dtpSize("DTP_NUMBER", c.colW));
-          y = drawQualifier(c, b.qualifier, titleX, advance, b.titleSize, countW, y);
+          y = drawQualifier(c, b.qualifier, titleX, advance, b.titleSize, countW, titleBaseline);
         }
         if (b.count) {
-          text(c, b.count, "DTP_NUMBER", W - c.pad, y, {
+          text(c, b.count, "DTP_NUMBER", W - c.pad, titleBaseline, {
             anchor: "end", fill: accent, size: b.titleSize,
           });
         }
@@ -1118,7 +1190,7 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
   const accent = variant === "BW" ? INK : (ad.accent ?? INK);
 
   const c: Ctx = {
-    W, H, colW: W, accent, variant,
+    W, H, colW: W, accent, variant, dpi,
     pad: Math.max(3, Math.round(W * 0.035)),
     parts: [
       `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`,
@@ -1164,16 +1236,46 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
   // hierarchy inverted. A classified is scanned by trade name; that is
   // the last thing that may shrink, not the first.
   const PROSE_STEPS = [1, 0.94, 0.88, 0.82, 0.76];
+
+  // The hero competes for the column too, and is settled OUTSIDE the
+  // body search: a strong destination band is preferred, and gives way
+  // to a compact one only when the content needs the room. Which means
+  // a sparse 6x5 gets a bold hero and a dense 6x11 gets a modest one —
+  // the behaviour the references show — without either being written
+  // down as a rule about height.
+  // The hero's allowance is PROPORTIONAL TO THE PURCHASED AREA, then
+  // searched downward from there.
+  //
+  // Without the proportional bound the largest step always won: a
+  // bigger hero can always be made to "fit" by squeezing the trades
+  // underneath it, so the search handed a 6x5 the same 73px band as a
+  // 6x12 and took the space out of the vacancies. A destination is a
+  // heading, not the advertisement.
+  const heroBase = dtpSize("DTP_HEADLINE", c.colW);
+  const heroCeiling = Math.max(
+    Math.round(heroBase * 0.55),
+    Math.min(Math.round(heroBase * 1.45), Math.round(H * 0.058)),
+  );
+  const HERO_STEPS = [1, 0.88, 0.78, 0.68, 0.6].map(
+    (f) => Math.max(
+      Math.round(heroBase * 0.5), Math.round(heroCeiling * f),
+    ),
+  );
+
   let chosen: number | null = null;
   let chosenProse = 1;
-  outer: for (let size = ceiling; size >= floor; size -= 1) {
-    for (const prose of PROSE_STEPS) {
-      const probe: Ctx = { ...c, parts: [] };
-      const trial = layoutBody(probe, input, plan, footerTop, size, 0, prose);
-      if (trial.unplaced.length === 0 && trial.bottom <= room) {
-        chosen = size;
-        chosenProse = prose;
-        break outer;
+  let chosenHero = HERO_STEPS[HERO_STEPS.length - 1];
+  outer: for (const hero of HERO_STEPS) {
+    for (let size = ceiling; size >= floor; size -= 1) {
+      for (const prose of PROSE_STEPS) {
+        const probe: Ctx = { ...c, parts: [] };
+        const trial = layoutBody(probe, input, plan, footerTop, size, 0, prose, hero);
+        if (trial.unplaced.length === 0 && trial.bottom <= room) {
+          chosen = size;
+          chosenProse = prose;
+          chosenHero = hero;
+          break outer;
+        }
       }
     }
   }
@@ -1185,7 +1287,7 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
     // the renderer may resolve by dropping vacancies.
     const last = layoutBody(
       { ...c, parts: [] }, input, plan, footerTop, floor, 0,
-      PROSE_STEPS[PROSE_STEPS.length - 1],
+      PROSE_STEPS[PROSE_STEPS.length - 1], HERO_STEPS[HERO_STEPS.length - 1],
     );
     throw new LayoutCapacityError(
       last.unplaced.length > 0 ? last.unplaced : [`${input.heightCm}cm booking body`],
@@ -1199,7 +1301,9 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
   // residual is opened up INSIDE the role blocks, between the rules,
   // which is where the references carry their air — never as one band
   // above the footer, and never between unrelated sections.
-  const saturated = layoutBody({ ...c, parts: [] }, input, plan, footerTop, chosen, 0, chosenProse);
+  const saturated = layoutBody(
+    { ...c, parts: [] }, input, plan, footerTop, chosen, 0, chosenProse, chosenHero,
+  );
   const blocks = campaignsOf(ad).reduce((n, k) => n + k.positions.length, 0);
   const residual = Math.max(0, room - saturated.bottom);
   // Capped. Removing the cap did drive the fill metric to 99%, but the
@@ -1211,7 +1315,7 @@ export function renderDtpClassifiedSvg(input: DtpClassifiedInput): DtpClassified
     ? Math.min(Math.round(c.W * 0.22), Math.floor(residual / blocks))
     : 0;
 
-  const final = layoutBody(c, input, plan, footerTop, chosen, blockLead, chosenProse);
+  const final = layoutBody(c, input, plan, footerTop, chosen, blockLead, chosenProse, chosenHero);
   const inkBottom = final.bottom;
   const largestGap = Math.max(
     footerTop - inkBottom,

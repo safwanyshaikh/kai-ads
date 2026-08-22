@@ -11,9 +11,19 @@ import {
   renderDtpAdvertisement,
 } from "@/server/services/dtp-render.service";
 import {
+  DTP_AD_HEIGHTS_CM,
+  DTP_QR_MIN_CM,
   DtpBookingTooSmallError,
   selectDtpBooking,
   type DtpAdvertisement,
+} from "@/server/generation/dtp";
+import { DTP_DEFAULT_DPI, pxToCm } from "@/lib/dtp-format-law";
+import {
+  DTP_TYPE,
+  dtpFamily,
+  dtpSize,
+  dtpTextWidth,
+  type DtpToken,
 } from "@/server/generation/dtp";
 import { BrandIdentityViolationError, brandAsset } from "@/lib/brand-identity";
 
@@ -233,5 +243,159 @@ describe("DTP rendering — no image model, and identities kept apart", () => {
         tenant: { ...base.tenant, logo: brandAsset("CLIENT_LOGO", PNG) as never },
       },
     })).toThrow(BrandIdentityViolationError);
+  });
+});
+
+/**
+ * KAI VERIFICATION QR.
+ *
+ * KAI's own trust mark, structurally separate from the tenant's logo,
+ * the client's logo and any certification badge. It is the reader's
+ * route to the licence check, so it is reserved into the footer's
+ * physical layout rather than laid over it, and it is held to a
+ * physical minimum size instead of shrinking with the booking.
+ */
+describe("DTP verification QR — KAI's trust mark, not anyone else's", () => {
+  const ad: DtpAdvertisement = {
+    headline: "Saudi Arabia",
+    tenant: {
+      name: "Northgate Overseas Manpower",
+      registrationText: "B-0417/MUM/PART/1000+/4820/2021",
+    },
+    positions: [
+      { title: "HVAC Technician", count: 45, qualifier: "Diploma, 5 years" },
+      { title: "Project Manager", count: 5, qualifier: "PMP, 15 years" },
+    ],
+    contactPhone: "8104962797",
+    contactEmail: "jobs@example-agency.test",
+  };
+  // Long enough to fill the column. Short footer lines never reach the
+  // QR at all, so they cannot demonstrate that the text column is
+  // actually narrowed for it — an earlier version of this fixture
+  // wrapped to 518px against a QR edge at 542 and passed whether the
+  // narrowing was there or not.
+  const addressLines = [
+    "Northgate House 2nd Floor Andheri Kurla Road Andheri East Mumbai 400059 Maharashtra India",
+  ];
+
+  /** Real QR pixels, so what is measured is what would print. */
+  async function realQr(url: string): Promise<Buffer> {
+    const { generateAndVerifyQr } = await import("@/server/generation/qr-renderer");
+    const result = await generateAndVerifyQr(url);
+    expect(result.decodable).toBe(true);
+    return result.png;
+  }
+
+  const URL = "https://kai-ads.test/v/ver_9f3c21?a=ad_7781";
+
+  /** A token per family, so advances are measured with the right metrics. */
+  const TOKEN_BY_FAMILY = new Map(
+    (Object.keys(DTP_TYPE) as DtpToken[]).map((t) => [dtpFamily(t), t]),
+  );
+
+  it("prints the QR at every bookable size when the tenant is verified", async () => {
+    const qr = await realQr(URL);
+    for (const heightCm of DTP_AD_HEIGHTS_CM) {
+      const { render } = renderDtpAdvertisement({
+        ad, heightCm, outputType: "DTP_BW", verificationQrPng: qr, addressLines,
+      });
+      expect(render.svg).toContain("<image");
+    }
+  });
+
+  it("reserves nothing when the tenant has no verification", () => {
+    // No placeholder, no empty box — an unverified agency simply has no
+    // trust mark, and the footer is measured accordingly.
+    const { render } = renderDtpAdvertisement({
+      ad, heightCm: 8, outputType: "DTP_BW", addressLines,
+    });
+    expect(render.svg).not.toContain("<image");
+  });
+
+  it("holds the QR to a scannable physical size, whatever the booking", async () => {
+    const qr = await realQr(URL);
+    for (const heightCm of DTP_AD_HEIGHTS_CM) {
+      const { render } = renderDtpAdvertisement({
+        ad, heightCm, outputType: "DTP_BW", verificationQrPng: qr, addressLines,
+      });
+      const box = /<image[^>]*width="(\d+)" height="(\d+)"/.exec(render.svg);
+      expect(box).toBeTruthy();
+      const [, w, h] = box as RegExpExecArray;
+      // Square — never cropped or stretched.
+      expect(Number(w)).toBe(Number(h));
+      expect(pxToCm(Number(w), DTP_DEFAULT_DPI)).toBeGreaterThanOrEqual(DTP_QR_MIN_CM - 0.01);
+    }
+  });
+
+  it("keeps the QR inside the advertisement and clear of the footer text", async () => {
+    const qr = await realQr(URL);
+    for (const heightCm of DTP_AD_HEIGHTS_CM) {
+      const { render } = renderDtpAdvertisement({
+        ad, heightCm, outputType: "DTP_COLOUR", verificationQrPng: qr, addressLines,
+      });
+      const m = /<image[^>]*x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)"/.exec(render.svg);
+      const [, xs, ys, ws, hs] = m as RegExpExecArray;
+      const x = Number(xs), y = Number(ys), w = Number(ws), h = Number(hs);
+
+      expect(x + w).toBeLessThanOrEqual(render.widthPx);
+      expect(y + h).toBeLessThanOrEqual(render.heightPx);
+
+      // Nothing is set underneath it. Measured on where footer text
+      // ENDS, not where it starts: a line beginning left of the QR can
+      // still run clean through it, and an earlier version of this
+      // check asked the wrong question and passed while it did.
+      const rows = [...render.svg.matchAll(
+        /<text[^>]*x="(-?\d+)" y="(-?\d+)"[^>]*font-family="([^"]+)"[^>]*font-size="(\d+)"[^>]*(?:text-anchor="([a-z]+)" )?[^>]*>([^<]*)<\/text>/g,
+      )].map(([, tx, ty, family, size, anchor, content]) => ({
+        x: Number(tx), y: Number(ty), family, size: Number(size),
+        anchor: anchor ?? "start",
+        content: content.replace(/&amp;/g, "&"),
+      }));
+
+      for (const row of rows) {
+        if (!row.content.trim()) continue;
+        if (row.anchor !== "start") continue; // centred/right-set lines sit elsewhere
+        if (row.y <= y || row.y >= y + h) continue; // not on the QR's band
+
+        const token = TOKEN_BY_FAMILY.get(row.family);
+        if (!token) continue;
+        const advance = dtpTextWidth(row.content, token, render.widthPx)
+          * row.size / dtpSize(token, render.widthPx);
+        expect(`${row.content} ends @${Math.round(row.x + advance)}`)
+          .toBe(`${row.content} ends @${Math.round(Math.min(row.x + advance, x))}`);
+      }
+    }
+  });
+
+  it("decodes out of the FINAL rendered artwork, not just the source PNG", async () => {
+    // The claim that matters is that a phone can read it off the
+    // printed page, so this rasterises the whole advertisement and
+    // scans the QR back out of the finished image.
+    const qr = await realQr(URL);
+    const sharp = (await import("sharp")).default;
+    const { PNG } = await import("pngjs");
+    const jsQR = (await import("jsqr")).default;
+
+    for (const heightCm of [5, 12] as const) {
+      for (const outputType of ["DTP_BW", "DTP_COLOUR"] as const) {
+        const { render } = renderDtpAdvertisement({
+          ad, heightCm, outputType, verificationQrPng: qr, addressLines,
+        });
+        const raster = await sharp(Buffer.from(render.svg)).png().toBuffer();
+        const decoded = PNG.sync.read(raster);
+        const found = jsQR(new Uint8ClampedArray(decoded.data), decoded.width, decoded.height);
+        expect(found?.data).toBe(URL);
+      }
+    }
+  }, 30_000);
+
+  it("refuses a tenant or client mark in the verification slot", async () => {
+    const qr = await realQr(URL);
+    for (const role of ["TENANT_PRIMARY_LOGO", "CLIENT_LOGO"] as const) {
+      expect(() => renderDtpAdvertisement({
+        ad: { ...ad, verificationQr: brandAsset(role, qr) as never },
+        heightCm: 8, outputType: "DTP_BW", addressLines,
+      })).toThrow(BrandIdentityViolationError);
+    }
   });
 });

@@ -862,12 +862,27 @@ describe("DTP classified — campaigns and the trim edge", () => {
     contactEmail: "jobs@example-agency.test",
   };
 
+  /**
+   * Undo the SVG escaping before measuring.
+   *
+   * "&amp;" is five characters where the page sets one, so measuring
+   * the raw attribute text made "6G Multi-TIG &amp; ARC" appear 131px
+   * wider than it prints and reported an overrun that does not exist.
+   * The detector was wrong, not the compositor.
+   */
+  function unescape(text: string): string {
+    return text
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+      .replace(/&amp;/g, "&");
+  }
+
   /** Every string the compositor drew, with the size and family used. */
   function drawn(svg: string) {
     return [...svg.matchAll(
       /<text[^>]*x="(-?\d+)"[^>]*font-family="([^"]+)"[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g,
     )].map(([, x, family, size, content]) => ({
-      x: Number(x), family, size: Number(size), content,
+      x: Number(x), family, size: Number(size), content: unescape(content),
     }));
   }
 
@@ -986,7 +1001,7 @@ describe("DTP classified — campaigns and the trim edge", () => {
       const rows = [...svg.matchAll(
         /<text[^>]*x="(-?\d+)" y="(-?\d+)"[^>]*font-family="([^"]+)"[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g,
       )].map(([, x, y, family, size, content]) => ({
-        x: Number(x), y: Number(y), family, size: Number(size), content,
+        x: Number(x), y: Number(y), family, size: Number(size), content: unescape(content),
       }));
 
       // Group by baseline; within a baseline nothing may overlap.
@@ -1014,6 +1029,60 @@ describe("DTP classified — campaigns and the trim edge", () => {
         }
       }
     }
+  });
+
+  it("keeps a vacancy count on its own trade's baseline", () => {
+    // When the qualification wrapped beneath the trade, the count was
+    // drawn from the moved cursor: "45" sat alongside "Diploma /
+    // Polytechnic, 5 years" rather than alongside "HVAC TECHNICIAN",
+    // reading as a figure attached to the wrong line.
+    const ad: DtpAdvertisement = {
+      headline: "Saudi Arabia",
+      tenant: { name: "Northgate Overseas", registrationText: "B-0417" },
+      positions: [
+        { title: "HVAC Technician", count: 45, qualifier: "Diploma / Polytechnic, 5 years" },
+        { title: "Mechanical Engineer (HVAC)", count: 5, qualifier: "Degree Mech (HVAC), 10 years" },
+      ],
+      contactPhone: "8104962797",
+    };
+    for (const heightCm of [6, 8, 10] as const) {
+      const { svg } = renderDtpClassifiedSvg({ ad, heightCm });
+      const rows = [...svg.matchAll(
+        /<text[^>]*y="(-?\d+)"[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g,
+      )].map(([, y, size, content]) => ({ y: Number(y), size: Number(size), content }));
+
+      for (const { title, count } of [
+        { title: "HVAC TECHNICIAN", count: "45" },
+        { title: "MECHANICAL ENGINEER (HVAC)", count: "5" },
+      ]) {
+        const titleRow = rows.find((r) => r.content === title);
+        const countRow = rows.find((r) => r.content === count && r.size === titleRow?.size);
+        expect(titleRow).toBeDefined();
+        expect(countRow).toBeDefined();
+        expect(countRow?.y).toBe(titleRow?.y);
+      }
+    }
+  });
+
+  it("scales the destination band with the purchased area", () => {
+    // A hero fixed at the token size took 14% of a 6x5 and 6% of a
+    // 6x12 — weaker exactly as the advertisement got bigger. It is now
+    // part of the same solve as everything else.
+    const ad: DtpAdvertisement = {
+      headline: "Saudi Arabia – Aramco Projects",
+      tenant: { name: "Northgate Overseas", registrationText: "B-0417" },
+      positions: [{ title: "HVAC Technician", count: 45 }],
+      contactPhone: "8104962797",
+    };
+    const heroSize = (heightCm: DtpAdHeightCm) => {
+      const { svg } = renderDtpClassifiedSvg({ ad, heightCm });
+      return [...svg.matchAll(/<text[^>]*font-size="(\d+)"[^>]*fill="#FFFFFF"/g)]
+        .map((m) => Number(m[1]))[0];
+    };
+    const small = heroSize(5);
+    const large = heroSize(12);
+    expect(small).toBeGreaterThan(0);
+    expect(large).toBeGreaterThan(small);
   });
 
   it("wraps a headline too long for the measure instead of clipping it", () => {

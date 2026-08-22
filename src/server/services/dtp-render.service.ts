@@ -17,7 +17,10 @@ import type { AdvertisementOutputType } from "@prisma/client";
 
 import { brandAsset, type BrandAsset } from "@/lib/brand-identity";
 import {
+  DTP_CLASSIFIED_WIDTH_CM,
+  renderDtpClassifiedSvg,
   selectDtpBooking,
+  type DtpAdHeightCm,
   type DtpAdvertisement,
   type DtpBookingSelection,
   type DtpVariant,
@@ -50,6 +53,27 @@ export interface DtpRenderRequest {
    */
   clientLogoPng?: Buffer | null;
   tenantLogoPng?: Buffer | null;
+  /**
+   * KAI's verification QR, already generated and decode-verified by
+   * qr-renderer. Tagged here with the KAI role, so the only mark that
+   * can reach the verification slot is one KAI produced — a tenant's
+   * or client's own QR is refused by the identity guard rather than
+   * printed as though KAI had verified it.
+   *
+   * Absent when the tenant has no verification: no placeholder is
+   * drawn and nothing is reserved.
+   */
+  verificationQrPng?: Buffer | null;
+  /**
+   * The height the tenant has already purchased.
+   *
+   * Omitted, the compositor recommends one. Supplied, it is honoured:
+   * an agency that has bought a 6x8 needs a 6x8, and being handed a
+   * 6x10 because the content would sit more comfortably there is not a
+   * service — it is a booking they cannot place. Content is fitted into
+   * the purchased area, and fails closed if it genuinely cannot be.
+   */
+  heightCm?: DtpAdHeightCm;
 }
 
 export interface DtpRenderResult extends DtpBookingSelection {
@@ -80,9 +104,13 @@ export function renderDtpAdvertisement(request: DtpRenderRequest): DtpRenderResu
   const tenantLogo: BrandAsset<"TENANT_PRIMARY_LOGO"> | null = request.tenantLogoPng
     ? brandAsset("TENANT_PRIMARY_LOGO", request.tenantLogoPng)
     : null;
+  const verificationQr: BrandAsset<"KAI_VERIFICATION_QR"> | null = request.verificationQrPng
+    ? brandAsset("KAI_VERIFICATION_QR", request.verificationQrPng)
+    : null;
 
   const ad: DtpAdvertisement = {
     ...request.ad,
+    verificationQr: verificationQr ?? request.ad.verificationQr ?? null,
     tenant: { ...request.ad.tenant, logo: tenantLogo ?? request.ad.tenant.logo ?? null },
     // A client band exists only when the tenant supplied a client. An
     // absent client logo is absent — never substituted with the
@@ -95,13 +123,28 @@ export function renderDtpAdvertisement(request: DtpRenderRequest): DtpRenderResu
       : null,
   };
 
-  const booking = selectDtpBooking({
+  const common = {
     ad,
     variant,
     addressLines: request.addressLines,
     established: request.established,
     interviewVenue: request.interviewVenue,
-  });
+  };
 
-  return { ...booking, variant, usedImageGeneration: false };
+  const booking: DtpBookingSelection = request.heightCm
+    ? {
+        heightCm: request.heightCm,
+        widthCm: DTP_CLASSIFIED_WIDTH_CM,
+        render: renderDtpClassifiedSvg({ ...common, heightCm: request.heightCm }),
+        rejected: [],
+        compressed: false,
+      }
+    : selectDtpBooking(common);
+
+  return {
+    ...booking,
+    compressed: booking.render.compressed,
+    variant,
+    usedImageGeneration: false,
+  };
 }
