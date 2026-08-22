@@ -16,15 +16,21 @@ async function logo(c: string) {
 // Eight different agencies / industries / densities — one per size.
 async function cases(): Promise<{ h: number; ad: DtpAdvertisement; extra: Record<string, unknown> }[]> {
   return [
-    { h: 5, ad: { headline:"Saudi Arabia", subhead:"Oil & Gas", tenant:{name:"Novara HR", registrationText:"B-0101/MUM/PART/1000+/9986/2022"},
-        positions:[{title:"Pipe Fabricator",count:12},{title:"Welder GTAW",count:10},{title:"Painter / Blaster",count:8}],
-        salary:"Upto SR 2200 + Food", contactPhone:"8104 962797", accent:BLACK }, extra:{} },
+    { h: 5, ad: { headline:"Hiring for – Saudi Arabia", tenant:{name:"Novara HR", registrationText:"B-0101/MUM/PART/1000+/9986/2022", logo: dtpTenantLogo(await logo(BLACK))},
+        positions:[{title:"Pipe Fabricators",detail:"Upto SR 2000 + SR 300 Food"},{title:"Welder (GTAW+SMAW)",detail:"Upto SR 2200 + SR 300 Food"},{title:"Painter / Blaster",detail:"Upto SR 1500 + SR 300 Food"}],
+        interview:"Client interview 4th & 5th June · Mumbai",
+        contactPhone:"8104962797 / 8104962798", contactEmail:"jobs@example-agency.test", accent:BLACK },
+      extra:{ established:"Estd. 1984", addressLines:["Interview venue: SAFCO Training Center,","Gami Industrial Park, Gala A-23, Pawne MIDC,","Near Turbhe Railway Stn, Navi Mumbai."] } },
     { h: 6, ad: { headline:"Qatar", subhead:"LNG Maintenance", tenant:{name:"Meridian Gulf Staffing", registrationText:"B-4410/CHE/PER/1000+/5521/2015"},
-        positions:[{title:"Instrument Tech.",count:8},{title:"Electrician",count:6},{title:"Scaffolder",count:14}],
-        salary:"QR 1600 – 2200 + FAT", contactPhone:"8291 898055", accent:RED }, extra:{} },
+        positions:[{title:"Instrument Tech.",count:8,detail:"QR 2200 + FAT"},{title:"Electrician",count:6,detail:"QR 1800 + FAT"},{title:"Scaffolder",count:14,detail:"QR 1600 + FAT"}],
+        interview:"Interview 12-13 August · Chennai",
+        contactPhone:"8291 898055", contactEmail:"gulf@example-agency.test", accent:RED },
+      extra:{ established:"Estd. 2001", addressLines:["18 Anna Salai, Chennai 600002."] } },
     { h: 7, ad: { headline:"UAE", subhead:"Construction", urgency:"Urgent requirement", tenant:{name:"Crestpoint Manpower", registrationText:"B-2201/DEL/PER/1000+/4412/2019"},
-        positions:[{title:"Mason",count:20},{title:"Carpenter",count:18},{title:"Steel Fixer",count:30},{title:"Electrician",count:9}],
-        salary:"AED 1200 – 1400", benefits:["Free food","Accommodation","Transport"], contactPhone:"+91 22 6166 6688", accent:NAVY }, extra:{} },
+        positions:[{title:"Mason",count:20,detail:"AED 1400"},{title:"Carpenter",count:18,detail:"AED 1350"},{title:"Steel Fixer",count:30,detail:"AED 1300"},{title:"Electrician",count:9,detail:"AED 1200"}],
+        benefits:["Free food","Accommodation","Transport"], interview:"Client interview 19th July · Mumbai",
+        contactPhone:"+91 22 6166 6688", contactEmail:"apply@example-agency.test", accent:NAVY },
+      extra:{ established:"Estd. 1991", addressLines:["Universal Majestic, RBK Circle, Mumbai."] } },
     { h: 8, ad: { headline:"Oman", subhead:"Facility Management", urgency:"Urgent requirement for leading FM co.", tenant:{name:"Harbourline Overseas", registrationText:"B-1487/MUM/PART/1000+/9986/2022", logo: dtpTenantLogo(await logo(GREEN))},
         positions:[{title:"Maintenance Supervisor",count:4},{title:"Maintenance Engineer",count:6},{title:"HVAC Supervisor",count:4},{title:"Electrical Supervisor",count:4},{title:"Plumber",count:6},{title:"Multi Technician",count:10}],
         salary:"OMR 180 – 260 + Food", benefits:["Free Accommodation","Free Transportation","Medical Insurance","8 Hours Duty"],
@@ -76,7 +82,7 @@ async function main() {
     const png = await sharp(Buffer.from(r.svg)).png().toBuffer();
     fs.writeFileSync(`${OUT}/ad-6x${h}.png`, png);
     const on = Object.entries(r.plan).filter(([, v]) => v === true).map(([k]) => k).join(",");
-    console.log(`6x${String(h).padEnd(2)}  ${String(r.widthPx)}x${String(r.heightPx).padEnd(5)} ${pxToCm(r.widthPx,DPI).toFixed(2)}x${pxToCm(r.heightPx,DPI).toFixed(2)}   ${r.tier.padEnd(8)} ${(r.fillRatio*100).toFixed(0)}%  ${r.plan.footer}/${on}`);
+    console.log(`6x${String(h).padEnd(2)}  ${String(r.widthPx)}x${String(r.heightPx).padEnd(5)} ${pxToCm(r.widthPx,DPI).toFixed(2)}x${pxToCm(r.heightPx,DPI).toFixed(2)}   ${r.tier.padEnd(8)} ${(r.fillRatio*100).toFixed(0)}% g${(r.largestGapRatio*100).toFixed(0)}%  ${r.plan.footer}/${on}`);
     const t = await sharp(png).resize({ width: Math.round(r.widthPx * SCALE) }).toBuffer();
     const m = await sharp(t).metadata();
     tiles.push({ input: t, left: x, top: 0 });

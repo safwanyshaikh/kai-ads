@@ -16,9 +16,12 @@ import {
   DTP_MIN_AD_WIDTH_CM,
   DTP_MIN_AD_HEIGHT_CM,
   DTP_PAGE_CM,
+  DTP_AD_HEIGHTS_CM,
+  renderDtpClassifiedSvg,
   dtpPageAt,
 } from "@/server/generation/dtp";
 import { brandAsset, BrandIdentityViolationError } from "@/lib/brand-identity";
+import { LayoutCapacityError } from "@/server/generation/pipeline/fact-layer";
 import { DTP_DEFAULT_DPI, isApprovedDtpWidthPx, pxToCm } from "@/lib/dtp-format-law";
 
 /**
@@ -50,6 +53,9 @@ function page(ads: DtpAdvertisement[]) {
 }
 
 const COL = dtpColumnWidth();
+
+/** Any non-empty buffer: the identity guard checks role, not pixels. */
+const PNG = Buffer.alloc(1);
 
 describe("DTP-001 — five-column page geometry", () => {
   it("lays out exactly five columns that fit the page with its margins and gutters", () => {
@@ -367,13 +373,15 @@ describe("DTP-020 — tenant neutrality", () => {
   });
 });
 
-describe("DTP minimum saleable advertisement (6cm x 8cm)", () => {
+describe("DTP minimum saleable advertisement (6cm x 5cm)", () => {
   /**
    * The format law prices Assignments Abroad Times appointment
    * advertisements in physical slots whose smallest unit is 2 columns =
-   * 6.0cm, and the minimum booking is 6 x 8cm. An advertisement smaller
-   * than that cannot be sold or published, so the renderer may never
-   * produce one — whatever its copy happens to measure.
+   * 6.0cm, and the minimum booking is 6 x 5cm — evidenced by release
+   * orders pricing 6 x 5 at 1000/sq.cm = 30,000 and at 1300/sq.cm =
+   * 39,000. An advertisement smaller than that cannot be sold or
+   * published, so the renderer may never produce one — whatever its
+   * copy happens to measure.
    */
   it("the grid column is exactly the minimum saleable width, and an approved slot", () => {
     for (const dpi of [150, 300]) {
@@ -442,5 +450,151 @@ describe("DTP minimum saleable advertisement (6cm x 8cm)", () => {
       const spanned = g.marginPx * 2 + g.columnPx * g.columns + g.gutterPx * (g.columns - 1);
       expect(spanned).toBe(g.widthPx);
     }
+  });
+});
+
+/**
+ * These cover the classified unit itself — the single 6cm booking —
+ * rather than the page it sits on. Each one is a defect that a passing
+ * geometry suite did not catch and only a side-by-side against the
+ * reference bookings revealed.
+ */
+describe("DTP classified — the reference grammar", () => {
+  const base = {
+    headline: "Hiring for – Saudi Arabia",
+    tenant: {
+      name: "Novara HR",
+      registrationText: "B-0101/MUM/PART/1000+/9986/2022",
+      logo: brandAsset("TENANT_PRIMARY_LOGO", PNG),
+    },
+    positions: [
+      { title: "Pipe Fabricators", detail: "Upto SR 2000 + SR 300 Food" },
+      { title: "Welder (GTAW+SMAW)", detail: "Upto SR 2200 + SR 300 Food" },
+      { title: "Painter / Blaster", detail: "Upto SR 1500 + SR 300 Food" },
+    ],
+    interview: "Client interview 4th & 5th June · Mumbai",
+    contactPhone: "8104962797 / 8104962798",
+    contactEmail: "jobs@example-agency.test",
+  } satisfies DtpAdvertisement;
+
+  const addressLines = [
+    "Interview venue: SAFCO Training Center,",
+    "Gami Industrial Park, Gala A-23, Pawne MIDC,",
+    "Near Turbhe Railway Stn, Navi Mumbai.",
+  ];
+
+  it("every bookable height is exactly 6cm wide", () => {
+    for (const h of DTP_AD_HEIGHTS_CM) {
+      const r = renderDtpClassifiedSvg({ ad: base, heightCm: h, addressLines });
+      expect(pxToCm(r.widthPx, DTP_DEFAULT_DPI)).toBeCloseTo(6.0, 2);
+      expect(pxToCm(r.heightPx, DTP_DEFAULT_DPI)).toBeCloseTo(h, 2);
+    }
+  });
+
+  it("prints every booked trade at the smallest size, or refuses the render", () => {
+    // The 6x5 reference carries three trades WITH per-role pay. An
+    // earlier build quietly dropped the third and still reported a
+    // healthy fill ratio — the failure this asserts against.
+    const r = renderDtpClassifiedSvg({ ad: base, heightCm: 5, addressLines });
+    for (const p of base.positions) {
+      expect(r.svg).toContain(p.title.toUpperCase());
+      expect(r.svg).toContain(p.detail.toUpperCase());
+    }
+  });
+
+  it("fails closed rather than omitting a trade it cannot fit", () => {
+    const overloaded: DtpAdvertisement = {
+      ...base,
+      positions: Array.from({ length: 24 }, (_, i) => ({
+        title: `Technician Grade ${i + 1}`,
+        detail: "Upto SR 2000 + SR 300 Food",
+      })),
+    };
+    expect(() => renderDtpClassifiedSvg({ ad: overloaded, heightCm: 5, addressLines }))
+      .toThrow(LayoutCapacityError);
+  });
+
+  it("always prints the telephone, at every size", () => {
+    // Reserved, not fitted last: leaving it to spare room lost it
+    // entirely from a 6x5 and left an advertisement no one could answer.
+    for (const h of DTP_AD_HEIGHTS_CM) {
+      const r = renderDtpClassifiedSvg({ ad: base, heightCm: h, addressLines });
+      expect(r.svg).toContain("8104962797 / 8104962798");
+    }
+  });
+
+  it("never truncates the address", () => {
+    for (const h of DTP_AD_HEIGHTS_CM) {
+      const r = renderDtpClassifiedSvg({ ad: base, heightCm: h, addressLines });
+      // "...Pawne MIDC," once printed as the last line of a 6x5 footer,
+      // with the rest of the venue silently cut.
+      expect(r.svg).toContain("Near Turbhe Railway Stn, Navi Mumbai.");
+    }
+  });
+
+  it("carries the licence and the agency identity at every size", () => {
+    for (const h of DTP_AD_HEIGHTS_CM) {
+      const r = renderDtpClassifiedSvg({ ad: base, heightCm: h, addressLines });
+      expect(r.svg).toContain("B-0101/MUM/PART/1000+/9986/2022");
+      expect(r.svg).toContain("NOVARA HR");
+      expect(r.svg).toContain("<image");
+    }
+  });
+
+  it("leaves no dead band when the copy suits the slot", () => {
+    // Asserted on largestGapRatio, not fillRatio. fillRatio measures
+    // where the last baseline fell, and an earlier build scored 0.99 on
+    // an advertisement that was visibly three near-empty ruled boxes.
+    // This is the number that would have caught it.
+    for (const h of DTP_AD_HEIGHTS_CM) {
+      const ad: DtpAdvertisement = {
+        ...base,
+        // Copy scaled to the slot, as a booking normally is.
+        positions: Array.from({ length: h - 2 }, (_, i) => ({
+          title: `Technician Grade ${i + 1}`,
+          detail: "Upto SR 2000 + SR 300 Food",
+        })),
+      };
+      const r = renderDtpClassifiedSvg({ ad, heightCm: h, addressLines });
+      expect(r.largestGapRatio).toBeLessThan(0.08);
+    }
+  });
+
+  it("degrades gracefully when a slot is overbought, rather than clipping", () => {
+    // Three trades in twelve centimetres is more space than the copy
+    // needs. The renderer must not answer that by dropping facts or by
+    // inflating type past the measure — it sets large, ruled blocks and
+    // accepts a rest. The bound keeps that rest from becoming the 27%
+    // void an uncapped lead produced.
+    const r = renderDtpClassifiedSvg({ ad: base, heightCm: 12, addressLines });
+    expect(r.largestGapRatio).toBeLessThan(0.16);
+    for (const p of base.positions) expect(r.svg).toContain(p.title.toUpperCase());
+  });
+
+  it("spends surplus on the trades, not on gaps between sections", () => {
+    // A taller booking of the SAME copy must set the trade names
+    // larger. Distributing the surplus as leading instead is what
+    // opened white bands through the middle of the advertisement.
+    const small = renderDtpClassifiedSvg({ ad: base, heightCm: 5, addressLines });
+    const large = renderDtpClassifiedSvg({ ad: base, heightCm: 9, addressLines });
+    const biggest = (svg: string) =>
+      Math.max(...[...svg.matchAll(/font-size="(\d+)"/g)].map((m) => Number(m[1])));
+    expect(biggest(large.svg)).toBeGreaterThan(biggest(small.svg));
+  });
+
+  it("refuses a client logo in the tenant slot", () => {
+    const bad: DtpAdvertisement = {
+      ...base,
+      tenant: { ...base.tenant, logo: brandAsset("CLIENT_LOGO", PNG) as never },
+    };
+    expect(() => renderDtpClassifiedSvg({ ad: bad, heightCm: 8, addressLines }))
+      .toThrow(BrandIdentityViolationError);
+  });
+
+  it("sets a B/W booking in ink whatever accent the tenant supplies", () => {
+    const r = renderDtpClassifiedSvg({
+      ad: { ...base, accent: "#B3121D" }, heightCm: 8, variant: "BW", addressLines,
+    });
+    expect(r.svg).not.toContain("#B3121D");
   });
 });
