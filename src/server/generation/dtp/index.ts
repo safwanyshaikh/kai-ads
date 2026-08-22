@@ -72,7 +72,19 @@ export function dtpAdvertisementFromFacts(
     positions: facts.positions.map((p) => ({
       title: p.title,
       count: p.count ?? null,
-      detail: [p.experience, p.qualification].filter(Boolean).join(" · ") || null,
+      // A qualification is a QUALIFICATION, not pay.
+      //
+      // This adapter predates the compositor's `qualifier` field and
+      // put experience and qualification into `detail`, which the
+      // compositor treats as the pay line: a second display line under
+      // the trade, in a ruled block. Nineteen roles set that way do not
+      // fit any bookable height, so the real requirement failed to
+      // render through the production path while the same content laid
+      // out correctly elsewhere. Set inline, as a continuation of the
+      // trade name, it is both truthful and the shape the references
+      // use for exactly this kind of copy.
+      qualifier: [p.experience, p.qualification].filter(Boolean).join(" · ") || null,
+      detail: p.salary ?? null,
     })),
     salary: null,
     eligibility: [],

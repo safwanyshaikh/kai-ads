@@ -38,6 +38,11 @@ import {
 } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
 import type { GenerateAdvertisementInput } from "@/lib/validations/advertisement-generation";
+import {
+  isDtpOutput,
+  renderDtpAdvertisement,
+} from "@/server/services/dtp-render.service";
+import { dtpAdvertisementFromFacts } from "@/server/generation/dtp";
 
 const log = createLogger(
   "advertisement-generation",
@@ -58,6 +63,118 @@ const log = createLogger(
  * lightweight WEBP delivery asset.
  */
 const GENERATED_WEBP_QUALITY = 85;
+
+/**
+ * DTP CLASSIFIED — the deterministic route.
+ *
+ * Shares everything upstream of composition with the social path:
+ * the same advertisement record, the same agency profile, the same
+ * Requirement Intelligence facts, the same verification QR. What it
+ * does NOT share is the image model — a classified is set, not
+ * illustrated, and sending it through the creative pipeline is what
+ * produced a photographic poster for agencies who had bought a column
+ * of newsprint.
+ */
+async function generateDtpClassified(params: {
+  advertisementId: string;
+  agencyId: string;
+  actorId: string;
+  input: GenerateAdvertisementInput;
+}) {
+  const { advertisementId, agencyId, actorId, input } = params;
+
+  const advertisement = await advertisementRepository.findById(advertisementId, agencyId);
+  if (!advertisement) throw new NotFoundError("Advertisement");
+
+  const agency = await agencyRepository.findById(agencyId);
+  if (!agency) throw new NotFoundError("Agency");
+
+  await generationQuotaService.assertGenerationAllowed(agencyId);
+
+  const verification = await agencyVerificationRepository.findByAgencyId(agencyId);
+  const facts = buildAdvertisementFacts(advertisement, agency);
+
+  // Verification QR — the existing canonical plumbing, not a second
+  // one. Absent verification prints no QR and fabricates nothing.
+  let verificationQrPng: Buffer | null = null;
+  if (verification?.id) {
+    const qr = await generateAndVerifyQr(
+      buildQrTrackingUrl({ agencyVerificationId: verification.id, advertisementId }),
+    );
+    if (qr.decodable) verificationQrPng = qr.png;
+  }
+
+  const tenantLogoPng = await fetchImageBuffer(agency.logoUrl);
+
+  // The tenant's own accent, where they have configured one. A B/W
+  // booking ignores it by design — see the compositor.
+  const brandColours = agency.brandColours as { primary?: string } | null;
+
+  const ad = dtpAdvertisementFromFacts(facts, {
+    accent: brandColours?.primary ?? null,
+  });
+
+  const rendered = renderDtpAdvertisement({
+    outputType: input.outputFormat as "DTP_BW" | "DTP_COLOUR",
+    ad,
+    heightCm: input.dtpHeightCm,
+    tenantLogoPng,
+    verificationQrPng,
+    established: null,
+    addressLines: agency.officeAddress ? [agency.officeAddress] : undefined,
+  });
+
+  // Rasterised at the compositor's own physical pixel dimensions, so
+  // the delivered file is the purchased size at the working DPI.
+  const pngBuffer = await sharp(Buffer.from(rendered.render.svg)).png().toBuffer();
+  const nextVersion = advertisement.currentVersion + 1;
+
+  const uploaded = await storageService.uploadGeneratedAdvertisement({
+    name: `${advertisementId}-v${nextVersion}-dtp.png`,
+    data: pngBuffer,
+  });
+
+  const snapshot = {
+    outputFormat: input.outputFormat,
+    widthCm: rendered.widthCm,
+    heightCm: rendered.heightCm,
+    widthPx: rendered.render.widthPx,
+    heightPx: rendered.render.heightPx,
+    usedImageGeneration: rendered.usedImageGeneration,
+  };
+
+  const updated = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+    const result = await tx.advertisement.update({
+      where: { id: advertisementId },
+      data: {
+        generatedAssetUrl: uploaded.url,
+        style: "NEWSPAPER",
+        currentVersion: nextVersion,
+      },
+    });
+    await tx.advertisementVersion.create({
+      data: {
+        advertisementId,
+        versionNumber: nextVersion,
+        snapshot: snapshot as unknown as Prisma.InputJsonValue,
+        createdById: actorId,
+      },
+    });
+    return result;
+  });
+
+  await auditLogService.record({
+    action: AUDIT_ACTIONS.advertisementGenerated,
+    entity: "Advertisement",
+    entityId: advertisementId,
+    agencyId,
+    actorId,
+    metadata: snapshot,
+  });
+
+  log.info({ advertisementId, ...snapshot }, "DTP classified generated");
+  return updated;
+}
 
 export const advertisementGenerationService = {
   /**
@@ -88,9 +205,29 @@ export const advertisementGenerationService = {
     actorId: string,
     input: GenerateAdvertisementInput,
   ) {
+    /**
+     * ROUTE FIRST.
+     *
+     * DTP and Social are separate rendering engines over the same
+     * approved content, and the branch belongs here — before any
+     * platform-format validation, which is a social concern only.
+     * There is deliberately no fallback: if the DTP compositor
+     * refuses, the caller sees that refusal. Quietly producing a
+     * social poster instead would be a wrong output presented as a
+     * successful one, which is worse than an error.
+     */
+    if (isDtpOutput(input.outputFormat)) {
+      return generateDtpClassified({
+        advertisementId,
+        agencyId,
+        actorId,
+        input,
+      });
+    }
+
     if (
       !isValidPlatformFormatKey(
-        input.platformFormat,
+        input.platformFormat ?? "",
       )
     ) {
       throw new AppError(
@@ -141,9 +278,11 @@ export const advertisementGenerationService = {
         agencyId,
       );
 
+    // Non-null by the schema's refine: SOCIAL requires it, and the DTP
+    // branch returned above.
     const platformFormat =
       getPlatformFormat(
-        input.platformFormat,
+        input.platformFormat as string,
       );
 
     /**
@@ -337,7 +476,7 @@ export const advertisementGenerationService = {
             pngBuffer,
 
           platformFormatKey:
-            input.platformFormat,
+            platformFormat.key,
 
           widthPx:
             platformFormat.widthPx,

@@ -153,9 +153,7 @@ async function main(): Promise<void> {
 
     heading("STEP 3 — generation through the production pipeline");
     console.log("requirement intelligence -> creative brief -> text model -> image model -> rendering");
-    const generated = await advertisementGenerationService.generate(ad.id, agencyId, admin.id, {
-      platformFormat: "generic_portrait",
-    });
+    const generated = await advertisementGenerationService.generate(ad.id, agencyId, admin.id, { outputFormat: "SOCIAL" as const, platformFormat: "generic_portrait", });
     console.log("generation returned:", JSON.stringify(generated).slice(0, 400));
 
     const stored = await db.advertisement.findUnique({ where: { id: ad.id } });

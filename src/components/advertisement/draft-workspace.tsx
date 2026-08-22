@@ -355,56 +355,23 @@ export function DraftWorkspace({
 
       /**
        * STEP 6
-       * Generate immediately.
+       * Hand over for the format choice.
        *
-       * A generation failure is not a reason to
-       * throw the recruiter into data entry.
-       *
-       * The advertisement already exists and the
-       * canvas can retry generation.
-       */
-      setPipelineMessage(
-        "KAI is creating the visual campaign with Gemini and applying the verified recruitment facts…",
-      );
-
-      const generated =
-        await postJson(
-          API_ROUTES.advertisementGenerate(
-            saved.data.id,
-          ),
-          {
-            platformFormat:
-              "generic_portrait",
-          },
-        );
-
-      /**
-       * Generation failure does NOT mean extraction failed.
-       *
-       * Land the recruiter on the Advertisement Canvas
-       * where the generation panel can retry.
-       */
-      if (
-        !generated.ok
-      ) {
-        router.push(
-          APP_ROUTES.advertisementDetail(
-            saved.data.id,
-          ),
-        );
-
-        return;
-      }
-
-      /**
-       * STEP 7
-       * Advertisement ready.
+       * This used to generate immediately with a hidden
+       * "generic_portrait", which is how every advertisement became a
+       * social poster regardless of what the agency was buying. A
+       * newspaper classified and a social post are different products;
+       * the choice is the recruiter's and cannot be made for them
+       * here, so the extracted advertisement is handed to the canvas
+       * where they pick a format and generate.
        */
       router.push(
         APP_ROUTES.advertisementDetail(
           saved.data.id,
         ),
       );
+
+      return;
     })().catch(
       (unexpectedError) => {
         const message =
@@ -485,16 +452,8 @@ export function DraftWorkspace({
       return;
     }
 
-    await postJson(
-      API_ROUTES.advertisementGenerate(
-        saved.data.id,
-      ),
-      {
-        platformFormat:
-          "generic_portrait",
-      },
-    );
-
+    // No generation here either: the format is the recruiter's choice
+    // and is made on the advertisement canvas.
     router.push(
       APP_ROUTES.advertisementDetail(
         saved.data.id,

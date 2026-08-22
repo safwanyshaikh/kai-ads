@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       input.advertisementId,
       agency.id,
       user.id,
-      { platformFormat: input.platformFormat },
+      { outputFormat: "SOCIAL", platformFormat: input.platformFormat },
     );
     return NextResponse.json({ data: advertisement });
   } catch (error) {
